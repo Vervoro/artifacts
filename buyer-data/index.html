@@ -1,0 +1,874 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ADR-009: Buyer data and privacy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono&display=swap">
+<style>
+:root {
+  --bg: #f6f6f8; --surface: #ffffff; --sunken: #ededf1; --text: #16161a; --muted: #5c5c66; --border: #e0e0e6;
+  --accent: #4338ca; --accent-soft: #eef0ff; --edge: #8a8a96; --tint: #f0f0f4;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #111114; --surface: #1a1a1f; --sunken: #23232a; --text: #ececf1; --muted: #a2a2ad; --border: #2d2d35;
+  --accent: #a5b4fc; --accent-soft: #23264a; --edge: #74747f; --tint: #202027; color-scheme: dark; } }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 var(--sans); }
+main { max-width: 860px; margin: 0 auto; padding: 48px max(20px, env(safe-area-inset-left)) 80px; }
+header.site { max-width: 860px; margin: 0 auto; padding: 20px max(20px, env(safe-area-inset-left)) 0; font-size: 14px; }
+header.site a { color: var(--muted); text-decoration: none; }
+header.site a:hover { color: var(--accent); }
+h1, h2, h3 { line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(28px, 4vw, 38px); letter-spacing: -0.02em; margin: 0 0 20px; }
+h2 { font-size: 23px; margin: 48px 0 12px; padding-top: 20px; border-top: 1px solid var(--border); }
+h3 { font-size: 18px; margin: 32px 0 8px; }
+p, li { max-width: 72ch; }
+a { color: var(--accent); }
+code { font-family: var(--mono); font-size: 0.86em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 16px 0; background: var(--surface); }
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+.table-wrap table { margin: 0; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+th { background: var(--sunken); font-weight: 600; font-size: 13px; color: var(--muted); }
+tr:last-child td { border-bottom: none; }
+ul, ol { padding-left: 22px; }
+li + li { margin-top: 4px; }
+figure { margin: 20px 0; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; }
+svg.diagram { display: block; width: 100%; min-width: 640px; height: auto; font-family: var(--sans); }
+svg .ink { fill: var(--text); } svg .quiet { fill: var(--muted); }
+svg .edge { stroke: var(--edge); } svg .edge-fill { fill: var(--edge); }
+svg .accent { stroke: var(--accent); } svg .accent-fill { fill: var(--accent); }
+svg .box { fill: none; stroke: var(--edge); stroke-width: 1.25; }
+svg .box-main { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+svg .band { fill: var(--tint); stroke: var(--edge); stroke-width: 1.25; }
+.cards { list-style: none; padding: 0; display: grid; gap: 12px; }
+.cards a { display: block; padding: 18px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; text-decoration: none; color: var(--text); }
+.cards a:hover, .cards a:focus-visible { border-color: var(--accent); outline: none; }
+.cards.sub { margin: 12px 0 0 24px; padding-left: 16px; border-left: 2px solid var(--border); }
+.cards b { display: block; font-size: 17px; } .cards span { color: var(--muted); font-size: 14px; }
+.order li { margin-top: 10px; } .order span { color: var(--muted); font-size: 14px; }
+footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header class="site"><a href="../">← Vervoro artifacts</a></header>
+<main>
+<h1>ADR-009: Buyer data and privacy</h1>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Status</strong></td>
+<td>Proposed</td>
+</tr>
+<tr>
+<td><strong>Date</strong></td>
+<td>18 October 2026</td>
+</tr>
+<tr>
+<td><strong>Scope</strong></td>
+<td>The personal data of marketplace and website buyers: who is responsible for it, what is kept and why, where it lives, who sees it, when it goes, how buyers&#39; requests and incidents are handled, the security controls marketplaces ask for, and each marketplace&#39;s own rules</td>
+</tr>
+<tr>
+<td><strong>Builds on</strong></td>
+<td><a href="../database-architecture/">ADR-001: Multi-tenant database architecture</a>, <a href="../data-retention/">ADR-002: Data retention and archiving</a>, <a href="../channel-connectors/">ADR-004: Channel connectors</a> and its records for <a href="../ebay-connector/">eBay</a>, <a href="../amazon-seller-connector/">Amazon</a> and <a href="../shopify-connector/">Shopify</a>, <a href="../product-model/">ADR-003: Product model</a></td>
+</tr>
+</tbody></table></div>
+<h2>Context</h2>
+<p>A seller who ships their own orders needs the buyer&#39;s name and address to pack and label each parcel. That makes buyer data the most sensitive data Vervoro holds. A seller with 2,000 orders a day puts about 60,000 buyers&#39; addresses through Vervoro each month.</p>
+<p>Earlier records already decide parts of this:</p>
+<ul>
+<li><strong>ADR-001:</strong> buyer contact fields are encrypted under each company&#39;s own data key, and erasing a company destroys that key.</li>
+<li><strong>ADR-002:</strong> buyer data is anonymised 30 days after dispatch, and only anonymised order history is archived.</li>
+<li><strong>ADR-004:</strong> a notice is never queued with the buyer&#39;s details, and the host handles privacy requests itself.</li>
+<li><strong>ADR-004.1, ADR-004.2 and ADR-004.3:</strong> eBay&#39;s account deletion notices, Amazon&#39;s restricted role and 30 days after delivery, and Shopify&#39;s protected customer data and three privacy webhooks.</li>
+<li><strong>ADR-003:</strong> a recall finds the buyer&#39;s country and date for each lot.</li>
+</ul>
+<p>This record ties those pieces into one design. Marketplaces read it in their data protection reviews. It is numbered 009 because earlier records already point to ADR-007 and ADR-008. It is written before ADR-007 (order ingestion), because that is where buyer data comes in, and ADR-007 follows its rules.</p>
+<p>The design has to meet these requirements:</p>
+<ul>
+<li><strong>Marketplace rules are stricter than the law.</strong> Amazon allows buyer data for no longer than 30 days after delivery, for shipping and tax only. Shopify and eBay review an app before it may see names and addresses. Losing a marketplace&#39;s approval ends the product for every seller on it.</li>
+<li><strong>The seller decides; Vervoro carries out.</strong> The seller chooses to sell and ship, and the buyer is the seller&#39;s customer. Vervoro handles buyer data only to do that work for the seller.</li>
+<li><strong>One operator and a small team.</strong> Every rule has to run by itself, and be proved by a check or a test.</li>
+<li><strong>Buyers ask through others.</strong> A buyer asks the seller or the marketplace, never Vervoro. Vervoro still has to act within the time the law and the marketplace allow.</li>
+</ul>
+<p><strong>Out of scope.</strong> Suppliers are business contacts, covered by a future purchasing record. The seller&#39;s own users (their staff accounts) are Vervoro&#39;s account data. They are covered by Vervoro&#39;s privacy notice, and they get the same security controls.</p>
+<h2>Decision</h2>
+<ol>
+<li><strong>The seller is the controller and Vervoro is the processor</strong> of buyer data, under a data processing agreement that every company accepts before it connects a marketplace. Vervoro publishes its list of sub-processors and gives 30 days&#39; notice of a change.</li>
+<li><strong>Only what is needed to ship is kept:</strong> the recipient&#39;s name, the delivery address with its phone number, the order note and the gift message. Buyer email is not kept. An eBay buyer&#39;s user id is kept only as a keyed hash. Buyer data is never gathered across orders into a profile.</li>
+<li><strong>Buyer data lives in one place:</strong> the company&#39;s cell, plus its shipping label files. It never goes to the control database, queue messages, logs, telemetry, URLs, caches, emails, the client&#39;s storage or the AI provider.</li>
+<li><strong>It is encrypted three times:</strong> TLS 1.2 or higher in transit, storage encryption at rest, and every buyer field encrypted on its own under the company&#39;s data key (ADR-001).</li>
+<li><strong>Who sees it depends on the role and the order&#39;s state.</strong> Packers see an address only while its order is being packed and shipped. Every view of buyer data is logged.</li>
+<li><strong>No one at Vervoro has standing access.</strong> The operator gets a time-limited grant with a recorded reason, and the seller sees it. Developers have no access to production data.</li>
+<li><strong>Buyer data is anonymised 30 days after delivery.</strong> When no delivery date is known, the 30 days count from dispatch. An order cancelled before dispatch counts from its cancellation. When a connection ends, the data of all its orders goes within 30 days. A buyer&#39;s erasure request is carried out at once.</li>
+<li><strong>After anonymisation, the order keeps</strong> its marketplace order id, dates, lines, lots, carrier and the destination&#39;s country and tax territory. Name, street, town, postcode, phone, tracking number, note, gift message and label files are gone. Nothing personal is stored for that order again.</li>
+<li><strong>An issued VAT invoice is kept unchanged for 6 years,</strong> because tax law requires the copy. Consumer invoices carry buyer details only where the invoice type requires them.</li>
+<li><strong>Buyers&#39; requests arrive through the seller or a marketplace.</strong> Each becomes a privacy request with a due date. Erasure runs at once; access and correction are prepared for the seller within 7 days.</li>
+<li><strong>Erasure reaches backups when they expire, within 30 days.</strong> Until then they are beyond use: a restore re-applies every erasure made since the backup before anyone can read it. The archive holds buyer details only on retained invoices.</li>
+<li><strong>An incident that touches buyer data is critical.</strong> Vervoro tells the affected sellers and every marketplace whose data is involved within 24 hours of becoming aware. Where Vervoro is itself the controller, it tells the regulator within 72 hours.</li>
+<li><strong>Security controls follow the strictest marketplace&#39;s schedule:</strong> multi-factor sign-in for every user, central security logs kept 12 months, monthly vulnerability scans, a yearly penetration test, quarterly access reviews, and a written incident response plan reviewed every six months.</li>
+<li><strong>No real buyer data outside production.</strong> Simulators, tests, fixtures and demos use synthetic buyers from reserved ranges, and a build check refuses anything else.</li>
+<li><strong>Each marketplace&#39;s own rules are met by its connector and the host:</strong> Amazon&#39;s restricted role and its token for restricted calls, Shopify&#39;s level 2 protected customer data, and eBay&#39;s account deletion notices matched by hash.</li>
+<li><strong>A company export holds buyer data only for orders that still have it.</strong> Only an owner or admin can make one, and the file is encrypted with a link that expires.</li>
+</ol>
+<h2>Roles and agreements</h2>
+<p><strong>The seller is the controller.</strong> The seller sells to the buyer, chooses the carrier and decides to ship. Vervoro processes buyer data only on the seller&#39;s instructions, which are the product&#39;s settings and actions. Vervoro is the controller only of its own account data (the seller&#39;s users, billing and sign-in) and of its platform security logs.</p>
+<p><strong>The data processing agreement</strong> is part of the customer terms, and a company accepts it before connecting its first marketplace. It covers what UK and EU law require of a processor contract:</p>
+<ul>
+<li>Vervoro acts only on the seller&#39;s documented instructions.</li>
+<li>Everyone who can reach buyer data is bound to confidentiality.</li>
+<li>The security measures in this record are part of the agreement.</li>
+<li>Sub-processors are used only under the seller&#39;s general authorisation. A change is announced 30 days ahead, and a seller who objects may leave before it takes effect.</li>
+<li>Vervoro helps the seller answer buyers&#39; requests and meet its own breach duties.</li>
+<li>At the end, the seller&#39;s data is deleted, after an export if the seller wants one, except what the law requires Vervoro to keep.</li>
+<li>The seller may audit, through Vervoro&#39;s evidence first and an inspection when that is not enough.</li>
+</ul>
+<p><strong>Marketplace terms also bind Vervoro directly.</strong> Amazon&#39;s Data Protection Policy and Acceptable Use Policy apply to Vervoro as the solution provider. eBay&#39;s API License Agreement treats every developer as an independent controller of the data eBay sends. Shopify&#39;s API terms apply to Vervoro as the app developer. Where a marketplace is stricter than the processing agreement, Vervoro follows the marketplace, and the agreement tells the seller so.</p>
+<p><strong>Sub-processors.</strong> The published list names each provider, what it does and where. At launch:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Sub-processor</th>
+<th>What it does</th>
+<th>Buyer data it handles</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Cloudflare</td>
+<td>Runs the application, the inbound queue, the per-company live updates and object storage; the application is placed in the EU, and requests pass through Cloudflare&#39;s global network</td>
+<td>All of it, while serving requests; label files at rest</td>
+</tr>
+<tr>
+<td>Neon</td>
+<td>Runs the Postgres databases in the EU</td>
+<td>All of it, at rest and encrypted field by field</td>
+</tr>
+<tr>
+<td>Amazon Web Services</td>
+<td>The small relay that receives Amazon&#39;s notices and posts them to Vervoro</td>
+<td>Amazon&#39;s order notices, which carry a destination postcode and no name or address; nothing is stored beyond the queue&#39;s own retries</td>
+</tr>
+<tr>
+<td>Email delivery provider</td>
+<td>Sends emails to the seller&#39;s users</td>
+<td>None: emails name an order, never a buyer</td>
+</tr>
+<tr>
+<td>AI provider</td>
+<td>Answers the seller&#39;s users&#39; questions and proposals</td>
+<td>None: buyer fields are masked before any call (ADR-001&#39;s field tags)</td>
+</tr>
+</tbody></table></div>
+<p><strong>Carriers are the seller&#39;s, not Vervoro&#39;s.</strong> The seller connects their own carrier accounts. Sending an address to the seller&#39;s carrier to buy a label is the seller&#39;s instruction, and the carrier works for the seller.</p>
+<h2>What is kept, and why</h2>
+<p>Each field is kept only for a stated purpose, and only from the marketplaces that send it.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Why it is kept</th>
+<th>Until</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Recipient name</td>
+<td>The label and the packing slip</td>
+<td>Anonymisation</td>
+</tr>
+<tr>
+<td>Delivery address lines, town, postcode</td>
+<td>The label</td>
+<td>Anonymisation</td>
+</tr>
+<tr>
+<td>Country, and tax territory where it differs (Northern Ireland, the Canary Islands and the like)</td>
+<td>VAT on the sale, reports</td>
+<td>Kept with the order</td>
+</tr>
+<tr>
+<td>Delivery phone</td>
+<td>Carriers need a phone for delivery notices and failed deliveries</td>
+<td>Anonymisation</td>
+</tr>
+<tr>
+<td>Order note, gift message</td>
+<td>The packer reads them; a gift message is printed</td>
+<td>Anonymisation</td>
+</tr>
+<tr>
+<td>Business buyer&#39;s company name and VAT number, when the marketplace gives them</td>
+<td>A business invoice</td>
+<td>Anonymisation, except on an issued invoice</td>
+</tr>
+<tr>
+<td>eBay buyer&#39;s user id, as a keyed hash</td>
+<td>Matching eBay&#39;s account deletion notices</td>
+<td>Anonymisation</td>
+</tr>
+<tr>
+<td>Tracking number</td>
+<td>Confirming the shipment and following delivery</td>
+<td>Anonymisation</td>
+</tr>
+<tr>
+<td>Label file</td>
+<td>Printing and reprinting the label</td>
+<td>Anonymisation</td>
+</tr>
+</tbody></table></div>
+<p>What is never kept:</p>
+<ul>
+<li><strong>Buyer email.</strong> Carriers accept a phone, and marketplaces relay or mask buyer emails anyway. A seller who writes to a buyer does it through the marketplace.</li>
+<li><strong>Billing addresses and payment details.</strong> Payment stays with the marketplace.</li>
+<li><strong>A buyer&#39;s identity across orders.</strong> Each order&#39;s buyer data belongs to that order only. Vervoro never builds a buyer profile, never matches buyers across marketplaces or sellers, and never uses buyer data for marketing, reviews or anything but shipping, tax and the seller&#39;s own service to that order.</li>
+<li><strong>The eBay user id itself.</strong> eBay&#39;s terms forbid storing it, so only a hash is kept.</li>
+</ul>
+<p><strong>Masked and missing values stay missing.</strong> What a marketplace withholds or masks is left out, never stored as blank. A later read without a field never erases what an earlier read kept, and never makes a value up (ADR-004).</p>
+<p><strong>Every buyer field is declared as personal.</strong> The <code>pii</code> field tag of ADR-001 marks it. The tag drives encryption, masking, logging rules, anonymisation, export and the AI mask from one declaration. A build check refuses a column that holds buyer data without the tag.</p>
+<h2>Where it lives and how it is protected</h2>
+<p><strong>One place.</strong> Buyer data is stored only in the company&#39;s rows in its cell (ADR-001), and in the company&#39;s label files in object storage. Both are in the EU.</p>
+<p><strong>Never anywhere else:</strong></p>
+<ul>
+<li><strong>Queue messages</strong> carry the topic, the notice id, the account and the order ids (ADR-004). The webhook body is not kept.</li>
+<li><strong>The outbox, events, outbound sends and live updates</strong> carry ids and statuses. A screen that needs a name reads it through the API, so the view is logged.</li>
+<li><strong>Logs, telemetry, error reports and analytics</strong> never carry a buyer field. The logger drops any value from a <code>pii</code> field, and a test proves it.</li>
+<li><strong>URLs</strong> never carry buyer data. A search by phone goes in the request body.</li>
+<li><strong>Caches.</strong> Hyperdrive&#39;s query caching is off (ADR-001). No other cache holds buyer data.</li>
+<li><strong>Emails and push notices</strong> to the seller&#39;s users name the order number, never the buyer.</li>
+<li><strong>The phone client</strong> keeps buyer data in memory for the screen being shown, never in the device&#39;s storage. Labels are printed, not saved on the device.</li>
+<li><strong>The control database</strong> holds no buyer data.</li>
+</ul>
+<p><strong>Encryption.</strong></p>
+<ul>
+<li><strong>In transit:</strong> TLS 1.2 or higher on every connection, inside and outside the platform, including to the databases and object storage.</li>
+<li><strong>At rest:</strong> the database and object storage encrypt everything they store, backups included.</li>
+<li><strong>Field by field:</strong> each buyer field is encrypted with AES-256-GCM under the company&#39;s data key, with the company id as associated data (ADR-001). A row read under the wrong company fails to decrypt. A database dump, a backup or a console query shows only ciphertext.</li>
+<li><strong>Keys:</strong> each company&#39;s data key is wrapped by a key-encryption key held as a platform secret, never in the database. The key-encryption key is rotated every year and at once on any suspicion, by re-wrapping the company keys.</li>
+<li><strong>Label files</strong> are encrypted with the company&#39;s data key before they are stored. They go to a bucket without versioning, so deleting one deletes it.</li>
+<li><strong>Search:</strong> the only search on buyer data is ADR-001&#39;s exact-match blind index on the phone number. Buyer email is not kept, so it has no index. The index entry is removed with the field.</li>
+</ul>
+<h2>Who can see it</h2>
+<p><strong>Seller&#39;s users</strong> see buyer data by role and by the order&#39;s state. Everyone else sees the order masked: its number, country and lines.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Sees name, address and phone</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Owner, admin, manager</td>
+<td>Yes</td>
+<td>Any order that still holds buyer data, to serve the buyer</td>
+</tr>
+<tr>
+<td>Warehouse</td>
+<td>Yes, in their warehouses only</td>
+<td>From picking until the order is shipped, plus label reprints for 24 hours after</td>
+</tr>
+<tr>
+<td>Accountant</td>
+<td>Only as printed on issued invoices</td>
+<td>Never on orders</td>
+</tr>
+<tr>
+<td>Staff</td>
+<td>No</td>
+<td>Never</td>
+</tr>
+</tbody></table></div>
+<p><strong>Every view is logged.</strong> Opening an order with buyer data, the packing screen, printing or reprinting a label, a buyer search and an export each write one entry to <code>audit_log</code>: the user, the order, the fields shown, the screen and the time. Lists show no buyer data, so they write nothing. The seller sees the entries in their audit log. <code>audit_log</code> is kept at least a year (ADR-001).</p>
+<p><strong>The operator</strong> has no standing access to any company. To help a seller, the operator opens an access grant:</p>
+<ul>
+<li>for one company, with a written reason, for at most 8 hours;</li>
+<li>with buyer fields still masked, unless the reason names a buyer-data need (for example, the seller asked to fix an address);</li>
+<li>recorded in the company&#39;s audit log, so the seller sees it, and in a platform security log kept 12 months that holds no buyer data.</li>
+</ul>
+<p><strong>Developers</strong> have no access to production data. The database owner role is used only by migrations, the slice operation and the archiver (ADR-001). A person using it in an emergency records the reason first, and it alerts the owner. Even then, buyer fields are ciphertext.</p>
+<p><strong>Leavers and changes.</strong> A person&#39;s access to the platform ends within 24 hours of leaving or changing role, and access is reviewed every quarter.</p>
+<h2>Retention and anonymisation</h2>
+<p><strong>The rule:</strong> buyer data is anonymised 30 days after delivery, as Amazon&#39;s Data Protection Policy requires, and the same rule applies to every marketplace and website.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>The order</th>
+<th>The 30 days count from</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Delivered, with a delivery date from the carrier or the marketplace</td>
+<td>Delivery</td>
+</tr>
+<tr>
+<td>Dispatched, with no delivery date known</td>
+<td>Dispatch, which always comes before delivery, so the limit is never passed</td>
+</tr>
+<tr>
+<td>Shipped outside Vervoro</td>
+<td>The shipping time the marketplace gives</td>
+</tr>
+<tr>
+<td>Cancelled before dispatch</td>
+<td>The cancellation</td>
+</tr>
+<tr>
+<td>On a connection that ended or whose access was revoked</td>
+<td>The end of the connection, whatever the order&#39;s state</td>
+</tr>
+<tr>
+<td>Named in a buyer&#39;s erasure request</td>
+<td>No wait: at once</td>
+</tr>
+</tbody></table></div>
+<p>An order still to be shipped keeps its address, because it is still needed. This reconciles ADR-002&#39;s &quot;30 days after dispatch&quot; with ADR-004.2&#39;s &quot;30 days after delivery&quot;: delivery is the rule, and dispatch is the fallback that can never be late.</p>
+<p><strong>How it runs.</strong> Each order with buyer data has a due time in the cell&#39;s <code>due</code> table (ADR-001). When it comes, the sweeper, in one transaction per company:</p>
+<ol>
+<li>clears every <code>pii</code> field on the order and its lines;</li>
+<li>removes the phone&#39;s blind index entry and the eBay hash;</li>
+<li>marks the order anonymised, with the time and the reason;</li>
+<li>deletes the order&#39;s label files.</li>
+</ol>
+<p><strong>Once anonymised, never again.</strong> The order keeps a marker. A later read or notice that brings the buyer&#39;s details back stores nothing personal for that order.</p>
+<p><strong>Proof.</strong> A nightly check counts orders past their due time that still hold buyer data, per company. Anything but zero alerts the operator.</p>
+<p><strong>What survives, and why.</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Kept</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Marketplace order id, order and dispatch dates, lines, prices, totals and fees</td>
+<td>Accounting records required for 6 years; a return, refund or claim found by order id</td>
+</tr>
+<tr>
+<td>Batch and lot shipped</td>
+<td>A recall: the lot gives every order, country and date (ADR-003). To reach the buyers, the seller uses the marketplace&#39;s own messaging with the order id</td>
+</tr>
+<tr>
+<td>Country, and tax territory where VAT treats part of a country differently</td>
+<td>VAT on the sale</td>
+</tr>
+<tr>
+<td>Carrier and service</td>
+<td>Reports</td>
+</tr>
+</tbody></table></div>
+<p>The postcode district and the town are not kept. Amazon&#39;s policy counts postal codes as personal data. With a date and the items bought, a district can single out a person. The tax territory gives what VAT needs without them.</p>
+<p><strong>Invoices.</strong> UK law does not require a VAT invoice for a sale to a consumer. A full VAT invoice must carry the customer&#39;s name and address. A simplified invoice, allowed in the UK up to £250 and in the EU up to at least 100 euros, needs no customer details. So:</p>
+<ul>
+<li><strong>To a consumer,</strong> Vervoro issues an invoice for the seller only when the buyer asks, or when the law or the marketplace requires one. It is a simplified invoice without buyer details wherever the law allows.</li>
+<li><strong>To a business, or a consumer who asked for a full invoice,</strong> the invoice carries the name and address the law requires.</li>
+<li><strong>Every issued invoice is kept unchanged for 6 years,</strong> because HMRC and EU law require the copy. This is the legal requirement Amazon&#39;s policy allows.</li>
+<li><strong>After the order is anonymised,</strong> the invoice is shown only to owners, admins and accountants, each view logged. It is not searchable by buyer, and it moves to the archive with its month (ADR-002), encrypted with the company&#39;s key.</li>
+</ul>
+<h2>Buyers&#39; requests</h2>
+<p>A buyer asks the seller or a marketplace, never Vervoro directly. Each request becomes a privacy request in the company: who sent it, what it names, the due date, and when it was done. It holds order ids, never the buyer&#39;s details.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Request</th>
+<th>Arrives from</th>
+<th>Vervoro does</th>
+<th>Due</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Erasure</td>
+<td>The seller, on a buyer&#39;s request; Shopify&#39;s <code>customers/redact</code>; an eBay account deletion that matches a buyer</td>
+<td>Anonymises the named orders at once, as above</td>
+<td>At once</td>
+</tr>
+<tr>
+<td>Access</td>
+<td>The seller; Shopify&#39;s <code>customers/data_request</code></td>
+<td>Prepares the buyer&#39;s data on the named orders as a file for the seller</td>
+<td>7 days, so the seller meets the law&#39;s one month</td>
+</tr>
+<tr>
+<td>Correction</td>
+<td>The seller</td>
+<td>The corrected field is saved, marked as set by a person, and a later marketplace read does not overwrite it</td>
+<td>At once</td>
+</tr>
+<tr>
+<td>Forget a shop</td>
+<td>Shopify&#39;s <code>shop/redact</code>, 48 hours after the app is uninstalled</td>
+<td>The shop&#39;s buyer data is deleted; the connection has already ended</td>
+<td>At once, within Shopify&#39;s 30 days</td>
+</tr>
+<tr>
+<td>Delete on Amazon&#39;s notice</td>
+<td>Amazon, under its policy</td>
+<td>The named data is deleted</td>
+<td>Within Amazon&#39;s 30 days</td>
+</tr>
+</tbody></table></div>
+<p><strong>Finding the buyer&#39;s orders.</strong> A request names orders by their marketplace order ids, or the seller finds them by an exact phone number. An eBay account deletion names a user, not an order, so it is matched by hash (below).</p>
+<p><strong>What an erasure keeps.</strong> An issued invoice stays, because the law requires it. The request records that the invoice was kept, and why, so the seller can tell the buyer.</p>
+<h3>One buyer&#39;s erasure, end to end</h3>
+<ol>
+<li><strong>The live cell.</strong> The named orders are anonymised in one transaction, label files deleted, and the privacy request marked done.</li>
+<li><strong>The erasure log.</strong> The company&#39;s completed erasures (order ids and times only) are also written to a per-company file in object storage, outside the database and its backups.</li>
+<li><strong>Backups.</strong> The cell&#39;s point-in-time history (7 days) and nightly snapshots (30 days) still hold the old values, encrypted field by field. They are beyond use: nobody reads a backup except to restore, and they expire on schedule. Erasure is complete in backups 30 days after it was made.</li>
+<li><strong>A restore re-applies erasures.</strong> Restoring one company, or a whole cell, re-applies every erasure in the erasure log made after the restore time, and runs the anonymisation sweep, before the company or the cell is opened to anyone.</li>
+<li><strong>The archive.</strong> Orders reach the archive after 24 months (ADR-002), long after anonymisation, so archived orders hold no buyer data. Only retained invoices do, and they stay for their statutory period.</li>
+<li><strong>Closing the company.</strong> Erasing the company destroys its data key (ADR-001), which makes every remaining copy unreadable.</li>
+</ol>
+<h2>Incidents</h2>
+<p><strong>Detection.</strong> These raise an alert to the operator:</p>
+<ul>
+<li><strong>Canary buyers.</strong> Each cell holds a synthetic buyer on a synthetic company. Any view, export or decrypt of it outside its own test alerts.</li>
+<li><strong>Unusual reading.</strong> A user viewing far more buyers than their packing explains, a burst of buyer searches, or an export with buyer data.</li>
+<li><strong>Access.</strong> Every operator grant and every use of the database owner role.</li>
+<li><strong>Failures that hint at a fault.</strong> A decrypt that fails because the company does not match, an overdue anonymisation, or a log line that looks like an address or a phone.</li>
+<li><strong>Signals from outside:</strong> a marketplace, a seller, a researcher or a sub-processor reporting a problem.</li>
+</ul>
+<p><strong>Response.</strong> The written incident response plan covers preparation, finding the incident, containing it, removing the cause, recovery and lessons learned. The operator is the incident point of contact, and the owner is the deputy. Containment can revoke sessions, rotate keys, and hold every send to a marketplace (ADR-004).</p>
+<p><strong>Who is told, and when.</strong> Times count from the moment Vervoro becomes aware.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Who</th>
+<th>When</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Each affected seller</td>
+<td>Without undue delay, and within 24 hours</td>
+<td>The seller is the controller and must decide on telling the regulator within 72 hours, so the 24 hours leave them time</td>
+</tr>
+<tr>
+<td>Amazon</td>
+<td>Within 24 hours, to its security address, when Amazon data is involved</td>
+<td>Amazon&#39;s Data Protection Policy</td>
+</tr>
+<tr>
+<td>Shopify</td>
+<td>Within 24 hours, through partner support, when shop data is involved</td>
+<td>Shopify&#39;s API terms</td>
+</tr>
+<tr>
+<td>eBay</td>
+<td>Within 24 hours when eBay data is involved</td>
+<td>Vervoro&#39;s rule; eBay&#39;s terms ask for immediate notice of key compromise</td>
+</tr>
+<tr>
+<td>The ICO (or the lead EU regulator)</td>
+<td>Within 72 hours, where Vervoro is itself the controller and a risk to people is likely</td>
+<td>UK and EU GDPR</td>
+</tr>
+<tr>
+<td>Affected buyers</td>
+<td>By the controller, without undue delay, when the risk is high</td>
+<td>UK and EU GDPR; Vervoro helps the seller</td>
+</tr>
+</tbody></table></div>
+<p>Vervoro speaks for itself only: it never speaks for a marketplace to a regulator or a buyer. <strong>Every incident is recorded,</strong> including those that need no notice, with what happened, its effects and what was done.</p>
+<h2>Security controls</h2>
+<p>Amazon&#39;s schedule is the strictest of the three marketplaces, so it is the schedule for all of them.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Control</th>
+<th>What Vervoro does</th>
+<th>How often</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Multi-factor sign-in</td>
+<td>Required for every user of every company, every operator and every developer account</td>
+<td>Always</td>
+</tr>
+<tr>
+<td>Passwords</td>
+<td>Where a password is used: at least 12 characters with mixed character types, none of the user&#39;s name, the last 10 not reused, changed at least once a year; locked after 10 failed attempts. Passkeys are offered</td>
+<td>Always</td>
+</tr>
+<tr>
+<td>One person, one account</td>
+<td>No shared or generic accounts</td>
+<td>Always</td>
+</tr>
+<tr>
+<td>Security logs</td>
+<td>Sign-ins, access grants, buyer-data views, exports, key use and admin actions, collected centrally, protected from change, with no buyer data in them</td>
+<td>Kept at least 12 months; alerts reviewed continuously, the rest every two weeks</td>
+</tr>
+<tr>
+<td>Vulnerability scans</td>
+<td>Every system that touches seller or buyer data</td>
+<td>At least every 30 days, and the code before each release</td>
+</tr>
+<tr>
+<td>Fixing what scans find</td>
+<td>Critical within 7 days, high within 30 days</td>
+<td>As found</td>
+</tr>
+<tr>
+<td>Penetration test</td>
+<td>By an outside tester</td>
+<td>Every year</td>
+</tr>
+<tr>
+<td>Access reviews</td>
+<td>Every operator, developer and service account</td>
+<td>Every quarter</td>
+</tr>
+<tr>
+<td>Access removal</td>
+<td>When someone leaves or changes role</td>
+<td>Within 24 hours</td>
+</tr>
+<tr>
+<td>Incident response plan</td>
+<td>Written, approved by the owner, tested</td>
+<td>Reviewed every six months and after a major change</td>
+</tr>
+<tr>
+<td>Backup restore test</td>
+<td>A restore, including the erasure replay</td>
+<td>Every quarter</td>
+</tr>
+<tr>
+<td>Key rotation</td>
+<td>Key-encryption key and marketplace credentials</td>
+<td>Every year, and at once on suspicion</td>
+</tr>
+<tr>
+<td>Risk assessment</td>
+<td>Threats, likelihood and what is done about them</td>
+<td>Every year</td>
+</tr>
+<tr>
+<td>Sub-processor review</td>
+<td>Each provider&#39;s security against this record</td>
+<td>Every year</td>
+</tr>
+<tr>
+<td>Training</td>
+<td>Everyone with access</td>
+<td>Every year</td>
+</tr>
+</tbody></table></div>
+<p><strong>No real buyer data outside production.</strong></p>
+<ul>
+<li><strong>Simulators and tests</strong> use synthetic buyers only: names from a generator, <code>example.com</code> and <code>.test</code> emails, UK drama phone numbers (07700 900000 to 900999), and the non-geographic postcode <code>ZZ99 9ZZ</code>. For example, &quot;Testa Buyer, 1 Example Street, Testville, ZZ99 9ZZ&quot;.</li>
+<li><strong>A build check</strong> scans fixtures, recordings and seed data, and refuses an email, phone number or postcode outside those ranges.</li>
+<li><strong>Recordings of real marketplace replies,</strong> used to correct the simulators (ADR-000), are made against sandboxes and the team&#39;s own test seller accounts. Buyer fields are replaced with synthetic ones before a recording is saved.</li>
+<li><strong>A production branch</strong> made for a restore holds real data. It is reached only by the owner role, and it is deleted within 24 hours.</li>
+<li><strong>Staging</strong> runs on simulators and synthetic companies only.</li>
+</ul>
+<h2>Per marketplace</h2>
+<h3>Amazon</h3>
+<ul>
+<li><strong>The restricted role.</strong> Vervoro asks only for Amazon&#39;s direct-to-consumer shipping role, which releases the recipient&#39;s name, address and phone for orders the seller ships, while they are unshipped or shipped. It does not ask for the tax roles.</li>
+<li><strong>Reading orders.</strong> The orders API version that Amazon introduced in 2026 releases buyer data through the role alone, with no Restricted Data Token. Vervoro asks it only for the recipient and the gift message, never for the buyer&#39;s email. It asks for them only on orders the seller ships that are not yet shipped. Amazon hides the phone itself once the latest delivery date has passed.</li>
+<li><strong>Restricted Data Tokens.</strong> A call that still needs one (an older operation, or a shipping label bought through Amazon) gets a token for that one order&#39;s path and only the data elements it needs. The token is held in memory for its lifetime, never stored and never logged.</li>
+<li><strong>Use.</strong> Amazon buyer data is used only for shipping the seller&#39;s order and for tax, as Amazon&#39;s Acceptable Use Policy allows. It is never combined across sellers, never used for marketing or reviews, and never shared beyond the sub-processors listed.</li>
+<li><strong>Retention and deletion.</strong> Thirty days after delivery. Everything about a seller is deleted within 30 days of the seller removing Vervoro&#39;s access, Amazon&#39;s notice, or the end of Vervoro&#39;s participation, except what the law requires to be kept.</li>
+<li><strong>Notices.</strong> Amazon&#39;s order notices carry a destination postcode. The relay does not store notices, and the queue message carries only ids (ADR-004).</li>
+</ul>
+<h3>Shopify</h3>
+<ul>
+<li><strong>Level 2 protected customer data.</strong> Vervoro asks for the name, address and phone fields, because a label needs them. It does not ask for email. Level 2 needs the controls of this record: encrypted backups, test data separate from production, limited staff access, strong passwords, an access log and an incident response policy.</li>
+<li><strong>Without approval,</strong> Shopify sends the order with those fields empty, and the order arrives without them (ADR-004.3).</li>
+<li><strong>The three privacy webhooks</strong> are received and checked by their signature; a bad signature gets 401. <code>customers/redact</code> anonymises the named orders at once. <code>customers/data_request</code> becomes an access request due in 7 days. <code>shop/redact</code> deletes the shop&#39;s buyer data.</li>
+<li><strong>Uninstalling</strong> ends the connection, so the shop&#39;s buyer data goes within 30 days, as Shopify&#39;s API terms require, even before <code>shop/redact</code> arrives.</li>
+</ul>
+<h3>eBay</h3>
+<ul>
+<li><strong>eBay&#39;s terms</strong> ask Vervoro to delete personal data promptly once it is no longer needed, when eBay or the user asks, and within 10 days of leaving eBay&#39;s developer programme. They forbid storing eBay user ids. eBay&#39;s data processing terms treat each developer as an independent controller of the data eBay sends.</li>
+<li><strong>Account deletion notices</strong> arrive for every eBay user who closes their account (ADR-004.1). Each is checked by its signature and answered at once.<ul>
+<li><strong>For a connected seller,</strong> it is a privacy request, as ADR-004.1 decides.</li>
+<li><strong>For a buyer,</strong> Vervoro matches it. When an eBay order is imported, a keyed hash of the buyer&#39;s user id is stored with the order and in a small lookup table in the cell, <code>buyer_ref(hash, company_id, order_id)</code>. It holds only hashes and ids, like the <code>due</code> table (ADR-001). A notice is hashed and looked up in each cell with one indexed query. A match anonymises that buyer&#39;s orders in their company at once. The notice itself is never kept.</li>
+<li><strong>The lookup row</strong> is removed when the order is anonymised, so it lives at most as long as the buyer data.</li>
+</ul>
+</li>
+</ul>
+<h2>Exports and archives</h2>
+<p><strong>A company export</strong> (ADR-001) contains the company&#39;s data as it is now:</p>
+<ul>
+<li>buyer data only for orders that still hold it, decrypted for the company;</li>
+<li>anonymised orders as they are, with no buyer data;</li>
+<li>issued invoices, as issued;</li>
+<li>the archive files for older months (ADR-002).</li>
+</ul>
+<p><strong>Who and how.</strong> Only an owner or admin can make an export with buyer data; for anyone else, it leaves the buyer fields out. The file is encrypted at rest, offered through a link that expires after 24 hours, and deleted after 7 days. Each export is logged with who made it and what it held.</p>
+<p><strong>A one-buyer file</strong> for an access request holds only the named orders&#39; buyer data, made the same way.</p>
+<p><strong>The archive</strong> holds anonymised orders and retained invoices only, encrypted per company, deleted at the end of the statutory period or when the company is erased (ADR-002).</p>
+<h2>How this is proven</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Test or check</th>
+<th>Where</th>
+<th>Proves</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Field tag lint</td>
+<td>CI</td>
+<td>Every column with buyer data carries <code>pii</code>, is encrypted, and is cleared by anonymisation</td>
+</tr>
+<tr>
+<td>Log and telemetry redaction</td>
+<td>CI</td>
+<td>A <code>pii</code> value given to the logger, an error report or telemetry never appears in the output</td>
+</tr>
+<tr>
+<td>Anonymisation due times</td>
+<td>CI</td>
+<td>Each row of the retention table gives the right due time; an order already anonymised stores nothing personal from a later read</td>
+</tr>
+<tr>
+<td>Nightly overdue count</td>
+<td>Production</td>
+<td>No order past its due time still holds buyer data</td>
+</tr>
+<tr>
+<td>Role and state masking</td>
+<td>CI</td>
+<td>Each role sees buyer data only in the states the table allows; every view writes one audit entry</td>
+</tr>
+<tr>
+<td>Erasure replay</td>
+<td>CI and the quarterly restore test</td>
+<td>A restore to before an erasure opens with that erasure applied</td>
+</tr>
+<tr>
+<td>eBay deletion match</td>
+<td>CI</td>
+<td>A buyer&#39;s deletion notice anonymises their orders in every cell and leaves nothing stored</td>
+</tr>
+<tr>
+<td>Synthetic data check</td>
+<td>CI</td>
+<td>No fixture, recording or seed holds an email, phone or postcode outside the reserved ranges</td>
+</tr>
+<tr>
+<td>Canary buyers</td>
+<td>Production</td>
+<td>Reading a canary alerts within minutes</td>
+</tr>
+<tr>
+<td>Export contents</td>
+<td>CI</td>
+<td>An export holds buyer data only for orders that still have it, and none for a role that may not see it</td>
+</tr>
+</tbody></table></div>
+<h2>Constraints</h2>
+<p>Checked against the official sources on 18 October 2026.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Constraint</th>
+<th>Figure</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Amazon: retention</td>
+<td>Buyer data no longer than 30 days after order delivery, unless the law requires longer; kept only to ship, for tax, tax invoices and legal duties</td>
+<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US">Data Protection Policy, 2.1</a></td>
+</tr>
+<tr>
+<td>Amazon: deletion on a trigger</td>
+<td>Within 30 days of Amazon&#39;s notice, the seller revoking access, or the end of participation</td>
+<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US">Data Protection Policy, 1.7</a></td>
+</tr>
+<tr>
+<td>Amazon: incidents</td>
+<td>Notice to Amazon&#39;s security address within 24 hours; plan reviewed every six months; a named point of contact</td>
+<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US">Data Protection Policy, 1.6</a></td>
+</tr>
+<tr>
+<td>Amazon: sign-in</td>
+<td>Multi-factor for every user account; password rules (12 characters, 10 not reused, at most 365 days)</td>
+<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US">Data Protection Policy, 1.4.1</a></td>
+</tr>
+<tr>
+<td>Amazon: encryption</td>
+<td>At rest at least AES-128 or RSA-2048; in transit TLS 1.2 or higher</td>
+<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US">Data Protection Policy, 2.4 and 1.5</a></td>
+</tr>
+<tr>
+<td>Amazon: logs</td>
+<td>No personal data in logs; kept at least 12 months; reviewed at least every two weeks</td>
+<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US">Data Protection Policy, 2.6</a></td>
+</tr>
+<tr>
+<td>Amazon: schedule</td>
+<td>Scans every 30 days, penetration test yearly, critical fixes in 7 days and high in 30, access reviews quarterly, access removed within 24 hours, backup tests quarterly, key rotation yearly</td>
+<td><a href="https://developer-docs.amazon/sp-api/docs/guidance-to-address-key-security-controls-in-sp-api-integration">Key security control guidance</a></td>
+</tr>
+<tr>
+<td>Amazon: use</td>
+<td>Buyer data only for merchant-fulfilled shipping and legal duties; no combining across sellers; need-to-know access</td>
+<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=AUP&locale=en_US">Acceptable Use Policy, 3.9, 4.1 and 4.4</a></td>
+</tr>
+<tr>
+<td>Amazon: orders API 2026</td>
+<td>Buyer data by role, with no Restricted Data Token; phone hidden after the latest delivery date</td>
+<td><a href="https://developer-docs.amazon/sp-api/docs/access-orders-pii">Access orders PII</a></td>
+</tr>
+<tr>
+<td>Amazon: Restricted Data Token</td>
+<td>Needed for restricted operations; names a path (one order or all) and data elements</td>
+<td><a href="https://developer-docs.amazon/sp-api/docs/tokens-api-use-case-guide">Tokens API use case guide</a></td>
+</tr>
+<tr>
+<td>Amazon: order notices</td>
+<td>Carry a destination postcode, no name or street address</td>
+<td><a href="https://developer-docs.amazon/sp-api/docs/notification-type-values">Notification type values</a></td>
+</tr>
+<tr>
+<td>Shopify: protected customer data</td>
+<td>Name, address, phone and email are level 2, each asked for separately; level 2 adds encrypted backups, separate test data, limited staff access, strong passwords, an access log, an incident policy</td>
+<td><a href="https://shopify.dev/docs/apps/launch/protected-customer-data">Protected customer data</a></td>
+</tr>
+<tr>
+<td>Shopify: privacy webhooks</td>
+<td><code>customers/redact</code> held for 6 months if the buyer ordered recently; <code>shop/redact</code> 48 hours after uninstall; 30 days to act; 401 on a bad signature</td>
+<td><a href="https://shopify.dev/docs/apps/build/compliance/privacy-law-compliance">Privacy law compliance</a></td>
+</tr>
+<tr>
+<td>Shopify: deletion and incidents</td>
+<td>Merchant data deleted within 30 days of uninstall unless the law says otherwise; a breach reported within 24 hours</td>
+<td><a href="https://www.shopify.com/legal/api-terms">API terms, 6.2.3 and 6.2.10</a></td>
+</tr>
+<tr>
+<td>eBay: personal data</td>
+<td>Delete promptly when no longer needed or when asked; never store user ids or passwords; destroy within 10 days of termination; each party an independent controller</td>
+<td><a href="https://developer.ebay.com/join/api-license-agreement">API License Agreement</a></td>
+</tr>
+<tr>
+<td>eBay: account deletion</td>
+<td>Notices for every user; delete that user&#39;s data so no privilege can reverse it; acknowledge with 200, 201, 202 or 204; an unanswering endpoint is marked down after 24 hours</td>
+<td><a href="https://developer.ebay.com/marketplace-account-deletion">Marketplace account deletion</a></td>
+</tr>
+<tr>
+<td>UK GDPR: processor contract</td>
+<td>Instructions, confidentiality, security, sub-processors with authorisation and notice, help with requests and breaches, deletion at the end, audits</td>
+<td><a href="https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/accountability-and-governance/contracts-and-liabilities-between-controllers-and-processors-multi/what-needs-to-be-included-in-the-contract/">ICO: what the contract must include</a></td>
+</tr>
+<tr>
+<td>UK GDPR: breaches</td>
+<td>Regulator within 72 hours when a risk is likely; a processor tells its controller without undue delay; every breach recorded</td>
+<td><a href="https://ico.org.uk/for-organisations/report-a-breach/personal-data-breach/personal-data-breaches-a-guide/">ICO: personal data breaches</a></td>
+</tr>
+<tr>
+<td>UK GDPR: erasure</td>
+<td>Within one month, extendable by two; backups may stay until overwritten if put beyond use</td>
+<td><a href="https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/individual-rights/individual-rights/right-to-erasure/">ICO: right to erasure</a></td>
+</tr>
+<tr>
+<td>UK VAT: invoices</td>
+<td>None needed for consumers; a full invoice names the customer and address; a simplified one up to £250 does not</td>
+<td><a href="https://www.gov.uk/guidance/vat-guide-notice-700">VAT Notice 700, 16.2.1, 16.3.1 and 16.6.1</a></td>
+</tr>
+<tr>
+<td>UK VAT: records</td>
+<td>Kept at least 6 years, including copies of issued invoices</td>
+<td><a href="https://www.gov.uk/guidance/record-keeping-for-vat-notice-70021">VAT Notice 700/21, 2.4</a></td>
+</tr>
+<tr>
+<td>EU VAT: invoices</td>
+<td>A full invoice carries the customer&#39;s full name and address; a simplified one does not; an invoice is required for distance sales unless the seller uses the One Stop Shop</td>
+<td><a href="https://eur-lex.europa.eu/eli/dir/2006/112/oj">VAT Directive, articles 220, 220a, 226 and 226b</a></td>
+</tr>
+</tbody></table></div>
+<h2>Consequences</h2>
+<p><strong>What this gives us</strong></p>
+<ul>
+<li>One rule for every marketplace, set by the strictest, so no seller needs a setting to stay compliant.</li>
+<li>One document to show in each marketplace&#39;s data protection review.</li>
+<li>A database dump, a backup or a console query shows no readable buyer data.</li>
+<li>Every view of buyer data has a name and a reason behind it.</li>
+<li>A buyer&#39;s erasure reaches the live cell at once and backups within 30 days, and survives a restore.</li>
+</ul>
+<p><strong>What it costs</strong></p>
+<ul>
+<li>Every view of buyer data writes an audit entry, and screens must read buyer fields through the API rather than from live updates.</li>
+<li>Sellers cannot search old orders by a buyer&#39;s name, address or postcode, and a recall reaches buyers only through the marketplace.</li>
+<li>Without the buyer&#39;s email, carriers get only a phone number for delivery notices.</li>
+<li>Delivery dates must be tracked to use the full 30 days; without them, orders lose buyer data earlier.</li>
+<li>eBay deletion notices for every eBay user cost one indexed query per cell each.</li>
+<li>A second non-tenant table per cell, <code>buyer_ref</code>, beside <code>due</code>.</li>
+<li>The security schedule is a standing workload for one operator: monthly scans, quarterly reviews, a yearly test.</li>
+</ul>
+<h2>Alternatives considered</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Why not</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Vervoro as the controller of buyer data</td>
+<td>The seller decides to sell, ship and keep records; Vervoro would take on duties toward buyers it never deals with</td>
+</tr>
+<tr>
+<td>A retention period per marketplace</td>
+<td>More rules to get wrong; Amazon&#39;s is the strictest, so one rule meets all three</td>
+</tr>
+<tr>
+<td>30 days after dispatch for every order</td>
+<td>Always compliant, but cuts the time to handle a late delivery or a return; delivery is the rule and dispatch only the fallback</td>
+</tr>
+<tr>
+<td>Keep the postcode district and town after anonymisation</td>
+<td>Amazon counts postal codes as personal data, and with dates and items a district can single out a person</td>
+</tr>
+<tr>
+<td>Keep the buyer&#39;s email</td>
+<td>Carriers accept a phone; marketplaces relay or mask emails; one field less to protect</td>
+</tr>
+<tr>
+<td>Database encryption alone</td>
+<td>A dump, a backup or a console query would show buyer data in clear</td>
+</tr>
+<tr>
+<td>A key per order, destroyed at anonymisation</td>
+<td>Erasure would reach backups at once, but the keys would need a store outside the database whose loss destroys data; backups already expire in 30 days (ADR-001)</td>
+</tr>
+<tr>
+<td>Delete buyer data from backups by rewriting them</td>
+<td>Backups are immutable snapshots; putting them beyond use and replaying erasures on restore is what the ICO describes</td>
+</tr>
+<tr>
+<td>Store eBay buyer user ids to match deletion notices</td>
+<td>eBay&#39;s terms forbid storing user ids; a keyed hash matches without keeping them</td>
+</tr>
+<tr>
+<td>Send every eBay deletion notice to every company</td>
+<td>Thousands of transactions per notice; one indexed query per cell finds the few that matter</td>
+</tr>
+<tr>
+<td>Match buyers across orders into customer records</td>
+<td>A buyer profile is what Amazon&#39;s use policy forbids, and it outlives the order</td>
+</tr>
+<tr>
+<td>Copy production data to staging for realistic tests</td>
+<td>Real buyers would leave production; simulators and synthetic buyers do the same job</td>
+</tr>
+</tbody></table></div>
+
+<footer>Vervoro</footer>
+</main>
+</body>
+</html>

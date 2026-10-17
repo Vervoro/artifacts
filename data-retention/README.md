@@ -20,7 +20,7 @@ Storage itself is cheap and has no hard cap. What degrades with old data is ever
 Two rules limit what can be deleted:
 
 - **Accounting records** (invoices, payments, the orders behind them) must be kept for the statutory period, about 6 years in the UK. To be confirmed with an accountant.
-- **Buyer personal data** is already anonymised 30 days after dispatch, so old order history holds almost no personal data.
+- **Buyer personal data** is anonymised 30 days after delivery, or after dispatch when no delivery date is known ([ADR-009](../buyer-data/)), so old order history holds almost no personal data. Issued VAT invoices keep the buyer details the law requires.
 
 ## Decision
 
@@ -64,7 +64,7 @@ Every stock balance must equal the sum of its ledger entries, and a nightly chec
 | `audit_log` (security and access) | At least 1 year | 6 years | Deleted |
 | `event_log` (module activity) | 90 days | Never | Dropped |
 | Outbound sends, sync attempts, operational state | 30 days | Never | Dropped |
-| Buyer personal data | 30 days after dispatch, then anonymised | Archived only anonymised | Deleted with the order |
+| Buyer personal data | 30 days after delivery (or dispatch when no delivery date is known), then anonymised | Archived only anonymised, except on issued invoices | Deleted with the order, or with the invoice |
 
 ## Reading archived data
 

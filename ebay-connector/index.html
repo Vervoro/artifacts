@@ -102,7 +102,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>The Trading API is spent only where nothing else will do,</strong> from the shared pool of ADR-004, with a daily page cap per account.</li>
 <li><strong>Vervoro never changes a seller&#39;s eBay settings.</strong> A Seller Hub listing is not updated while the seller&#39;s out-of-stock option is off, and the account cannot go live until the seller turns it on.</li>
 <li><strong>A variation with no SKU cannot be updated.</strong> Its orders still come in, and the seller is told to add a SKU.</li>
-<li><strong>eBay&#39;s account deletion notices are received</strong> for every eBay user, as eBay requires. A connected seller&#39;s is a privacy request; anyone else&#39;s is acknowledged and not kept.</li>
+<li><strong>eBay&#39;s account deletion notices are received</strong> for every eBay user, as eBay requires. A connected seller&#39;s is a privacy request. A buyer&#39;s is matched against a keyed hash stored with that buyer&#39;s orders, and a match anonymises them (<a href="../buyer-data/">ADR-009</a>). The notice itself is never kept.</li>
 </ol>
 <h2>Connecting</h2>
 <ul>
@@ -179,7 +179,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p>eBay requires every application to receive marketplace account deletion notices for all eBay users. The endpoint answers eBay&#39;s challenge with the verification token, verifies each notice&#39;s signature, and:</p>
 <ul>
 <li>for a seller connected to Vervoro, records a privacy request with its due date (ADR-004);</li>
-<li>for anyone else, acknowledges it and keeps nothing.</li>
+<li>for anyone else, looks up a keyed hash of the user id in each cell; a buyer found there has their orders anonymised at once (<a href="../buyer-data/">ADR-009</a>). Nothing from the notice is kept.</li>
 </ul>
 <h2>Simulator and sandbox</h2>
 <p>The eBay simulator speaks the Inventory, Fulfillment, Feed, Notification and Identity APIs and the Trading API&#39;s XML calls used here, including the consent page, token exchange, signed notices, daily usage limits and the out-of-stock preference. Before launch, each call is recorded against eBay&#39;s sandbox or a real account and the simulator is corrected where it differs. The recordings include a check that the order list keeps a stable order for one filter across calls, which the backwards read relies on.</p>

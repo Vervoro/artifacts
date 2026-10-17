@@ -69,9 +69,9 @@ Modules never write `CREATE TABLE`. They declare tables through `tenantTable()`,
 Only the data layer may say which company a transaction belongs to, and four checks make sure nothing else can.
 
 - **Statement filter (runtime).** The data layer refuses any module statement containing `set`, `reset`, `set_config` or the name `app.company_id`. Module-defined functions and `DO` blocks are not allowed, since they would get round the filter. Postgres cannot revoke `set_config` on a custom setting, so this has to be application code.
-- **Catalogue lint (CI).** Fails the build if any cell table lacks `company_id NOT NULL` leading its primary key, forced RLS, both policy clauses or composite foreign keys. It also fails on raw `CREATE TABLE`, `serial` or identity columns, `SECURITY DEFINER`, views without `security_invoker`, materialized views, direct grants on partitions, `TRUNCATE` grants, `ON CONFLICT` without `company_id`, session-level `SET`, a runtime role with `BYPASSRLS`, a runtime role holding `UPDATE`, `DELETE` or `TRUNCATE` on an append-only table, and `app.company()` not labelled `STABLE`.
+- **Catalogue lint (CI).** Fails the build if any cell table (the non-tenant tables `due` and `buyer_ref` excepted) lacks `company_id NOT NULL` leading its primary key, forced RLS, both policy clauses or composite foreign keys. It also fails on raw `CREATE TABLE`, `serial` or identity columns, `SECURITY DEFINER`, views without `security_invoker`, materialized views, direct grants on partitions, `TRUNCATE` grants, `ON CONFLICT` without `company_id`, session-level `SET`, a runtime role with `BYPASSRLS`, a runtime role holding `UPDATE`, `DELETE` or `TRUNCATE` on an append-only table, and `app.company()` not labelled `STABLE`.
 - **Request guard.** Authentication puts the signed-in company in request context; `forCompany(id)` throws when `id` differs. Operator and background code opt in explicitly, and opting in never bypasses RLS: every company read or write still runs in a transaction fixed to exactly one company.
-- **How background jobs find work.** Through one non-tenant table per cell, `due(company_id, kind, next_due_at)`, holding ids and timestamps only. The cell's sweeper reads it with one indexed query, then opens one transaction per due company ([Background work and events](#background-work-and-events)).
+- **How background jobs find work.** Through one non-tenant table per cell, `due(company_id, kind, next_due_at)`, holding ids and timestamps only. The cell's sweeper reads it with one indexed query, then opens one transaction per due company ([Background work and events](#background-work-and-events)). A second non-tenant table, `buyer_ref(hash, company_id, order_id)`, holds only keyed hashes of eBay buyers' user ids, so an eBay account deletion notice is matched with one indexed query per cell ([ADR-009](../buyer-data/)). Its rows go when the order's buyer data does.
 
 ## Background work and events
 
@@ -133,10 +133,11 @@ The cascade also deletes the company's `audit_log`, so the one-year retention ap
 1. Pause the company's outbound marketplace calls and revoke its sessions.
 2. Branch the database at the restore time.
 3. Replace the live slice with the branch's slice in one transaction.
-4. Rebuild the company's directory rows in control; set counters to at least their live values, so numbers already sent to suppliers are not reused.
-5. Mark restored outbound sends `unknown`, never resend them; bring every marketplace account back in shadow mode.
-6. Re-read the marketplaces and reconcile; the operator signs off the differences before any stock push resumes, because pushing restored stock straight away would oversell.
-7. Files in object storage have no point-in-time copy: keep versioning or a 30-day soft delete, and never overwrite a file key.
+4. Re-apply every erasure in the company's erasure log made after the restore time, and run the anonymisation sweep, before the company opens ([ADR-009](../buyer-data/)).
+5. Rebuild the company's directory rows in control; set counters to at least their live values, so numbers already sent to suppliers are not reused.
+6. Mark restored outbound sends `unknown`, never resend them; bring every marketplace account back in shadow mode.
+7. Re-read the marketplaces and reconcile; the operator signs off the differences before any stock push resumes, because pushing restored stock straight away would oversell.
+8. Files in object storage have no point-in-time copy: keep versioning or a 30-day soft delete, and never overwrite a file key.
 
 **Move a company** to another database: pause its sync, copy the slice, compare checksums, switch the registry row, delete the source slice. Logical replication is kept for very large companies later.
 
@@ -227,7 +228,7 @@ Isolation counts as proven only on real Postgres under the runtime role: an embe
 - Every table and every query carries `company_id`; the declaration helper and the lint carry that cost so modules do not.
 - A mistake in a policy would expose rows rather than fail, which is why the lint, the fail-loud setting and the isolation tests are part of the design, not extras.
 - Erasing or moving a company is a generated multi-table operation instead of dropping one schema.
-- Sellers can find a buyer only by exact email or phone, not by part of a name or address, because buyer fields are encrypted.
+- Sellers can find a buyer only by exact phone number, not by part of a name or address, because buyer fields are encrypted.
 - Erasure is complete in backups 30 days after a company closes.
 
 ## Alternatives considered

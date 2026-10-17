@@ -155,7 +155,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2>Buyer data and privacy</h2>
 <ul>
 <li><strong>Protected customer data.</strong> Names, addresses and phone numbers are protected data that Shopify releases only to approved apps. Without approval, Shopify sends the order with those fields empty, and the order still arrives without them; nothing is guessed.</li>
-<li><strong>Only what is needed to ship:</strong> the delivery address, the payer&#39;s name, the order note, a gift message, and each line&#39;s title as a packer reads it. Vervoro anonymises buyer data 30 days after dispatch or delivery.</li>
+<li><strong>Only what is needed to ship:</strong> the delivery address with the recipient&#39;s name and phone, the order note, a gift message, and each line&#39;s title as a packer reads it. Vervoro anonymises buyer data 30 days after delivery, or after dispatch when no delivery date is known (<a href="../buyer-data/">ADR-009</a>).</li>
 <li><strong>Privacy webhooks.</strong> Shopify requires every App Store app to receive three: a buyer&#39;s data request, a request to forget a buyer, and a request to forget a shop. A request to forget a buyer has that buyer&#39;s orders anonymised at once. The others are recorded for a person, due within 30 days.</li>
 </ul>
 <h2>Dispatch</h2>

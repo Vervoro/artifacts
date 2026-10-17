@@ -28,7 +28,7 @@ eBay shapes the design in five ways:
 5. **The Trading API is spent only where nothing else will do,** from the shared pool of ADR-004, with a daily page cap per account.
 6. **Vervoro never changes a seller's eBay settings.** A Seller Hub listing is not updated while the seller's out-of-stock option is off, and the account cannot go live until the seller turns it on.
 7. **A variation with no SKU cannot be updated.** Its orders still come in, and the seller is told to add a SKU.
-8. **eBay's account deletion notices are received** for every eBay user, as eBay requires. A connected seller's is a privacy request; anyone else's is acknowledged and not kept.
+8. **eBay's account deletion notices are received** for every eBay user, as eBay requires. A connected seller's is a privacy request. A buyer's is matched against a keyed hash stored with that buyer's orders, and a match anonymises them ([ADR-009](../buyer-data/)). The notice itself is never kept.
 
 ## Connecting
 
@@ -106,7 +106,7 @@ A shipment is confirmed on the order with its carrier and tracking number, throu
 eBay requires every application to receive marketplace account deletion notices for all eBay users. The endpoint answers eBay's challenge with the verification token, verifies each notice's signature, and:
 
 - for a seller connected to Vervoro, records a privacy request with its due date (ADR-004);
-- for anyone else, acknowledges it and keeps nothing.
+- for anyone else, looks up a keyed hash of the user id in each cell; a buyer found there has their orders anonymised at once ([ADR-009](../buyer-data/)). Nothing from the notice is kept.
 
 ## Simulator and sandbox
 

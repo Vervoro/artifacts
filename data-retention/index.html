@@ -94,7 +94,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p>Two rules limit what can be deleted:</p>
 <ul>
 <li><strong>Accounting records</strong> (invoices, payments, the orders behind them) must be kept for the statutory period, about 6 years in the UK. To be confirmed with an accountant.</li>
-<li><strong>Buyer personal data</strong> is already anonymised 30 days after dispatch, so old order history holds almost no personal data.</li>
+<li><strong>Buyer personal data</strong> is anonymised 30 days after delivery, or after dispatch when no delivery date is known (<a href="../buyer-data/">ADR-009</a>), so old order history holds almost no personal data. Issued VAT invoices keep the buyer details the law requires.</li>
 </ul>
 <h2>Decision</h2>
 <ol>
@@ -183,9 +183,9 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Buyer personal data</td>
-<td>30 days after dispatch, then anonymised</td>
-<td>Archived only anonymised</td>
-<td>Deleted with the order</td>
+<td>30 days after delivery (or dispatch when no delivery date is known), then anonymised</td>
+<td>Archived only anonymised, except on issued invoices</td>
+<td>Deleted with the order, or with the invoice</td>
 </tr>
 </tbody></table></div>
 <h2>Reading archived data</h2>

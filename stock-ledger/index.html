@@ -90,7 +90,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>&quot;How many do we have?&quot; has several right answers.</strong> The warehouse needs what is physically there. Picking needs what is promised. Channels need what can still be sold. Using the wrong one oversells or undersells.</li>
 <li><strong>Two orders for the last unit arrive together.</strong> This is the normal case, not an edge case. Exactly one may get it.</li>
 <li><strong>Marketplaces repeat themselves.</strong> A notice arrives twice, an order is read again, a phone on patchy Wi-Fi sends the same tap twice. None of these may move stock twice.</li>
-<li><strong>Food expires.</strong> Expired or nearly expired stock must never be sold, the oldest date must go first, and a recall must find every buyer of a lot.</li>
+<li><strong>Food expires.</strong> Expired or nearly expired stock must never be sold, the oldest date must go first, and a recall must find every order of a lot.</li>
 <li><strong>Orders arrive before their listing is linked.</strong> ADR-005 leaves unlinked listings to the marketplace, but their orders are still imported, and a link made later must reserve for them.</li>
 <li><strong>The shelf and the system disagree.</strong> Units are lost, broken, miscounted and found. The ledger must record the truth without ever inventing stock or hiding a loss.</li>
 <li><strong>History must survive archiving.</strong> ADR-002 moves ledger months older than 24 months out of the database, and the nightly proof must still hold.</li>
@@ -1142,7 +1142,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Reserve without naming a batch</td>
-<td>Pick lists cannot name lots, a cancellation cannot release what it held, and recalls cannot find buyers</td>
+<td>Pick lists cannot name lots, a cancellation cannot release what it held, and recalls cannot find the orders</td>
 </tr>
 <tr>
 <td>Reserve a pack&#39;s contents (singles) for a pack order</td>

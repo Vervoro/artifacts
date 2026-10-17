@@ -16,7 +16,7 @@ The design has to meet these requirements:
 - **"How many do we have?" has several right answers.** The warehouse needs what is physically there. Picking needs what is promised. Channels need what can still be sold. Using the wrong one oversells or undersells.
 - **Two orders for the last unit arrive together.** This is the normal case, not an edge case. Exactly one may get it.
 - **Marketplaces repeat themselves.** A notice arrives twice, an order is read again, a phone on patchy Wi-Fi sends the same tap twice. None of these may move stock twice.
-- **Food expires.** Expired or nearly expired stock must never be sold, the oldest date must go first, and a recall must find every buyer of a lot.
+- **Food expires.** Expired or nearly expired stock must never be sold, the oldest date must go first, and a recall must find every order of a lot.
 - **Orders arrive before their listing is linked.** ADR-005 leaves unlinked listings to the marketplace, but their orders are still imported, and a link made later must reserve for them.
 - **The shelf and the system disagree.** Units are lost, broken, miscounted and found. The ledger must record the truth without ever inventing stock or hiding a loss.
 - **History must survive archiving.** ADR-002 moves ledger months older than 24 months out of the database, and the nightly proof must still hold.
@@ -535,7 +535,7 @@ The order line's link and component fields are on the order line table (ADR-007)
 | Allow negative stock and fix it later | One channel sells stock that does not exist, and the real loss hides until a count |
 | Clamp to zero when a change would go negative | Hides a real problem; the change is refused and flagged instead |
 | Reserve at payment, picking or label time instead of import | The gap between order and reservation is exactly when another channel oversells |
-| Reserve without naming a batch | Pick lists cannot name lots, a cancellation cannot release what it held, and recalls cannot find buyers |
+| Reserve without naming a batch | Pick lists cannot name lots, a cancellation cannot release what it held, and recalls cannot find the orders |
 | Reserve a pack's contents (singles) for a pack order | A sealed pack on the shelf is counted on its own; mixing them double-counts (ADR-003) |
 | Record a bundle's own stock movements | A bundle is not on the shelf; its components are |
 | A lock per product, or per group of products | A bundle spans products, so commands would need ordered locks and deadlock handling; one company's writes are a small load. Kept for later if lock wait is measured to be a problem |

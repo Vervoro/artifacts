@@ -91,7 +91,7 @@ Shopify lets a variant have a blank SKU, or the same SKU as another variant. Suc
 ## Buyer data and privacy
 
 - **Protected customer data.** Names, addresses and phone numbers are protected data that Shopify releases only to approved apps. Without approval, Shopify sends the order with those fields empty, and the order still arrives without them; nothing is guessed.
-- **Only what is needed to ship:** the delivery address, the payer's name, the order note, a gift message, and each line's title as a packer reads it. Vervoro anonymises buyer data 30 days after dispatch or delivery.
+- **Only what is needed to ship:** the delivery address with the recipient's name and phone, the order note, a gift message, and each line's title as a packer reads it. Vervoro anonymises buyer data 30 days after delivery, or after dispatch when no delivery date is known ([ADR-009](../buyer-data/)).
 - **Privacy webhooks.** Shopify requires every App Store app to receive three: a buyer's data request, a request to forget a buyer, and a request to forget a shop. A request to forget a buyer has that buyer's orders anonymised at once. The others are recorded for a person, due within 30 days.
 
 ## Dispatch
