@@ -9,7 +9,7 @@
 
 ## Context
 
-Vervoro is an operations system for marketplace sellers who run their own warehouse: products, stock, orders, purchasing and listings, kept in step with Amazon, eBay, Shopify and other channels. This record collects the decisions that give the system its shape. Most are in force today and enforced by the build, the tests or the database. The data decisions, and the background work that runs per database, follow ADR-001 and ADR-002, which are the target. Later records build on this one.
+Vervoro is an operations system for marketplace sellers who run their own warehouse: products, stock, orders, purchasing and listings, kept in step with Amazon, eBay, Shopify and other channels. This record proposes the decisions that give the system its shape, together with ADR-001 (how data is stored and isolated) and ADR-002 (how long it is kept). Each decision is enforced by the build, the tests or the database, not by developer care. Later records build on this one.
 
 The design has to meet these requirements:
 
@@ -32,7 +32,7 @@ The design has to meet these requirements:
 8. **Marketplace connectors are plugins behind a fixed contract.** A connector only translates. The host owns credentials, HTTP, authentication, rate budgets and webhook checks.
 9. **Orders arrive by webhook;** a scheduled read is only the completeness check behind it.
 10. **Every marketplace has a simulator.** Development and tests talk to simulators that speak the real APIs, never to a real marketplace, and no simulator code reaches production.
-11. **Serverless on Cloudflare, Postgres on Neon, in the EU.** Workers serve the API, the client and webhooks; a queue and Durable Objects carry background work; Hyperdrive pools connections to Postgres, with caching off.
+11. **Serverless on Cloudflare, Postgres on Neon, in the EU.** Workers serve the API, the client and webhooks; an inbound queue takes the webhooks; one sweeper per database, a Durable Object, runs background work; Hyperdrive pools connections to each database, with caching off.
 12. **Tenancy, storage and retention follow ADR-001 and ADR-002.** This record does not repeat them.
 13. **A phone-first React client,** built only from one UI package, styled only from one token package.
 14. **English first, every word in a catalogue.** Other languages are typed against the English keys and filled in a batched pass before release.
@@ -43,9 +43,9 @@ The design has to meet these requirements:
 
 <!-- DIAGRAM -->
 
-A request from the client reaches the Worker. The Worker works out the company and the user, opens a transaction fixed to that company, and builds the company's set of modules: only the ones switched on for it. A module that wants to change stock calls the foundation through a port. The foundation changes stock, writes the figure each listing should show, and writes an event to the outbox, all in one transaction.
+A request from the client reaches the Worker. The Worker works out the company and the user, looks up in the control database which database holds that company, opens a transaction there fixed to that company, and builds the company's set of modules: only the ones switched on for it. A module that wants to change stock calls the foundation through a port. The foundation changes stock, writes the figure each listing should show, and writes an event to the outbox, all in one transaction.
 
-After commit, background work takes over. The Channels host compares what each listing should show with what the marketplace last confirmed, decides what to send, and hands each send to the egress gate. The gate records it in shadow mode, or sends it through the connector in live mode. Orders come back the other way: a marketplace calls a webhook, the Worker checks it and puts it on a queue, and the consumer imports the order through the foundation.
+After commit, the request delivers the outbox note to the modules that handle it, and background work takes over. The Channels host compares what each listing should show with what the marketplace last confirmed, decides what to send, and hands each send to the egress gate. The gate records it in shadow mode, or sends it through the connector in live mode. Orders come back the other way: a marketplace calls a webhook, the Worker checks it and puts it on a queue, and the consumer imports the order through the foundation.
 
 ## Modules and the kernel
 
@@ -77,7 +77,7 @@ Every module is built on **the kernel**, a small library with no business rules.
 - Each module's package exports only its contract and its manifest, so its internals cannot be imported.
 - Lint rules ban the UI libraries outside the UI package, and any network call of its own in a connector.
 - A composition test wires each module with only the ports it declares.
-- The database refuses updates and deletes on append-only tables.
+- The database refuses the runtime role any update or delete on an append-only table.
 
 ## The foundation and the stock ledger
 
@@ -128,16 +128,16 @@ The foundation is always on and cannot be switched off. It holds the catalogue, 
 - **Webhooks** go through one inbound queue with retries and a dead-letter queue.
 - **Live updates** come from one Durable Object per company that holds its open screens' connections, so a screen updates when a background job changes what it shows.
 - **The outbox, not a queue, is the source of truth.** An event is delivered right after commit, and the sweeper delivers any that a crash left behind. A queue message cannot be part of the database transaction, so events do not go through a queue. Durable Objects only make the common case fast; everything they need to rebuild is in Postgres.
-- **Postgres on Neon, through Hyperdrive.** Hyperdrive pools connections in transaction mode. Query caching is off on every configuration, because a cached stock figure, mode or session would be wrong.
-- **Placement.** The Worker is placed in the database's EU region, not near the visitor. A stock command holds the company's lock for its whole transaction, so the distance to the database is the throughput of one company's stock writes.
+- **Postgres on Neon, through Hyperdrive.** One Hyperdrive configuration per database (the control database and each cell) pools connections in transaction mode. Query caching is off on every configuration, because a cached stock figure, mode or session would be wrong.
+- **Placement.** The Worker is placed in the databases' EU region, not near the visitor. Every cell in the UK and EU sits in that region, so one Worker serves them all; a dedicated cell outside the EU would get a Worker placement of its own ([ADR-001](../database-architecture/#dedicated-databases-and-residency)). A stock command holds the company's lock for its whole transaction, so the distance to the database is the throughput of one company's stock writes.
 - **No long work in a request.** No marketplace call runs inside a database transaction, and slow work is always queued.
 - **Telemetry** (one point per marketplace call, sweep, alert pass and queue batch) goes to the platform's analytics store, never to the database. Structured logs carry the company, the account and a correlation id that follows one change from import to applied.
 - **Alerts page the operator** on the failures that matter: a stalled order watermark, a non-empty dead-letter queue, a difference in the nightly stock check, a failed migration.
-- **Deploying is one command.** Migrations run first and finish before the new code goes live. Migrations only add, so a rollback is switching back to the previous version. A database below the version the code needs is an error that alerts, never a state the code handles.
+- **Deploying is one command.** Migrations run first, on the control database and every cell, and finish before the new code goes live. Migrations only add, so a rollback is switching back to the previous version. A database below the version the code needs is an error that alerts, never a state the code handles.
 
 ## Data
 
-How data is stored and isolated is decided in two records of its own. They are the target this architecture builds towards.
+How data is stored and isolated is decided in two records of its own, which this record builds on.
 
 - **[ADR-001: Multi-tenant database architecture](../database-architecture/).** A control database knows only who the companies are and where they live. Customer databases ("cells") hold many companies in shared tables, each row carrying its company and fenced by forced row-level security. Every company-level operation (export, move, restore, erase) is one generated operation over that company's rows, and guard rails in the runtime and in CI make a cross-company read or write impossible to write by accident.
 - **[ADR-002: Data retention and archiving](../data-retention/).** About 24 months of history stay in a cell, current state never leaves, and older months move to compressed per-company files in object storage for the statutory period.
