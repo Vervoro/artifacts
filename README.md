@@ -11,3 +11,4 @@ Architecture decisions and plans, published with GitHub Pages.
   - [ADR-004.2: Amazon Seller connector](amazon-seller-connector/README.md)
   - [ADR-004.3: Shopify connector](shopify-connector/README.md)
 - [ADR-005: Catalogue sync and linking](catalogue-sync/README.md)
+- [ADR-006: Stock ledger and reservations](stock-ledger/README.md)

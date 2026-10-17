@@ -1,0 +1,64 @@
+<svg class="diagram" viewBox="0 0 760 450" role="img" aria-label="Units arrive by receipt or return; an order moves sellable units to reserved; a confirmed shipment or a handover takes reserved units out; dates, damage and lot blocks move units to held, inspection brings them back, and write-offs remove them; every arrow is a ledger entry" xmlns="http://www.w3.org/2000/svg" font-size="13">
+  <defs>
+    <marker id="led-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="edge-fill"/></marker>
+  </defs>
+  <text x="24" y="30" font-size="15" font-weight="600" class="ink">Every arrow is a ledger entry; only sellable reaches a listing</text>
+
+  <rect x="172" y="48" width="420" height="284" rx="8" class="band"/>
+  <text x="382" y="70" text-anchor="middle" font-size="11.5" class="quiet">On hand, per product, batch and spot</text>
+
+  <g class="edge" fill="none" stroke-width="1.25">
+    <path d="M154 122H200" marker-end="url(#led-arrow)"/>
+    <path d="M154 194H172" marker-end="url(#led-arrow)"/>
+    <path d="M154 278H200" marker-end="url(#led-arrow)"/>
+    <path d="M350 112H420" marker-end="url(#led-arrow)"/>
+    <path d="M420 134H350" marker-end="url(#led-arrow)"/>
+    <path d="M232 154V230" marker-end="url(#led-arrow)"/>
+    <path d="M268 230V154" marker-end="url(#led-arrow)"/>
+    <path d="M560 122H616" marker-end="url(#led-arrow)"/>
+    <path d="M500 154V194H616" marker-end="url(#led-arrow)"/>
+    <path d="M370 278H616" marker-end="url(#led-arrow)"/>
+  </g>
+
+  <rect x="24" y="90" width="130" height="64" rx="6" class="box"/>
+  <text x="89" y="116" text-anchor="middle" font-weight="600" class="ink">Receive</text>
+  <text x="89" y="133" text-anchor="middle" font-size="11" class="quiet">with or without a PO</text>
+  <rect x="24" y="170" width="130" height="48" rx="6" class="box"/>
+  <text x="89" y="190" text-anchor="middle" font-weight="600" class="ink">Count, adjust</text>
+  <text x="89" y="206" text-anchor="middle" font-size="11" class="quiet">± with a reason</text>
+  <rect x="24" y="246" width="130" height="64" rx="6" class="box"/>
+  <text x="89" y="272" text-anchor="middle" font-weight="600" class="ink">Return</text>
+  <text x="89" y="289" text-anchor="middle" font-size="11" class="quiet">into the batch it left</text>
+
+  <rect x="200" y="90" width="150" height="64" rx="8" class="box-main"/>
+  <text x="275" y="116" text-anchor="middle" font-weight="600" class="ink">Sellable</text>
+  <text x="275" y="134" text-anchor="middle" font-size="11" class="ink">on hand − reserved − held</text>
+  <text x="385" y="104" text-anchor="middle" font-size="10.5" class="quiet">reserve</text>
+  <text x="385" y="150" text-anchor="middle" font-size="10.5" class="quiet">release</text>
+  <rect x="420" y="90" width="140" height="64" rx="8" class="box"/>
+  <text x="490" y="116" text-anchor="middle" font-weight="600" class="ink">Reserved</text>
+  <text x="490" y="134" text-anchor="middle" font-size="11" class="quiet">names batch and spot</text>
+
+  <text x="282" y="188" font-size="10.5" class="quiet">down: sell-by date, damage, lot block</text>
+  <text x="282" y="203" font-size="10.5" class="quiet">up: inspected saleable, unblocked</text>
+
+  <rect x="200" y="230" width="170" height="80" rx="8" class="box"/>
+  <text x="285" y="254" text-anchor="middle" font-weight="600" class="ink">Held</text>
+  <text x="285" y="273" text-anchor="middle" font-size="11" class="quiet">quarantined · damaged</text>
+  <text x="285" y="289" text-anchor="middle" font-size="11" class="quiet">expired, short-dated, blocked</text>
+
+  <rect x="616" y="90" width="120" height="64" rx="6" class="box"/>
+  <text x="676" y="116" text-anchor="middle" font-weight="600" class="ink">Dispatch</text>
+  <text x="676" y="133" text-anchor="middle" font-size="11" class="quiet">confirmed, once</text>
+  <rect x="616" y="170" width="120" height="48" rx="6" class="box"/>
+  <text x="676" y="190" text-anchor="middle" font-weight="600" class="ink">Transfer out</text>
+  <text x="676" y="206" text-anchor="middle" font-size="11" class="quiet">to a marketplace</text>
+  <rect x="616" y="246" width="120" height="64" rx="6" class="box"/>
+  <text x="676" y="272" text-anchor="middle" font-weight="600" class="ink">Write off</text>
+  <text x="676" y="289" text-anchor="middle" font-size="11" class="quiet">with a reason</text>
+
+  <rect x="24" y="352" width="712" height="76" rx="8" class="box"/>
+  <text x="380" y="376" text-anchor="middle" font-size="11.5" class="ink">One locked transaction per command · repeats return the first answer · nothing ever below zero</text>
+  <text x="380" y="395" text-anchor="middle" font-size="11.5" class="quiet">the nightly check: every balance equals its entries, every reserved number its open reservations</text>
+  <text x="380" y="414" text-anchor="middle" font-size="11.5" class="quiet">a change to sellable writes each affected listing's new figure in the same transaction (ADR-008)</text>
+</svg>
