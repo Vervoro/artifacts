@@ -117,15 +117,15 @@ The contract test suite grows with the capability: a snapshot that stops part-wa
 
 | | eBay inventory items | eBay Seller Hub | Amazon Seller | Shopify |
 | --- | --- | --- | --- | --- |
-| **Presence (full read)** | Active-listings report from eBay's Feed API | The same report: SKU, item number, variations | Listings search per served marketplace, 20 a page, from the seller's own bucket | One bulk operation over every variant |
+| **Presence (full read)** | Active-listings report from eBay's Feed API | The same report: SKU, item number, variations | All-listings report per served marketplace (active and inactive, with status), from the seller's own allowance | One bulk operation over every variant |
 | **Details for unlinked listings** | Inventory API pages: title, barcodes, images | Trading API: listings started since the last read, inside the account's daily page cap | Catalogue lookup by ASIN, 20 a call, for barcodes | In the same bulk file |
 | **Notices** | None | Trading API events: listed, revised, closed | Listing status changes, through the relay | Product created, updated, deleted |
 | **Changes since** | None | None | Search by last update time | Products by update time |
-| **Daily safety read** | Fresh report | Fresh report | Full search | Bulk operation |
+| **Daily safety read** | Fresh report | Fresh report | Fresh report | Bulk operation |
 
 - **eBay: the report, not the Trading API.** The Feed API's active-listings report names every active listing with its SKU, item number and variations, and it costs nothing from the Trading pool. The Trading API is used only for the titles and barcodes of Seller Hub listings without a link. Inventory items have no listing notices at all; a new one is found by the daily read, or sooner by a refresh.
 - **eBay notices.** On connect, the account is subscribed to the Trading API's listed, revised and closed events, with one call. Receiving them costs no Trading call. The revised event's body carries the item, so its fingerprint is compared before anything is read, and the echo of Vervoro's own stock writes (which revise the listing) costs nothing.
-- **Amazon: search, if it proves complete.** The listings search reads from the seller's own allowance, and its update-time filter gives a cheap changes read. It is the full read only if a recorded call before launch shows it pages through a whole catalogue in a stable order, inactive SKUs included. Otherwise the merchant listings report is the full read, and the search is the changes read. Either way, a weekly check compares the search's count with the report's; a difference makes that search read incomplete. The search runs once per marketplace the account serves, and presence is kept per marketplace.
+- **Amazon: the report for presence, the search for changes.** Amazon's listings search pages through at most 1,000 SKUs, so it cannot read a whole catalogue. The all-listings report can: it names every SKU, active and inactive, with its status, one marketplace per request. It is the full read and the daily safety read. The search, sorted by last update time, is the changes read. A changes read that finds more than 1,000 SKUs is split into shorter time windows, and if one window still finds more, the account gets a fresh report instead. Both run once per marketplace the account serves, and presence is kept per marketplace.
 - **Amazon multi-marketplace accounts.** A SKU is one listing across the account's marketplaces; its ASIN and status are kept per marketplace. A SKU that exists only on a marketplace the account does not serve is shown as not served and cannot be linked. A SKU Amazon ships on any served marketplace is marketplace-shipped (ADR-004.2).
 - **Shopify.** A bulk operation reads every variant without draining the shop's cost budget (ADR-004.3). Variants with a blank or shared SKU are keyed by variant id and can be linked; a variant Shopify does not track, or that is not stocked at Vervoro's location, is shown with the fix the seller must make.
 
@@ -347,7 +347,8 @@ Checked against each marketplace's documentation on 18 October 2026.
 | eBay listing notices | The Notification API has no general listing topic; the Trading API's platform notifications include listed, revised and closed | [Notification API](https://developer.ebay.com/develop/api/sell/notification_api) |
 | eBay Trading API | 5,000 calls a day for the application by default | [API call limits](https://developer.ebay.com/develop/api/sell/api_call_limits) |
 | eBay Feed API | 100,000 calls a day for the application; 400 requests a day per seller for each feed type, and requests beyond that count against the application | [API call limits](https://developer.ebay.com/develop/api/sell/api_call_limits) |
-| Amazon listings search | 5 a second per seller and application; at most 20 a page; filters by created and last updated time; search by up to 20 identifiers | [Listings Items API rate limits](https://developer-docs.amazon/sp-api/docs/listings-items-api-rate-limits) |
+| Amazon listings search | 5 a second per seller and application; at most 20 a page and 1,000 SKUs in all; filters by created and last updated time; search by up to 20 identifiers | [Listings Items API rate limits](https://developer-docs.amazon/sp-api/docs/listings-items-api-rate-limits), [API model](https://github.com/amzn/selling-partner-api-models/blob/main/models/listings-items-api-model/listingsItems_2021-08-01.json) |
+| Amazon all-listings report | `GET_MERCHANT_LISTINGS_ALL_DATA`: every SKU with its status; one marketplace per request; a report may be served from a cache up to a few hours old | [Inventory report types](https://developer-docs.amazon/sp-api/docs/report-type-values-inventory) |
 | Amazon listing notices | Listing status changes (created, deleted, buyable) on the event bus only | [EventBridge notifications](https://developer-docs.amazon/sp-api/docs/set-up-notifications-with-amazon-eventbridge) |
 | Amazon offer on an existing ASIN | A listing put with offer-only requirements; restrictions checked through the Listings Restrictions API | [Listings Items API](https://developer-docs.amazon/sp-api/docs/listings-items-api) |
 | Shopify product notices | Product created, updated and deleted webhooks; variants arrive in product updates | [Webhooks](https://shopify.dev/docs/api/webhooks/latest) |
@@ -371,7 +372,7 @@ Checked against each marketplace's documentation on 18 October 2026.
 - On a live account, raises from a bulk link wait for the seller's confirm, so some listings show too little for a while.
 - An eBay Seller Hub listing that carries a linked SKU but is not linked gets no figure until someone links it. ADR-004.1 is amended to match: every linked listing gets the figure.
 - The Trading API's platform notifications are a second inbound shape on eBay, with their own signature check.
-- Amazon's full read depends on a recorded proof that the listings search pages through a whole catalogue; without it, the slower report stays the full read.
+- Amazon's full read is a report, which is slower than a search: a new SKU no notice announced can wait for the next changes read or the daily report.
 - Link history, listing presence per scope and suggestion versions are more tables and more tests than one listing row with a product column.
 
 ## What later records decide
