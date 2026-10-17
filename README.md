@@ -9,3 +9,4 @@ Architecture decisions and plans, published with GitHub Pages.
 - [ADR-004: Channel connectors](channel-connectors/README.md)
   - [ADR-004.1: eBay connector](ebay-connector/README.md)
   - [ADR-004.2: Amazon Seller connector](amazon-seller-connector/README.md)
+  - [ADR-004.3: Shopify connector](shopify-connector/README.md)

@@ -82,6 +82,7 @@ const docs: { dir: string; title: string; blurb: string; parent?: string }[] = [
   { dir: "channel-connectors", title: "ADR-004: Channel connectors", blurb: "Each marketplace is a translator behind a small contract (read orders, read listings, write stock, read back); the host owns credentials, HTTP, rate limits and shared daily allowances; orders arrive by notice; simulators, shadow mode, and failures kept per account. Proposed, 17 October 2026." },
   { dir: "ebay-connector", parent: "channel-connectors", title: "ADR-004.1: eBay connector", blurb: "One app every seller approves, orders by eBay's Notification API, the Inventory API and the Trading API for every listing a SKU is on, the shared Trading pool, the out-of-stock option, account deletion notices. Proposed, 17 October 2026." },
   { dir: "amazon-seller-connector", parent: "channel-connectors", title: "ADR-004.2: Amazon Seller connector", blurb: "Seller Central approval renewed yearly, one account per seller and region, the AWS notice relay, single decreases and feeds for raises, read back on every write, no figure for listings Amazon ships, buyer data. Proposed, 17 October 2026." },
+  { dir: "shopify-connector", parent: "channel-connectors", title: "ADR-004.3: Shopify connector", blurb: "Installing Vervoro's app, expiring tokens, one warehouse location, webhooks to one address, compare-and-set writes in batches of 250, a cost-point budget, variants without a unique SKU, orders other marketplaces put into the shop, privacy webhooks. Proposed, 18 October 2026." },
 ];
 
 for (const d of docs) {
