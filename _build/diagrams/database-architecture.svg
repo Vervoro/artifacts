@@ -1,0 +1,58 @@
+<svg class="diagram" viewBox="0 0 760 444" role="img" aria-label="Every request reaches one database; trials run on their own compute" xmlns="http://www.w3.org/2000/svg" font-size="13">
+  <defs>
+    <marker id="arch-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="edge-fill"/></marker>
+    <marker id="arch-arrow-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="accent-fill"/></marker>
+  </defs>
+  <text x="24" y="30" font-size="15" font-weight="600" class="ink">Every request reaches one database; trials run on their own compute</text>
+  <g class="edge" fill="none" stroke-width="1.25">
+    <path d="M380 112V150" marker-end="url(#arch-arrow)"/>
+    <path d="M380 206V228"/>
+    <path d="M114 228H674"/>
+    <path d="M114 228V250" marker-end="url(#arch-arrow)"/>
+    <path d="M278 228V250" marker-end="url(#arch-arrow)"/>
+    <path d="M410 228V250" marker-end="url(#arch-arrow)"/>
+    <path d="M542 228V250" marker-end="url(#arch-arrow)"/>
+    <path d="M674 228V250" marker-end="url(#arch-arrow)"/>
+  </g>
+  <path d="M674 338V358H278V342" class="accent" fill="none" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arch-arrow-accent)"/>
+  <text x="476" y="376" text-anchor="middle" font-size="11.5" class="ink">a trial that pays moves to a paid cell</text>
+
+  <rect x="230" y="56" width="300" height="56" rx="8" class="box"/>
+  <text x="380" y="80" text-anchor="middle" font-weight="600" class="ink">Worker: API, sweepers, webhooks</text>
+  <text x="380" y="98" text-anchor="middle" font-size="11.5" class="quiet">sets app.company_id first in every transaction</text>
+
+  <rect x="230" y="150" width="300" height="56" rx="8" class="box-main"/>
+  <text x="380" y="174" text-anchor="middle" font-weight="600" class="ink">forCompany(id)</text>
+  <text x="380" y="192" text-anchor="middle" font-size="11.5" class="ink">registry lookup, cached; throws on a wrong company</text>
+
+  <rect x="24" y="250" width="180" height="136" rx="8" class="box"/>
+  <text x="114" y="274" text-anchor="middle" font-weight="600" class="ink">Control database</text>
+  <g font-size="11.5" class="quiet">
+    <text x="40" y="294">company + DB registry</text>
+    <text x="40" y="310">login directory, HMAC</text>
+    <text x="40" y="326">operators, plans</text>
+    <text x="40" y="342">quotas, usage, alerts</text>
+    <text x="40" y="358">migration ledger</text>
+    <text x="40" y="374">no business data</text>
+  </g>
+
+  <rect x="220" y="250" width="116" height="88" rx="8" class="box"/>
+  <text x="278" y="274" text-anchor="middle" font-size="12" font-weight="600" class="ink">Customer DB A</text>
+  <g font-size="11.5" text-anchor="middle" class="quiet"><text x="278" y="294">shared tables</text><text x="278" y="310">RLS on</text><text x="278" y="326">paid companies</text></g>
+
+  <rect x="352" y="250" width="116" height="88" rx="8" class="box"/>
+  <text x="410" y="274" text-anchor="middle" font-size="12" font-weight="600" class="ink">Customer DB B</text>
+  <g font-size="11.5" text-anchor="middle" class="quiet"><text x="410" y="294">same schema</text><text x="410" y="310">via db:add</text><text x="410" y="326">when A is full</text></g>
+
+  <rect x="484" y="250" width="116" height="88" rx="8" class="box"/>
+  <text x="542" y="274" text-anchor="middle" font-size="12" font-weight="600" class="ink">Dedicated DB</text>
+  <g font-size="11.5" text-anchor="middle" class="quiet"><text x="542" y="294">same schema</text><text x="542" y="310">one company</text><text x="542" y="326">RLS still on</text></g>
+
+  <rect x="616" y="250" width="116" height="88" rx="8" class="box"/>
+  <text x="674" y="274" text-anchor="middle" font-size="12" font-weight="600" class="ink">Trial DB</text>
+  <g font-size="11.5" text-anchor="middle" class="quiet"><text x="674" y="294">own compute</text><text x="674" y="310">trials + demo</text><text x="674" y="326">same schema</text></g>
+
+  <rect x="220" y="392" width="512" height="32" rx="8" class="band"/>
+  <text x="476" y="412" text-anchor="middle" font-size="11.5" class="ink">one slice operation copies, moves or erases a company by company_id</text>
+  <text x="122" y="222" font-size="11.5" class="quiet">where is this company?</text>
+</svg>

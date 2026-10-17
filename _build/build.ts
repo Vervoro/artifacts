@@ -1,0 +1,103 @@
+// Builds the GitHub Pages site: each document's README.md becomes index.html beside it, plus a root index.
+
+import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { marked } from "marked";
+
+const site = join(import.meta.dir, "..");
+
+const css = `
+:root {
+  --bg: #f6f6f8; --surface: #ffffff; --sunken: #ededf1; --text: #16161a; --muted: #5c5c66; --border: #e0e0e6;
+  --accent: #4338ca; --accent-soft: #eef0ff; --edge: #8a8a96; --tint: #f0f0f4;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #111114; --surface: #1a1a1f; --sunken: #23232a; --text: #ececf1; --muted: #a2a2ad; --border: #2d2d35;
+  --accent: #a5b4fc; --accent-soft: #23264a; --edge: #74747f; --tint: #202027; color-scheme: dark; } }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 var(--sans); }
+main { max-width: 860px; margin: 0 auto; padding: 48px max(20px, env(safe-area-inset-left)) 80px; }
+header.site { max-width: 860px; margin: 0 auto; padding: 20px max(20px, env(safe-area-inset-left)) 0; font-size: 14px; }
+header.site a { color: var(--muted); text-decoration: none; }
+header.site a:hover { color: var(--accent); }
+h1, h2, h3 { line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(28px, 4vw, 38px); letter-spacing: -0.02em; margin: 0 0 20px; }
+h2 { font-size: 23px; margin: 48px 0 12px; padding-top: 20px; border-top: 1px solid var(--border); }
+h3 { font-size: 18px; margin: 32px 0 8px; }
+p, li { max-width: 72ch; }
+a { color: var(--accent); }
+code { font-family: var(--mono); font-size: 0.86em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 16px 0; background: var(--surface); }
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+.table-wrap table { margin: 0; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+th { background: var(--sunken); font-weight: 600; font-size: 13px; color: var(--muted); }
+tr:last-child td { border-bottom: none; }
+ul, ol { padding-left: 22px; }
+li + li { margin-top: 4px; }
+figure { margin: 20px 0; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; }
+svg.diagram { display: block; width: 100%; min-width: 640px; height: auto; font-family: var(--sans); }
+svg .ink { fill: var(--text); } svg .quiet { fill: var(--muted); }
+svg .edge { stroke: var(--edge); } svg .edge-fill { fill: var(--edge); }
+svg .accent { stroke: var(--accent); } svg .accent-fill { fill: var(--accent); }
+svg .box { fill: none; stroke: var(--edge); stroke-width: 1.25; }
+svg .box-main { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+svg .band { fill: var(--tint); stroke: var(--edge); stroke-width: 1.25; }
+.cards { list-style: none; padding: 0; display: grid; gap: 12px; }
+.cards a { display: block; padding: 18px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; text-decoration: none; color: var(--text); }
+.cards a:hover, .cards a:focus-visible { border-color: var(--accent); outline: none; }
+.cards b { display: block; font-size: 17px; } .cards span { color: var(--muted); font-size: 14px; }
+footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
+`;
+
+const page = (title: string, body: string, home: boolean) => `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>${title}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono&display=swap">
+<style>${css}</style>
+</head>
+<body>
+${home ? "" : '<header class="site"><a href="../">← Vervoro artifacts</a></header>'}
+<main>
+${body}
+<footer>Vervoro</footer>
+</main>
+</body>
+</html>
+`;
+
+const docs = [
+  { dir: "system-architecture", title: "ADR-000: System architecture", blurb: "A modular monolith of modules with typed ports, one core that owns stock and orders, an outbox, one egress gate, connector plugins and simulators. Proposed, 17 October 2026." },
+  { dir: "database-architecture", title: "ADR-001: Multi-tenant database architecture", blurb: "Control database, shared-table customer databases with row-level security, dedicated and trial databases. Proposed, 17 October 2026." },
+  { dir: "data-retention", title: "ADR-002: Data retention and archiving", blurb: "24 months of history in each cell, older months archived per company in object storage, statutory retention, then deletion. Proposed, 17 October 2026." },
+  { dir: "product-model", title: "ADR-003: Product model", blurb: "SKU identity, barcodes, simple products, packs with their own stock, kits built from components, box sizes, size and colour families, VAT classes, best-before and lot tracking, listing links including FBA and Vendor, and how products are created. Proposed, 17 October 2026." },
+];
+
+for (const d of docs) {
+  const md = readFileSync(join(site, d.dir, "README.md"), "utf8");
+  let html = await marked.parse(md, { gfm: true });
+  const svg = join(import.meta.dir, "diagrams", `${d.dir}.svg`);
+  if (html.includes("<!-- DIAGRAM -->")) html = html.replace("<!-- DIAGRAM -->", `<figure>${readFileSync(svg, "utf8")}</figure>`);
+  html = html.replace(/<table>/g, '<div class="table-wrap"><table>').replace(/<\/table>/g, "</table></div>");
+  writeFileSync(join(site, d.dir, "index.html"), page(d.title, html, false));
+}
+
+const index = `<h1>Vervoro artifacts</h1>
+<p>Architecture decisions and plans.</p>
+<ul class="cards">
+${docs.map((d) => `  <li><a href="${d.dir}/"><b>${d.title}</b><span>${d.blurb}</span></a></li>`).join("\n")}
+</ul>`;
+writeFileSync(join(site, "index.html"), page("Vervoro artifacts", index, true));
+writeFileSync(join(site, ".nojekyll"), "");
+writeFileSync(
+  join(site, "README.md"),
+  `# Vervoro artifacts\n\nArchitecture decisions and plans, published with GitHub Pages.\n\n${docs.map((d) => `- [${d.title}](${d.dir}/README.md)`).join("\n")}\n`,
+);
+console.log("built");

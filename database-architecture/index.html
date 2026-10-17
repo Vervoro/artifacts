@@ -96,6 +96,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>A trial database</strong> on its own compute holds every company from sign-up until it pays. A paying company is moved into a paid cell.</li>
 <li><strong>Every company-level operation</strong> (export, move, restore, erase, placement) is one generated operation over the rows where <code>company_id</code> matches.</li>
 <li><strong>Guard rails in the runtime and in CI</strong> make a cross-company read or write impossible to write by accident.</li>
+<li><strong>One sweeper per database</strong> finds due work with one query and runs the due companies side by side, waking at the next due time. Events go through an outbox in the same transaction as the change.</li>
 </ol>
 <h2>Architecture</h2>
 <figure><svg class="diagram" viewBox="0 0 760 444" role="img" aria-label="Every request reaches one database; trials run on their own compute" xmlns="http://www.w3.org/2000/svg" font-size="13">
@@ -167,6 +168,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Fail loud.</strong> <code>app.company()</code> returns <code>nullif(current_setting(&#39;app.company_id&#39;, true), &#39;&#39;)::uuid</code> and raises an error when it is null. An unset company is an error, never zero rows: a silent empty stock read could push 0 to a marketplace and delist a seller. The <code>company_id</code> column default reads the same function, so an insert without a company also errors.</li>
 <li><strong>Function label.</strong> <code>app.company()</code> is <code>STABLE</code> and <code>PARALLEL SAFE</code>, never <code>SECURITY DEFINER</code>. Postgres then evaluates it once per statement and uses the <code>company_id</code> index.</li>
 <li><strong>Roles.</strong> An owner role runs migrations. The runtime role is not the owner and has <code>NOBYPASSRLS</code>. No runtime role has <code>BYPASSRLS</code>, operator and background code included.</li>
+<li><strong>Append-only tables.</strong> A table declared append-only (today the stock ledger, order holds and the outbox) has <code>UPDATE</code>, <code>DELETE</code> and <code>TRUNCATE</code> revoked from the runtime role when its migration runs, so no bug or raw query can rewrite history. Only the owner role removes such rows, and only in two places: the generated slice operation (erase, restore, move) and the archiver detaching and dropping a month&#39;s partitions (<a href="../data-retention/">ADR-002</a>). Erase needs no runtime grant: the cascade from the tenant row runs with the table owner&#39;s rights.</li>
 <li><strong>Setting the company.</strong> The data layer sends <code>set_config(&#39;app.company_id&#39;, $1, true)</code> as the first statement of every transaction and refuses autocommit for company work. The setting lasts only for that transaction, which keeps it safe behind a transaction-mode pooler.</li>
 </ol>
 <h2>Declaring tables</h2>
@@ -184,7 +186,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>The data layer</td>
-<td><code>company_id</code> and its default, composite primary, unique and foreign keys, the cascade to <code>tenant</code>, <code>ENABLE</code> + <code>FORCE</code> RLS and the policy, grants, the table&#39;s entry in the company-slice manifest, anonymisation hooks</td>
+<td><code>company_id</code> and its default, composite primary, unique and foreign keys, the cascade to <code>tenant</code>, <code>ENABLE</code> + <code>FORCE</code> RLS and the policy, grants (with the append-only revoke where declared), the table&#39;s entry in the company-slice manifest, anonymisation hooks</td>
 </tr>
 </tbody></table></div>
 <ul>
@@ -201,10 +203,27 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p>Only the data layer may say which company a transaction belongs to, and four checks make sure nothing else can.</p>
 <ul>
 <li><strong>Statement filter (runtime).</strong> The data layer refuses any module statement containing <code>set</code>, <code>reset</code>, <code>set_config</code> or the name <code>app.company_id</code>. Module-defined functions and <code>DO</code> blocks are not allowed, since they would get round the filter. Postgres cannot revoke <code>set_config</code> on a custom setting, so this has to be application code.</li>
-<li><strong>Catalogue lint (CI).</strong> Fails the build if any cell table lacks <code>company_id NOT NULL</code> leading its primary key, forced RLS, both policy clauses or composite foreign keys. It also fails on raw <code>CREATE TABLE</code>, <code>serial</code> or identity columns, <code>SECURITY DEFINER</code>, views without <code>security_invoker</code>, materialized views, direct grants on partitions, <code>TRUNCATE</code> grants, <code>ON CONFLICT</code> without <code>company_id</code>, session-level <code>SET</code>, a runtime role with <code>BYPASSRLS</code>, and <code>app.company()</code> not labelled <code>STABLE</code>.</li>
+<li><strong>Catalogue lint (CI).</strong> Fails the build if any cell table lacks <code>company_id NOT NULL</code> leading its primary key, forced RLS, both policy clauses or composite foreign keys. It also fails on raw <code>CREATE TABLE</code>, <code>serial</code> or identity columns, <code>SECURITY DEFINER</code>, views without <code>security_invoker</code>, materialized views, direct grants on partitions, <code>TRUNCATE</code> grants, <code>ON CONFLICT</code> without <code>company_id</code>, session-level <code>SET</code>, a runtime role with <code>BYPASSRLS</code>, a runtime role holding <code>UPDATE</code>, <code>DELETE</code> or <code>TRUNCATE</code> on an append-only table, and <code>app.company()</code> not labelled <code>STABLE</code>.</li>
 <li><strong>Request guard.</strong> Authentication puts the signed-in company in request context; <code>forCompany(id)</code> throws when <code>id</code> differs. Operator and background code opt in explicitly, and opting in never bypasses RLS: every company read or write still runs in a transaction fixed to exactly one company.</li>
-<li><strong>How background jobs find work.</strong> Through one non-tenant table per cell, <code>due(company_id, kind, next_due_at)</code>, holding ids and timestamps only. A sweeper reads it with one indexed query, then opens one transaction per due company.</li>
+<li><strong>How background jobs find work.</strong> Through one non-tenant table per cell, <code>due(company_id, kind, next_due_at)</code>, holding ids and timestamps only. The cell&#39;s sweeper reads it with one indexed query, then opens one transaction per due company (<a href="#background-work-and-events">Background work and events</a>).</li>
 </ul>
+<h2>Background work and events</h2>
+<p>Every database (each shared cell, the trial database, each dedicated database) has <strong>one sweeper</strong>: a Durable Object named after the database and created on demand from its registry row. Adding a database brings its sweeper with it, and the trial database&#39;s sweeper never runs a paying company&#39;s work.</p>
+<ul>
+<li><strong>It finds work; it does not visit everyone.</strong> One indexed query on <code>due</code> returns the companies with something due now. Each runs in its own transaction fixed to that company, side by side, up to a fixed limit set so the cell&#39;s pooled connections keep room for requests. A company with nothing due costs nothing.</li>
+<li><strong>It wakes at the next due time,</strong> not on a fixed minute. After a run it sets its alarm for the earliest <code>next_due_at</code>, or sets none when nothing is due. A request that changes something nudges it within seconds, and an hourly scheduled trigger is the safety net for a lost alarm.</li>
+<li><strong>A sweeper that outgrows its time</strong> splits by a hash of the company id.</li>
+<li><strong>Moving a company</strong> moves its <code>due</code> rows with the rest of its slice, so the target database&#39;s sweeper picks it up and the source&#39;s forgets it.</li>
+</ul>
+<p><strong>Events: outbox note, deliver now, handler, receipt.</strong></p>
+<ol>
+<li><strong>Outbox note.</strong> The transaction that makes a change also writes a row in the outbox saying what happened (&quot;order 1001 dispatched&quot;). It is saved with the change or not at all, so it can never be lost.</li>
+<li><strong>Deliver now.</strong> Right after commit, the request hands the note to every module that handles that kind of event. This is the normal path, and it takes no sweeper.</li>
+<li><strong>Handler.</strong> The module&#39;s code that reacts: invoicing raises the invoice, the Channels host tells the marketplace the order shipped. It runs in a transaction that also writes a receipt for (event, handler), so a second delivery does nothing.</li>
+<li><strong>The sweeper</strong> delivers any note still missing a receipt, for example after a Worker crashed between commit and delivery.</li>
+</ol>
+<p>The outbox, not a queue, is the source of truth. A message put on a queue cannot be part of the database transaction, so a queue would still need the sweeper behind it. The inbound queue carries only marketplace webhooks, which must be answered before anything is written.</p>
+<p><strong>Writes that cross databases</strong> use the same pattern. Sign-up writes the company in its cell together with an outbox note (&quot;control still needs this login&quot;), then writes control. If the second write fails, the sweeper retries the note until it succeeds; the write is idempotent, so a repeat is harmless.</p>
 <h2>Control database and routing</h2>
 <p>The control database is its own database, so a cell credential can never read the login directory.</p>
 <p><strong>What control holds, and nothing else:</strong></p>
@@ -217,7 +236,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ul>
 <p><strong>Emails in control</strong> are stored only as HMAC(normalised email), keyed by a secret held outside Postgres. The address itself lives only in the company&#39;s own users table, so a leak of control is not a leak of customer data.</p>
 <p><strong>Routing.</strong> <code>forCompany(id)</code> looks the company&#39;s database up in the registry (cached) and uses that database&#39;s connection pool. A new company goes to the open trial database; a paying company to the open shared cell with the most room, or to a dedicated database. Adding a database is one command (<code>db:add</code>) that creates it, sets up roles, migrates and registers it. The system recommends a new database; the operator decides.</p>
-<p><strong>Writes that cross databases</strong> (sign-up, adding a user, closing a company) write the company side first, then control, are idempotent, and are repaired from an outbox if the second write fails. No transaction spans two databases.</p>
+<p><strong>Writes that cross databases</strong> (sign-up, adding a user, closing a company) write the company side first, then control, are idempotent, and are repaired from an outbox if the second write fails (see <a href="#background-work-and-events">Background work and events</a>). No transaction spans two databases.</p>
 <h2>Company lifecycle</h2>
 <p>One operation, generated from the catalogue, does every company-level job: copy or delete every row where <code>company_id = X</code>, in foreign-key order. Export, move, restore, dedicated placement and erase all use it, and CI runs it on every build: copy company A from database 1 to database 2, compare row counts and checksums per table, delete A, then confirm every table counts 0 for A.</p>
 <p><strong>Erase.</strong> Delete the tenant row; the cascade removes the rest. Erase is done when all four hold, recorded in an erase ledger:</p>
@@ -337,6 +356,11 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>As company A, every read, insert, update and delete of B&#39;s rows is refused; an unset company raises an error</td>
 </tr>
 <tr>
+<td>Append-only</td>
+<td>CI, real Postgres, runtime role</td>
+<td>An update, delete or truncate of a stock ledger row is refused; the slice operation and the archiver, as the owner, still remove a company&#39;s rows</td>
+</tr>
+<tr>
 <td>Two-company fuzz</td>
 <td>CI, real Postgres</td>
 <td>Every command, run for A and B interleaved, touches only its own rows</td>
@@ -399,6 +423,10 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tbody><tr>
 <td>Schema per company</td>
 <td>About 1,780 database objects per company; dumps lock every table (73,000 at 500 companies), migrations and housekeeping grow with the number of companies</td>
+</tr>
+<tr>
+<td>A Postgres role per company</td>
+<td>Adds no isolation over the company setting: the runtime login would have to be able to switch into every company&#39;s role. Roles are server-wide, every table&#39;s permission list grows with each company, and a move must recreate the role in the new cell</td>
 </tr>
 <tr>
 <td>Database per company</td>

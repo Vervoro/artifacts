@@ -1,0 +1,15 @@
+{
+  "name": "site-build",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^7"
+  },
+  "dependencies": {
+    "marked": "14.1.4"
+  }
+}
