@@ -36,7 +36,7 @@ The design has to meet these requirements:
 8. **Every link is made by a person.** The one exception is an eBay relist that eBay itself declares, with nothing about the listing changed: its link carries over, and the seller is told.
 9. **Suggestions come in three tiers from fixed rules,** with a list of vetoes that demote a match. Only the strong tier can be accepted in bulk. A veto that could not be checked counts as fired.
 10. **Every link shows units per sale and the figure change before it is made.** Bulk accept never sets units per sale above 1. On a live account, a bulk link sends decreases at once and holds raises for one confirm.
-11. **Links are versioned.** A change closes the current link and opens a new one. Open orders keep the link they were reserved with.
+11. **Links are versioned.** A change closes the current link and opens a new one. Open orders keep the link they were reserved with, and an order belongs to the link that was valid when the buyer bought. Unlinking sends the listing 0 unless the seller chooses to leave the marketplace's figure.
 12. **An unlinked listing is left to the marketplace.** Going live needs an answer only for unlinked listings that look like they share stock with a linked product.
 13. **Figures go only to linked listings,** on every marketplace.
 14. **A product can be made from a listing in one tap,** and an existing product can be offered on Amazon by ASIN, through a checked write at quantity 0.
@@ -218,6 +218,15 @@ The relist carry is the one link no person makes. It is the marketplace stating 
 
 **Open orders keep their link.** An order line records the link it was reserved with (ADR-006, ADR-007). A relink applies to orders received afterwards, and to open lines that arrived unlinked and are not yet dispatched. The link screen says both: "2 open orders keep Honey 340 g. Linking reserves stock for 3 waiting orders."
 
+**The purchase time decides the link.** An order belongs to the link that was valid when the buyer bought, not when Vervoro imported it. Links record when they began and ended, so this is a lookup. A sale at 10:00 on a listing unlinked at 10:01, whose notice arrives at 10:03, still reserves from the product. A sale after the unlink is an order for an unlinked listing.
+
+**Unlinking.** Closing a link without a new one, by a person, by retiring the product or by an undo:
+
+- **Reserved orders keep their stock.** Open orders keep the product they reserved; dispatch deducts it, and a cancellation or return puts it back on that product. The unlink screen says so: "2 open orders keep Honey 340 g."
+- **The listing is sent 0 by default.** Without a link Vervoro sends no figure, and the marketplace would keep the last one, selling stock nothing protects. The unlink screen offers "Set to 0 and unlink", the default, which sends 0 at once like any decrease, or "Leave eBay's figure at 6", for a seller handing the listing back to the marketplace on purpose. The choice shows the figure and is recorded on the closed link.
+- **Marketplace-shipped listings** never get a figure, so unlinking one sends nothing.
+- **Relinking is a new link.** Like any link, it reserves stock for orders that arrived while the listing was unlinked and are not yet dispatched. Orders already dispatched while unlinked stay flagged, and the seller attaches each one to a product from the order (ADR-007).
+
 **Fulfilment changes.** A listing moving from seller-shipped to marketplace-shipped stops getting figures at once. One moving the other way gets no figure until the seller confirms, because it suddenly exposes warehouse stock. An order line's own fulfilment decides whether it reserves: a seller-shipped order on a listing still linked as marketplace-shipped reserves units per sale of the product, and opens a conflict (ADR-007 imports it).
 
 **Held raises are one set of reasons per listing:** it came back after ending, its SKU was edited onto another product's, a live bulk link is not yet confirmed, or a fulfilment conflict is open. Raises go only when the set is empty, and each reason clears with its own answer. Decreases are never held. How a link's first figure is sent, and on which lane, is ADR-008.
@@ -387,6 +396,8 @@ Checked against each marketplace's documentation on 18 October 2026.
 | --- | --- |
 | Link automatically on an exact SKU match | A six-pack listing often carries the single's SKU; a machine link at one unit per sale shows six times the stock |
 | A confidence score from a model, or fuzzy matching | Not explainable to a seller, not testable as a rule, and wrong in ways nobody sees; fixed tiers and named vetoes are both |
+| Leave the marketplace's figure when a link closes | The last figure stays live with nothing behind it, so the listing oversells; leaving it is an explicit choice instead |
+| Match an order to the link valid when it is imported | A sale made just before an unlink, with a late notice, would reserve nothing |
 | Key listings by SKU | eBay relists change the item number, Amazon cannot rename a SKU, Shopify allows blank and shared SKUs; a SKU key would move stock to the wrong listing or orphan orders |
 | End a listing when one read misses it | Reports come back empty or cut off, and paged reads shift; one bad read would unlink a catalogue |
 | Trust a delete notice | Notices arrive late, twice, out of order, or forged; a read of that listing is the proof |
