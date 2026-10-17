@@ -122,6 +122,7 @@ Checked against eBay's documentation on 17 October 2026.
 | Fulfillment API order resource, per application | 100,000 calls a day | [API call limits](https://developer.ebay.com/develop/api/sell/api_call_limits) |
 | Inventory API, per application | 2 million calls a day | [API call limits](https://developer.ebay.com/develop/api/sell/api_call_limits) |
 | Notification API, per application | 10,000 calls a day | [API call limits](https://developer.ebay.com/develop/api/sell/api_call_limits) |
+| Feed API, per application | 100,000 calls a day; 400 a day per seller for each feed type | [API call limits](https://developer.ebay.com/develop/api/sell/api_call_limits) |
 | Raising the limits | After eBay's Application Growth Check | [API call limits](https://developer.ebay.com/develop/api/sell/api_call_limits) |
 | Bulk price and quantity update | One SKU, up to 25 offers; up to 250 revisions per listing per calendar day | [bulkUpdatePriceQuantity](https://developer.ebay.com/api-docs/sell/inventory/resources/inventory_item/methods/bulkUpdatePriceQuantity) |
 | Trading API inventory status revision | Up to 4 listings or variations per call; a variation is named by its SKU | [ReviseInventoryStatus](https://developer.ebay.com/devzone/xml/docs/Reference/eBay/ReviseInventoryStatus.html) |

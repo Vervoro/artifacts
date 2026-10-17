@@ -296,7 +296,7 @@ eBay's Trading API is the only shared pool catalogue work touches.
 | eBay Trading, catalogue after onboarding | about 10 | about 100 | about 1,000 | 5,000 for the application by default |
 | eBay Trading, onboarding new sellers | about 50 | about 100 | about 500 | The same |
 | eBay Inventory API | about 200 | about 2,000 | about 20,000 | 2 million for the application |
-| eBay Feed API (one report each) | about 80 | about 800 | about 8,000 | Confirmed before launch |
+| eBay Feed API (one report each) | about 80 | about 800 | about 8,000 | 100,000 for the application; 400 per seller per feed type |
 | Amazon, per seller | about 150 | about 150 | about 150 | The seller's own bucket |
 | Shopify, per shop | under 1 % of the cost budget | the same | the same | The shop's own bucket |
 
@@ -346,6 +346,7 @@ Checked against each marketplace's documentation on 18 October 2026.
 | eBay active-listings report | A Feed API task (`LMS_ACTIVE_INVENTORY_REPORT`): SKU, item number, price and quantity of active listings | [Feed API](https://developer.ebay.com/develop/api/sell/feed_api.md) |
 | eBay listing notices | The Notification API has no general listing topic; the Trading API's platform notifications include listed, revised and closed | [Notification API](https://developer.ebay.com/develop/api/sell/notification_api) |
 | eBay Trading API | 5,000 calls a day for the application by default | [API call limits](https://developer.ebay.com/develop/api/sell/api_call_limits) |
+| eBay Feed API | 100,000 calls a day for the application; 400 requests a day per seller for each feed type, and requests beyond that count against the application | [API call limits](https://developer.ebay.com/develop/api/sell/api_call_limits) |
 | Amazon listings search | 5 a second per seller and application; at most 20 a page; filters by created and last updated time; search by up to 20 identifiers | [Listings Items API rate limits](https://developer-docs.amazon/sp-api/docs/listings-items-api-rate-limits) |
 | Amazon listing notices | Listing status changes (created, deleted, buyable) on the event bus only | [EventBridge notifications](https://developer-docs.amazon/sp-api/docs/set-up-notifications-with-amazon-eventbridge) |
 | Amazon offer on an existing ASIN | A listing put with offer-only requirements; restrictions checked through the Listings Restrictions API | [Listings Items API](https://developer-docs.amazon/sp-api/docs/listings-items-api) |
