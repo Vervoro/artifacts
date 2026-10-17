@@ -26,12 +26,12 @@ The design has to meet these requirements:
 1. **A connector is a translator, nothing more.** It turns contract calls into a marketplace's requests and its replies into contract types. It has no network access, no credentials, no clock of its own and no database.
 2. **The contract is four calls and one parser:** read orders, read listings, write stock, read back, and parse a notice. Everything else a marketplace offers is an optional capability the connector declares.
 3. **The host owns everything that can hurt:** credentials and their refresh, the seller's approval, HTTP, retries, rate limits per account, and shared allowances across the platform.
-4. **Shared allowances are counted once, for the whole platform,** in the control database. Each pool is split into a safety lane and a bulk lane, and every account on the pool keeps a reserve for its safety lane.
+4. **Shared daily allowances are counted exactly, one call at a time, for the whole platform,** in the control database. Each pool is split into a safety lane and a bulk lane, and every account on the pool keeps a reserve for its safety lane.
 5. **Orders arrive by notice.** A notice is verified before anything is read, queued, and answered at once. The order is then fetched and imported. The scheduled read of orders is an optional backup, never the way orders come in.
 6. **A notice is a hint, never the truth.** Vervoro imports what it fetches from the marketplace, not what a notice says. A notice never moves the order watermark.
 7. **Every connector runs against its simulator** in development and tests, through one shared contract test suite. Sandboxes are used only to record real replies before launch.
 8. **Every account starts in shadow** at the egress gate. Reads happen, writes are only recorded. An account goes live once the seller has explained every difference.
-9. **A marketplace is switched on or off at three levels:** the platform, the company, and the account. Off means no reads, no writes, and notices dropped.
+9. **A marketplace is switched on or off at three levels:** the platform, the company, and the account. Off means no reads, no writes, and notices dropped. The operator can also hold every send to one marketplace during an incident on its side.
 10. **Failures are isolated per account, per job and per shared pool.** A throttle, an outage or a refused approval holds only the work it touches.
 11. **eBay and Amazon Seller are the launch connectors.** Shopify and the others are new modules behind the same contract.
 
@@ -136,11 +136,13 @@ Each connector module contributes one definition to the connector extension poin
 
 ### Shared daily allowances
 
-Some limits belong to Vervoro's application as a whole. eBay's Trading API allows 5,000 calls a day by default for the whole application, and its order resource 100,000. Amazon also has per-application ceilings above the per-seller ones. Every seller on Vervoro, and every feature that uses that API, draws from the same pool.
+Some limits belong to Vervoro's application as a whole. eBay's Trading API allows 5,000 calls a day by default for the whole application, and its order resource 100,000. Every seller on Vervoro, and every feature that uses that API, draws from the same pool.
 
-- **One counter per pool, for the whole platform,** in the control database (ADR-001 puts shared marketplace call quotas there). Every call on the pool takes from it before it leaves.
+- **One counter per pool, for the whole platform,** in the control database (ADR-001 puts shared marketplace call quotas there). Every call on the pool takes one from it before it leaves, in one statement that refuses the call once the day is spent, so the count is exact and the pool is never overrun. At these volumes (5,000 a day is one call every 17 seconds on average) one round trip per call costs little, and handing out blocks of calls would add leases and allow overruns for no gain.
+- **Per-second ceilings per application are not counted centrally.** Some marketplaces cap the whole application per second as well as each seller (Amazon's listing updates: 5 a second per seller, 500 for the application). Each seller's own bucket keeps Vervoro far below such a ceiling. If the marketplace ever throttles the application as a whole, the call waits like any other throttle and the operator is alerted.
 - **Two lanes.** The **safety lane** carries the calls that protect a seller: a stock decrease, or any figure while a shelf is low. The **bulk lane** carries everything else: raises, refreshes, catalogue reads.
-- **A reserve for every account.** Each account on the pool keeps a share of the day for its safety lane (a fixed fraction of the pool divided among the accounts using it, with a floor). Once the day's count reaches the pool less every reserve, the bulk lane pauses for everyone until the pool resets. The safety lane goes on until the account's own reserve is spent, and never past the pool.
+- **A reserve for every account.** A tenth of each pool is its safety reserve, split equally among the accounts using it, with no fixed floor. Once the day's count reaches the pool less the reserve, the bulk lane pauses for everyone until the pool resets. The safety lane goes on until the account's own share is spent, and never past the pool.
+- **The pool caps how many accounts it serves.** The pool's size is a platform setting. When an account's share of the reserve would fall below a set minimum (50 calls a day to start), the operator is alerted, and a new account that needs the pool waits in shadow until the pool is raised. A seller is never taken live on a pool too small to protect them.
 - **Most urgent first.** Within an account, queued work is claimed in priority order: safety writes, then order fetches, then the rest, oldest first.
 - **A paused pool holds only its own calls.** Work on other APIs of the same marketplace goes on.
 - **The operator sees it before it bites.** A pool at 90 % of its day alerts the operator, never the seller. A raised limit (after the marketplace's growth review, for example) is a platform setting, not a code change.
@@ -167,7 +169,7 @@ Orders arrive by notice. This is a hard rule: the scheduled read is only the bac
 
 **Subscriptions are made on connect.** A connector's lifecycle hook subscribes the new account to its order topics, and the disconnect hook removes them. A hook that fails is retried and alerts. An account with no working subscription is shown as "not notified", and its backup read runs at its shortest interval until the subscription works.
 
-**The backup read is optional.** The completeness check reads the orders changed since the order watermark, with a small overlap. It is the only thing that moves the watermark, and only after a complete window. Its interval follows the account's order rate, between a minimum and a maximum the operator sets per connector, and the operator can switch the schedule off. A check still runs on demand when something must know that every order is in: after an outage, and when a stock raise waits for it. When that wait applies is ADR-008; how orders are imported is ADR-007.
+**The backup read is optional.** The completeness check reads the orders changed since the order watermark, with a small overlap. It is the only thing that moves the watermark, and only after a complete window. Its interval follows the account's order rate, between a minimum and a maximum the operator sets per connector, and the operator can switch the schedule off. A check still runs on demand when something must know that every order is in, even with the schedule off: after an outage, and before a stock raise is sent, unless a complete read already covers the time the raise was decided. A notice can say that an order exists, never that none is missing, so a raise sent before the read could let the marketplace sell stock that is already gone. Decreases never wait. How long a raise may wait is ADR-008; how orders are imported is ADR-007.
 
 **The host handles some topics itself.** A notice that the seller revoked Vervoro's approval disconnects the account. A privacy request (eBay's account deletion, Shopify's data requests) is recorded with its due date, and buyer data it names is anonymised.
 
@@ -219,14 +221,15 @@ A connector that is off costs nothing. Its accounts have no work due, so the swe
 
 eBay and Amazon Seller are the launch connectors. What each marketplace forced us to decide, beyond this record, has a record of its own:
 
-- **eBay (ADR-004.1, planned):** orders by eBay's Notification API to one signed destination for the whole application; stock through the Inventory API or, for listings made in eBay's own seller tools, through the Trading API and its application-wide pool of 5,000 calls a day ([eBay's call limits](https://developer.ebay.com/develop/api/sell/api_call_limits), checked 17 October 2026); no compare-and-set.
-- **Amazon Seller (ADR-004.2, planned):** order notices only into Amazon's queue and listing notices only onto its event bus, so both come through the relay ([notification types](https://developer-docs.amazon/sp-api/docs/notification-type-values), checked 17 October 2026); single listing writes and listings feeds for many raises; limits per seller and application; no figure ever sent to a listing Amazon ships (ADR-003).
+- **eBay ([ADR-004.1](../ebay-connector/)):** orders by eBay's Notification API to one signed destination for the whole application; stock through the Inventory API or, for listings made in eBay's own seller tools, through the Trading API and its application-wide pool of 5,000 calls a day ([eBay's call limits](https://developer.ebay.com/develop/api/sell/api_call_limits), checked 17 October 2026); no compare-and-set.
+- **Amazon Seller ([ADR-004.2](../amazon-seller-connector/)):** order notices only into Amazon's queue and listing notices only onto its event bus, so both come through the relay ([notification types](https://developer-docs.amazon/sp-api/docs/notification-type-values), checked 17 October 2026); single listing writes and listings feeds for many raises; limits per seller and application; no figure ever sent to a listing Amazon ships (ADR-003).
 - **Shopify, later:** HMAC-signed webhooks to a per-shop address, compare-and-set on inventory quantities, and a budget in cost points per shop. Each is something the contract and the host already express.
-- **Other marketplaces** follow the same path: a new module, a definition, a simulator and the contract test suite. A marketplace that sends no order notices is added only once its notices are planned, or with an exception recorded as a decision of its own. Selling to Amazon as a vendor has a different shape and is decided in its own record.
+- **Other marketplaces** follow the same path: a new module, a definition, a simulator and the contract test suite. A marketplace that sends no order notices is added only once its notices are planned, or with an exception recorded as a decision of its own. Shopify is ADR-004.3 (planned). Selling to Amazon as a vendor has a different shape and is ADR-004.4 (planned).
 
 ## What later records decide
 
-- **ADR-004.1: eBay connector** and **ADR-004.2: Amazon Seller connector** (planned): the decisions specific to each launch marketplace, with its constraints checked against its documentation.
+- **[ADR-004.1: eBay connector](../ebay-connector/)** and **[ADR-004.2: Amazon Seller connector](../amazon-seller-connector/)**: the decisions specific to each launch marketplace, with its constraints checked against its documentation.
+- **ADR-004.3: Shopify connector** and **ADR-004.4: Amazon Vendor connector** (planned): the same for Shopify, and for selling to Amazon as a vendor (purchase orders, carton shipments).
 - **ADR-005: Catalogue sync and linking** (planned): when listings are read in full, how new and ended listings are found, and how a listing is matched and linked to a product.
 - **ADR-006: Stock ledger and reservations** (planned): the ledger and the stock figures, reserving on order, deducting on dispatch, cancellations and returns.
 - **ADR-007: Order ingestion** (planned): how a fetched order is imported once per marketplace order, its statuses, cancellation requests, marketplace-shipped orders and unlinked listings.
@@ -248,8 +251,8 @@ eBay and Amazon Seller are the launch connectors. What each marketplace forced u
 - The host is large. Approval flows, token refresh, signing, buckets, pools and notice verification all live there, and each new authentication kind or notice shape is host work once.
 - Amazon's notices need a relay in AWS: one more piece to deploy, watch and keep a secret for.
 - Every marketplace needs a simulator, and the contract test suite must grow with every new capability.
-- Pools need the control database on every call that draws from them, so those calls cost one more round trip.
-- The completeness check is optional on a schedule but not in principle: some reads still run on demand to prove that every order is in.
+- Calls on a daily pool cost one more round trip, to the control database.
+- The scheduled backup read is optional, but a raise waits until a complete order read covers the time it was decided: on Amazon that can be up to about three minutes.
 
 ## Alternatives considered
 
@@ -263,5 +266,7 @@ eBay and Amazon Seller are the launch connectors. What each marketplace forced u
 | Reading Amazon's queue from Vervoro directly | A Worker would hold AWS credentials and poll a queue; a relay that posts to the same endpoint keeps one inbound path |
 | Rate limits per account only | A shared daily pool would be spent by whoever calls first, and a seller could be left unable to lower a figure |
 | A shared pool with no lanes | A catalogue read or a run of raises could spend the day before a decrease is due |
+| Claiming pool calls in blocks | Saves round trips only at rates far above any daily pool; adds leases and lets a pool run over |
+| Raising on notices alone | A notice proves an order exists, never that none is missing; a lost notice would let the marketplace sell stock that is gone |
 | Testing against marketplace sandboxes | Slow, limited, not deterministic, and unable to produce the failures that matter; recorded replies keep the simulators honest instead |
 | Retrying a timed-out write | The marketplace may already have applied it; reading back first is the only safe next step |

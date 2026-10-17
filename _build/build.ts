@@ -49,6 +49,7 @@ svg .band { fill: var(--tint); stroke: var(--edge); stroke-width: 1.25; }
 .cards { list-style: none; padding: 0; display: grid; gap: 12px; }
 .cards a { display: block; padding: 18px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; text-decoration: none; color: var(--text); }
 .cards a:hover, .cards a:focus-visible { border-color: var(--accent); outline: none; }
+.cards.sub { margin: 12px 0 0 24px; padding-left: 16px; border-left: 2px solid var(--border); }
 .cards b { display: block; font-size: 17px; } .cards span { color: var(--muted); font-size: 14px; }
 footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 `;
@@ -73,12 +74,14 @@ ${body}
 </html>
 `;
 
-const docs = [
+const docs: { dir: string; title: string; blurb: string; parent?: string }[] = [
   { dir: "system-architecture", title: "ADR-000: System architecture", blurb: "A modular monolith of modules with typed ports, one core that owns stock and orders, an outbox, one egress gate, connector plugins and simulators. Proposed, 17 October 2026." },
   { dir: "database-architecture", title: "ADR-001: Multi-tenant database architecture", blurb: "Control database, shared-table customer databases with row-level security, dedicated and trial databases. Proposed, 17 October 2026." },
   { dir: "data-retention", title: "ADR-002: Data retention and archiving", blurb: "24 months of history in each cell, older months archived per company in object storage, statutory retention, then deletion. Proposed, 17 October 2026." },
   { dir: "product-model", title: "ADR-003: Product model", blurb: "SKU identity, barcodes, simple products, packs with their own stock, kits built from components, box sizes, size and colour families, VAT classes, best-before and lot tracking, listing links including FBA and Vendor, and how products are created. Proposed, 17 October 2026." },
   { dir: "channel-connectors", title: "ADR-004: Channel connectors", blurb: "Each marketplace is a translator behind a small contract (read orders, read listings, write stock, read back); the host owns credentials, HTTP, rate limits and shared daily allowances; orders arrive by notice; simulators, shadow mode, and failures kept per account. Proposed, 17 October 2026." },
+  { dir: "ebay-connector", parent: "channel-connectors", title: "ADR-004.1: eBay connector", blurb: "One app every seller approves, orders by eBay's Notification API, the Inventory API and the Trading API for every listing a SKU is on, the shared Trading pool, the out-of-stock option, account deletion notices. Proposed, 17 October 2026." },
+  { dir: "amazon-seller-connector", parent: "channel-connectors", title: "ADR-004.2: Amazon Seller connector", blurb: "Seller Central approval renewed yearly, one account per seller and region, the AWS notice relay, single decreases and feeds for raises, read back on every write, no figure for listings Amazon ships, buyer data. Proposed, 17 October 2026." },
 ];
 
 for (const d of docs) {
@@ -93,12 +96,20 @@ for (const d of docs) {
 const index = `<h1>Vervoro artifacts</h1>
 <p>Architecture decisions and plans.</p>
 <ul class="cards">
-${docs.map((d) => `  <li><a href="${d.dir}/"><b>${d.title}</b><span>${d.blurb}</span></a></li>`).join("\n")}
+${docs
+  .filter((d) => !d.parent)
+  .map((d) => {
+    const card = (c: (typeof docs)[number]) => `<a href="${c.dir}/"><b>${c.title}</b><span>${c.blurb}</span></a>`;
+    const kids = docs.filter((c) => c.parent === d.dir);
+    const sub = kids.length ? `\n    <ul class="cards sub">\n${kids.map((c) => `      <li>${card(c)}</li>`).join("\n")}\n    </ul>\n  ` : "";
+    return `  <li>${card(d)}${sub}</li>`;
+  })
+  .join("\n")}
 </ul>`;
 writeFileSync(join(site, "index.html"), page("Vervoro artifacts", index, true));
 writeFileSync(join(site, ".nojekyll"), "");
 writeFileSync(
   join(site, "README.md"),
-  `# Vervoro artifacts\n\nArchitecture decisions and plans, published with GitHub Pages.\n\n${docs.map((d) => `- [${d.title}](${d.dir}/README.md)`).join("\n")}\n`,
+  `# Vervoro artifacts\n\nArchitecture decisions and plans, published with GitHub Pages.\n\n${docs.map((d) => `${d.parent ? "  " : ""}- [${d.title}](${d.dir}/README.md)`).join("\n")}\n`,
 );
 console.log("built");

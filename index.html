@@ -49,6 +49,7 @@ svg .band { fill: var(--tint); stroke: var(--edge); stroke-width: 1.25; }
 .cards { list-style: none; padding: 0; display: grid; gap: 12px; }
 .cards a { display: block; padding: 18px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; text-decoration: none; color: var(--text); }
 .cards a:hover, .cards a:focus-visible { border-color: var(--accent); outline: none; }
+.cards.sub { margin: 12px 0 0 24px; padding-left: 16px; border-left: 2px solid var(--border); }
 .cards b { display: block; font-size: 17px; } .cards span { color: var(--muted); font-size: 14px; }
 footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </style>
@@ -63,7 +64,12 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
   <li><a href="database-architecture/"><b>ADR-001: Multi-tenant database architecture</b><span>Control database, shared-table customer databases with row-level security, dedicated and trial databases. Proposed, 17 October 2026.</span></a></li>
   <li><a href="data-retention/"><b>ADR-002: Data retention and archiving</b><span>24 months of history in each cell, older months archived per company in object storage, statutory retention, then deletion. Proposed, 17 October 2026.</span></a></li>
   <li><a href="product-model/"><b>ADR-003: Product model</b><span>SKU identity, barcodes, simple products, packs with their own stock, kits built from components, box sizes, size and colour families, VAT classes, best-before and lot tracking, listing links including FBA and Vendor, and how products are created. Proposed, 17 October 2026.</span></a></li>
-  <li><a href="channel-connectors/"><b>ADR-004: Channel connectors</b><span>Each marketplace is a translator behind a small contract (read orders, read listings, write stock, read back); the host owns credentials, HTTP, rate limits and shared daily allowances; orders arrive by notice; simulators, shadow mode, and failures kept per account. Proposed, 17 October 2026.</span></a></li>
+  <li><a href="channel-connectors/"><b>ADR-004: Channel connectors</b><span>Each marketplace is a translator behind a small contract (read orders, read listings, write stock, read back); the host owns credentials, HTTP, rate limits and shared daily allowances; orders arrive by notice; simulators, shadow mode, and failures kept per account. Proposed, 17 October 2026.</span></a>
+    <ul class="cards sub">
+      <li><a href="ebay-connector/"><b>ADR-004.1: eBay connector</b><span>One app every seller approves, orders by eBay's Notification API, the Inventory API and the Trading API for every listing a SKU is on, the shared Trading pool, the out-of-stock option, account deletion notices. Proposed, 17 October 2026.</span></a></li>
+      <li><a href="amazon-seller-connector/"><b>ADR-004.2: Amazon Seller connector</b><span>Seller Central approval renewed yearly, one account per seller and region, the AWS notice relay, single decreases and feeds for raises, read back on every write, no figure for listings Amazon ships, buyer data. Proposed, 17 October 2026.</span></a></li>
+    </ul>
+  </li>
 </ul>
 <footer>Vervoro</footer>
 </main>
