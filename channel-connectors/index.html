@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ADR-004: Channel connectors</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono&display=swap">
+<style>
+:root {
+  --bg: #f6f6f8; --surface: #ffffff; --sunken: #ededf1; --text: #16161a; --muted: #5c5c66; --border: #e0e0e6;
+  --accent: #4338ca; --accent-soft: #eef0ff; --edge: #8a8a96; --tint: #f0f0f4;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #111114; --surface: #1a1a1f; --sunken: #23232a; --text: #ececf1; --muted: #a2a2ad; --border: #2d2d35;
+  --accent: #a5b4fc; --accent-soft: #23264a; --edge: #74747f; --tint: #202027; color-scheme: dark; } }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 var(--sans); }
+main { max-width: 860px; margin: 0 auto; padding: 48px max(20px, env(safe-area-inset-left)) 80px; }
+header.site { max-width: 860px; margin: 0 auto; padding: 20px max(20px, env(safe-area-inset-left)) 0; font-size: 14px; }
+header.site a { color: var(--muted); text-decoration: none; }
+header.site a:hover { color: var(--accent); }
+h1, h2, h3 { line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(28px, 4vw, 38px); letter-spacing: -0.02em; margin: 0 0 20px; }
+h2 { font-size: 23px; margin: 48px 0 12px; padding-top: 20px; border-top: 1px solid var(--border); }
+h3 { font-size: 18px; margin: 32px 0 8px; }
+p, li { max-width: 72ch; }
+a { color: var(--accent); }
+code { font-family: var(--mono); font-size: 0.86em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 16px 0; background: var(--surface); }
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+.table-wrap table { margin: 0; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+th { background: var(--sunken); font-weight: 600; font-size: 13px; color: var(--muted); }
+tr:last-child td { border-bottom: none; }
+ul, ol { padding-left: 22px; }
+li + li { margin-top: 4px; }
+figure { margin: 20px 0; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; }
+svg.diagram { display: block; width: 100%; min-width: 640px; height: auto; font-family: var(--sans); }
+svg .ink { fill: var(--text); } svg .quiet { fill: var(--muted); }
+svg .edge { stroke: var(--edge); } svg .edge-fill { fill: var(--edge); }
+svg .accent { stroke: var(--accent); } svg .accent-fill { fill: var(--accent); }
+svg .box { fill: none; stroke: var(--edge); stroke-width: 1.25; }
+svg .box-main { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+svg .band { fill: var(--tint); stroke: var(--edge); stroke-width: 1.25; }
+.cards { list-style: none; padding: 0; display: grid; gap: 12px; }
+.cards a { display: block; padding: 18px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; text-decoration: none; color: var(--text); }
+.cards a:hover, .cards a:focus-visible { border-color: var(--accent); outline: none; }
+.cards b { display: block; font-size: 17px; } .cards span { color: var(--muted); font-size: 14px; }
+footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header class="site"><a href="../">← Vervoro artifacts</a></header>
+<main>
+<h1>ADR-004: Channel connectors</h1>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Status</strong></td>
+<td>Proposed</td>
+</tr>
+<tr>
+<td><strong>Date</strong></td>
+<td>17 October 2026</td>
+</tr>
+<tr>
+<td><strong>Scope</strong></td>
+<td>How each marketplace plugs into Vervoro: the connector contract, what the platform host owns instead of the connector, how notices come in, how connectors are tested, switched on and off, and kept from harming each other</td>
+</tr>
+<tr>
+<td><strong>Builds on</strong></td>
+<td><a href="../system-architecture/">ADR-000: System architecture</a>, <a href="../database-architecture/">ADR-001: Multi-tenant database architecture</a>, <a href="../product-model/">ADR-003: Product model</a></td>
+</tr>
+</tbody></table></div>
+<h2>Context</h2>
+<p>Vervoro is the stock master for a seller who runs their own warehouse. Every marketplace the seller sells on shows the figure Vervoro sends, and every order those marketplaces take comes back to Vervoro. ADR-000 decided that each marketplace is a plugin behind a fixed contract, and that one egress gate is the only door out. This record says what that contract is, and what the platform does around it.</p>
+<p>The design has to meet these requirements:</p>
+<ul>
+<li><strong>Every marketplace is different, and none of them is reliable.</strong> Each has its own API, its own approval flow, its own limits and its own way of telling us something happened. All of them throttle, time out, and sometimes apply a change without saying so.</li>
+<li><strong>Some limits belong to the whole platform, not one seller.</strong> eBay&#39;s Trading API allows 5,000 calls a day by default for the whole application, shared by every seller who uses Vervoro and by every feature that calls it. One busy seller or one greedy feature must not spend the others&#39; share.</li>
+<li><strong>Orders arrive by notice first.</strong> A marketplace&#39;s own notice is the way an order comes in. A scheduled read of orders is only the backup that proves none was missed.</li>
+<li><strong>A new marketplace must not touch the core.</strong> The foundation, the egress gate and the server name no marketplace. Adding one is a new module; removing one is removing it.</li>
+<li><strong>One marketplace&#39;s trouble stays its own.</strong> An eBay outage must not slow Amazon. One seller&#39;s revoked approval must not stop another seller&#39;s stock.</li>
+<li><strong>One operator, a small team and AI coding agents</strong> build and run it. A connector must be small enough to write and review on its own, and unable to do the dangerous things (hold a secret, call the network directly, send a change outside the gate) even by mistake.</li>
+<li><strong>Launch with eBay and Amazon.</strong> These are the seller&#39;s first two channels. Shopify and others follow, and must fit without changing the contract.</li>
+</ul>
+<h2>Decision</h2>
+<ol>
+<li><strong>A connector is a translator, nothing more.</strong> It turns contract calls into a marketplace&#39;s requests and its replies into contract types. It has no network access, no credentials, no clock of its own and no database.</li>
+<li><strong>The contract is four calls and one parser:</strong> read orders, read listings, write stock, read back, and parse a notice. Everything else a marketplace offers is an optional capability the connector declares.</li>
+<li><strong>The host owns everything that can hurt:</strong> credentials and their refresh, the seller&#39;s approval, HTTP, retries, rate limits per account, and shared allowances across the platform.</li>
+<li><strong>Shared allowances are counted once, for the whole platform,</strong> in the control database. Each pool is split into a safety lane and a bulk lane, and every account on the pool keeps a reserve for its safety lane.</li>
+<li><strong>Orders arrive by notice.</strong> A notice is verified before anything is read, queued, and answered at once. The order is then fetched and imported. The scheduled read of orders is an optional backup, never the way orders come in.</li>
+<li><strong>A notice is a hint, never the truth.</strong> Vervoro imports what it fetches from the marketplace, not what a notice says. A notice never moves the order watermark.</li>
+<li><strong>Every connector runs against its simulator</strong> in development and tests, through one shared contract test suite. Sandboxes are used only to record real replies before launch.</li>
+<li><strong>Every account starts in shadow</strong> at the egress gate. Reads happen, writes are only recorded. An account goes live once the seller has explained every difference.</li>
+<li><strong>A marketplace is switched on or off at three levels:</strong> the platform, the company, and the account. Off means no reads, no writes, and notices dropped.</li>
+<li><strong>Failures are isolated per account, per job and per shared pool.</strong> A throttle, an outage or a refused approval holds only the work it touches.</li>
+<li><strong>eBay and Amazon Seller are the launch connectors.</strong> Shopify and the others are new modules behind the same contract.</li>
+</ol>
+<h2>Architecture</h2>
+<figure><svg class="diagram" viewBox="0 0 760 548" role="img" aria-label="Stock goes out through the gate, the connector and the host's HTTP binding; notices come in through the endpoint, the queue and the consumer" xmlns="http://www.w3.org/2000/svg" font-size="13">
+  <defs>
+    <marker id="con-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="edge-fill"/></marker>
+  </defs>
+  <text x="24" y="30" font-size="15" font-weight="600" class="ink">The connector only translates; the host holds everything that can hurt</text>
+
+  <g class="edge" fill="none" stroke-width="1.25">
+    <path d="M256 138V114" marker-start="url(#con-arrow)" marker-end="url(#con-arrow)"/>
+    <path d="M256 220V198" marker-end="url(#con-arrow)"/>
+    <path d="M143 308V286" marker-end="url(#con-arrow)"/>
+    <path d="M266 334H248" marker-end="url(#con-arrow)"/>
+    <path d="M369 440V362" marker-end="url(#con-arrow)"/>
+    <path d="M624 102V134" marker-end="url(#con-arrow)"/>
+    <path d="M508 114V238H526" marker-end="url(#con-arrow)"/>
+    <path d="M624 176V210" marker-end="url(#con-arrow)"/>
+    <path d="M624 264V290" marker-end="url(#con-arrow)"/>
+    <path d="M624 336V362" marker-end="url(#con-arrow)"/>
+    <path d="M528 384H498V252H474" marker-end="url(#con-arrow)"/>
+    <path d="M624 416V466H490" marker-end="url(#con-arrow)"/>
+  </g>
+
+  <rect x="24" y="48" width="712" height="64" rx="8" class="band"/>
+  <rect x="40" y="60" width="200" height="40" rx="6" class="box"/>
+  <text x="140" y="85" text-anchor="middle" font-weight="600" class="ink">eBay</text>
+  <rect x="256" y="60" width="200" height="40" rx="6" class="box" stroke-dasharray="4 4"/>
+  <text x="356" y="85" text-anchor="middle" font-size="12" class="quiet">Shopify and others, later</text>
+  <rect x="528" y="60" width="192" height="40" rx="6" class="box"/>
+  <text x="624" y="85" text-anchor="middle" font-weight="600" class="ink">Amazon Seller</text>
+
+  <rect x="24" y="128" width="464" height="290" rx="8" class="band"/>
+  <rect x="40" y="140" width="432" height="56" rx="8" class="box"/>
+  <text x="256" y="162" text-anchor="middle" font-weight="600" class="ink">HTTP binding, one per account</text>
+  <text x="256" y="180" text-anchor="middle" font-size="11.5" class="quiet">sealed credentials, token refresh, rate buckets, shared pools, call counts</text>
+
+  <rect x="40" y="220" width="432" height="64" rx="8" class="box-main"/>
+  <text x="256" y="244" text-anchor="middle" font-weight="600" class="ink">Connector plugin: a translator only</text>
+  <text x="256" y="264" text-anchor="middle" font-size="11.5" class="ink">read orders · read listings · write stock · read back · parse notice</text>
+
+  <rect x="40" y="308" width="206" height="52" rx="8" class="box"/>
+  <text x="143" y="330" text-anchor="middle" font-weight="600" class="ink">Egress gate</text>
+  <text x="143" y="348" text-anchor="middle" font-size="11.5" class="quiet">shadow records, live sends</text>
+
+  <rect x="266" y="308" width="206" height="52" rx="8" class="box"/>
+  <text x="369" y="330" text-anchor="middle" font-weight="600" class="ink">Send rules</text>
+  <text x="369" y="348" text-anchor="middle" font-size="11.5" class="quiet">what to send, and when</text>
+
+  <text x="256" y="400" text-anchor="middle" font-size="11.5" class="ink">Platform host: names no marketplace</text>
+
+  <rect x="528" y="134" width="192" height="42" rx="8" class="box"/>
+  <text x="624" y="152" text-anchor="middle" font-weight="600" class="ink">Relay in AWS</text>
+  <text x="624" y="168" text-anchor="middle" font-size="11.5" class="quiet">queue and event bus to HTTPS</text>
+
+  <rect x="528" y="210" width="192" height="54" rx="8" class="box"/>
+  <text x="624" y="232" text-anchor="middle" font-weight="600" class="ink">Notice endpoint</text>
+  <text x="624" y="250" text-anchor="middle" font-size="11.5" class="quiet">verify, find account, queue, answer</text>
+
+  <rect x="528" y="290" width="192" height="46" rx="8" class="box"/>
+  <text x="624" y="310" text-anchor="middle" font-weight="600" class="ink">Inbound queue</text>
+  <text x="624" y="326" text-anchor="middle" font-size="11.5" class="quiet">retries, dead-letter queue</text>
+
+  <rect x="528" y="362" width="192" height="54" rx="8" class="box"/>
+  <text x="624" y="384" text-anchor="middle" font-weight="600" class="ink">Consumer</text>
+  <text x="624" y="402" text-anchor="middle" font-size="11.5" class="quiet">parse, fetch the order, import</text>
+
+  <rect x="24" y="440" width="464" height="52" rx="8" class="box"/>
+  <text x="256" y="462" text-anchor="middle" font-weight="600" class="ink">Foundation</text>
+  <text x="256" y="480" text-anchor="middle" font-size="11.5" class="quiet">only writer of stock, order status and desired state</text>
+
+  <text x="24" y="526" font-size="11.5" class="quiet">In development and tests a simulator stands in for every marketplace; only the base address changes.</text>
+</svg>
+</figure>
+
+<p>The connector sits in the middle, with no way out of its own. Everything it sends goes through the HTTP binding the host gives it. The binding is built per account: it holds the account&#39;s base address, opens the sealed credentials, refreshes the access token, takes a token from the account&#39;s rate bucket and from any shared pool, and counts the call. Writes reach the binding only from the egress gate.</p>
+<p>Notices come in the other way. A marketplace calls Vervoro&#39;s address, or a small relay forwards what the marketplace put in its own cloud. The endpoint verifies the notice, finds the account, puts a minimal message on the inbound queue, and answers. The consumer asks the connector to parse it, fetches the order through the binding, and hands the order to the foundation.</p>
+<h2>The connector contract</h2>
+<p>A connector is built per account by a factory. The factory gets the account&#39;s HTTP binding, a clock and the account&#39;s non-secret settings. It gives back an object with these calls. Every call returns a typed result.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Call</th>
+<th>What it does</th>
+<th>What it returns</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Read orders</strong></td>
+<td>Reads the orders changed in a time window, one page at a time. Also fetches one order by its marketplace id</td>
+<td>A page of orders, a cursor for the next page, and the time up to which the window is complete. For one order: the order, or &quot;not visible yet&quot;</td>
+</tr>
+<tr>
+<td><strong>Read listings</strong></td>
+<td>Reads every listing on the account, one page at a time, or one listing by its SKU</td>
+<td>Listings with their SKU, the marketplace&#39;s own id, the figure it shows now, and who ships them</td>
+</tr>
+<tr>
+<td><strong>Write stock</strong></td>
+<td>Sets the figure one listing should show</td>
+<td>One outcome (below), and a submission id where the marketplace processes the change later</td>
+</tr>
+<tr>
+<td><strong>Read back</strong></td>
+<td>Asks what the marketplace now shows for a listing, or what became of a submission</td>
+<td>The figure the marketplace shows, or the submission&#39;s final outcome</td>
+</tr>
+<tr>
+<td><strong>Parse a notice</strong></td>
+<td>Reads a verified notice body. Makes no call</td>
+<td>Orders seen, order changed, listing changed, or ignored</td>
+</tr>
+</tbody></table></div>
+<p><strong>Every write ends in one outcome.</strong> These are the egress gate&#39;s outcomes from ADR-000. The connector maps every reply of its marketplace onto one of them, and a test covers each mapping.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Outcome</th>
+<th>Meaning</th>
+<th>What the host does next</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>applied</code></td>
+<td>The marketplace shows the new figure</td>
+<td>Records it as confirmed</td>
+</tr>
+<tr>
+<td><code>accepted</code></td>
+<td>The marketplace took the change and will process it later</td>
+<td>Reads back after the marketplace&#39;s own delay</td>
+</tr>
+<tr>
+<td><code>throttled</code></td>
+<td>The marketplace, or our own bucket, refused it for now</td>
+<td>Waits as long as the marketplace says, then tries again</td>
+</tr>
+<tr>
+<td><code>compare-mismatch</code></td>
+<td>The marketplace&#39;s figure was not the one we expected</td>
+<td>Reads back, then decides again</td>
+</tr>
+<tr>
+<td><code>rejected</code></td>
+<td>The marketplace refused this change for a reason that will not go away by waiting</td>
+<td>Stops, and tells the seller why</td>
+</tr>
+<tr>
+<td><code>unknown</code></td>
+<td>No clear answer, including a timeout</td>
+<td>Reads back before anything is sent again</td>
+</tr>
+</tbody></table></div>
+<p><strong>Orders and listings come back in contract types,</strong> never in the marketplace&#39;s own shape. An order carries its marketplace id, its lines (SKU, quantity, the marketplace&#39;s line id), its status, its last change time, and who ships it. Buyer details ride on the order to the foundation and are not kept by the host. A connector leaves out what the marketplace withheld or masked; it never makes a value up.</p>
+<p><strong>Optional capabilities</strong> are declared, not discovered. A connector says which of these it has, and the host only calls what is declared:</p>
+<ul>
+<li><strong>Compare-and-set:</strong> the write carries the figure we expect the marketplace to show now, and the marketplace refuses the change if it differs.</li>
+<li><strong>Batch write:</strong> many listings in one call or one feed, with its own read back.</li>
+<li><strong>Dispatch notice:</strong> tells the marketplace that an order shipped, with tracking.</li>
+<li><strong>Approval connect:</strong> the seller connects by approving Vervoro on the marketplace, instead of pasting keys.</li>
+<li><strong>Account setup choices:</strong> what a person picks after connecting, such as which locations or marketplaces of the account Vervoro serves.</li>
+</ul>
+<p>Later records add capabilities of their own (catalogue details, cancellations, purchase orders) in the same way. A capability is a typed addition to the contract, so a connector that does not declare it needs no change.</p>
+<p><strong>What a connector cannot do,</strong> enforced by the build:</p>
+<ul>
+<li>Call the network. A lint rule bans every network global in connector code, and a test proves the rule fires.</li>
+<li>See a credential. The host adds the secret to the request inside the binding, after the connector has built it.</li>
+<li>Send a write outside the gate. Each request names its operation, the connector declares which operations change the marketplace, and the binding refuses a write operation that did not come from the gate.</li>
+<li>Read the clock or a database. It gets a clock, and everything it needs arrives in the call.</li>
+</ul>
+<h2>What a connector declares</h2>
+<p>Each connector module contributes one definition to the connector extension point, under its marketplace&#39;s key. The host reads it and does the work.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>The connector declares</th>
+<th>The host does</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>The factory</td>
+<td>Builds one connector per account, over that account&#39;s binding</td>
+</tr>
+<tr>
+<td>Credential and settings schemas</td>
+<td>Validates them on connect, seals the credentials</td>
+</tr>
+<tr>
+<td>Its authentication kind: refresh token, signed request, basic, client credentials</td>
+<td>Runs it with the opened credentials, refreshes tokens, signs requests</td>
+</tr>
+<tr>
+<td>The marketplace&#39;s own API and token addresses</td>
+<td>Sends only there. A token is refreshed only at the declared token address</td>
+</tr>
+<tr>
+<td>A rate budget per operation, from the marketplace&#39;s published limits</td>
+<td>Keeps a token bucket per account and operation</td>
+</tr>
+<tr>
+<td>Which operations change the marketplace</td>
+<td>Lets only the egress gate send them</td>
+</tr>
+<tr>
+<td>Which shared pool each operation draws from, with its daily size</td>
+<td>Counts the pool across the platform</td>
+</tr>
+<tr>
+<td>How a notice is verified, and which field names the account</td>
+<td>Verifies before any database read, finds the company</td>
+</tr>
+<tr>
+<td>Its notice topics, and which of them the host handles itself (approval revoked, privacy requests)</td>
+<td>Disconnects, or records the privacy request with its due date</td>
+</tr>
+<tr>
+<td>Lifecycle hooks: set up and undo what the marketplace needs per account, such as notice subscriptions</td>
+<td>Runs them on connect and disconnect, retries and alerts on failure</td>
+</tr>
+<tr>
+<td>The setting that holds the marketplace&#39;s own id for the account</td>
+<td>Claims it in the control database&#39;s external directory, for one company at a time</td>
+</tr>
+<tr>
+<td>When the seller&#39;s approval expires, and which app secrets must be rotated how often</td>
+<td>Warns the seller before the approval ends, and the operator before a secret is due</td>
+</tr>
+<tr>
+<td>The backup read&#39;s default interval and the soonest an early one may follow</td>
+<td>Schedules the completeness check</td>
+</tr>
+</tbody></table></div>
+<h2>What the host owns</h2>
+<h3>Credentials and approval</h3>
+<ul>
+<li><strong>Sealed at rest.</strong> Credentials are encrypted with a key-encryption key held outside the database, stored in the company&#39;s own cell, and opened only inside the HTTP binding. Several keys can be active, current first, so keys rotate without downtime.</li>
+<li><strong>Approval by the marketplace&#39;s own flow.</strong> Where the marketplace offers it, the seller approves Vervoro on the marketplace&#39;s own page. The host builds the approval address, signs a single-use state, checks the redirect back, exchanges the code and seals the reply. The approval address is checked against the marketplace&#39;s own consent pages, so a seller is never sent anywhere else.</li>
+<li><strong>One company per marketplace account.</strong> When an account connects, the host claims the marketplace&#39;s id for it in the external directory. Another company that tries to connect the same marketplace account is refused.</li>
+<li><strong>Refresh under a lock.</strong> Access tokens are refreshed by the host, under a lock on that account&#39;s credentials, so two workers never spend one refresh token twice. A rotated refresh token is sealed in the same step.</li>
+<li><strong>Expiry is watched.</strong> The host warns the seller 30 days before their approval ends, and the operator before an app secret is due for rotation.</li>
+<li><strong>A refused approval stops the account, not the platform.</strong> When the marketplace refuses the account&#39;s token, its work stops, the seller is asked to reconnect, and no retry burns calls in the meantime.</li>
+</ul>
+<h3>HTTP</h3>
+<ul>
+<li><strong>One binding per account and job.</strong> It adds the base address, the authentication and the account&#39;s settings, and nothing else. In development and tests the base address points at the simulator; production refuses a simulator address.</li>
+<li><strong>Every call has a timeout and a size cap.</strong> A slow marketplace costs one job its lease period, never a database transaction: no marketplace call runs inside one.</li>
+<li><strong>Every call is counted</strong> by hour, account, operation and job (order fetch, completeness check, listing read, stock write, read back). The operator sees what each feature spends, and the seller sees their own account&#39;s calls.</li>
+</ul>
+<h3>Retries and outcomes</h3>
+<ul>
+<li><strong>Reads are retried by the host</strong> with growing delays, within the job&#39;s deadline.</li>
+<li><strong>Writes are never retried blindly.</strong> A write that timed out is <code>unknown</code>, and the listing is read back before anything is sent again. Repeats are safe because every write carries the gate&#39;s idempotency key (ADR-000).</li>
+<li><strong>The marketplace&#39;s own wait is honoured.</strong> A 429, or any reply naming a wait, holds that operation for the account until then, whichever job asks next. The wait is capped at one hour; a longer one alerts.</li>
+</ul>
+<h3>Rate limits per account</h3>
+<ul>
+<li><strong>A token bucket per account and operation,</strong> sized from the marketplace&#39;s published limit. A call our own bucket refuses is <code>throttled</code> and never leaves.</li>
+<li><strong>Live figures win.</strong> Where the marketplace reports the account&#39;s real limit in its replies, the host uses it in place of the declared one.</li>
+<li><strong>Most limits are per account.</strong> Amazon, for example, keeps a bucket per seller and application pair for most operations, so one seller&#39;s calls do not slow another&#39;s.</li>
+</ul>
+<h3>Shared daily allowances</h3>
+<p>Some limits belong to Vervoro&#39;s application as a whole. eBay&#39;s Trading API allows 5,000 calls a day by default for the whole application, and its order resource 100,000. Amazon also has per-application ceilings above the per-seller ones. Every seller on Vervoro, and every feature that uses that API, draws from the same pool.</p>
+<ul>
+<li><strong>One counter per pool, for the whole platform,</strong> in the control database (ADR-001 puts shared marketplace call quotas there). Every call on the pool takes from it before it leaves.</li>
+<li><strong>Two lanes.</strong> The <strong>safety lane</strong> carries the calls that protect a seller: a stock decrease, or any figure while a shelf is low. The <strong>bulk lane</strong> carries everything else: raises, refreshes, catalogue reads.</li>
+<li><strong>A reserve for every account.</strong> Each account on the pool keeps a share of the day for its safety lane (a fixed fraction of the pool divided among the accounts using it, with a floor). Once the day&#39;s count reaches the pool less every reserve, the bulk lane pauses for everyone until the pool resets. The safety lane goes on until the account&#39;s own reserve is spent, and never past the pool.</li>
+<li><strong>Most urgent first.</strong> Within an account, queued work is claimed in priority order: safety writes, then order fetches, then the rest, oldest first.</li>
+<li><strong>A paused pool holds only its own calls.</strong> Work on other APIs of the same marketplace goes on.</li>
+<li><strong>The operator sees it before it bites.</strong> A pool at 90 % of its day alerts the operator, never the seller. A raised limit (after the marketplace&#39;s growth review, for example) is a platform setting, not a code change.</li>
+</ul>
+<p>How inventory sync spends these lanes, and which listing gets the next call, is ADR-008. This record only decides that the pools, lanes and reserves exist and that the host enforces them.</p>
+<h2>Notices in</h2>
+<p>Orders arrive by notice. This is a hard rule: the scheduled read is only the backup.</p>
+<p><strong>Two ways a notice reaches us.</strong></p>
+<ul>
+<li><strong>Direct.</strong> The marketplace calls Vervoro&#39;s address over HTTPS and signs the request. eBay&#39;s Notification API and Shopify&#39;s webhooks work this way.</li>
+<li><strong>Through a relay.</strong> Amazon delivers notices only into its own cloud: order changes only to a queue (SQS), listing changes only to an event bus (EventBridge). A small relay in AWS takes them from there and posts each one to Vervoro&#39;s address, signed with a relay secret. The relay keeps nothing and decides nothing.</li>
+</ul>
+<p><strong>The endpoint verifies, queues and answers.</strong></p>
+<ol>
+<li><strong>Verify before any database read.</strong> The marketplace&#39;s signature, or the relay&#39;s secret (current or previous, so it rotates), is checked first. A request that fails is refused.</li>
+<li><strong>Find the account</strong> by the marketplace&#39;s id in the external directory. A notice for an account nobody holds, an account that is off, or a connector that is off for that company is answered and kept nowhere.</li>
+<li><strong>Queue a minimal message:</strong> the topic, the notice id, the account and the order ids. Never the buyer&#39;s details from the body.</li>
+<li><strong>Answer at once,</strong> and only after the message is safely on the queue. A failed enqueue answers with an error, so the marketplace sends again.</li>
+</ol>
+<p><strong>The consumer fetches, then imports.</strong> It asks the connector to parse the message. For each order seen, it fetches the order through the binding, one call, and hands it to the foundation. An order not visible yet is fetched again after 30 seconds, doubling, for about half an hour; then it is left to the completeness check. A failed queue delivery is retried with growing delays and then goes to the dead-letter queue, which alerts the operator (ADR-000).</p>
+<p><strong>Subscriptions are made on connect.</strong> A connector&#39;s lifecycle hook subscribes the new account to its order topics, and the disconnect hook removes them. A hook that fails is retried and alerts. An account with no working subscription is shown as &quot;not notified&quot;, and its backup read runs at its shortest interval until the subscription works.</p>
+<p><strong>The backup read is optional.</strong> The completeness check reads the orders changed since the order watermark, with a small overlap. It is the only thing that moves the watermark, and only after a complete window. Its interval follows the account&#39;s order rate, between a minimum and a maximum the operator sets per connector, and the operator can switch the schedule off. A check still runs on demand when something must know that every order is in: after an outage, and when a stock raise waits for it. When that wait applies is ADR-008; how orders are imported is ADR-007.</p>
+<p><strong>The host handles some topics itself.</strong> A notice that the seller revoked Vervoro&#39;s approval disconnects the account. A privacy request (eBay&#39;s account deletion, Shopify&#39;s data requests) is recorded with its due date, and buyer data it names is anonymised.</p>
+<h2>Testing, sandboxes and shadow mode</h2>
+<p><strong>Simulators first.</strong> Every marketplace has a simulator: a real HTTP server that speaks that marketplace&#39;s real API shapes, with a control interface to change its world and its behaviour (ADR-000). The connector cannot tell it apart from the marketplace, because only the base address differs.</p>
+<p><strong>One contract test suite for every connector.</strong> Each connector runs the same suite against its simulator:</p>
+<ul>
+<li>read orders across pages, with a cursor that survives a throttle</li>
+<li>fetch one order, including &quot;not visible yet&quot;</li>
+<li>read every listing and one listing</li>
+<li>write stock and map every reply onto one outcome, including a timeout that applied the change</li>
+<li>read back an accepted change, and a compare-mismatch where the marketplace offers compare-and-set</li>
+<li>parse every notice topic, including duplicates, late notices and notices in the wrong order</li>
+<li>honour a marketplace&#39;s wait, and refuse a write that did not come through the gate</li>
+</ul>
+<p>A connector that passes the suite works with the host. A new connector starts from the suite.</p>
+<p><strong>Sandboxes check the simulators, not the code.</strong> eBay and Amazon both offer a sandbox. They are slow, limited and not deterministic, so tests never call them. Before launch, every call the launch connectors make is made once against the sandbox or the real marketplace, the reply is recorded, and the simulator is fixed wherever it differs. Each simulator&#39;s documentation lists where it is simpler than the real service.</p>
+<p><strong>Shadow and live at the egress gate.</strong> Every account starts in <strong>shadow</strong>: orders come in, listings are read, stock is reserved inside Vervoro, and the gate records each figure it would have sent without sending it. The shadow check compares what Vervoro would send with what the marketplace shows, listing by listing. The seller goes <strong>live</strong> once every difference is explained and acknowledged. Stopping a live account always asks first: leave the figures as they are, or send zero and wait until every zero is confirmed. Reconnecting after a disconnect starts a new shadow period.</p>
+<h2>Switching a marketplace on and off</h2>
+<p><strong>Adding or removing a marketplace never touches the core.</strong> A marketplace is one module that contributes one connector definition. The host, the gate, the server and the screens name no marketplace. Notice addresses are generic (the marketplace&#39;s key is part of the address), and a key that no module contributes is refused from the module registry alone. Removing the module removes the marketplace; its accounts must be stopped first.</p>
+<p><strong>Three levels of on and off.</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Level</th>
+<th>Who sets it</th>
+<th>What off means</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Platform</strong></td>
+<td>The operator</td>
+<td>The connector is not offered to new companies. For an incident on the marketplace&#39;s side, the operator can also hold every send to that marketplace: queued figures wait as desired state and the latest one is sent when released, so nothing is lost</td>
+</tr>
+<tr>
+<td><strong>Company</strong></td>
+<td>The company&#39;s plan and its owner</td>
+<td>The connector module is off for that company: no reads, no writes, notices dropped. Switching off is refused while one of its live accounts has no stop choice</td>
+</tr>
+<tr>
+<td><strong>Account</strong></td>
+<td>The seller</td>
+<td>The account&#39;s mode: shadow, live, paused or disconnected. Disconnected also forgets the credentials</td>
+</tr>
+</tbody></table></div>
+<p>A connector that is off costs nothing. Its accounts have no work due, so the sweeper never visits them (ADR-001).</p>
+<h2>Keeping failures apart</h2>
+<ul>
+<li><strong>Work is keyed per company, account and job.</strong> The dispatcher runs one job per key at a time. A throttled, slow or failing account holds only its own key; other accounts, other companies and other marketplaces go on.</li>
+<li><strong>A shared pool has a key of its own.</strong> When a pool pauses, only the calls on that pool wait.</li>
+<li><strong>Claims are leases.</strong> A crashed or stuck job costs one lease period, and its result is written only if the claim is still its own.</li>
+<li><strong>A connector&#39;s mistake fails one call.</strong> An unexpected error inside connector code is turned into a typed failure for that call at the binding, logged with the account and the operation, and counted. It never reaches another account.</li>
+<li><strong>Connector output is checked before the foundation sees it.</strong> Orders and listings are validated against the contract types. One that fails is held with its reason for a person, never dropped and never guessed.</li>
+<li><strong>Sustained failure is visible.</strong> An account that keeps failing or throttling is shown as unhealthy to its seller, with the reason. When many accounts on one marketplace fail at once, the operator is alerted to a marketplace incident instead of one alert per seller.</li>
+<li><strong>A slow marketplace never blocks a screen.</strong> Every marketplace call runs in the background, outside any database transaction.</li>
+</ul>
+<h2>The first connectors</h2>
+<p>eBay and Amazon Seller are the launch connectors. What each marketplace forced us to decide, beyond this record, has a record of its own:</p>
+<ul>
+<li><strong>eBay (ADR-004.1, planned):</strong> orders by eBay&#39;s Notification API to one signed destination for the whole application; stock through the Inventory API or, for listings made in eBay&#39;s own seller tools, through the Trading API and its application-wide pool of 5,000 calls a day (<a href="https://developer.ebay.com/develop/api/sell/api_call_limits">eBay&#39;s call limits</a>, checked 17 October 2026); no compare-and-set.</li>
+<li><strong>Amazon Seller (ADR-004.2, planned):</strong> order notices only into Amazon&#39;s queue and listing notices only onto its event bus, so both come through the relay (<a href="https://developer-docs.amazon/sp-api/docs/notification-type-values">notification types</a>, checked 17 October 2026); single listing writes and listings feeds for many raises; limits per seller and application; no figure ever sent to a listing Amazon ships (ADR-003).</li>
+<li><strong>Shopify, later:</strong> HMAC-signed webhooks to a per-shop address, compare-and-set on inventory quantities, and a budget in cost points per shop. Each is something the contract and the host already express.</li>
+<li><strong>Other marketplaces</strong> follow the same path: a new module, a definition, a simulator and the contract test suite. A marketplace that sends no order notices is added only once its notices are planned, or with an exception recorded as a decision of its own. Selling to Amazon as a vendor has a different shape and is decided in its own record.</li>
+</ul>
+<h2>What later records decide</h2>
+<ul>
+<li><strong>ADR-004.1: eBay connector</strong> and <strong>ADR-004.2: Amazon Seller connector</strong> (planned): the decisions specific to each launch marketplace, with its constraints checked against its documentation.</li>
+<li><strong>ADR-005: Catalogue sync and linking</strong> (planned): when listings are read in full, how new and ended listings are found, and how a listing is matched and linked to a product.</li>
+<li><strong>ADR-006: Stock ledger and reservations</strong> (planned): the ledger and the stock figures, reserving on order, deducting on dispatch, cancellations and returns.</li>
+<li><strong>ADR-007: Order ingestion</strong> (planned): how a fetched order is imported once per marketplace order, its statuses, cancellation requests, marketplace-shipped orders and unlinked listings.</li>
+<li><strong>ADR-008: Inventory sync</strong> (planned): the figure each listing should show, when it is sent, how raises wait for the order watermark, confirming and reading back, and how sync spends the per-listing limits and shared pools.</li>
+</ul>
+<h2>Consequences</h2>
+<p><strong>What this gives us</strong></p>
+<ul>
+<li>A connector is small: a translator with a definition, testable on its own against its simulator. An agent can write one with only the contract in view.</li>
+<li>No connector can leak a secret, call the network, or send a change outside the gate, because it has no way to.</li>
+<li>Shared allowances are spent fairly. A busy seller or a bulk job cannot use up the calls another seller needs to lower a figure.</li>
+<li>Orders arrive as they happen, and the backup read costs a small fraction of the calls polling would.</li>
+<li>A marketplace outage, a throttle or a refused approval stays with the account, pool or marketplace it belongs to.</li>
+<li>Shopify and the next marketplaces need no change to the host, the gate or the core.</li>
+</ul>
+<p><strong>What it costs</strong></p>
+<ul>
+<li>The host is large. Approval flows, token refresh, signing, buckets, pools and notice verification all live there, and each new authentication kind or notice shape is host work once.</li>
+<li>Amazon&#39;s notices need a relay in AWS: one more piece to deploy, watch and keep a secret for.</li>
+<li>Every marketplace needs a simulator, and the contract test suite must grow with every new capability.</li>
+<li>Pools need the control database on every call that draws from them, so those calls cost one more round trip.</li>
+<li>The completeness check is optional on a schedule but not in principle: some reads still run on demand to prove that every order is in.</li>
+</ul>
+<h2>Alternatives considered</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Why not</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Each connector holds its own credentials and HTTP client</td>
+<td>Secrets, rate limits and shadow mode would be scattered across connectors, and one mistake in one connector could leak a seller&#39;s token</td>
+</tr>
+<tr>
+<td>A large contract covering every marketplace feature</td>
+<td>Every connector would have to implement or stub calls it has no use for; optional capabilities keep the contract small</td>
+</tr>
+<tr>
+<td>One separate service per marketplace</td>
+<td>One operator cannot run a fleet, and every stock change would cross a network boundary before the gate</td>
+</tr>
+<tr>
+<td>Polling as the way orders come in</td>
+<td>Slower, and it spends the shared allowances; notices bring each order as it happens</td>
+</tr>
+<tr>
+<td>Trusting the notice body as the order</td>
+<td>Notices arrive late, twice or out of order, and some carry only ids; fetching the order gives one current truth</td>
+</tr>
+<tr>
+<td>Reading Amazon&#39;s queue from Vervoro directly</td>
+<td>A Worker would hold AWS credentials and poll a queue; a relay that posts to the same endpoint keeps one inbound path</td>
+</tr>
+<tr>
+<td>Rate limits per account only</td>
+<td>A shared daily pool would be spent by whoever calls first, and a seller could be left unable to lower a figure</td>
+</tr>
+<tr>
+<td>A shared pool with no lanes</td>
+<td>A catalogue read or a run of raises could spend the day before a decrease is due</td>
+</tr>
+<tr>
+<td>Testing against marketplace sandboxes</td>
+<td>Slow, limited, not deterministic, and unable to produce the failures that matter; recorded replies keep the simulators honest instead</td>
+</tr>
+<tr>
+<td>Retrying a timed-out write</td>
+<td>The marketplace may already have applied it; reading back first is the only safe next step</td>
+</tr>
+</tbody></table></div>
+
+<footer>Vervoro</footer>
+</main>
+</body>
+</html>
