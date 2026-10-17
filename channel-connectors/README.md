@@ -27,7 +27,7 @@ The design has to meet these requirements:
 2. **The contract is four calls and one parser:** read orders, read listings, write stock, read back, and parse a notice. Everything else a marketplace offers is an optional capability the connector declares.
 3. **The host owns everything that can hurt:** credentials and their refresh, the seller's approval, HTTP, retries, rate limits per account, and shared allowances across the platform.
 4. **Shared daily allowances are counted exactly, one call at a time, for the whole platform,** in the control database. Each pool is split into a safety lane and a bulk lane, and every account on the pool keeps a reserve for its safety lane.
-5. **Orders arrive by notice.** A notice is verified before anything is read, queued, and answered at once. The order is then fetched and imported. The scheduled read of orders is an optional backup, never the way orders come in.
+5. **Orders arrive by notice.** A notice is verified before anything is read, queued, and answered at once. The order is then fetched and imported. The scheduled read of orders is only a backup for lost notices, never the way orders come in: hourly where the order limit is shared by every seller, every 10 minutes where it is per seller.
 6. **A notice is a hint, never the truth.** Vervoro imports what it fetches from the marketplace, not what a notice says. A notice never moves the order watermark.
 7. **Every connector runs against its simulator** in development and tests, through one shared contract test suite. Sandboxes are used only to record real replies before launch.
 8. **Every account starts in shadow** at the egress gate. Reads happen, writes are only recorded. An account goes live once the seller has explained every difference.
@@ -167,9 +167,16 @@ Orders arrive by notice. This is a hard rule: the scheduled read is only the bac
 
 **The consumer fetches, then imports.** It asks the connector to parse the message. For each order seen, it fetches the order through the binding, one call, and hands it to the foundation. An order not visible yet is fetched again after 30 seconds, doubling, for about half an hour; then it is left to the completeness check. A failed queue delivery is retried with growing delays and then goes to the dead-letter queue, which alerts the operator (ADR-000).
 
-**Subscriptions are made on connect.** A connector's lifecycle hook subscribes the new account to its order topics, and the disconnect hook removes them. A hook that fails is retried and alerts. An account with no working subscription is shown as "not notified", and its backup read runs at its shortest interval until the subscription works.
+**Subscriptions are made on connect.** A connector's lifecycle hook subscribes the new account to its order topics, and the disconnect hook removes them. A hook that fails is retried and alerts. An account with no working subscription is shown as "not notified".
 
-**The backup read is optional.** The completeness check reads the orders changed since the order watermark, with a small overlap. It is the only thing that moves the watermark, and only after a complete window. Its interval follows the account's order rate, between a minimum and a maximum the operator sets per connector, and the operator can switch the schedule off. A check still runs on demand when something must know that every order is in, even with the schedule off: after an outage, and before a stock raise is sent, unless a complete read already covers the time the raise was decided. A notice can say that an order exists, never that none is missing, so a raise sent before the read could let the marketplace sell stock that is already gone. Decreases never wait. How long a raise may wait is ADR-008; how orders are imported is ADR-007.
+**The backup read is a safety net, not the way orders come in.** The completeness check reads the orders changed since the order watermark, with a small overlap. It is the only thing that moves the watermark, and only after a complete window. It protects one case: a notice that never arrives. Until the next read, that order reserves nothing, so another channel can sell its units, and nobody picks or ships it before the seller's dispatch deadline.
+
+- **The interval is set per marketplace,** by whether its order limit is shared. Where every seller draws on one allowance for Vervoro's application (eBay), the read runs hourly, so it scales to many sellers. Where the limit is per seller (Amazon), it runs every 10 minutes, which costs no other seller anything. Each connector's sub-record says which, and the operator can change the figure per connector without a code change.
+- **Any complete read resets the timer,** including the read a raise asks for, so a busy account rarely needs a scheduled one.
+- **Broken notices are checked more often.** An account whose subscription is failing, or whose read finds an order that no notice announced, is read every 10 minutes and alerts the operator until its notices work again.
+- **The operator can switch the schedule off** per connector. On-demand reads still run before a raise and after an outage. With the schedule off, a lost notice on a quiet account is found only by such a read, so the operator's screen says so while it is off.
+
+A check also runs on demand when something must know that every order is in: after an outage, and before a stock raise is sent, unless a complete read already covers the time the raise was decided. A notice can say that an order exists, never that none is missing, so a raise sent before the read could let the marketplace sell stock that is already gone. Decreases never wait. How long a raise may wait is ADR-008; how orders are imported is ADR-007.
 
 **The host handles some topics itself.** A notice that the seller revoked Vervoro's approval disconnects the account. A privacy request (eBay's account deletion, Shopify's data requests) is recorded with its due date, and buyer data it names is anonymised.
 
@@ -252,7 +259,8 @@ eBay and Amazon Seller are the launch connectors. What each marketplace forced u
 - Amazon's notices need a relay in AWS: one more piece to deploy, watch and keep a secret for.
 - Every marketplace needs a simulator, and the contract test suite must grow with every new capability.
 - Calls on a daily pool cost one more round trip, to the control database.
-- The scheduled backup read is optional, but a raise waits until a complete order read covers the time it was decided: on Amazon that can be up to about three minutes.
+- A raise waits until a complete order read covers the time it was decided: on Amazon that can be up to about three minutes.
+- On a marketplace read hourly, a lost notice is found within the hour, not within minutes.
 
 ## Alternatives considered
 
@@ -267,6 +275,8 @@ eBay and Amazon Seller are the launch connectors. What each marketplace forced u
 | Rate limits per account only | A shared daily pool would be spent by whoever calls first, and a seller could be left unable to lower a figure |
 | A shared pool with no lanes | A catalogue read or a run of raises could spend the day before a decrease is due |
 | Claiming pool calls in blocks | Saves round trips only at rates far above any daily pool; adds leases and lets a pool run over |
+| No scheduled backup read by default, or one a day | A lost notice on a quiet account would leave an order unshipped, or found after its dispatch deadline; switching it off is left to the operator |
+| The same short interval on every marketplace | Where the order limit is shared (eBay), a read every 10 minutes for 1,000 sellers would need more calls than the whole allowance |
 | Raising on notices alone | A notice proves an order exists, never that none is missing; a lost notice would let the marketplace sell stock that is gone |
 | Testing against marketplace sandboxes | Slow, limited, not deterministic, and unable to produce the failures that matter; recorded replies keep the simulators honest instead |
 | Retrying a timed-out write | The marketplace may already have applied it; reading back first is the only safe next step |

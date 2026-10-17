@@ -25,7 +25,7 @@ Amazon shapes the design in six ways:
 1. **The seller approves Vervoro in Seller Central,** from Vervoro's own page or from Amazon's app store. Nobody pastes keys.
 2. **One account is one seller id in one region,** serving the marketplaces the seller picks there.
 3. **Notices come through a small relay in AWS** that posts each one to Vervoro's single endpoint, signed with a relay secret. The endpoint checks that the notice names Vervoro's application.
-4. **Each order notice is answered by fetching the order.** The backup read runs every 10 minutes by default and never closer than three minutes apart.
+4. **Each order notice is answered by fetching the order.** The backup read runs every 10 minutes, because Amazon's order limit is per seller and costs no other seller anything, and never closer than three minutes apart.
 5. **Decreases go one listing at a time;** raises may go many at once in a listings feed. A feed never carries a decrease.
 6. **Every write is `accepted` and read back** before Vervoro counts it as applied.
 7. **A listing Amazon ships on any of the account's marketplaces is never sent a figure.**
@@ -67,7 +67,7 @@ Amazon shapes the design in six ways:
 - **An order change** names the order and what changed: a new order, a cancellation, a buyer's cancellation request, or an order shipped outside Vervoro. The order is fetched (`getOrder`) and imported. A forged or replayed notice can at most make Vervoro fetch an order; it cannot change stock by itself.
 - **A listing change** makes the host read that listing back, which catches a figure changed in Seller Central.
 
-**The backup read** searches orders changed since the watermark, every 10 minutes by default. The order search refills only about once every three minutes, so an early check is never closer than that. Each page carries its orders' items, so nothing is fetched per order. Amazon stops a search two minutes before its own clock and says where it stopped; that bound is the window's completeness. How orders are imported is ADR-007.
+**The backup read** searches orders changed since the watermark, every 10 minutes: the limit is the seller's own, so a short interval costs no other seller anything (ADR-004). Any complete read, including one a raise asks for, resets the timer. The order search refills only about once every three minutes, so an early check is never closer than that. Each page carries its orders' items, so nothing is fetched per order. Amazon stops a search two minutes before its own clock and says where it stopped; that bound is the window's completeness. How orders are imported is ADR-007.
 
 ## Stock
 

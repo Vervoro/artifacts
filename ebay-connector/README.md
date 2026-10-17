@@ -23,7 +23,7 @@ eBay shapes the design in five ways:
 
 1. **One Vervoro application, approved by each seller** on eBay's own consent page. Nobody pastes keys.
 2. **Orders arrive by eBay's Notification API:** one signed destination for the whole application, and a subscription per seller to order confirmations and cancellation activity. Each notice is answered by fetching the order.
-3. **The backup read runs every 10 minutes by default,** never closer than one minute apart, and reads its window from the last page back to the first.
+3. **The backup read runs hourly,** because eBay's order allowance is shared by every seller; an account whose notices look broken is read every 10 minutes. The read goes from the last page of its window back to the first.
 4. **Every listing a SKU is on gets the figure:** inventory items through the Inventory API, Seller Hub listings through the Trading API by item number.
 5. **The Trading API is spent only where nothing else will do,** from the shared pool of ADR-004, with a daily page cap per account.
 6. **Vervoro never changes a seller's eBay settings.** A Seller Hub listing is not updated while the seller's out-of-stock option is off, and the account cannot go live until the seller turns it on.
@@ -47,7 +47,7 @@ eBay shapes the design in five ways:
 - **A notice is verified with eBay's public key** before any database read, and handed on only for a seller someone holds, as a minimal message: the topic, the notice id, the seller's user id and the order ids. No user name and no buyer details.
 - **The order is fetched at once** (one call on the order resource) and imported. A cancellation notice makes the host fetch the order again; the fetched order's own cancellation state decides, so a declined request needs nothing of its own. A reminder to answer a cancellation is ignored.
 
-**The backup read.** It reads orders changed in a window, every 10 minutes by default and never closer than one minute apart (about 144 order calls a day for a quiet seller, against the application's 100,000). The window ends 10 seconds before now, so an order eBay is still writing is read next time.
+**The backup read.** It reads orders changed in a window, hourly by default (24 order calls a day for a quiet seller, against the application's 100,000; at 1,000 sellers, 24,000). A read every 10 minutes would be 144 a seller, more than the whole allowance at 1,000 sellers. An account whose notices look broken is read every 10 minutes, and any complete read, including one a raise asks for, resets the timer (ADR-004). Early reads are never closer than one minute apart. The window ends 10 seconds before now, so an order eBay is still writing is read next time.
 
 **A window is read backwards.** eBay pages orders by offset. An order that changes while its window is being paged leaves the window, and every order after it moves up one place. Read forwards, an order at the edge of the next page would slip onto a page already read, and no later window would read it, because its change date did not move. So the first call reads offset 0; if more pages exist, the read goes from the last page back to offset 0. A departure can then only move an order onto a page still to come, where it is read twice, and imports are idempotent. Only the final read of offset 0 proves the window complete. A window of n pages costs n + 1 calls; a window of one page costs one.
 
