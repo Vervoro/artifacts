@@ -51,6 +51,7 @@ svg .band { fill: var(--tint); stroke: var(--edge); stroke-width: 1.25; }
 .cards a:hover, .cards a:focus-visible { border-color: var(--accent); outline: none; }
 .cards.sub { margin: 12px 0 0 24px; padding-left: 16px; border-left: 2px solid var(--border); }
 .cards b { display: block; font-size: 17px; } .cards span { color: var(--muted); font-size: 14px; }
+.order li { margin-top: 10px; } .order span { color: var(--muted); font-size: 14px; }
 footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 `;
 
@@ -87,6 +88,26 @@ const docs: { dir: string; title: string; blurb: string; parent?: string }[] = [
   { dir: "stock-ledger", title: "ADR-006: Stock ledger and reservations", blurb: "An append-only ledger proved every night, four numbers per product, batch and spot (on hand, reserved, held, sellable), reserving on import with the earliest sell-by date first, packs and bundles, orders that wait for a link, dispatch by shipment, cancellations, returns, counts, no negative stock, one lock per company and commands safe to repeat. Proposed, 18 October 2026." },
 ];
 
+// The order to build in: each step needs the ones before it. `adrs` are dirs (linked) or planned titles.
+const buildOrder: { adrs: string[]; why: string }[] = [
+  { adrs: ["system-architecture", "database-architecture"], why: "The skeleton: modules and ports, the outbox, the egress gate, tenancy and row-level security. Every later record is a module on top." },
+  { adrs: ["product-model"], why: "Products come first; listings, stock and orders all point at them." },
+  { adrs: ["stock-ledger"], why: "Stock is recorded and reserved inside Vervoro before any marketplace sees a figure. Only the foundation writes it." },
+  { adrs: ["channel-connectors", "ebay-connector", "amazon-seller-connector", "shopify-connector"], why: "The connector host first, then eBay and Amazon Seller side by side, then Shopify. Each runs against its simulator in shadow mode. Amazon Vendor (ADR-004.4, planned) comes later." },
+  { adrs: ["catalogue-sync"], why: "Needs the connectors' listing reads and the products to link them to." },
+  { adrs: ["ADR-009: Buyer data and privacy (in draft)"], why: "Before any real order stores a buyer's address; the marketplaces' data reviews ask for it. Buyer anonymisation from ADR-002 is built here." },
+  { adrs: ["ADR-007: Order ingestion (planned)"], why: "Needs links, reservations and the buyer-data rules." },
+  { adrs: ["ADR-008: Inventory sync (planned)"], why: "Last: figures go to marketplaces only once links, the ledger and orders are proven in shadow mode." },
+  { adrs: ["data-retention"], why: "Archiving is switched on by its trigger (a cell past 500 GB, or the start of year 2), not at launch." },
+];
+const titleOf = (a: string) => docs.find((d) => d.dir === a)?.title ?? a;
+const orderHtml = `<h2>Build order</h2>
+<p>The order to build in. Each step needs the ones before it.</p>
+<ol class="order">
+${buildOrder.map((o) => `  <li><b>${o.adrs.map((a) => (docs.some((d) => d.dir === a) ? `<a href="${a}/">${titleOf(a)}</a>` : titleOf(a))).join(", ")}</b><br><span>${o.why}</span></li>`).join("\n")}
+</ol>`;
+const orderMd = `## Build order\n\nThe order to build in. Each step needs the ones before it.\n\n${buildOrder.map((o, i) => `${i + 1}. **${o.adrs.map((a) => (docs.some((d) => d.dir === a) ? `[${titleOf(a)}](${a}/README.md)` : titleOf(a))).join(", ")}.** ${o.why}`).join("\n")}\n`;
+
 for (const d of docs) {
   const md = readFileSync(join(site, d.dir, "README.md"), "utf8");
   let html = await marked.parse(md, { gfm: true });
@@ -108,11 +129,12 @@ ${docs
     return `  <li>${card(d)}${sub}</li>`;
   })
   .join("\n")}
-</ul>`;
+</ul>
+${orderHtml}`;
 writeFileSync(join(site, "index.html"), page("Vervoro artifacts", index, true));
 writeFileSync(join(site, ".nojekyll"), "");
 writeFileSync(
   join(site, "README.md"),
-  `# Vervoro artifacts\n\nArchitecture decisions and plans, published with GitHub Pages.\n\n${docs.map((d) => `${d.parent ? "  " : ""}- [${d.title}](${d.dir}/README.md)`).join("\n")}\n`,
+  `# Vervoro artifacts\n\nArchitecture decisions and plans, published with GitHub Pages.\n\n${docs.map((d) => `${d.parent ? "  " : ""}- [${d.title}](${d.dir}/README.md)`).join("\n")}\n\n${orderMd}`,
 );
 console.log("built");
