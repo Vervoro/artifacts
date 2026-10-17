@@ -238,7 +238,7 @@ eBay and Amazon Seller are the launch connectors. What each marketplace forced u
 - **[ADR-004.1: eBay connector](../ebay-connector/)** and **[ADR-004.2: Amazon Seller connector](../amazon-seller-connector/)**: the decisions specific to each launch marketplace, with its constraints checked against its documentation.
 - **[ADR-004.3: Shopify connector](../shopify-connector/)**: the same for Shopify.
 - **ADR-004.4: Amazon Vendor connector** (planned): the same for selling to Amazon as a vendor (purchase orders, carton shipments).
-- **ADR-005: Catalogue sync and linking** (planned): when listings are read in full, how new and ended listings are found, and how a listing is matched and linked to a product.
+- **[ADR-005: Catalogue sync and linking](../catalogue-sync/)**: when listings are read in full, how new and ended listings are found, and how a listing is matched and linked to a product.
 - **ADR-006: Stock ledger and reservations** (planned): the ledger and the stock figures, reserving on order, deducting on dispatch, cancellations and returns.
 - **ADR-007: Order ingestion** (planned): how a fetched order is imported once per marketplace order, its statuses, cancellation requests, marketplace-shipped orders and unlinked listings.
 - **ADR-008: Inventory sync** (planned): the figure each listing should show, when it is sent, how raises wait for the order watermark, confirming and reading back, and how sync spends the per-listing limits and shared pools.

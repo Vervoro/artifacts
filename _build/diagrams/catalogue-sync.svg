@@ -1,0 +1,71 @@
+<svg class="diagram" viewBox="0 0 760 500" role="img" aria-label="Four triggers start one catalogue read; the read updates listings; suggestions are ranked; a person links, makes a product or leaves the listing to the marketplace; links are versioned and only linked listings get a figure" xmlns="http://www.w3.org/2000/svg" font-size="13">
+  <defs>
+    <marker id="cat-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="edge-fill"/></marker>
+  </defs>
+  <text x="24" y="30" font-size="15" font-weight="600" class="ink">Reads find listings; only a person makes a link</text>
+
+  <g class="edge" fill="none" stroke-width="1.25">
+    <path d="M108 112V138" marker-end="url(#cat-arrow)"/>
+    <path d="M286 112V138" marker-end="url(#cat-arrow)"/>
+    <path d="M464 112V138" marker-end="url(#cat-arrow)"/>
+    <path d="M642 112V138" marker-end="url(#cat-arrow)"/>
+    <path d="M128 210V236" marker-end="url(#cat-arrow)"/>
+    <path d="M232 268H262" marker-end="url(#cat-arrow)"/>
+    <path d="M498 268H528" marker-end="url(#cat-arrow)"/>
+    <path d="M624 300V340" marker-end="url(#cat-arrow)"/>
+    <path d="M528 372H498" marker-end="url(#cat-arrow)"/>
+    <path d="M262 372H232" marker-end="url(#cat-arrow)"/>
+  </g>
+
+  <rect x="24" y="48" width="712" height="64" rx="8" class="band"/>
+  <rect x="36" y="60" width="144" height="40" rx="6" class="box"/>
+  <text x="108" y="78" text-anchor="middle" font-weight="600" class="ink">Connect</text>
+  <text x="108" y="93" text-anchor="middle" font-size="11" class="quiet">full read</text>
+  <rect x="214" y="60" width="144" height="40" rx="6" class="box"/>
+  <text x="286" y="78" text-anchor="middle" font-weight="600" class="ink">Daily safety read</text>
+  <text x="286" y="93" text-anchor="middle" font-size="11" class="quiet">spread across the day</text>
+  <rect x="392" y="60" width="144" height="40" rx="6" class="box"/>
+  <text x="464" y="78" text-anchor="middle" font-weight="600" class="ink">Refresh</text>
+  <text x="464" y="93" text-anchor="middle" font-size="11" class="quiet">the seller asks</text>
+  <rect x="570" y="60" width="154" height="40" rx="6" class="box"/>
+  <text x="647" y="78" text-anchor="middle" font-weight="600" class="ink">Notice, unknown line</text>
+  <text x="647" y="93" text-anchor="middle" font-size="11" class="quiet">one listing is read</text>
+
+  <rect x="24" y="138" width="712" height="72" rx="8" class="box"/>
+  <text x="380" y="162" text-anchor="middle" font-weight="600" class="ink">Catalogue read, through the connector and the host's binding</text>
+  <text x="380" y="181" text-anchor="middle" font-size="11.5" class="quiet">bulk lane, lowest priority · presence from the cheapest complete source · details only for unlinked listings</text>
+  <text x="380" y="198" text-anchor="middle" font-size="11.5" class="quiet">a listing ends only on two proofs · a read that would end too many is held</text>
+
+  <rect x="24" y="236" width="208" height="64" rx="8" class="box-main"/>
+  <text x="128" y="260" text-anchor="middle" font-weight="600" class="ink">Listings</text>
+  <text x="128" y="279" text-anchor="middle" font-size="11.5" class="ink">keyed by the marketplace's id,</text>
+  <text x="128" y="293" text-anchor="middle" font-size="11.5" class="ink">never deleted</text>
+
+  <rect x="262" y="236" width="236" height="64" rx="8" class="box"/>
+  <text x="380" y="260" text-anchor="middle" font-weight="600" class="ink">Suggestions</text>
+  <text x="380" y="279" text-anchor="middle" font-size="11.5" class="quiet">strong · medium · weak, from fixed rules</text>
+  <text x="380" y="293" text-anchor="middle" font-size="11.5" class="quiet">a veto (pack hint, box barcode) demotes</text>
+
+  <rect x="528" y="236" width="208" height="64" rx="8" class="box"/>
+  <text x="632" y="260" text-anchor="middle" font-weight="600" class="ink">Unlinked-listings list</text>
+  <text x="632" y="279" text-anchor="middle" font-size="11.5" class="quiet">orders waiting first</text>
+  <text x="632" y="293" text-anchor="middle" font-size="11.5" class="quiet">preview: units per sale, figure change</text>
+
+  <rect x="528" y="340" width="208" height="64" rx="8" class="box"/>
+  <text x="632" y="364" text-anchor="middle" font-weight="600" class="ink">A person decides</text>
+  <text x="632" y="383" text-anchor="middle" font-size="11.5" class="quiet">link · make a product or bundle</text>
+  <text x="632" y="397" text-anchor="middle" font-size="11.5" class="quiet">leave to the marketplace</text>
+
+  <rect x="262" y="340" width="236" height="64" rx="8" class="box"/>
+  <text x="380" y="364" text-anchor="middle" font-weight="600" class="ink">Link, in the foundation</text>
+  <text x="380" y="383" text-anchor="middle" font-size="11.5" class="quiet">versioned, compare-and-set</text>
+  <text x="380" y="397" text-anchor="middle" font-size="11.5" class="quiet">open orders keep the link they reserved</text>
+
+  <rect x="24" y="340" width="208" height="64" rx="8" class="box"/>
+  <text x="128" y="364" text-anchor="middle" font-weight="600" class="ink">Inventory sync</text>
+  <text x="128" y="383" text-anchor="middle" font-size="11.5" class="quiet">a figure goes only to</text>
+  <text x="128" y="397" text-anchor="middle" font-size="11.5" class="quiet">linked listings (ADR-008)</text>
+
+  <text x="24" y="440" font-size="11.5" class="quiet">An unlinked listing is left to the marketplace: Vervoro sends it nothing and flags its orders.</text>
+  <text x="24" y="460" font-size="11.5" class="quiet">The one link no person makes: an eBay relist that eBay declares, with nothing changed.</text>
+</svg>

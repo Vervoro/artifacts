@@ -75,7 +75,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Scope</strong></td>
-<td>What a product is, which fields it has, how packs, kits, box sizes and size or colour families behave, how VAT and best-before apply, and how products are created</td>
+<td>What a product is, which fields it has, how packs, bundles, box sizes and size or colour families behave, how VAT and best-before apply, and how products are created</td>
 </tr>
 <tr>
 <td><strong>Builds on</strong></td>
@@ -96,15 +96,15 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Food.</strong> For food, best-before dates and lot numbers are not optional: expired stock must never be sold, and a recall must find every order that received a lot.</li>
 <li><strong>VAT</strong> depends on the product and on the country of sale, and rates change.</li>
 </ul>
-<p>Existing ERP practice for warehouse-run sellers informed the field list and the pack and kit rules below: components with a quantity, a sellable figure set by the scarcest component, repack jobs between a pack and its singles, and spreadsheet edits where a blank cell changes nothing.</p>
+<p>Existing ERP practice for warehouse-run sellers informed the field list and the pack and bundle rules below: components with a quantity, a sellable figure set by the scarcest component, repack jobs between a pack and its singles, and spreadsheet edits where a blank cell changes nothing.</p>
 <h2>Decision</h2>
 <ol>
 <li><strong>A product is one thing the seller stocks or sells, counted in whole base units.</strong> Every quantity anywhere in Vervoro is an integer number of base units of one product.</li>
 <li><strong>The SKU is the seller&#39;s permanent name for a product,</strong> unique within the company. It can be corrected until the product is first used, then it is fixed, and it is never reused.</li>
-<li><strong>A product has one of three kinds,</strong> fixed at creation: <strong>simple</strong> (its own stock), <strong>pack</strong> (a sealed multiple of one simple product, with its own stock) and <strong>kit</strong> (a set of other products, with no stock of its own). Kits are one level deep.</li>
+<li><strong>A product has one of three kinds,</strong> fixed at creation: <strong>simple</strong> (its own stock), <strong>pack</strong> (a sealed multiple of one simple product, with its own stock) and <strong>bundle</strong> (a set of other products, with no stock of its own). Bundles are one level deep.</li>
 <li><strong>Barcodes are their own records,</strong> many per product. Each is normalised, checked against the GTIN check digit, and unique within the company, so a scan always resolves to one product or one box size.</li>
 <li><strong>Box and pallet sizes are package configurations</strong> on a product. They convert between cases and units on documents and when scanning. They never hold stock.</li>
-<li><strong>A listing links to exactly one product,</strong> with the number of units one sale uses and who ships it. A set of different products is sold through a kit, never by linking one listing to several products. Amazon-shipped (FBA) listings and Amazon Vendor catalogue items link to products the same way.</li>
+<li><strong>A listing links to exactly one product,</strong> with the number of units one sale uses and who ships it. A set of different products is sold through a bundle, never by linking one listing to several products. Amazon-shipped (FBA) listings and Amazon Vendor catalogue items link to products the same way.</li>
 <li><strong>Sizes and colours are product families.</strong> Each size or colour is its own product with its own SKU, barcode and stock. A family groups them under one name, with up to three options (such as size and colour), so they are created as a grid, edited together and listed as one variation listing.</li>
 <li><strong>VAT is a class on the product, and the rate comes from a per-country table.</strong> The screen shows &quot;Standard (20%)&quot;. Every order and invoice line stores the rate it used.</li>
 <li><strong>Best-before and lot tracking are switched on per product.</strong> When on, no stock enters without them, expired stock is never sellable, and every dispatch records which lot went to which order.</li>
@@ -176,7 +176,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><code>kind</code></td>
-<td>enum <code>simple</code>, <code>pack</code>, <code>kit</code></td>
+<td>enum <code>simple</code>, <code>pack</code>, <code>bundle</code></td>
 <td>Yes</td>
 <td>Fixed once the product is used</td>
 </tr>
@@ -324,8 +324,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><code>product_component</code></td>
-<td><code>kit_id</code>, <code>component_id</code>, <code>quantity</code> (integer)</td>
-<td>See &quot;Kits&quot;</td>
+<td><code>bundle_id</code>, <code>component_id</code>, <code>quantity</code> (integer)</td>
+<td>See &quot;Bundles&quot;</td>
 </tr>
 <tr>
 <td><code>product_package</code></td>
@@ -404,7 +404,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <th></th>
 <th>Simple</th>
 <th>Pack</th>
-<th>Kit</th>
+<th>Bundle</th>
 </tr>
 </thead>
 <tbody><tr>
@@ -438,7 +438,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>The scarcest component decides</td>
 </tr>
 <tr>
-<td>Can be a kit component</td>
+<td>Can be a bundle component</td>
 <td>Yes</td>
 <td>Yes</td>
 <td>No</td>
@@ -454,19 +454,19 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Repacking moves stock between the two.</strong> A repack job takes a number of packs and produces <code>units_per_pack</code> times as many singles (opening packs), or the reverse (making packs). It writes both ledger entries in one transaction, so the total number of base units never changes. The new stock keeps the batch, best-before date and landed cost per unit of the stock it came from.</li>
 <li><strong>When to use a pack, and when not.</strong> If the seller ships six singles loose in one parcel, that is a listing with six units per sale, not a pack. A pack exists only when a sealed pack physically sits on the shelf.</li>
 </ul>
-<h3>Kit</h3>
-<p>A kit (also called a bundle or set) is several products sold as one item: a gift set of one jar of honey and two jars of jam. Nobody counts kits on the shelf, so a kit has no stock of its own.</p>
+<h3>Bundle</h3>
+<p>A bundle (also called a kit or set) is several products sold as one item: a gift set of one jar of honey and two jars of jam. Nobody counts bundles on the shelf, so a bundle has no stock of its own.</p>
 <ul>
-<li><strong>Components.</strong> Each component is a product and a whole-number quantity, 1–1,000. A kit has 1 to 20 components, and at least 2 units in total. A &quot;kit&quot; of three of the same product with nothing else is refused, with a pointer to the right tool: a listing with three units per sale.</li>
-<li><strong>One level deep.</strong> A component must be simple or a pack, never another kit. This keeps the sellable figure one step from real stock and makes a cycle impossible.</li>
-<li><strong>Sellable is worked out, never stored.</strong> For each component, divide its sellable by the quantity the kit needs and round down; the kit&#39;s sellable is the smallest result. If kit A is 1 × B plus 2 × C, and 10 B and 20 C are sellable, A can sell min(10 ÷ 1, 20 ÷ 2) = 10 times.</li>
-<li><strong>A sale reserves the components.</strong> An order for one kit reserves one honey and two jam, against their batches, in the same transaction. Dispatch deducts the components.</li>
+<li><strong>Components.</strong> Each component is a product and a whole-number quantity, 1–1,000. A bundle has 1 to 20 components, and at least 2 units in total. A &quot;bundle&quot; of three of the same product with nothing else is refused, with a pointer to the right tool: a listing with three units per sale.</li>
+<li><strong>One level deep.</strong> A component must be simple or a pack, never another bundle. This keeps the sellable figure one step from real stock and makes a cycle impossible.</li>
+<li><strong>Sellable is worked out, never stored.</strong> For each component, divide its sellable by the quantity the bundle needs and round down; the bundle&#39;s sellable is the smallest result. If bundle A is 1 × B plus 2 × C, and 10 B and 20 C are sellable, A can sell min(10 ÷ 1, 20 ÷ 2) = 10 times.</li>
+<li><strong>A sale reserves the components.</strong> An order for one bundle reserves one honey and two jam, against their batches, in the same transaction. Dispatch deducts the components.</li>
 <li><strong>Components still sell on their own.</strong> B and C keep their own listings. Selling A uses B and C stock, and selling B on its own lowers what A can sell. In the example, selling 4 B on their own leaves A able to sell 6.</li>
-<li><strong>One stock serves every use.</strong> Honey sold on its own and honey sold in the kit draw on the same stock. When a component&#39;s sellable changes, every kit that uses it gets a new sellable, and every listing linked to those kits is told.</li>
-<li><strong>Changing a kit&#39;s components</strong> applies to orders received afterwards. An open order keeps the components it was reserved with, recorded on the order line, so editing a kit never strands or doubles a reservation.</li>
-<li><strong>Cost and weight.</strong> A kit&#39;s standard cost is the sum of its components&#39; standard costs, worked out when read. Its weight and dimensions are entered for the packed kit, because the gift box adds both.</li>
-<li><strong>No kit stock, ever.</strong> A ledger entry against a kit is refused.</li>
-<li><strong>Best-before and lots come from the components.</strong> Picking a kit picks each component&#39;s earliest best-before batch, and the order line records each component&#39;s lot.</li>
+<li><strong>One stock serves every use.</strong> Honey sold on its own and honey sold in the bundle draw on the same stock. When a component&#39;s sellable changes, every bundle that uses it gets a new sellable, and every listing linked to those bundles is told.</li>
+<li><strong>Changing a bundle&#39;s components</strong> applies to orders received afterwards. An open order keeps the components it was reserved with, recorded on the order line, so editing a bundle never strands or doubles a reservation.</li>
+<li><strong>Cost and weight.</strong> A bundle&#39;s standard cost is the sum of its components&#39; standard costs, worked out when read. Its weight and dimensions are entered for the packed bundle, because the gift box adds both.</li>
+<li><strong>No bundle stock, ever.</strong> A ledger entry against a bundle is refused.</li>
+<li><strong>Best-before and lots come from the components.</strong> Picking a bundle picks each component&#39;s earliest best-before batch, and the order line records each component&#39;s lot.</li>
 </ul>
 <h3>Changing a product&#39;s kind</h3>
 <p>A product&#39;s kind can be changed only before first use. After that, stock history, listings and orders depend on it, so the seller creates a new product and retires the old one.</p>
@@ -513,10 +513,10 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </tbody></table></div>
 <ul>
-<li><strong>One listing, one product.</strong> A listing that sells a set of different products links to a kit. This keeps every order line resolvable to one product.</li>
+<li><strong>One listing, one product.</strong> A listing that sells a set of different products links to a bundle. This keeps every order line resolvable to one product.</li>
 <li><strong>Many listings, one product.</strong> A product may have any number of listings across channels and accounts.</li>
 <li><strong>What the listing shows.</strong> The product&#39;s sellable divided by <code>units_per_sale</code>, rounded down. A six-unit listing on 86 sellable singles shows 14.</li>
-<li><strong>What a sale uses.</strong> One sale of the listing reserves <code>units_per_sale</code> units of the product. For a kit, that is <code>units_per_sale</code> kits&#39; worth of each component.</li>
+<li><strong>What a sale uses.</strong> One sale of the listing reserves <code>units_per_sale</code> units of the product. For a bundle, that is <code>units_per_sale</code> bundles&#39; worth of each component.</li>
 <li><strong>Marketplace-shipped listings.</strong> When the marketplace ships from its own warehouse, Vervoro reserves nothing and sends no quantity to that listing; its orders are recorded for reporting only.</li>
 <li><strong>Unlinked listings.</strong> An order for a listing with no link is imported and flagged, and reserves nothing until someone links it.</li>
 </ul>
@@ -566,7 +566,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tbody></table></div>
 <ul>
 <li><strong>Status never stops stock sync.</strong> While a listing is linked, it is told the sellable figure, whatever the product&#39;s status. A product that stopped updating its listings would leave them showing old stock and selling it.</li>
-<li><strong>Retiring needs an empty product:</strong> no stock on hand, no open reservations or purchase orders, no linked listings, and not a component of any kit that is not retired. The screen says which of these blocks it.</li>
+<li><strong>Retiring needs an empty product:</strong> no stock on hand, no open reservations or purchase orders, no linked listings, and not a component of any bundle that is not retired. The screen says which of these blocks it.</li>
 <li><strong>Deleting</strong> is allowed only before first use. A used product is retired, never deleted, so history keeps pointing at it.</li>
 </ul>
 <h2>Sizes and colours</h2>
@@ -614,7 +614,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tbody></table></div>
 <p><strong>Rules</strong></p>
 <ul>
-<li><strong>Members are simple products or packs,</strong> never kits. A product belongs to at most one family.</li>
+<li><strong>Members are simple products or packs,</strong> never bundles. A product belongs to at most one family.</li>
 <li><strong>Every member has a value for every option the family has,</strong> and no two members share the same combination. A family with size and colour cannot hold two &quot;42 Black&quot;.</li>
 <li><strong>The family has no stock.</strong> Its screen shows a grid: one row per colour, one column per size, each cell the member&#39;s sellable, with row and family totals.</li>
 <li><strong>Create as a grid.</strong> The seller names the family, enters the option values (sizes 40–45, colours Black and White) and gets one draft product per combination, here 12. SKUs come from the pattern, and shared fields (brand, category, VAT class, commodity code, country of origin, weight) are copied in. The seller adds each member&#39;s barcode, by scanning or in a spreadsheet, and confirms.</li>
@@ -687,7 +687,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p><strong><code>tracks_lot</code> on:</strong></p>
 <ul>
 <li>No stock enters without a lot number.</li>
-<li>Every dispatch records which lot went to which order line, kits included.</li>
+<li>Every dispatch records which lot went to which order line, bundles included.</li>
 <li>A recall is one search: the lot number gives every order, buyer country and date that received it, and the stock of that lot still on hand, which can be blocked from sale at once.</li>
 </ul>
 <p><strong>Both switches:</strong></p>
@@ -708,13 +708,13 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2>Spreadsheet import and bulk edit</h2>
 <p>One workbook format serves export, bulk edit and bulk create.</p>
 <ul>
-<li><strong>Sheets:</strong> Products (one row per product, with family name and option values), Kit components (kit SKU, component SKU, quantity), Box sizes (SKU, name, units, barcode), Barcodes (SKU, code). Only the Products sheet is required.</li>
+<li><strong>Sheets:</strong> Products (one row per product, with family name and option values), Bundle components (bundle SKU, component SKU, quantity), Box sizes (SKU, name, units, barcode), Barcodes (SKU, code). Only the Products sheet is required.</li>
 <li><strong>SKU is the match key.</strong> A row whose SKU exists updates that product. A row whose SKU is new creates a product, and then must carry every required field. Matching ignores case.</li>
 <li><strong>A blank cell means &quot;leave alone&quot;, never &quot;clear&quot;.</strong> Spreadsheet programs drop and reorder columns, and a blank read as &quot;empty&quot; would quietly wipe data nobody meant to touch. To empty a field on purpose (for example, to remove a brand from 50 products), the cell holds the word <code>(clear)</code>. A missing column is also left alone.</li>
-<li><strong>Lists replace per product.</strong> For a kit or product that appears on the Kit components, Box sizes or Barcodes sheet, those rows become its whole list. Products not on the sheet keep theirs.</li>
+<li><strong>Lists replace per product.</strong> For a bundle or product that appears on the Bundle components, Box sizes or Barcodes sheet, those rows become its whole list. Products not on the sheet keep theirs.</li>
 <li><strong>Preview first.</strong> Every import is checked in full before anything is written. The preview lists, per row, what will be created, each field that will change (old and new value), what is unchanged, and every error with its sheet, row and column.</li>
 <li><strong>Errors never apply.</strong> Rows with errors are skipped; the seller can download them with the error beside each row, fix them and import again. The valid rows are written in one transaction when the seller confirms, so an import never lands half-done.</li>
-<li><strong>Refused outright:</strong> a SKU twice in one file, a kit component that is itself a kit, a change of kind or SKU on a used product, a barcode already held by another product.</li>
+<li><strong>Refused outright:</strong> a SKU twice in one file, a bundle component that is itself a bundle, a change of kind or SKU on a used product, a barcode already held by another product.</li>
 <li><strong>Limits.</strong> Up to 10,000 product rows per file. Larger catalogues import in several files.</li>
 </ul>
 <h2>Validation summary</h2>
@@ -742,11 +742,11 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Command, plus a check constraint on the pack fields</td>
 </tr>
 <tr>
-<td>Kit components are simple or packs, 1–20 of them, at least 2 units</td>
+<td>Bundle components are simple or packs, 1–20 of them, at least 2 units</td>
 <td>Command, in the same transaction as the write</td>
 </tr>
 <tr>
-<td>No ledger entry against a kit</td>
+<td>No ledger entry against a bundle</td>
 <td>Stock ledger (ADR-006) refuses it</td>
 </tr>
 <tr>
@@ -755,7 +755,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Retire only an empty product</td>
-<td>Command checks stock, reservations, purchase orders, links and kits</td>
+<td>Command checks stock, reservations, purchase orders, links and bundles</td>
 </tr>
 <tr>
 <td>Family members have every option value, no two the same combination</td>
@@ -777,7 +777,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2>Consequences</h2>
 <p><strong>What this gives us</strong></p>
 <ul>
-<li>One stock number per physical thing. Packs, kits, box sizes and multi-unit listings each have one rule, so nothing is counted twice or never deducted.</li>
+<li>One stock number per physical thing. Packs, bundles, box sizes and multi-unit listings each have one rule, so nothing is counted twice or never deducted.</li>
 <li>A scan always resolves to one product or one box size.</li>
 <li>Every channel&#39;s figure comes from one formula: the product&#39;s sellable, divided by units per sale.</li>
 <li>Spreadsheets are safe to round-trip: blank cells change nothing, and every change is previewed.</li>
@@ -787,7 +787,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ul>
 <p><strong>What it costs</strong></p>
 <ul>
-<li>A kit&#39;s sellable is computed from its components, so one component sale updates every kit using it and every listing linked to those kits. That fan-out must stay fast.</li>
+<li>A bundle&#39;s sellable is computed from its components, so one component sale updates every bundle using it and every listing linked to those bundles. That fan-out must stay fast.</li>
 <li>A SKU or kind mistake found after first use means a new product and a retired one, not an edit.</li>
 <li>The operator maintains VAT rates for every supported country.</li>
 <li>With lot tracking on, every receipt and every dispatch asks one more question of warehouse staff.</li>
@@ -817,19 +817,19 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>General goods have neither; asking for them on every receipt slows warehouses that do not need them</td>
 </tr>
 <tr>
-<td>Nested kits (a kit inside a kit)</td>
-<td>Sellable becomes a recursive calculation, cycles become possible, and reservation fans out unpredictably; flatten the inner kit instead</td>
+<td>Nested bundles (a bundle inside a bundle)</td>
+<td>Sellable becomes a recursive calculation, cycles become possible, and reservation fans out unpredictably; flatten the inner bundle instead</td>
 </tr>
 <tr>
 <td>A listing linked to several products</td>
-<td>Every order line would split into several products; a kit does the same job with one link</td>
+<td>Every order line would split into several products; a bundle does the same job with one link</td>
 </tr>
 <tr>
 <td>Box sizes as products with their own stock</td>
 <td>A case and its units would both hold stock, so the same goods count twice unless every move is mirrored</td>
 </tr>
 <tr>
-<td>Treating a pack as its singles, computed like a kit</td>
+<td>Treating a pack as its singles, computed like a bundle</td>
 <td>A sealed pack on the shelf would not be countable, and opening packs could not be recorded</td>
 </tr>
 <tr>

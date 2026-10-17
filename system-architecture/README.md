@@ -91,7 +91,7 @@ The foundation is always on and cannot be switched off. It holds the catalogue, 
 - **Proved every night.** A nightly check compares every balance with the sum of its entries and alerts on any difference. Archiving old entries keeps this true through checkpoints (ADR-002).
 - **One order per marketplace order.** Importing again updates the order, never duplicates it, and an older state is ignored.
 
-**Desired state per listing.** Pushes are not messages in a queue. Each linked listing has one row holding the figure the marketplace should show, written by the foundation in the same transaction as the stock change, with the ledger sequence it was computed from. The figure applies pack sizes, kits, buffers and the low-stock policy. Ten changes to one listing update one row, so the latest figure is sent once, nothing old is ever replayed, and losing a background worker loses nothing: the work list is a query.
+**Desired state per listing.** Pushes are not messages in a queue. Each linked listing has one row holding the figure the marketplace should show, written by the foundation in the same transaction as the stock change, with the ledger sequence it was computed from. The figure applies pack sizes, bundles, buffers and the low-stock policy. Ten changes to one listing update one row, so the latest figure is sent once, nothing old is ever replayed, and losing a background worker loses nothing: the work list is a query.
 
 ## Talking to marketplaces
 

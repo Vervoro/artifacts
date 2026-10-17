@@ -24,7 +24,7 @@ eBay shapes the design in five ways:
 1. **One Vervoro application, approved by each seller** on eBay's own consent page. Nobody pastes keys.
 2. **Orders arrive by eBay's Notification API:** one signed destination for the whole application, and a subscription per seller to order confirmations and cancellation activity. Each notice is answered by fetching the order.
 3. **The backup read runs hourly,** because eBay's order allowance is shared by every seller; an account whose notices look broken is read every 10 minutes. The read goes from the last page of its window back to the first.
-4. **Every listing a SKU is on gets the figure:** inventory items through the Inventory API, Seller Hub listings through the Trading API by item number.
+4. **Every linked listing gets the figure:** inventory items through the Inventory API, Seller Hub listings through the Trading API by item number. A listing nobody linked gets none: finding every listing a SKU is on only finds listings for [ADR-005](../catalogue-sync/) to suggest.
 5. **The Trading API is spent only where nothing else will do,** from the shared pool of ADR-004, with a daily page cap per account.
 6. **Vervoro never changes a seller's eBay settings.** A Seller Hub listing is not updated while the seller's out-of-stock option is off, and the account cannot go live until the seller turns it on.
 7. **A variation with no SKU cannot be updated.** Its orders still come in, and the seller is told to add a SKU.
@@ -57,7 +57,7 @@ How an imported order is mapped to statuses and reservations is ADR-007.
 
 ## Listings and stock
 
-**Every listing a SKU is on.** A read names, for each SKU, every listing it is on, as links: the inventory item, each Seller Hub listing by item number, and each variation by item number and its own SKU. The host keeps these links and hands them back on every write and read back. One SKU on several listings shows the highest figure any of them shows, so a listing showing more than Vervoro's figure is always corrected, and the seller sees a note that each listing gets the same figure.
+**Every linked listing a SKU is on.** A read names, for each SKU, every listing it is on: the inventory item, each Seller Hub listing by item number, and each variation by item number and its own SKU. Only the listings a person linked (ADR-005) are written to; the host hands their item numbers back on every write and read back. Another listing that carries a linked SKU but is not linked itself gets no figure: it is suggested for linking and treated as shared stock (ADR-005). One SKU on several linked listings shows the highest figure any of them shows, so a listing showing more than Vervoro's figure is always corrected, and the seller sees a note that each linked listing gets the same figure.
 
 **Writes.**
 
@@ -66,12 +66,12 @@ How an imported order is mapped to statuses and reservations is ADR-007.
 | Inventory item | Inventory API, bulk price and quantity update | One SKU, up to 25 of its offers |
 | Seller Hub listing | Trading API, inventory status revision | Up to 4 listings or variations |
 
-- **Every listing gets the figure even when another fails.** A refused inventory update does not keep the figure from the Seller Hub listings, nor one Trading batch from the next.
+- **Every linked listing gets the figure even when another fails.** A refused inventory update does not keep the figure from the Seller Hub listings, nor one Trading batch from the next.
 - **eBay is synchronous.** A write is `applied` or refused at once, never `accepted`.
 - **"Identical quantity" is applied.** eBay refuses to revise a listing to the figure it already shows; that is the listing being right.
 - **When eBay refuses a batch,** the listings its reply does not name as revised are sent again one by one, to learn which one it refused.
-- **A SKU no read has met** goes to the Inventory API first; if eBay does not know it there, the Trading API finds its Seller Hub listings by SKU, they get the figure, and their links come back for the host to keep.
-- **A listing that has gone** (ended, relisted under a new number, SKU removed) makes the connector look the SKU up afresh and send to the listings that now carry it. A SKU on no listing any more is `rejected`, with eBay's reason.
+- **A SKU no read has met** goes to the Inventory API first, for a linked inventory item. If eBay does not know it there, the Trading API finds its Seller Hub listings by SKU. They get no figure: they come back to the catalogue as new listings, to be suggested and linked (ADR-005).
+- **A listing that has gone** (ended, relisted under a new number, SKU removed) makes the connector look the SKU up afresh. The listings that now carry it come back to the catalogue; a relist eBay declares carries the link, and any other is suggested (ADR-005). Only a linked listing is sent the figure. A SKU on no listing any more is `rejected`, with eBay's reason.
 - **No compare-and-set.** The order watermark is the guard against selling the same unit twice (ADR-007, ADR-008).
 - **250 revisions a day per listing.** eBay caps how often one listing can be revised in a calendar day. Inventory sync keeps room for decreases under that cap (ADR-008).
 
