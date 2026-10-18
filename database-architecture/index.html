@@ -258,7 +258,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>Replace the live slice with the branch&#39;s slice in one transaction.</li>
 <li>Re-apply every erasure in the company&#39;s erasure log made after the restore time, and run the anonymisation sweep, before the company opens (<a href="../buyer-data/">ADR-009</a>).</li>
 <li>Rebuild the company&#39;s directory rows in control; set counters to at least their live values, so numbers already sent to suppliers are not reused.</li>
-<li>Mark restored outbound sends <code>unknown</code>, never resend them; bring every marketplace account back in shadow mode.</li>
+<li>Mark restored outbound sends <code>unknown</code>, never resend them; bring every marketplace account back in shadow mode. Raise the company&#39;s sync epoch, kept in the control database, which every stock write&#39;s idempotency key carries (<a href="../inventory-sync/">ADR-008</a>).</li>
 <li>Re-read the marketplaces and reconcile; the operator signs off the differences before any stock push resumes, because pushing restored stock straight away would oversell.</li>
 <li>Files in object storage have no point-in-time copy: keep versioning or a 30-day soft delete, and never overwrite a file key.</li>
 </ol>

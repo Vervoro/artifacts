@@ -105,7 +105,7 @@ The foundation is always on and cannot be switched off. It holds the catalogue, 
 - Every answer becomes one of: applied, accepted and awaiting processing, throttled, compare mismatch, rejected, or unknown. A timeout is unknown, not failed: the real state is read back before anything is sent again.
 - Work is claimed with leases, never open-ended locks. A crash costs one lease period, and a result is written only if the claim is still its own.
 
-**The send rules** sit in the Channels host. A decrease, or any change while the shelf is low, goes at once. An increase waits until that channel's orders are known to be imported. A well-stocked figure is sent again only once the channel has drifted from it. Every send has a deadline, after which the listing is read back. Where a marketplace offers compare-and-set, the gate uses it.
+**The send rules** sit in the Channels host. Any change while a listing is near zero goes at once. Above that, a figure is sent again only once the channel has drifted from it by the tolerance, in either direction. An increase waits until that channel's orders are known to be imported ([ADR-008](../inventory-sync/)). Every send has a deadline, after which the listing is read back. Where a marketplace offers compare-and-set, the gate uses it.
 
 **Connectors are plugins.** Each marketplace is its own module that contributes one connector definition. The host and the server name no marketplace, so removing the module removes the marketplace.
 

@@ -13,6 +13,7 @@ Architecture decisions and plans, published with GitHub Pages.
 - [ADR-005: Catalogue sync and linking](catalogue-sync/README.md)
 - [ADR-006: Stock ledger and reservations](stock-ledger/README.md)
 - [ADR-007: Order ingestion](order-ingestion/README.md)
+- [ADR-008: Inventory sync](inventory-sync/README.md)
 - [ADR-009: Buyer data and privacy](buyer-data/README.md)
 
 ## Build order
@@ -26,5 +27,5 @@ The order to build in. Each step needs the ones before it.
 5. **[ADR-005: Catalogue sync and linking](catalogue-sync/README.md).** Needs the connectors' listing reads and the products to link them to.
 6. **[ADR-009: Buyer data and privacy](buyer-data/README.md).** Before any real order stores a buyer's address; the marketplaces' data reviews ask for it. Buyer anonymisation from ADR-002 is built here.
 7. **[ADR-007: Order ingestion](order-ingestion/README.md).** Needs links, reservations and the buyer-data rules.
-8. **ADR-008: Inventory sync (planned).** Last: figures go to marketplaces only once links, the ledger and orders are proven in shadow mode.
+8. **[ADR-008: Inventory sync](inventory-sync/README.md).** Last: figures go to marketplaces only once links, the ledger and orders are proven in shadow mode.
 9. **[ADR-002: Data retention and archiving](data-retention/README.md).** Archiving is switched on by its trigger (a cell past 500 GB, or the start of year 2), not at launch.

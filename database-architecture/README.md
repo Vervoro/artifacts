@@ -135,7 +135,7 @@ The cascade also deletes the company's `audit_log`, so the one-year retention ap
 3. Replace the live slice with the branch's slice in one transaction.
 4. Re-apply every erasure in the company's erasure log made after the restore time, and run the anonymisation sweep, before the company opens ([ADR-009](../buyer-data/)).
 5. Rebuild the company's directory rows in control; set counters to at least their live values, so numbers already sent to suppliers are not reused.
-6. Mark restored outbound sends `unknown`, never resend them; bring every marketplace account back in shadow mode.
+6. Mark restored outbound sends `unknown`, never resend them; bring every marketplace account back in shadow mode. Raise the company's sync epoch, kept in the control database, which every stock write's idempotency key carries ([ADR-008](../inventory-sync/)).
 7. Re-read the marketplaces and reconcile; the operator signs off the differences before any stock push resumes, because pushing restored stock straight away would oversell.
 8. Files in object storage have no point-in-time copy: keep versioning or a 30-day soft delete, and never overwrite a file key.
 

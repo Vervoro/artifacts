@@ -298,7 +298,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>Every answer becomes one of: applied, accepted and awaiting processing, throttled, compare mismatch, rejected, or unknown. A timeout is unknown, not failed: the real state is read back before anything is sent again.</li>
 <li>Work is claimed with leases, never open-ended locks. A crash costs one lease period, and a result is written only if the claim is still its own.</li>
 </ul>
-<p><strong>The send rules</strong> sit in the Channels host. A decrease, or any change while the shelf is low, goes at once. An increase waits until that channel&#39;s orders are known to be imported. A well-stocked figure is sent again only once the channel has drifted from it. Every send has a deadline, after which the listing is read back. Where a marketplace offers compare-and-set, the gate uses it.</p>
+<p><strong>The send rules</strong> sit in the Channels host. Any change while a listing is near zero goes at once. Above that, a figure is sent again only once the channel has drifted from it by the tolerance, in either direction. An increase waits until that channel&#39;s orders are known to be imported (<a href="../inventory-sync/">ADR-008</a>). Every send has a deadline, after which the listing is read back. Where a marketplace offers compare-and-set, the gate uses it.</p>
 <p><strong>Connectors are plugins.</strong> Each marketplace is its own module that contributes one connector definition. The host and the server name no marketplace, so removing the module removes the marketplace.</p>
 <div class="table-wrap"><table>
 <thead>

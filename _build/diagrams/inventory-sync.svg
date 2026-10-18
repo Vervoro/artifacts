@@ -1,0 +1,70 @@
+<svg class="diagram" viewBox="0 0 760 520" role="img" aria-label="A stock change writes each linked listing's desired figure in the same transaction; the host compares it with the figure it believes the marketplace shows near zero every change is sent at once, above it only a gap of 20 is sent; raises wait for the order read and an empty hold set; the dispatcher leases one write target at a time and sends through the egress gate; outcomes, read backs and notices update the believed figure, and the rules run again" xmlns="http://www.w3.org/2000/svg" font-size="13">
+  <defs>
+    <marker id="sync-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="edge-fill"/></marker>
+  </defs>
+  <text x="24" y="30" font-size="15" font-weight="600" class="ink">One desired row per listing; only the latest figure is sent</text>
+
+  <g class="edge" fill="none" stroke-width="1.25">
+    <path d="M244 88H270" marker-end="url(#sync-arrow)"/>
+    <path d="M490 88H516" marker-end="url(#sync-arrow)"/>
+    <path d="M626 120V150" marker-end="url(#sync-arrow)"/>
+    <path d="M134 250V280" marker-end="url(#sync-arrow)"/>
+    <path d="M244 312H270" marker-end="url(#sync-arrow)"/>
+    <path d="M490 312H516" marker-end="url(#sync-arrow)"/>
+    <path d="M626 344V384" marker-end="url(#sync-arrow)"/>
+    <path d="M516 416H490" marker-end="url(#sync-arrow)"/>
+    <path d="M270 416H12V200H24" marker-end="url(#sync-arrow)"/>
+  </g>
+
+  <rect x="24" y="56" width="220" height="64" rx="8" class="box"/>
+  <text x="134" y="80" text-anchor="middle" font-weight="600" class="ink">Stock change</text>
+  <text x="134" y="99" text-anchor="middle" font-size="11.5" class="quiet">sellable moves, in the foundation,</text>
+  <text x="134" y="113" text-anchor="middle" font-size="11.5" class="quiet">under the company's lock</text>
+
+  <rect x="270" y="56" width="220" height="64" rx="8" class="box"/>
+  <text x="380" y="80" text-anchor="middle" font-weight="600" class="ink">The figure per listing</text>
+  <text x="380" y="99" text-anchor="middle" font-size="11.5" class="quiet">one warehouse · kept units, buffer</text>
+  <text x="380" y="113" text-anchor="middle" font-size="11.5" class="quiet">bundle minimum · ÷ units per sale</text>
+
+  <rect x="516" y="56" width="220" height="64" rx="8" class="box-main"/>
+  <text x="626" y="80" text-anchor="middle" font-weight="600" class="ink">Desired row D</text>
+  <text x="626" y="99" text-anchor="middle" font-size="11.5" class="ink">same transaction, with the</text>
+  <text x="626" y="113" text-anchor="middle" font-size="11.5" class="ink">ledger sequence and a version</text>
+
+  <rect x="24" y="150" width="712" height="100" rx="8" class="band"/>
+  <text x="380" y="172" text-anchor="middle" font-weight="600" class="ink">The host's work list: D compared with B, the figure the marketplace is believed to show</text>
+  <rect x="40" y="184" width="330" height="54" rx="6" class="box"/>
+  <text x="205" y="205" text-anchor="middle" font-weight="600" class="ink">Safety lane</text>
+  <text x="205" y="224" text-anchor="middle" font-size="11.5" class="quiet">every change near zero · decreases 20 away</text>
+  <rect x="390" y="184" width="330" height="54" rx="6" class="box"/>
+  <text x="555" y="205" text-anchor="middle" font-weight="600" class="ink">Bulk lane</text>
+  <text x="555" y="224" text-anchor="middle" font-size="11.5" class="quiet">raises 20 away, after the order read</text>
+
+  <rect x="24" y="280" width="220" height="64" rx="8" class="box"/>
+  <text x="134" y="304" text-anchor="middle" font-weight="600" class="ink">Dispatcher</text>
+  <text x="134" y="323" text-anchor="middle" font-size="11.5" class="quiet">one lease per write target</text>
+  <text x="134" y="337" text-anchor="middle" font-size="11.5" class="quiet">buckets · shared pools · eBay revisions</text>
+
+  <rect x="270" y="280" width="220" height="64" rx="8" class="box"/>
+  <text x="380" y="304" text-anchor="middle" font-weight="600" class="ink">Egress gate</text>
+  <text x="380" y="323" text-anchor="middle" font-size="11.5" class="quiet">shadow records · live sends</text>
+  <text x="380" y="337" text-anchor="middle" font-size="11.5" class="quiet">idempotency key with the sync epoch</text>
+
+  <rect x="516" y="280" width="220" height="64" rx="8" class="box"/>
+  <text x="626" y="304" text-anchor="middle" font-weight="600" class="ink">Marketplace</text>
+  <text x="626" y="323" text-anchor="middle" font-size="11.5" class="quiet">through the connector</text>
+  <text x="626" y="337" text-anchor="middle" font-size="11.5" class="quiet">and the account's binding</text>
+
+  <rect x="516" y="384" width="220" height="64" rx="8" class="box"/>
+  <text x="626" y="408" text-anchor="middle" font-weight="600" class="ink">Outcomes and readings</text>
+  <text x="626" y="427" text-anchor="middle" font-size="11.5" class="quiet">applied · accepted, read back · unknown</text>
+  <text x="626" y="441" text-anchor="middle" font-size="11.5" class="quiet">notices · daily reads · own sales</text>
+
+  <rect x="270" y="384" width="220" height="64" rx="8" class="box-main"/>
+  <text x="380" y="408" text-anchor="middle" font-weight="600" class="ink">Believed figure B</text>
+  <text x="380" y="427" text-anchor="middle" font-size="11.5" class="ink">a number or unknown;</text>
+  <text x="380" y="441" text-anchor="middle" font-size="11.5" class="ink">errs only upward</text>
+
+  <text x="24" y="484" font-size="11.5" class="quiet">Near zero every change is sent; above it, only a gap of 20. A raise waits for a complete order read and an empty hold set.</text>
+  <text x="24" y="504" font-size="11.5" class="quiet">Ten changes to one listing update one row: the work list is a query, so a crash loses nothing and nothing old is replayed.</text>
+</svg>
