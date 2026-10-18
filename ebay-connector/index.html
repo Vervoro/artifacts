@@ -173,6 +173,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Turned off later,</strong> sends still go, zero included: selling stock that is gone is worse than an ended listing. The next read shows the note again.</li>
 </ul>
 <p>Changing the preference for the seller was rejected: it changes how all of their listings behave, including those Vervoro does not manage.</p>
+<h2>Cancellations</h2>
+<p>A seller&#39;s cancellation, and the seller&#39;s answer to a buyer&#39;s request (approve or reject), go through the Post-Order API&#39;s cancellation resource, through the egress gate. eBay cancels whole orders only, up to 30 days after the sale. The resource allows 5,000 calls a day for the whole application: an ADR-004 shared pool. Every call is a person&#39;s action, so the pool has one lane, and the operator is alerted at 90 %. When to send one is <a href="../order-ingestion/">ADR-007</a>.</p>
 <h2>Dispatch</h2>
 <p>A shipment is confirmed on the order with its carrier and tracking number, through the fulfilment API, one call per shipment, through the egress gate.</p>
 <h2>Account deletion notices</h2>
@@ -237,6 +239,11 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Notices</td>
 <td>Destinations, per-topic subscriptions, public keys to verify signatures</td>
 <td><a href="https://developer.ebay.com/develop/api/sell/notification_api">Notification API</a></td>
+</tr>
+<tr>
+<td>Post-Order API cancellations, per application</td>
+<td>5,000 calls a day; whole orders only, up to 30 days after the sale</td>
+<td><a href="https://developer.ebay.com/develop/api/sell/api_call_limits">API call limits</a>, <a href="https://developer.ebay.com/Devzone/post-order/post-order_v2_cancellation__post.html">Create cancellation</a></td>
 </tr>
 </tbody></table></div>
 <h2>Consequences</h2>

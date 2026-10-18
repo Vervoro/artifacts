@@ -52,7 +52,7 @@ Shopify is the seller's own shop, not a marketplace, and it shapes the design in
 **Webhooks first.** Shopify's webhooks are declared once in the app's own configuration, so every shop that installs the app gets them, and they all go to one address.
 
 - **Verified before anything is read.** Each webhook is checked with the app's secret (current or previous) before any database read. The shop is named in a header that the signature does not cover, so the host uses it only to find the account. A genuine body sent again under another shop's name can at most make Vervoro fetch an order that shop does not have.
-- **Topics:** order created, updated and cancelled, and inventory changed at the warehouse location; the app uninstalled; and the privacy topics (below).
+- **Topics:** order created, updated, edited and cancelled; a fulfilment order moved, placed on hold and released; a new risk assessment; inventory changed at the warehouse location; the app uninstalled; and the privacy topics (below). Moves, holds and risk assessments do not reliably raise the order-updated topic, so each has its own ([ADR-007](../order-ingestion/)).
 - **The body is not imported.** An order webhook carries the buyer's details. The host keeps only the order's id and the topic, and imports the order by fetching it.
 - **What changed** is read from the body: cancelled, or shipped outside Vervoro, with the time, so the host can tell our own fulfilment coming back from a change made in the shop.
 - **Shopify gives five seconds** to answer, retries up to eight times over four hours, and then stops. The endpoint answers as soon as the message is on the inbound queue, so a slow database never costs a delivery.

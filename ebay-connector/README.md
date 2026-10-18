@@ -97,6 +97,10 @@ When eBay answers that the application has used its day's calls, the pool is `th
 
 Changing the preference for the seller was rejected: it changes how all of their listings behave, including those Vervoro does not manage.
 
+## Cancellations
+
+A seller's cancellation, and the seller's answer to a buyer's request (approve or reject), go through the Post-Order API's cancellation resource, through the egress gate. eBay cancels whole orders only, up to 30 days after the sale. The resource allows 5,000 calls a day for the whole application: an ADR-004 shared pool. Every call is a person's action, so the pool has one lane, and the operator is alerted at 90 %. When to send one is [ADR-007](../order-ingestion/).
+
 ## Dispatch
 
 A shipment is confirmed on the order with its carrier and tracking number, through the fulfilment API, one call per shipment, through the egress gate.
@@ -127,6 +131,7 @@ Checked against eBay's documentation on 17 October 2026.
 | Bulk price and quantity update | One SKU, up to 25 offers; up to 250 revisions per listing per calendar day | [bulkUpdatePriceQuantity](https://developer.ebay.com/api-docs/sell/inventory/resources/inventory_item/methods/bulkUpdatePriceQuantity) |
 | Trading API inventory status revision | Up to 4 listings or variations per call; a variation is named by its SKU | [ReviseInventoryStatus](https://developer.ebay.com/devzone/xml/docs/Reference/eBay/ReviseInventoryStatus.html) |
 | Notices | Destinations, per-topic subscriptions, public keys to verify signatures | [Notification API](https://developer.ebay.com/develop/api/sell/notification_api) |
+| Post-Order API cancellations, per application | 5,000 calls a day; whole orders only, up to 30 days after the sale | [API call limits](https://developer.ebay.com/develop/api/sell/api_call_limits), [Create cancellation](https://developer.ebay.com/Devzone/post-order/post-order_v2_cancellation__post.html) |
 
 ## Consequences
 

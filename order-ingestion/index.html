@@ -1,0 +1,1413 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ADR-007: Order ingestion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono&display=swap">
+<style>
+:root {
+  --bg: #f6f6f8; --surface: #ffffff; --sunken: #ededf1; --text: #16161a; --muted: #5c5c66; --border: #e0e0e6;
+  --accent: #4338ca; --accent-soft: #eef0ff; --edge: #8a8a96; --tint: #f0f0f4;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #111114; --surface: #1a1a1f; --sunken: #23232a; --text: #ececf1; --muted: #a2a2ad; --border: #2d2d35;
+  --accent: #a5b4fc; --accent-soft: #23264a; --edge: #74747f; --tint: #202027; color-scheme: dark; } }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 var(--sans); }
+main { max-width: 860px; margin: 0 auto; padding: 48px max(20px, env(safe-area-inset-left)) 80px; }
+header.site { max-width: 860px; margin: 0 auto; padding: 20px max(20px, env(safe-area-inset-left)) 0; font-size: 14px; }
+header.site a { color: var(--muted); text-decoration: none; }
+header.site a:hover { color: var(--accent); }
+h1, h2, h3 { line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(28px, 4vw, 38px); letter-spacing: -0.02em; margin: 0 0 20px; }
+h2 { font-size: 23px; margin: 48px 0 12px; padding-top: 20px; border-top: 1px solid var(--border); }
+h3 { font-size: 18px; margin: 32px 0 8px; }
+p, li { max-width: 72ch; }
+a { color: var(--accent); }
+code { font-family: var(--mono); font-size: 0.86em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 16px 0; background: var(--surface); }
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+.table-wrap table { margin: 0; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+th { background: var(--sunken); font-weight: 600; font-size: 13px; color: var(--muted); }
+tr:last-child td { border-bottom: none; }
+ul, ol { padding-left: 22px; }
+li + li { margin-top: 4px; }
+figure { margin: 20px 0; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; }
+svg.diagram { display: block; width: 100%; min-width: 640px; height: auto; font-family: var(--sans); }
+svg .ink { fill: var(--text); } svg .quiet { fill: var(--muted); }
+svg .edge { stroke: var(--edge); } svg .edge-fill { fill: var(--edge); }
+svg .accent { stroke: var(--accent); } svg .accent-fill { fill: var(--accent); }
+svg .box { fill: none; stroke: var(--edge); stroke-width: 1.25; }
+svg .box-main { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+svg .band { fill: var(--tint); stroke: var(--edge); stroke-width: 1.25; }
+.cards { list-style: none; padding: 0; display: grid; gap: 12px; }
+.cards a { display: block; padding: 18px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; text-decoration: none; color: var(--text); }
+.cards a:hover, .cards a:focus-visible { border-color: var(--accent); outline: none; }
+.cards.sub { margin: 12px 0 0 24px; padding-left: 16px; border-left: 2px solid var(--border); }
+.cards b { display: block; font-size: 17px; } .cards span { color: var(--muted); font-size: 14px; }
+.order li { margin-top: 10px; } .order span { color: var(--muted); font-size: 14px; }
+footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header class="site"><a href="../">← Vervoro artifacts</a></header>
+<main>
+<h1>ADR-007: Order ingestion</h1>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Status</strong></td>
+<td>Proposed</td>
+</tr>
+<tr>
+<td><strong>Date</strong></td>
+<td>18 October 2026</td>
+</tr>
+<tr>
+<td><strong>Scope</strong></td>
+<td>How orders enter Vervoro and move through their life up to dispatch: notices and the backup read, importing each marketplace order once, the order and line statuses and how each marketplace&#39;s states map to them, when and in what order an import reserves, holds, cancellation requests and confirmed cancellations, refunds, orders for unlinked listings, the fulfilment conflict, orders the marketplace ships, orders shipped outside Vervoro, manual orders, buyer data on import, and what dispatch is handed</td>
+</tr>
+<tr>
+<td><strong>Builds on</strong></td>
+<td><a href="../system-architecture/">ADR-000: System architecture</a>, <a href="../database-architecture/">ADR-001: Multi-tenant database architecture</a>, <a href="../product-model/">ADR-003: Product model</a>, <a href="../channel-connectors/">ADR-004: Channel connectors</a> with <a href="../ebay-connector/">ADR-004.1</a>, <a href="../amazon-seller-connector/">ADR-004.2</a> and <a href="../shopify-connector/">ADR-004.3</a>, <a href="../catalogue-sync/">ADR-005: Catalogue sync and linking</a>, <a href="../stock-ledger/">ADR-006: Stock ledger and reservations</a>, <a href="../buyer-data/">ADR-009: Buyer data and privacy</a></td>
+</tr>
+</tbody></table></div>
+<h2>Context</h2>
+<p>An order is where a sale turns into work for the warehouse and a change to stock. Earlier records already fixed the pieces around it:</p>
+<ul>
+<li><strong>ADR-000:</strong> only the foundation changes order status, and importing again updates an order, never duplicates it.</li>
+<li><strong>ADR-004:</strong> orders arrive by notice; a notice is a hint; the order is fetched; a backup read proves none was missed and is the only thing that moves the order watermark. eBay is read hourly, Amazon and Shopify every 10 minutes.</li>
+<li><strong>ADR-005:</strong> the link that was valid when the buyer bought decides the product. Unlinked listings are left to the marketplace, but their orders are imported.</li>
+<li><strong>ADR-006:</strong> an order reserves when it is imported, in the same transaction. A cancellation request is not a cancellation. An order marked shipped outside Vervoro deducts by default.</li>
+<li><strong>ADR-009:</strong> only the fields a label needs are kept, fetched from the marketplace, never from a notice body, and anonymised 30 days after delivery.</li>
+</ul>
+<p>This record decides the order itself: how it is imported, what states it and its lines can be in, what each marketplace&#39;s states mean in Vervoro, and what happens at each step until a parcel leaves.</p>
+<p>The design has to meet these requirements:</p>
+<ul>
+<li><strong>Marketplaces repeat themselves and arrive out of order.</strong> A notice comes twice, late, or before the order can be read. The backup read finds an order a notice already brought, or the other way round. None of this may make two orders or move stock twice.</li>
+<li><strong>Every marketplace has its own states.</strong> eBay, Amazon and Shopify describe payment, shipping and cancellation differently. The warehouse needs one list it can trust.</li>
+<li><strong>A wrong parcel costs more than a late one.</strong> Shipping an order that is unpaid, cancelled, refunded or flagged as fraud loses goods. Shipping late costs a metric. When unsure, the order waits and a person is told.</li>
+<li><strong>A seller&#39;s cancellation counts against them.</strong> Marketplaces score sellers on cancellations they start, so Vervoro never cancels on its own.</li>
+<li><strong>Orders also reach the shelf from outside.</strong> Sellers buy labels in the marketplace&#39;s own tools, ship from a shop counter, or let the marketplace ship. Stock must follow what really left.</li>
+<li><strong>The warehouse works on phones against deadlines.</strong> Each order needs one ship-by time and a pick list it can follow without asking.</li>
+</ul>
+<h2>Decision</h2>
+<ol>
+<li><strong>Notices first, the backup read behind.</strong> Every order notice is answered by fetching the order and importing it. The backup read runs at the intervals ADR-004.1, 004.2 and 004.3 fix. Both paths end in the same import.</li>
+<li><strong>One order per marketplace order.</strong> The key is the account and the marketplace&#39;s order id, held in one unpartitioned key table. A fetched order older than the stored one is ignored; one with the same change time changes no state.</li>
+<li><strong>Vervoro has one status list for every order:</strong> pending, open, picking, packed, part shipped, shipped and cancelled. Each marketplace&#39;s states map onto it by a fixed table. Statuses only move forward, with one exception: a person may put a picked order back.</li>
+<li><strong>Holds sit beside the status, never in it.</strong> An order has a set of hold reasons. Any hold keeps its reservation, takes it off the picking list and refuses dispatch. Automatic holds clear themselves when their cause clears.</li>
+<li><strong>Each order imports in one transaction that reserves.</strong> Orders found together import oldest purchase first, one transaction each. An import either writes the order, its lines and their reservations, or nothing.</li>
+<li><strong>An order that cannot be imported is never dropped.</strong> It is recorded as an import problem, with its account and the listing of each line that can be read, never its body, and retried on every later notice and read. The seller and the operator are told.</li>
+<li><strong>An order that is not ready to ship still reserves.</strong> A payment still pending, a pre-order or a scheduled order reserves on import and carries a hold until the marketplace says it can ship.</li>
+<li><strong>A cancellation request holds the order and keeps its stock.</strong> Only a cancellation the marketplace confirms releases it. The seller answers a request in Vervoro or on the marketplace.</li>
+<li><strong>Vervoro cancels only when a person asks,</strong> on eBay and Amazon, through the egress gate. A sent cancellation also keeps the stock until the marketplace confirms it. On Shopify, the seller cancels in Shopify.</li>
+<li><strong>A refund is recorded, never acted on.</strong> It moves no stock and cancels nothing. A full refund on an order not yet shipped and not cancelled holds it.</li>
+<li><strong>An order for an unlinked listing is imported and held.</strong> Its line waits and reserves nothing. From the order, a person links the listing or attaches just that line to a product.</li>
+<li><strong>A seller-shipped line on a marketplace-shipped link reserves and opens a conflict.</strong> The order can ship; the listing&#39;s raises wait until the seller answers.</li>
+<li><strong>Orders the marketplace ships are recorded, never reserved,</strong> never picked and kept without buyer data. Shopify orders that another connected marketplace put into the shop are recorded once, on the path ADR-004.3 decides.</li>
+<li><strong>Shipped outside Vervoro is a flag on each line,</strong> with the quantity and the marketplace&#39;s time. It deducts what the line held, once. A manager can reverse it.</li>
+<li><strong>Manual orders are orders.</strong> A manager enters them in Vervoro, and they follow the same statuses, holds, reservations and dispatch, without a marketplace.</li>
+<li><strong>Buyer data comes only from the fetched order</strong> and only for orders the seller ships. Only the fields ADR-009 allows are written, and nothing is written for an order already anonymised.</li>
+<li><strong>Dispatch is handed a queue, not a list of orders:</strong> open orders with no hold and something reserved, each with one ship-by time, a pick list naming batches and spots, and the packing details ADR-009 lets the warehouse see.</li>
+<li><strong>An Amazon order from a marketplace the account does not serve is not imported</strong> (ADR-004.2). Its notice warns the seller once per marketplace when the seller ships it.</li>
+</ol>
+<h2>How an order comes in</h2>
+<ol>
+<li><strong>A notice arrives.</strong> The endpoint verifies it, queues the topic, the notice id, the account and the order ids, and answers (ADR-004). The host keeps each notice id for 24 hours and drops a repeat before it costs a fetch. Correctness never depends on that: the import is idempotent.</li>
+<li><strong>The consumer fetches the order</strong> through the binding: eBay&#39;s <code>getOrder</code>, Amazon&#39;s <code>getOrder</code> in the 2026 orders API, Shopify&#39;s order query. An order not visible yet is fetched again after 30 seconds, doubling, for about half an hour, then left to the backup read (ADR-004).</li>
+<li><strong>The connector turns it into the contract&#39;s order type.</strong> The host validates it. One that fails is an import problem (below).</li>
+<li><strong>The foundation imports it</strong> in one locked transaction (see &quot;Reserving on import&quot;).</li>
+<li><strong>The backup read</strong> reads the orders changed in its window and imports each one by the same command. It moves the watermark only when every order in the window has committed, or is recorded as an import problem.</li>
+</ol>
+<p>On eBay, <code>getOrders</code> returns the cancellation state but an empty list of requests. When the backup read finds an order whose cancellation state is not <code>NONE_REQUESTED</code>, the host fetches that order with <code>getOrder</code> to read the request.</p>
+<h2>One order per marketplace order</h2>
+<p><strong>The key.</strong> An order is named by its account and the marketplace&#39;s own order id:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Marketplace</th>
+<th>Order id used</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>eBay</td>
+<td>The Fulfillment API&#39;s <code>orderId</code></td>
+<td>eBay changes an order&#39;s id when it goes from unpaid to paid. The Fulfillment API shows only orders that completed checkout, so its id is the paid one</td>
+</tr>
+<tr>
+<td>Amazon</td>
+<td><code>orderId</code> (3-7-7 digits)</td>
+<td>One id across the region&#39;s marketplaces</td>
+</tr>
+<tr>
+<td>Shopify</td>
+<td>The order&#39;s numeric id</td>
+<td>Never the order name (<code>#1001</code>), which the seller can change</td>
+</tr>
+<tr>
+<td>Manual</td>
+<td>Vervoro&#39;s own order number</td>
+<td>From the company&#39;s counter (ADR-001)</td>
+</tr>
+</tbody></table></div>
+<p><strong>One key table.</strong> Orders and their lines are partitioned by month of purchase (ADR-001). A unique index on a partitioned table must include the month, so it cannot stop the same order arriving twice in two months. So <code>sales_order_key</code> is one unpartitioned tenant table, unique on company, account and marketplace order id, holding the order&#39;s id and its month. The import looks the key up, under the company&#39;s lock, before anything else.</p>
+<p><strong>Which fetch wins.</strong> Every fetched order carries the marketplace&#39;s own last change time: eBay&#39;s <code>lastModifiedDate</code>, Amazon&#39;s <code>lastUpdatedTime</code>, Shopify&#39;s <code>updatedAt</code>. The stored order keeps the latest one it applied.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>The fetched order is</th>
+<th>What happens</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>New</td>
+<td>Created, its lines resolved and reserved</td>
+</tr>
+<tr>
+<td>Newer than the stored one</td>
+<td>Applied: statuses, lines, quantities, cancellations, refunds, shipments outside Vervoro</td>
+</tr>
+<tr>
+<td>The same change time</td>
+<td>No state changes. Buyer fields the stored order lacks may be filled in (ADR-009: a masked value never erases a kept one)</td>
+</tr>
+<tr>
+<td>Older than the stored one</td>
+<td>Ignored</td>
+</tr>
+</tbody></table></div>
+<p>Only the marketplace&#39;s time is compared, never Vervoro&#39;s clock. And even a newer fetch never moves a status backwards: a marketplace that seems to undo a step is flagged for a person (see &quot;Late updates&quot;).</p>
+<p><strong>Lines.</strong> Each line is named by the marketplace&#39;s line id: eBay&#39;s <code>lineItemId</code>, Amazon&#39;s <code>orderItemId</code>, Shopify&#39;s line item id.</p>
+<ul>
+<li>A line new on a later fetch is added and reserves, as an edit on Shopify can add one.</li>
+<li>A line missing from a later fetch is not removed. Its quantity changes only when the marketplace says so.</li>
+<li><strong>A line&#39;s listing is fixed once it has reserved.</strong> A later fetch that names another listing for the same line id changes nothing. The line keeps its reservation, and the order is held for a person (&quot;line changed after import&quot;). Moving the line would free units promised to a buyer.</li>
+<li><strong>The quantity is the current one.</strong> On Shopify that is <code>currentQuantity</code>, which leaves out units refunded or removed by an edit.</li>
+</ul>
+<h3>Duplicates and order of arrival</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>What arrives</th>
+<th>What happens</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>The same notice twice</td>
+<td>The second is dropped by notice id, or fetches and finds nothing newer</td>
+</tr>
+<tr>
+<td>Two notices for one order, the later one first</td>
+<td>Each causes a fetch. Both fetches return the current order; the second changes nothing</td>
+</tr>
+<tr>
+<td>A notice before the order can be read</td>
+<td>Fetched again with growing delays, then left to the backup read</td>
+</tr>
+<tr>
+<td>The backup read first, then the notice</td>
+<td>The notice&#39;s fetch finds the same change time; nothing changes</td>
+</tr>
+<tr>
+<td>The notice first, then the backup read</td>
+<td>The same</td>
+</tr>
+<tr>
+<td>A notice that never arrives</td>
+<td>The backup read imports the order, and the account&#39;s notices are marked unreliable (ADR-004)</td>
+</tr>
+<tr>
+<td>A forged or replayed notice</td>
+<td>At most one fetch. A fetch is the marketplace&#39;s own truth</td>
+</tr>
+</tbody></table></div>
+<p><strong>Worked example.</strong> An Amazon order <code>204-0000001-0000001</code> for 2 jars of honey is placed at 09:00:00.</p>
+<ul>
+<li>09:00:04: a notice for a new order. The fetch says &quot;not visible yet&quot;. The next fetch at 09:00:34 returns it, pending. It is created, reserves 2 jars, and is held &quot;payment pending&quot;.</li>
+<li>09:01:10: a second notice, a status change. The fetch returns it unshipped, changed at 09:01:02. The hold clears; the order is open.</li>
+<li>09:01:12: the first notice is delivered again by the queue. It is dropped by its notice id.</li>
+<li>09:10: the backup read sees the order with change time 09:01:02. Nothing changes.</li>
+</ul>
+<h3>Late updates</h3>
+<p>Once an order is shipped or cancelled, its status is final. Later news is recorded as a fact on the order, never as a new status:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Later news</th>
+<th>What Vervoro does</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Tracking or delivery from the marketplace</td>
+<td>Recorded. A delivery date starts ADR-009&#39;s 30 days</td>
+</tr>
+<tr>
+<td>Our own shipment echoed back</td>
+<td>Recognised by the shipment&#39;s id, or because the marketplace&#39;s shipped quantity is no more than Vervoro&#39;s. Nothing moves</td>
+</tr>
+<tr>
+<td>A refund</td>
+<td>Recorded</td>
+</tr>
+<tr>
+<td>Cancelled after dispatch</td>
+<td>Recorded as &quot;cancelled after dispatch&quot;. No stock moves (ADR-006). The order shows &quot;expect a return&quot;</td>
+</tr>
+<tr>
+<td>The marketplace undoes a shipment Vervoro did not make (a Shopify fulfilment cancelled)</td>
+<td>Flagged for a person. Nothing moves until they answer (see &quot;Shipped outside Vervoro&quot;)</td>
+</tr>
+<tr>
+<td>The order is gone from the marketplace (a Shopify order deleted)</td>
+<td>Flagged for a person. Its reservation stays; a manager can cancel it in Vervoro</td>
+</tr>
+<tr>
+<td>A changed delivery address before dispatch</td>
+<td>Saved. If a label was already bought, the order is held &quot;address changed after label&quot;</td>
+</tr>
+</tbody></table></div>
+<h2>The order and its lines</h2>
+<p><strong>The order holds:</strong> the account (or &quot;manual&quot;), the marketplace order id, the time of purchase, the marketplace&#39;s last change time, the status, the hold reasons, who ships it, the warehouse (the account&#39;s default, ADR-006), the ship-by time, the marketplace it was sold on, where it arrived from (directly, or through a Shopify app, below), the buyer fields of ADR-009, and the times it was shipped, cancelled, delivered and anonymised.</p>
+<p><strong>Each line holds</strong> ADR-006&#39;s fields (the link version, product, units per sale, fulfilment, bundle components, units needed and missing) and:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>marketplace_line_id</code></td>
+<td>The marketplace&#39;s id for the line</td>
+</tr>
+<tr>
+<td><code>listing_id</code></td>
+<td>The listing it was sold on, by ADR-005&#39;s key. Empty when the marketplace names none (a Shopify line with no variant)</td>
+</tr>
+<tr>
+<td><code>sku_sold</code>, <code>title</code></td>
+<td>As the marketplace gave them, for the packer and for matching</td>
+</tr>
+<tr>
+<td><code>quantity</code></td>
+<td>The current quantity ordered</td>
+</tr>
+<tr>
+<td><code>cancelled</code></td>
+<td>Units cancelled, confirmed by the marketplace</td>
+</tr>
+<tr>
+<td><code>shipped_outside</code>, <code>shipped_outside_at</code></td>
+<td>Units the marketplace says shipped that no Vervoro shipment covers, and when</td>
+</tr>
+<tr>
+<td><code>fulfilment</code></td>
+<td>Who ships this line, from the marketplace: seller, marketplace, or unknown</td>
+</tr>
+<tr>
+<td><code>resolved_by</code></td>
+<td>Link (the link valid at purchase), person (attached from the order), or none</td>
+</tr>
+<tr>
+<td><code>stock_state</code></td>
+<td>Waiting, reserved, short, not reserved, or done (below)</td>
+</tr>
+<tr>
+<td><code>unit_price</code>, <code>currency</code></td>
+<td>What the line sold for. Money is never added across currencies</td>
+</tr>
+<tr>
+<td><code>vat_country</code>, <code>vat_class</code>, <code>vat_rate</code></td>
+<td>The rate the line used (ADR-003)</td>
+</tr>
+</tbody></table></div>
+<p>Units shipped by Vervoro come from the shipments (ADR-006), so they are not stored twice.</p>
+<p><strong>A line&#39;s stock state:</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>State</th>
+<th>Meaning</th>
+<th>Reserves</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Waiting</strong></td>
+<td>No product yet: the listing is unlinked or unknown</td>
+<td>Nothing</td>
+</tr>
+<tr>
+<td><strong>Reserved</strong></td>
+<td>Every unit it still needs is reserved</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><strong>Short</strong></td>
+<td>Part reserved, the rest recorded as missing (ADR-006)</td>
+<td>What exists</td>
+</tr>
+<tr>
+<td><strong>Not reserved</strong></td>
+<td>The marketplace ships it, or another connection handles it</td>
+<td>Nothing, ever</td>
+</tr>
+<tr>
+<td><strong>Done</strong></td>
+<td>Every unit is shipped or cancelled</td>
+<td>Nothing left</td>
+</tr>
+</tbody></table></div>
+<h2>Statuses</h2>
+<figure><svg class="diagram" viewBox="0 0 760 336" role="img" aria-label="An order moves from pending to open, picking, packed and shipped; a person may put a picked order back to open; part of an order can ship, and the rest is picked again; a confirmed cancellation before shipping cancels it; holds can sit on any status before shipping without changing it" xmlns="http://www.w3.org/2000/svg" font-size="13">
+  <defs>
+    <marker id="ord-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="edge-fill"/></marker>
+  </defs>
+  <text x="24" y="26" font-size="15" font-weight="600" class="ink">Statuses only move forward; holds sit beside them</text>
+
+  <rect x="14" y="40" width="560" height="100" rx="8" class="band"/>
+  <text x="294" y="56" text-anchor="middle" font-size="11.5" class="quiet">A hold can sit on any of these: the status stays, picking and dispatch wait, the stock stays reserved</text>
+
+  <g class="edge" fill="none" stroke-width="1.25">
+    <path d="M134 100H164" marker-end="url(#ord-arrow)"/>
+    <path d="M284 100H314" marker-end="url(#ord-arrow)"/>
+    <path d="M424 100H454" marker-end="url(#ord-arrow)"/>
+    <path d="M564 100H614" marker-end="url(#ord-arrow)"/>
+    <path d="M509 130V156H254V130" marker-end="url(#ord-arrow)"/>
+    <path d="M548 130V220H614" marker-end="url(#ord-arrow)"/>
+    <path d="M675 190V130" marker-end="url(#ord-arrow)"/>
+    <path d="M614 238H194V130" marker-end="url(#ord-arrow)"/>
+    <path d="M79 130V200" marker-end="url(#ord-arrow)"/>
+  </g>
+
+  <rect x="24" y="70" width="110" height="60" rx="6" class="box"/>
+  <text x="79" y="96" text-anchor="middle" font-weight="600" class="ink">Pending</text>
+  <text x="79" y="113" text-anchor="middle" font-size="10.5" class="quiet">reserved, held</text>
+
+  <rect x="164" y="70" width="120" height="60" rx="6" class="box"/>
+  <text x="224" y="96" text-anchor="middle" font-weight="600" class="ink">Open</text>
+  <text x="224" y="113" text-anchor="middle" font-size="10.5" class="quiet">on the picking list</text>
+
+  <rect x="314" y="70" width="110" height="60" rx="6" class="box"/>
+  <text x="369" y="96" text-anchor="middle" font-weight="600" class="ink">Picking</text>
+  <text x="369" y="113" text-anchor="middle" font-size="10.5" class="quiet">no stock moves</text>
+
+  <rect x="454" y="70" width="110" height="60" rx="6" class="box"/>
+  <text x="509" y="96" text-anchor="middle" font-weight="600" class="ink">Packed</text>
+  <text x="509" y="113" text-anchor="middle" font-size="10.5" class="quiet">every unit scanned</text>
+
+  <rect x="614" y="70" width="122" height="60" rx="8" class="box-main"/>
+  <text x="675" y="96" text-anchor="middle" font-weight="600" class="ink">Shipped</text>
+  <text x="675" y="113" text-anchor="middle" font-size="10.5" class="ink">final</text>
+
+  <rect x="614" y="190" width="122" height="56" rx="6" class="box"/>
+  <text x="675" y="214" text-anchor="middle" font-weight="600" class="ink">Part shipped</text>
+  <text x="675" y="231" text-anchor="middle" font-size="10.5" class="quiet">the rest still reserved</text>
+
+  <rect x="24" y="200" width="110" height="50" rx="6" class="box"/>
+  <text x="79" y="222" text-anchor="middle" font-weight="600" class="ink">Cancelled</text>
+  <text x="79" y="238" text-anchor="middle" font-size="10.5" class="quiet">final</text>
+
+  <text x="382" y="172" text-anchor="middle" font-size="10.5" class="quiet">put back by a person</text>
+  <text x="556" y="178" font-size="10.5" class="quiet">part</text>
+  <text x="556" y="191" font-size="10.5" class="quiet">ships</text>
+  <text x="682" y="166" font-size="10.5" class="quiet">rest shipped</text>
+  <text x="682" y="179" font-size="10.5" class="quiet">or cancelled</text>
+  <text x="404" y="256" text-anchor="middle" font-size="10.5" class="quiet">the rest is picked again</text>
+  <text x="24" y="270" font-size="10.5" class="quiet">A confirmed cancellation of every unit, from any status before shipping</text>
+
+  <text x="24" y="300" font-size="11.5" class="quiet">The marketplace can skip steps: an order it reports shipped goes straight to shipped.</text>
+  <text x="24" y="320" font-size="11.5" class="quiet">Orders the marketplace ships go from pending or open to shipped or cancelled, as it says, and are never picked.</text>
+</svg>
+</figure>
+
+<p>Every order has one status. Seller-shipped and manual orders can use all of them. Orders the marketplace ships skip picking and packing: they go from open (or pending) to shipped or cancelled, as the marketplace says.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Meaning</th>
+<th>Reserves</th>
+<th>Warehouse</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Pending</strong></td>
+<td>The marketplace has the order, but it may not ship yet: payment not complete, a pre-order, a scheduled order</td>
+<td>Yes, with a hold</td>
+<td>Not on the picking list</td>
+</tr>
+<tr>
+<td><strong>Open</strong></td>
+<td>Ready to ship</td>
+<td>Yes</td>
+<td>On the picking list if no hold and something is reserved</td>
+</tr>
+<tr>
+<td><strong>Picking</strong></td>
+<td>A picker has started it</td>
+<td>Yes</td>
+<td>Being picked. Picking moves no stock (ADR-006)</td>
+</tr>
+<tr>
+<td><strong>Packed</strong></td>
+<td>Every unit to ship is scanned into a parcel</td>
+<td>Yes</td>
+<td>Waiting for the shipment to be confirmed</td>
+</tr>
+<tr>
+<td><strong>Part shipped</strong></td>
+<td>Some units have left, by Vervoro or outside it; the rest are still to ship</td>
+<td>What remains</td>
+<td>The rest is on the picking list again</td>
+</tr>
+<tr>
+<td><strong>Shipped</strong></td>
+<td>Every unit is shipped or cancelled, and at least one shipped</td>
+<td>Nothing</td>
+<td>Final</td>
+</tr>
+<tr>
+<td><strong>Cancelled</strong></td>
+<td>Every unit is cancelled, none shipped</td>
+<td>Nothing</td>
+<td>Final</td>
+</tr>
+</tbody></table></div>
+<p><strong>Allowed transitions.</strong> Anything not in this table is refused, and a test covers each row.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>From</th>
+<th>To</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Pending</td>
+<td>Open</td>
+<td>The marketplace says the order can ship</td>
+</tr>
+<tr>
+<td>Pending, open, picking, packed</td>
+<td>Cancelled</td>
+<td>The marketplace confirms the whole order cancelled, or a manager cancels a manual order</td>
+</tr>
+<tr>
+<td>Open</td>
+<td>Picking</td>
+<td>A picker starts it. Refused while it has a hold or reserves nothing</td>
+</tr>
+<tr>
+<td>Picking</td>
+<td>Packed</td>
+<td>Packing has scanned every unit it ships now</td>
+</tr>
+<tr>
+<td>Picking, packed</td>
+<td>Open</td>
+<td>A person puts it back. The warehouse is told to return the units to their spots</td>
+</tr>
+<tr>
+<td>Open, picking, packed</td>
+<td>Part shipped</td>
+<td>A shipment of part of the order is confirmed, or the marketplace says part shipped outside Vervoro</td>
+</tr>
+<tr>
+<td>Pending, open, picking, packed, part shipped</td>
+<td>Shipped</td>
+<td>The last units are shipped or the rest cancelled</td>
+</tr>
+</tbody></table></div>
+<ul>
+<li><strong>Shipped and cancelled are final.</strong> Later news is recorded on the order (see &quot;Late updates&quot;).</li>
+<li><strong>The marketplace can skip steps.</strong> An order the marketplace reports shipped goes straight to shipped from any earlier status.</li>
+<li><strong>A hold never changes the status.</strong> A packed order on hold stays packed and cannot be shipped.</li>
+<li><strong>Only the foundation writes a status</strong> (ADR-000). Every change is in the order&#39;s activity view, with the person or process and the reason.</li>
+</ul>
+<h2>From each marketplace to Vervoro</h2>
+<p>The connector maps the marketplace&#39;s states onto the contract&#39;s order. The foundation decides the status from it. A test covers every row. A state that would move an order backwards (a payment voided after the order was open, a fulfilment order rescheduled) adds its hold and leaves the status as it is.</p>
+<p><strong>Amazon, the 2026 orders API.</strong> The connector asks <code>getOrder</code> for the fulfilment and cancellation datasets (<code>includedData</code> <code>FULFILLMENT</code> and <code>CANCELLATION</code>), and for the recipient only as ADR-009 allows. The order&#39;s <code>fulfillment.fulfillmentStatus</code>, <code>fulfillment.fulfilledBy</code> and each item&#39;s <code>cancellation</code>:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Amazon says</th>
+<th>Vervoro</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>PENDING_AVAILABILITY</code></td>
+<td>Pending, held &quot;not yet due&quot; (a pre-order)</td>
+</tr>
+<tr>
+<td><code>PENDING</code></td>
+<td>Pending, held &quot;payment pending&quot;</td>
+</tr>
+<tr>
+<td><code>UNSHIPPED</code></td>
+<td>Open</td>
+</tr>
+<tr>
+<td><code>PARTIALLY_SHIPPED</code></td>
+<td>Part shipped. Units not covered by a Vervoro shipment are shipped outside</td>
+</tr>
+<tr>
+<td><code>SHIPPED</code></td>
+<td>Shipped, the same way</td>
+</tr>
+<tr>
+<td><code>CANCELLED</code></td>
+<td>Cancelled</td>
+</tr>
+<tr>
+<td><code>UNFULFILLABLE</code></td>
+<td>Only for Amazon-shipped orders not placed on Amazon: recorded, nothing reserved</td>
+</tr>
+<tr>
+<td><code>fulfilledBy</code> <code>AMAZON</code></td>
+<td>Marketplace-shipped: recorded, never reserved</td>
+</tr>
+<tr>
+<td>An item&#39;s <code>cancellationRequest</code> with requester <code>BUYER</code></td>
+<td>A buyer&#39;s cancellation request: held</td>
+</tr>
+<tr>
+<td>An item&#39;s <code>cancellationExecution</code></td>
+<td>That item&#39;s units cancelled</td>
+</tr>
+</tbody></table></div>
+<p><strong>eBay, the Fulfillment API.</strong> The order&#39;s <code>orderFulfillmentStatus</code>, <code>orderPaymentStatus</code>, <code>cancelStatus</code> and each line&#39;s <code>lineItemFulfillmentStatus</code>:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>eBay says</th>
+<th>Vervoro</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>A new order (eBay returns only orders that completed checkout)</td>
+<td>Open</td>
+</tr>
+<tr>
+<td><code>orderPaymentStatus</code> <code>PENDING</code> (the buyer&#39;s payment is not complete, as with a delayed payment method) or <code>FAILED</code></td>
+<td>Pending, held &quot;payment pending&quot;</td>
+</tr>
+<tr>
+<td><code>orderFulfillmentStatus</code> <code>NOT_STARTED</code></td>
+<td>Open</td>
+</tr>
+<tr>
+<td><code>orderFulfillmentStatus</code> <code>IN_PROGRESS</code></td>
+<td>Part shipped. Units not covered by a Vervoro shipment are shipped outside</td>
+</tr>
+<tr>
+<td><code>orderFulfillmentStatus</code> <code>FULFILLED</code></td>
+<td>Shipped, the same way</td>
+</tr>
+<tr>
+<td><code>cancelStatus.cancelState</code> <code>IN_PROGRESS</code></td>
+<td>A buyer&#39;s cancellation request: held</td>
+</tr>
+<tr>
+<td><code>cancelStatus.cancelState</code> <code>CANCELED</code></td>
+<td>Cancelled</td>
+</tr>
+<tr>
+<td><code>orderPaymentStatus</code> <code>FULLY_REFUNDED</code> on an order not shipped and not cancelled</td>
+<td>Held &quot;refunded, not cancelled&quot;</td>
+</tr>
+<tr>
+<td><code>orderPaymentStatus</code> <code>PARTIALLY_REFUNDED</code></td>
+<td>A refund recorded</td>
+</tr>
+</tbody></table></div>
+<p><strong>Shopify.</strong> The order&#39;s <code>cancelledAt</code>, <code>displayFinancialStatus</code>, risk summary, and the fulfilment orders at Vervoro&#39;s warehouse location (ADR-004.3). Moving a fulfilment order to another location, holding or releasing it, and a new risk assessment do not reliably raise Shopify&#39;s order-updated webhook, so the app also subscribes to their own topics (ADR-004.3), and each causes a fetch:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Shopify says</th>
+<th>Vervoro</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>cancelledAt</code> set</td>
+<td>Cancelled</td>
+</tr>
+<tr>
+<td>Financial status <code>PENDING</code> (a payment that takes time, or a manual payment method)</td>
+<td>Pending, held &quot;payment pending&quot;</td>
+</tr>
+<tr>
+<td>Financial status <code>VOIDED</code> or <code>EXPIRED</code> on an order not shipped</td>
+<td>Pending, held &quot;payment pending&quot;. Shopify notes an order can stay open with a voided payment</td>
+</tr>
+<tr>
+<td>Financial status <code>AUTHORIZED</code>, <code>PAID</code> or <code>PARTIALLY_PAID</code></td>
+<td>Paid enough to ship. Capturing payment is the seller&#39;s business in Shopify</td>
+</tr>
+<tr>
+<td><code>REFUNDED</code> on an order not shipped and not cancelled</td>
+<td>Held &quot;refunded, not cancelled&quot;</td>
+</tr>
+<tr>
+<td>Fulfilment order <code>OPEN</code> or <code>IN_PROGRESS</code> at the warehouse location</td>
+<td>Open</td>
+</tr>
+<tr>
+<td>Fulfilment order <code>SCHEDULED</code></td>
+<td>Pending, held &quot;not yet due&quot; until its <code>fulfillAt</code></td>
+</tr>
+<tr>
+<td>Fulfilment order <code>ON_HOLD</code></td>
+<td>Held &quot;on hold in Shopify&quot;</td>
+</tr>
+<tr>
+<td>Fulfilment order <code>CLOSED</code> with fulfilments Vervoro did not make</td>
+<td>Shipped outside, for those units</td>
+</tr>
+<tr>
+<td>Lines assigned to another location</td>
+<td>Marketplace-shipped lines: recorded, never reserved (ADR-004.3)</td>
+</tr>
+<tr>
+<td>Risk recommendation <code>CANCEL</code> or <code>INVESTIGATE</code></td>
+<td>Held &quot;fraud check&quot;</td>
+</tr>
+<tr>
+<td>Line <code>currentQuantity</code> lower than before</td>
+<td>A smaller quantity: the difference is released (ADR-006)</td>
+</tr>
+</tbody></table></div>
+<p><strong>Manual orders</strong> have no marketplace. A manager confirms them (open) and cancels them (cancelled) in Vervoro.</p>
+<h2>Reserving on import</h2>
+<p>ADR-006 owns how units are chosen and held. This record decides when, in what order, and what happens on failure.</p>
+<p><strong>When.</strong> Every import is one transaction under the company&#39;s lock, in ADR-006&#39;s steps:</p>
+<ol>
+<li>Take the company&#39;s lock.</li>
+<li>Look up the order&#39;s key. Compare change times; stop if the fetch is not newer.</li>
+<li>Write or update the order and its lines.</li>
+<li>Resolve each new line with the link valid at the time of purchase (ADR-005), or leave it waiting.</li>
+<li>Reserve what each line needs, release what a smaller quantity or a cancellation frees, and record shortages.</li>
+<li>Set or clear the automatic holds.</li>
+<li>Write buyer data, and the anonymisation due time when one is known (ADR-009).</li>
+<li>Write new desired figures for affected listings, and the outbox event. Commit.</li>
+</ol>
+<p><strong>Pending orders reserve too.</strong> A pending order can still become a sale; not holding its units lets another channel sell them. The hold keeps it off the picking list until the marketplace says it can ship. If it is cancelled instead, the units come back.</p>
+<p><strong>In what order.</strong></p>
+<ul>
+<li><strong>Orders found together import oldest purchase first.</strong> A backup read page, a burst after an outage, or a notice naming several orders is sorted by time of purchase, then by marketplace order id, so when stock is short the earliest buyer gets it.</li>
+<li><strong>One transaction per order.</strong> The lock is held for one order at a time (about eight round trips, ADR-006), so a large read never holds one company&#39;s stock for long, and orders from other channels interleave.</li>
+<li><strong>Across channels the lock decides.</strong> Two orders for the last unit from two marketplaces reserve in the order their imports take the lock. Exactly one gets it (ADR-006). The other is short, and the seller sees it.</li>
+<li><strong>Within an order, lines reserve in the marketplace&#39;s line order,</strong> and a bundle&#39;s components with it (ADR-006).</li>
+</ul>
+<p><strong>Never half an order.</strong> An import writes the order, every line and every reservation, or none of it.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>What goes wrong</th>
+<th>What happens</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Too little stock</td>
+<td>Not a failure. The line reserves what exists and is short (ADR-006)</td>
+</tr>
+<tr>
+<td>A line&#39;s listing is unknown or unlinked</td>
+<td>Not a failure. The line waits (below)</td>
+</tr>
+<tr>
+<td>The database, a lock wait or a timeout</td>
+<td>The transaction rolls back. The queue retries with growing delays, then the dead-letter queue alerts the operator (ADR-000). The backup read cannot move the watermark past it</td>
+</tr>
+<tr>
+<td>A database check refuses the change (&quot;would go negative&quot;)</td>
+<td>The transaction rolls back and the refusal is typed (ADR-006). This means a bug, so it alerts the operator at once. The order is retried as above</td>
+</tr>
+<tr>
+<td>The fetched order fails validation against the contract types</td>
+<td>Recorded as an import problem</td>
+</tr>
+</tbody></table></div>
+<p><strong>Import problems.</strong> An order that cannot be read into the contract&#39;s types (a field missing that the contract needs, a quantity that is not a whole number) is never dropped and never guessed (ADR-004).</p>
+<ul>
+<li>A row in <code>sales_order_problem</code> holds the account, the marketplace order id, the reason, and when it was first and last seen. Never the order&#39;s body, which carries buyer data.</li>
+<li><strong>It also records the listings the order sold on, as far as they can be read.</strong> For each line whose listing can be read, the row keeps the line&#39;s marketplace line id, the listing&#39;s key (ADR-005) and the quantity sold, or &quot;quantity not readable&quot;. ADR-008 uses the quantity to take those units off the figures it sends until the order imports. A line whose listing cannot be read (its listing field is missing or malformed, or the order cannot be read into lines at all) is recorded as &quot;listing not readable&quot;. These are marketplace ids, not buyer data (ADR-009).</li>
+<li><strong>The listings give the problem its scope,</strong> because the order&#39;s units are sold on the marketplace but reserved nowhere in Vervoro. When every line&#39;s listing was read, the scope is those listings. When any line&#39;s listing could not be read, the scope is the whole account, because any of its listings may have sold those units. ADR-008 decides what a scope holds (raises on those listings or on the account); decreases are never held. The scope ends when the order imports, or when a person marks the problem resolved.</li>
+<li>The seller sees it at the top of the order list, with the marketplace&#39;s link to the order. The operator is alerted, because until it imports, the order reserves nothing.</li>
+<li>Every later notice or read of that order tries again. When a fix to the connector ships, the operator retries all open problems at once.</li>
+<li>The backup read counts a window as complete when each of its orders has committed or has a problem row, so one bad order cannot stall the watermark for the account.</li>
+</ul>
+<h2>Holds</h2>
+<p>A hold pauses an order. It does not release it.</p>
+<ul>
+<li><strong>An order has a set of hold reasons,</strong> each with who or what set it, when and why. Any reason in the set keeps the order off the picking list, and confirming a shipment for it is refused.</li>
+<li><strong>A hold keeps the reservation.</strong> Releasing stock for an order that will probably ship invites overselling.</li>
+<li><strong>A hold sends nothing to the marketplace.</strong></li>
+<li><strong>A confirmed cancellation still cancels a held order</strong> (ADR-006).</li>
+<li><strong>Every hold and every release</strong> is a row in <code>sales_order_hold</code>, an append-only table (ADR-001). The current set is read from it.</li>
+</ul>
+<p><strong>Automatic holds</strong> are set and cleared by the import or by the event that causes them:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Hold</th>
+<th>Set when</th>
+<th>Cleared when</th>
+<th>A manager may release it</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Payment pending</td>
+<td>The marketplace says payment is not complete</td>
+<td>The marketplace says it can ship</td>
+<td>No: the marketplace has not been paid</td>
+</tr>
+<tr>
+<td>Not yet due</td>
+<td>A pre-order, or a Shopify fulfilment order scheduled for later</td>
+<td>The marketplace says it can ship</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Cancellation requested</td>
+<td>A buyer asked to cancel</td>
+<td>The marketplace decides, or the seller answers (below)</td>
+<td>Yes, by refusing the request</td>
+</tr>
+<tr>
+<td>Cancellation sent</td>
+<td>Vervoro sent a seller cancellation</td>
+<td>The marketplace confirms or refuses it</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Waiting line</td>
+<td>A line has no product</td>
+<td>The line is linked, attached or cancelled</td>
+<td>Yes: &quot;ship the rest&quot;</td>
+</tr>
+<tr>
+<td>Fraud check</td>
+<td>Shopify recommends cancelling or investigating</td>
+<td>Shopify recommends accepting, or no action</td>
+<td>Yes, with a reason</td>
+</tr>
+<tr>
+<td>Refunded, not cancelled</td>
+<td>A full refund on an order not shipped and not cancelled</td>
+<td>A person decides: cancel it, or ship it</td>
+<td>Yes, with a reason</td>
+</tr>
+<tr>
+<td>Address missing</td>
+<td>A seller-shipped order that can ship has no complete delivery address, because the marketplace withheld it</td>
+<td>A fetch brings it, or a manager enters it</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Address changed after label</td>
+<td>The delivery address changed after a label was bought</td>
+<td>A person checks the label</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>On hold in Shopify</td>
+<td>The fulfilment order at the warehouse location is on hold</td>
+<td>Shopify releases it</td>
+<td>No: release it in Shopify</td>
+</tr>
+<tr>
+<td>Line changed after import</td>
+<td>A later fetch names another listing for a line that reserved</td>
+<td>A manager resolves the line again (ADR-006), or accepts it as it is</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Location gone</td>
+<td>Shopify assigned the order to a location that no longer exists (ADR-004.3)</td>
+<td>A person reassigns it in Shopify</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Shipment undone</td>
+<td>A marketplace undid a shipment made outside Vervoro</td>
+<td>A person answers (below)</td>
+<td>Yes</td>
+</tr>
+</tbody></table></div>
+<p><strong>Manual holds.</strong> A manager, admin or owner can hold any order the seller ships that has not shipped yet, one or many at once, with a reason: address check, payment check, customer request, stock check, or other with a note. Releasing one needs the same roles. Holding an order already held adds the reason; the first hold stands.</p>
+<p><strong>A short order is not held.</strong> It may ship what it holds (ADR-006), and the warehouse sees which lines are short. An order with nothing reserved is not offered for picking, because there is nothing to pick.</p>
+<p><strong>Worked example.</strong> A Shopify order for 3 jars of jam arrives at 14:00 with payment <code>PENDING</code> (a bank transfer). It reserves 3 jars and is held &quot;payment pending&quot;. At 16:30 Shopify&#39;s risk check recommends investigating; &quot;fraud check&quot; is added. The next morning the payment arrives: &quot;payment pending&quot; clears, but the order is still held. A manager checks the order, releases &quot;fraud check&quot; with the reason &quot;buyer confirmed by phone&quot;, and the order joins the picking list.</p>
+<h2>Cancellations</h2>
+<p>Cancelling an order is the seller&#39;s decision, never Vervoro&#39;s. Marketplaces count seller cancellations against the seller.</p>
+<h3>A buyer&#39;s request</h3>
+<ul>
+<li><strong>eBay:</strong> the order&#39;s cancellation state shows a request, and <code>getOrder</code> names it. Amazon: an item&#39;s <code>cancellationRequest</code> names the buyer. Shopify has no buyer request; a buyer asks the seller, who cancels in Shopify.</li>
+<li><strong>The order is held &quot;cancellation requested&quot;.</strong> It keeps its reservation (ADR-006) and leaves the picking list, so nobody packs a parcel the buyer may not want. A picker who has started it is told to stop.</li>
+<li><strong>The seller answers in Vervoro or on the marketplace.</strong> Vervoro offers the answers the marketplace has:</li>
+</ul>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Marketplace</th>
+<th>Accept</th>
+<th>Refuse</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>eBay</td>
+<td>Approve the request, through the gate</td>
+<td>Reject the request, through the gate</td>
+</tr>
+<tr>
+<td>Amazon</td>
+<td>Cancel the requested items, with the reason <code>BuyerCanceled</code>, through the gate</td>
+<td>Clear the hold and ship. Amazon has no call to refuse a request; shipping is the answer</td>
+</tr>
+</tbody></table></div>
+<ul>
+<li><strong>Nothing is released until the marketplace confirms.</strong> An accepted request is sent, held &quot;cancellation sent&quot;, and the next fetch decides. A refused request clears the hold; the order ships as normal.</li>
+<li><strong>An answer given on the marketplace</strong> comes back on the next fetch, which decides as above.</li>
+<li><strong>In shadow</strong> nothing is sent. The screen says so and asks the seller to answer on the marketplace.</li>
+</ul>
+<p><strong>Worked example.</strong> An eBay order for 1 honey and 1 jam is placed at 10:00 and reserved. At 10:20 the buyer asks to cancel. The notice&#39;s fetch shows the request; the order is held. A manager taps Approve. Vervoro sends the approval and holds the order &quot;cancellation sent&quot;. At 10:22 the fetched order is cancelled: both lines release, batch by batch, and the listings get new figures in the same transaction. Had the manager tapped Reject, the hold would clear and the order would rejoin the picking list with its reservation unchanged.</p>
+<h3>A cancellation the seller starts</h3>
+<ul>
+<li><strong>Who:</strong> a manager, admin or owner, on an order not yet shipped. The screen names the marketplace&#39;s reasons and says which ones count against the seller (eBay counts an out-of-stock cancellation as a defect; one the buyer asked for does not).</li>
+<li><strong>Sent through the egress gate,</strong> with the order and the attempt as its idempotency key (ADR-000). Cancelling is a capability a connector declares (ADR-004).</li>
+<li><strong>The order is held &quot;cancellation sent&quot;</strong> and keeps its reservation. The marketplace may refuse: eBay refuses an order that is no longer eligible. A refusal clears the hold and tells the seller why.</li>
+<li><strong>An unknown outcome</strong> is read back by fetching the order before anything is sent again (ADR-004).</li>
+</ul>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Marketplace</th>
+<th>How</th>
+<th>Part of an order</th>
+<th>Limits</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>eBay</td>
+<td>Post-Order API cancellation; eBay refunds the buyer</td>
+<td>Not possible: eBay cancels whole orders only. To send less, ship the rest and refund the difference in eBay&#39;s tools</td>
+<td>Up to 30 days after the sale. 5,000 calls a day for the whole application, shared by every seller: an ADR-004 shared pool. Every call is a person&#39;s action, so the pool has one lane; at 90 % the operator is alerted. When it is spent, the cancellation waits and the seller is told it can be done in Seller Hub at once</td>
+</tr>
+<tr>
+<td>Amazon</td>
+<td>The order acknowledgement feed, with each item and quantity to cancel and a reason from Amazon&#39;s list (<code>NoInventory</code>, <code>BuyerCanceled</code> and the others). The 2026 orders API only reads; this feed is how a seller-shipped order is cancelled</td>
+<td>Yes, item by item and by quantity</td>
+<td>A feed is processed later: read back by fetching the order. Feed creation refills slowly (ADR-004.2), so cancellations waiting together go in one feed</td>
+</tr>
+<tr>
+<td>Shopify</td>
+<td>Not from Vervoro. The seller cancels in Shopify, where they also choose the refund and whether to restock</td>
+<td>In Shopify, by editing the order</td>
+<td>Vervoro sees the result by webhook or the backup read</td>
+</tr>
+</tbody></table></div>
+<p>Shopify cancellations stay in Shopify because cancelling there is also a refund decision, and refunds are done in the channel&#39;s own tools (ADR-006). It also means Vervoro asks for no right to change a shop&#39;s orders.</p>
+<h3>A confirmed cancellation</h3>
+<ul>
+<li><strong>Before dispatch:</strong> releases exactly what each cancelled line held, in the import&#39;s transaction (ADR-006). The line&#39;s <code>cancelled</code> rises. If every unit is cancelled, the order is cancelled.</li>
+<li><strong>Already picked:</strong> the units are still on hand in their spots. The release makes them sellable, and the warehouse is told to put them back.</li>
+<li><strong>Part shipped:</strong> releases what is still reserved. If nothing is left to ship, the order is shipped.</li>
+<li><strong>After dispatch:</strong> recorded as cancelled after dispatch; no stock moves. If the parcel comes back, it is a return (ADR-006).</li>
+</ul>
+<h3>Part of an order</h3>
+<p>A smaller quantity on a line, from an Amazon item cancelled in part or a Shopify edit, releases the difference, latest sell-by date first (ADR-006). A larger one reserves more by the usual rules.</p>
+<p><strong>Worked example.</strong> A Shopify order has 6 jars of honey on one line, reserved and picked. The seller edits the order in Shopify to 4. The webhook&#39;s fetch shows <code>currentQuantity</code> 4. In one transaction, 2 jars are released, latest sell-by date first, and listings get new figures. The order stays picking, and the packer&#39;s screen says &quot;2 jars to put back&quot;.</p>
+<h3>Refunds</h3>
+<ul>
+<li><strong>A refund is recorded:</strong> amount, currency, the lines it names, and when.</li>
+<li><strong>It moves no stock and cancels nothing.</strong> A refund never restocks, and a restock never refunds (ADR-006).</li>
+<li><strong>A full refund on an order not shipped and not cancelled holds it,</strong> because shipping goods the buyer has been paid back for loses them. A person decides: cancel it, or ship it anyway.</li>
+<li><strong>A partial refund</strong> is recorded only. If it also lowers a line&#39;s quantity (a Shopify refund that removes units), that is a smaller quantity, above.</li>
+</ul>
+<h2>Orders for unlinked listings</h2>
+<p>An unlinked listing is left to the marketplace (ADR-005), but its orders are imported.</p>
+<ul>
+<li><strong>The line waits.</strong> It reserves nothing and is flagged. The order&#39;s other lines reserve as normal.</li>
+<li><strong>The order is held &quot;waiting line&quot;,</strong> because a parcel packed without that line would be wrong. A manager may release the hold to ship the rest; the waiting line stays open.</li>
+<li><strong>An unknown listing</strong> (the order names one Vervoro has not read yet) starts a read of that one listing (ADR-005). The line waits meanwhile.</li>
+<li><strong>A line with no listing at all</strong> (a Shopify line that needs shipping but has no variant and no SKU, ADR-004.3) waits too, and can only be attached.</li>
+<li><strong>Who is told:</strong> ADR-005 decides it. The first order on an unlinked listing with a strong or medium suggestion alerts the seller; others go to the daily digest.</li>
+</ul>
+<p><strong>From the order, a person has two ways to resolve a waiting line:</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Choice</th>
+<th>What it does</th>
+<th>When to use it</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Link the listing</strong></td>
+<td>Opens ADR-005&#39;s link screen. The link reserves for every waiting line of that listing, oldest first, in its own transaction (ADR-006), and the listing starts getting figures</td>
+<td>The seller wants Vervoro to manage this listing from now on</td>
+</tr>
+<tr>
+<td><strong>Attach this line</strong></td>
+<td>Resolves only this line to a product and units per sale, chosen by a manager. It reserves at once. The listing stays unlinked and gets no figure. The line records <code>resolved_by</code> = person</td>
+<td>The listing stays with the marketplace, but this parcel ships from the warehouse</td>
+</tr>
+</tbody></table></div>
+<p><strong>A waiting line shipped outside Vervoro</strong> reserved nothing, so nothing is deducted. It stays flagged. Attaching it deducts its units at once, earliest sell-by first, as ADR-006 decides. &quot;Not from our stock&quot; closes the flag and moves nothing.</p>
+<p><strong>Worked example.</strong> An eBay order has two lines: 2 jars of honey on a linked listing and 1 &quot;honey dipper&quot; on an unlinked one. The honey reserves 2; the dipper waits, and the order is held &quot;waiting line&quot;. The seller has wooden dippers on the shelf, but sells them on eBay only now and then. A manager chooses &quot;Attach this line&quot;: dipper, 1 unit per sale. It reserves 1, the hold clears, and the order joins the picking list. The dipper listing stays unlinked.</p>
+<h2>A seller-shipped order on a marketplace-shipped link</h2>
+<p>A listing linked as marketplace-shipped (Amazon FBA, ADR-003) gets an order the seller must ship. This happens when a seller switches an offer to ship it themselves while the link still says the marketplace ships.</p>
+<ul>
+<li><strong>The line&#39;s own fulfilment decides</strong> (ADR-005, ADR-006). It reserves units per sale of the product, and the order can ship. Refusing it would leave a buyer with no parcel.</li>
+<li><strong>A conflict opens on the listing</strong> (ADR-005). Its raises wait. The order is not held.</li>
+<li><strong>The seller answers once per listing:</strong> &quot;this listing is now seller-shipped&quot; (a new link version, whose first figure waits for the seller&#39;s confirm, ADR-005), or &quot;a one-off&quot; (the link stays marketplace-shipped and the conflict closes).</li>
+<li><strong>The other way round:</strong> a marketplace-shipped line on a seller-shipped link reserves nothing, because the marketplace ships it. The seller is told once per listing. Which way the listing really ships is ADR-005&#39;s catalogue read.</li>
+</ul>
+<h2>Orders the marketplace ships</h2>
+<p>Amazon&#39;s FBA orders, and Shopify order lines assigned to a location that is not Vervoro&#39;s warehouse, leave from someone else&#39;s shelf.</p>
+<ul>
+<li><strong>Recorded for reports:</strong> lines, products through the link, quantities, prices, dates and statuses.</li>
+<li><strong>Never reserved, never on the picking list, never dispatched by Vervoro.</strong> No hold applies.</li>
+<li><strong>No buyer data is kept.</strong> Amazon sends none for them (ADR-004.2), and none is asked for.</li>
+<li><strong>Their status follows the marketplace:</strong> open (or pending), then shipped or cancelled.</li>
+<li><strong>Fulfilment not yet known:</strong> the line reserves as if the seller ships it, the safer default (ADR-006). When the marketplace says it ships the line, the reservation is released.</li>
+<li><strong>A Shopify order split across locations</strong> reserves the lines at Vervoro&#39;s warehouse and records the rest.</li>
+</ul>
+<p><strong>Orders other marketplaces put into the shop.</strong> A seller may connect eBay or Amazon to Shopify with those marketplaces&#39; own apps (ADR-004.3). Such an order is decided once, at import, and keeps its decision:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>The order</th>
+<th>Vervoro</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Names a marketplace that is also connected to Vervoro directly</td>
+<td>Recorded as having arrived through the shop. Not reserved, not picked: the direct import of that marketplace&#39;s order does both</td>
+</tr>
+<tr>
+<td>Names a marketplace that is not connected directly</td>
+<td>An ordinary sale: reserved and picked</td>
+</tr>
+<tr>
+<td>Cannot be attributed to a marketplace</td>
+<td>An ordinary sale, and the seller is warned when any marketplace is also connected directly (ADR-004.3)</td>
+</tr>
+</tbody></table></div>
+<h2>Shipped outside Vervoro</h2>
+<p>A marketplace may say units shipped that no Vervoro shipment covers: the seller bought a label in Seller Hub, shipped from a shop counter, or an older system shipped during shadow.</p>
+<p><strong>The flag.</strong> Each line has <code>shipped_outside</code>: the units the marketplace says shipped, less those Vervoro&#39;s shipments cover, and the marketplace&#39;s shipping time.</p>
+<p><strong>What it does.</strong></p>
+<ol>
+<li>In the import&#39;s transaction, the line&#39;s reserved units are deducted as <code>dispatched</code>, with the source &quot;marketplace said shipped&quot; (ADR-006), earliest sell-by first. The status moves to part shipped or shipped.</li>
+<li>A short line deducts what it held. Its missing units are no longer sought, because the parcel has gone.</li>
+<li>A waiting line deducts nothing (above).</li>
+<li>The seller sees these orders in the daily digest. ADR-009&#39;s 30 days count from the marketplace&#39;s shipping time.</li>
+</ol>
+<p><strong>Telling our own shipment from an outside one.</strong> Vervoro&#39;s dispatch notice carries its shipment; the marketplace&#39;s reply names a fulfilment or shipment id where it has one, and Vervoro stores it. A shipment the marketplace reports with one of those ids, or a shipped quantity no larger than Vervoro&#39;s, is our own coming back, and moves nothing.</p>
+<p><strong>When both happen.</strong> A packer confirms a shipment in Vervoro just after the marketplace&#39;s &quot;shipped&quot; was imported. The confirm finds the line&#39;s reservations already deducted and is refused with &quot;already shipped outside at 10:00:03&quot;. A manager can mark it &quot;this was our parcel&quot;: the shipment&#39;s carrier and tracking are attached to the order and nothing moves. Each reservation is deducted once.</p>
+<p><strong>Reversing.</strong> A manager who knows the parcel did not come from the warehouse chooses &quot;Not from our stock&quot;. The units come back with an <code>adjusted</code> entry and a reason (ADR-006), become sellable, and listings get new figures. A line is reversed at most once.</p>
+<p><strong>The marketplace undoes it.</strong> If a marketplace later shows those units as not shipped (a Shopify fulfilment cancelled), Vervoro changes nothing on its own and holds the order &quot;shipment undone&quot;. The person answers: &quot;the parcel did not leave&quot; reverses the deduction and the line reserves again by the usual rules; &quot;it left&quot; closes the hold.</p>
+<p><strong>Worked example.</strong> An eBay order for 3 jars reserves batch A × 3 at 09:00. At 11:00 the seller ships it with a label bought in Seller Hub. eBay sends no notice for that (ADR-004.1); the backup read at 11:40 finds the order fulfilled.</p>
+<ul>
+<li>Vervoro has no shipment for it, so <code>shipped_outside</code> = 3 at 11:00. Batch A: on hand −3, reserved −3. The order is shipped.</li>
+<li>At 11:45 a packer, unaware, scans the order. Packing refuses it: &quot;shipped outside Vervoro at 11:00&quot;.</li>
+<li>The next morning the seller sees it in the digest. It was their parcel, so nothing more is done.</li>
+</ul>
+<h2>Manual orders</h2>
+<p>They belong here, because they are orders: one list, one status table, one way to reserve and dispatch. A seller takes them by phone, email or at a counter, or from a business customer.</p>
+<ul>
+<li><strong>Who:</strong> a manager, admin or owner creates, confirms, edits and cancels them.</li>
+<li><strong>A draft first.</strong> Lines name products directly (no listing, no link), with quantities, prices and currency, and a delivery address. A draft reserves nothing.</li>
+<li><strong>Confirming reserves,</strong> by ADR-006&#39;s rules, in one transaction. Confirming carries a key the client makes, so a double tap confirms once. The order takes the next number from the company&#39;s counter.</li>
+<li><strong>Then it is an ordinary order:</strong> open, holds, picking, packing, dispatch. Nothing goes to a marketplace, so it is never in shadow.</li>
+<li><strong>Edits before picking</strong> change lines and quantities: a smaller quantity releases, a larger one reserves more. After picking starts, an edit puts the order back to open first.</li>
+<li><strong>Cancelling</strong> is immediate, because Vervoro is the only party: it releases what the order held.</li>
+<li><strong>Buyer data:</strong> the recipient&#39;s name, address and phone are buyer data under ADR-009. They are kept and anonymised the same way.</li>
+</ul>
+<h2>Buyer data on import</h2>
+<p>ADR-009 decides what is kept and for how long. On import:</p>
+<ul>
+<li><strong>Only from the fetched order.</strong> The notice body is never read for buyer data and never kept (ADR-004).</li>
+<li><strong>Only for orders the seller ships.</strong> Marketplace-shipped orders and lines keep none. On Amazon, the recipient is asked for only on seller-shipped orders not yet shipped (ADR-009).</li>
+<li><strong>Only the allowed fields:</strong> recipient name, delivery address and phone, the order note, the gift message, and a business buyer&#39;s company name and VAT number when given. Each is encrypted with the company&#39;s key (ADR-001).</li>
+<li><strong>The eBay buyer&#39;s user id</strong> becomes a keyed hash on the order and a row in <code>buyer_ref</code> (ADR-009). The id itself is never stored.</li>
+<li><strong>What a marketplace withholds stays missing.</strong> A later fetch without a field never blanks it. A complete address replaces a stored one; a partial one never does.</li>
+<li><strong>The anonymisation due time</strong> is set by the import when its start is known: delivery, dispatch, the marketplace&#39;s shipping time for an order shipped outside, or a cancellation (ADR-009).</li>
+<li><strong>An anonymised order</strong> stores nothing personal again, whatever a later fetch brings.</li>
+<li><strong>No buyer data in a problem row, a log, a queue message or an event</strong> (ADR-009).</li>
+</ul>
+<h2>Handing over to dispatch</h2>
+<p>Shipping itself (labels, carriers, rates, tracking and delivery) is a later record. This record promises shipping the following.</p>
+<p><strong>The queue.</strong> An order is ready to pick when it is open or part shipped, has no hold, is shipped by the seller, has at least one reserved unit, and is in the picker&#39;s warehouse. The queue is sorted by ship-by time, then by time of purchase.</p>
+<p><strong>One ship-by time per order.</strong> It is the earliest of its lines&#39; deadlines:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Deadline</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>eBay</td>
+<td>Each line&#39;s <code>shipByDate</code></td>
+</tr>
+<tr>
+<td>Amazon</td>
+<td>The end of the order&#39;s <code>shipByWindow</code></td>
+</tr>
+<tr>
+<td>Shopify</td>
+<td>The fulfilment order&#39;s <code>fulfillBy</code>; when Shopify sets none, the time of purchase plus the account&#39;s handling time, set by the seller</td>
+</tr>
+<tr>
+<td>Manual</td>
+<td>The date the manager sets</td>
+</tr>
+</tbody></table></div>
+<p><strong>The pick list</strong> names, for each line still to ship: the product, its image, the quantity in base units and in box sizes where one fits (ADR-003), and each reservation&#39;s batch, spot, lot and best-before date (ADR-006). For a bundle, each component. The pick list always shows the current reservations; packing checks every scan against them (ADR-006).</p>
+<p><strong>Packing details</strong> are the line titles as the marketplace gave them, the gift message, the order note, and the recipient and address, shown to warehouse users only from picking until shipped, and for label reprints for 24 hours after (ADR-009).</p>
+<p><strong>Deadlines are watched.</strong> An order still not shipped two hours before its ship-by time alerts the seller, held orders included, because a hold is the usual reason. One past its time is listed until it ships.</p>
+<p><strong>Confirming a shipment</strong> is ADR-006&#39;s command: it deducts, moves the status, and writes the dispatch notice through the egress gate (ADR-004.1, 004.2, 004.3). A failed or throttled notice is retried by the gate; the shipment stands.</p>
+<h2>Amazon orders from a marketplace the account does not serve</h2>
+<p>An Amazon account serves the marketplaces the seller picked (ADR-004.2). Amazon&#39;s notices cover the whole region, so an order from another marketplace of that region can arrive.</p>
+<ul>
+<li><strong>It is not imported,</strong> as ADR-004.2 decides. The backup read asks only for the served marketplaces, so an imported order would never be updated.</li>
+<li><strong>The notice names the marketplace and who ships it</strong> (<code>MarketplaceID</code>, <code>FulfillmentType</code>). For an order the seller ships, the seller is warned once per marketplace: &quot;You have orders on a marketplace Vervoro does not serve for this account. Their units are not reserved. Add the marketplace to the account, or ship them knowing Vervoro&#39;s stock does not include them.&quot; No fetch is made.</li>
+<li><strong>Adding the marketplace</strong> starts serving it from then on. Orders from before are not imported; a seller who shipped them from the warehouse records the loss with a count (ADR-006).</li>
+<li><strong>Amazon-shipped orders</strong> from an unserved marketplace are ignored without a warning: they take no warehouse stock.</li>
+</ul>
+<h2>Storage</h2>
+<p>All tables belong to the foundation and are tenant tables (ADR-001): <code>company_id</code> on every row and leading every key, under row-level security.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Holds</th>
+<th>Rules</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>sales_order</code></td>
+<td>One row per order: account, marketplace order id, purchase and change times, status, who ships it, warehouse, ship-by, sold on, arrived from, buyer fields, and the shipped, cancelled, delivered and anonymised times</td>
+<td>Partitioned by month of purchase. Buyer fields tagged <code>pii</code> (ADR-009)</td>
+</tr>
+<tr>
+<td><code>sales_order_key</code></td>
+<td>Company, account, marketplace order id → order id and month</td>
+<td>Unpartitioned. Unique. Read first by every import</td>
+</tr>
+<tr>
+<td><code>sales_order_line</code></td>
+<td>The line fields above and ADR-006&#39;s</td>
+<td>Partitioned with its order</td>
+</tr>
+<tr>
+<td><code>sales_order_hold</code></td>
+<td>Each hold placed and cleared: reason, note, automatic or by whom, when</td>
+<td>Append-only</td>
+</tr>
+<tr>
+<td><code>sales_order_cancellation</code></td>
+<td>Each request or sent cancellation: who started it, the marketplace&#39;s id, lines and quantities, reason, state (requested, sent, confirmed, refused), times</td>
+<td></td>
+</tr>
+<tr>
+<td><code>sales_order_refund</code></td>
+<td>Each refund: amount, currency, lines, time</td>
+<td></td>
+</tr>
+<tr>
+<td><code>sales_order_problem</code></td>
+<td>Account, marketplace order id, reason, first and last seen, resolved, and per line the marketplace line id, the listing key and the quantity, each or &quot;not readable&quot;</td>
+<td>No order body and no buyer data. Its scope is the listings named, or the whole account if any line&#39;s listing is not readable</td>
+</tr>
+</tbody></table></div>
+<p><strong>Rules, each with a test:</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Where it is enforced</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>One order per account and marketplace order id, whatever the month</td>
+<td>Unique index on <code>sales_order_key</code>; a test imports the same order across a month boundary</td>
+</tr>
+<tr>
+<td>A fetch older than the stored order changes nothing; the same time changes no state</td>
+<td>The import command; a test per row of &quot;Which fetch wins&quot;</td>
+</tr>
+<tr>
+<td>Every duplicate and out-of-order case in the table above</td>
+<td>The connector contract suite&#39;s notice cases, run against every simulator (ADR-004)</td>
+</tr>
+<tr>
+<td>Only the allowed transitions happen</td>
+<td>The status function; one test per row, and a test that every other pair is refused</td>
+</tr>
+<tr>
+<td>An import writes the whole order and its reservations or nothing</td>
+<td>A test that fails the transaction at each step</td>
+</tr>
+<tr>
+<td>Orders found together reserve oldest purchase first</td>
+<td>A test with two orders for the last unit in one read</td>
+</tr>
+<tr>
+<td>A held order cannot be picked or shipped, and keeps its reservation</td>
+<td>The commands; a test per hold reason</td>
+</tr>
+<tr>
+<td>A cancellation request releases nothing; a confirmed one releases exactly what was held</td>
+<td>The import command; a test per marketplace</td>
+</tr>
+<tr>
+<td>A line&#39;s listing never changes once it has reserved</td>
+<td>The import command; a test</td>
+</tr>
+<tr>
+<td>Marketplace-shipped lines never reserve and never reach the picking list</td>
+<td>The import command and the queue&#39;s query; a test</td>
+</tr>
+<tr>
+<td>A shipment outside Vervoro deducts once, and our own shipment echoed back deducts nothing</td>
+<td>The import and dispatch commands; a race test on real Postgres</td>
+</tr>
+<tr>
+<td>No buyer data on a marketplace-shipped or anonymised order, or in a problem row</td>
+<td>ADR-009&#39;s field-tag lint and a test</td>
+</tr>
+<tr>
+<td>A problem row names the listing and quantity of every readable line, and its scope is the whole account when any line&#39;s listing is not readable</td>
+<td>The import command; a test with an unreadable line</td>
+</tr>
+<tr>
+<td>Every marketplace state maps to one Vervoro state</td>
+<td>The connector&#39;s mapping; a test per row of the mapping tables</td>
+</tr>
+</tbody></table></div>
+<h2>Marketplace constraints</h2>
+<p>Checked against each marketplace&#39;s documentation on 18 October 2026.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Constraint</th>
+<th>Figure</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>eBay: which orders</td>
+<td>The Fulfillment API includes only orders that completed checkout; <code>getOrders</code> reads up to two years back, filtered by last modified date</td>
+<td><a href="https://developer.ebay.com/develop/api/sell/fulfillment_api/order/getorders">getOrders</a></td>
+</tr>
+<tr>
+<td>eBay: cancellation requests</td>
+<td><code>getOrders</code> returns the cancellation state but always an empty list of requests; <code>getOrder</code> returns them in full; no request is <code>NONE_REQUESTED</code></td>
+<td><a href="https://developer.ebay.com/develop/api/sell/fulfillment_api/order/getorder">getOrder</a></td>
+</tr>
+<tr>
+<td>eBay: order states</td>
+<td><code>orderFulfillmentStatus</code> <code>NOT_STARTED</code>, <code>IN_PROGRESS</code>, <code>FULFILLED</code>; <code>orderPaymentStatus</code> <code>PENDING</code>, <code>PAID</code>, <code>FAILED</code>, <code>PARTIALLY_REFUNDED</code>, <code>FULLY_REFUNDED</code>; <code>cancelStatus.cancelState</code> <code>NONE_REQUESTED</code>, <code>IN_PROGRESS</code>, <code>CANCELED</code>; each line&#39;s <code>shipByDate</code></td>
+<td><a href="https://developer.ebay.com/develop/api/sell/fulfillment_api/order/getorders">getOrders</a></td>
+</tr>
+<tr>
+<td>eBay: seller cancellation</td>
+<td>Whole orders only; up to 30 days after the sale; an out-of-stock cancellation can be a defect, one the buyer asked for is not; buyers&#39; requests are approved or rejected; an order&#39;s id changes when it is paid</td>
+<td><a href="https://developer.ebay.com/Devzone/post-order/post-order_v2_cancellation__post.html">Create cancellation</a></td>
+</tr>
+<tr>
+<td>eBay: daily limits</td>
+<td>Post-Order cancellation 5,000 calls a day; Fulfillment order resource 100,000; both for the application</td>
+<td><a href="https://developer.ebay.com/develop/api/sell/api_call_limits">API call limits</a></td>
+</tr>
+<tr>
+<td>Amazon: order states</td>
+<td><code>PENDING_AVAILABILITY</code>, <code>PENDING</code>, <code>UNSHIPPED</code>, <code>PARTIALLY_SHIPPED</code>, <code>SHIPPED</code>, <code>CANCELLED</code>, <code>UNFULFILLABLE</code>; <code>fulfilledBy</code> <code>AMAZON</code> or <code>MERCHANT</code>; the marketplace on <code>salesChannel</code></td>
+<td><a href="https://github.com/amzn/selling-partner-api-models/blob/main/models/orders-api-model/orders_2026-01-01.json">Orders API 2026-01-01 model</a></td>
+</tr>
+<tr>
+<td>Amazon: cancellations on an item</td>
+<td>A request names its requester (<code>BUYER</code>); an executed cancellation names who did it (<code>BUYER</code>, <code>MERCHANT</code>, <code>AMAZON</code>)</td>
+<td><a href="https://github.com/amzn/selling-partner-api-models/blob/main/models/orders-api-model/orders_2026-01-01.json">Orders API 2026-01-01 model</a></td>
+</tr>
+<tr>
+<td>Amazon: reading orders</td>
+<td><code>searchOrders</code> 0.0056 a second, burst 20, ending at least two minutes before the request; <code>getOrder</code> 0.5 a second, burst 30; <code>shipByWindow</code> on each order</td>
+<td><a href="https://github.com/amzn/selling-partner-api-models/blob/main/models/orders-api-model/orders_2026-01-01.json">Orders API 2026-01-01 model</a></td>
+</tr>
+<tr>
+<td>Amazon: order notices</td>
+<td><code>ORDER_CHANGE</code> on status changes and buyer cancellation requests, through the queue; names the marketplace and <code>MFN</code> or <code>AFN</code></td>
+<td><a href="https://developer-docs.amazon/sp-api/docs/notification-type-values">Notification type values</a></td>
+</tr>
+<tr>
+<td>Amazon: seller cancellation</td>
+<td>The order acknowledgement feed acknowledges or cancels, by order item and quantity, with a reason from the schema&#39;s list, which includes <code>NoInventory</code> and <code>BuyerCanceled</code>; not marked deprecated. The 2026 orders API has only <code>getOrder</code> and <code>searchOrders</code></td>
+<td><a href="https://developer-docs.amazon/sp-api/docs/order-feed-type-values">Order feed types</a></td>
+</tr>
+<tr>
+<td>Shopify: payment states</td>
+<td><code>PENDING</code>, <code>AUTHORIZED</code>, <code>PARTIALLY_PAID</code>, <code>PAID</code>, <code>PARTIALLY_REFUNDED</code>, <code>REFUNDED</code>, <code>VOIDED</code>, <code>EXPIRED</code>; an order can stay open with a voided payment</td>
+<td><a href="https://shopify.dev/docs/api/admin-graphql/latest/enums/OrderDisplayFinancialStatus">OrderDisplayFinancialStatus</a></td>
+</tr>
+<tr>
+<td>Shopify: fulfilment orders</td>
+<td><code>OPEN</code>, <code>IN_PROGRESS</code>, <code>SCHEDULED</code>, <code>ON_HOLD</code>, <code>INCOMPLETE</code>, <code>CLOSED</code>, <code>CANCELLED</code>; <code>fulfillBy</code> is the deadline</td>
+<td><a href="https://shopify.dev/docs/api/admin-graphql/latest/enums/FulfillmentOrderStatus">FulfillmentOrderStatus</a>, <a href="https://shopify.dev/docs/api/admin-graphql/latest/objects/FulfillmentOrder">FulfillmentOrder</a></td>
+</tr>
+<tr>
+<td>Shopify: line quantity</td>
+<td><code>currentQuantity</code> leaves out refunded and removed units</td>
+<td><a href="https://shopify.dev/docs/api/admin-graphql/latest/objects/LineItem">LineItem</a></td>
+</tr>
+<tr>
+<td>Shopify: cancelling</td>
+<td><code>orderCancel</code> cancels a whole order, runs as a job, and decides refund and restock</td>
+<td><a href="https://shopify.dev/docs/api/admin-graphql/latest/mutations/orderCancel">orderCancel</a></td>
+</tr>
+<tr>
+<td>Shopify: fraud</td>
+<td>The risk summary recommends <code>ACCEPT</code>, <code>CANCEL</code>, <code>INVESTIGATE</code> or <code>NONE</code></td>
+<td><a href="https://shopify.dev/docs/api/admin-graphql/latest/enums/OrderRiskRecommendationResult">OrderRiskRecommendationResult</a></td>
+</tr>
+<tr>
+<td>Shopify: webhooks</td>
+<td>Duplicates are named by <code>X-Shopify-Webhook-Id</code>; no order within a topic; delivery not guaranteed, so reconcile by <code>updated_at</code></td>
+<td><a href="https://shopify.dev/docs/apps/build/webhooks/best-practices">Webhook best practices</a></td>
+</tr>
+<tr>
+<td>Shopify: webhook topics</td>
+<td>Separate topics for an order edited, a fulfilment order moved, placed on hold or released, and a new risk assessment</td>
+<td><a href="https://shopify.dev/docs/api/admin-graphql/latest/enums/WebhookSubscriptionTopic">WebhookSubscriptionTopic</a></td>
+</tr>
+</tbody></table></div>
+<h2>Consequences</h2>
+<p><strong>What this gives us</strong></p>
+<ul>
+<li>A notice, a read, a repeat or a late update can never make a second order or move stock twice.</li>
+<li>One status list for every channel, with every marketplace state mapped and tested, so the warehouse never has to know where an order came from.</li>
+<li>An order that may not ship (unpaid, requested to cancel, refunded, flagged) still holds its stock and cannot reach a parcel.</li>
+<li>Vervoro never cancels an order on its own, and never releases stock for a cancellation the marketplace has not confirmed.</li>
+<li>Orders for unlinked listings, orders the marketplace ships and orders shipped elsewhere each have one rule, and stock follows what really left.</li>
+<li>An order that cannot be read is visible within minutes, not lost.</li>
+<li>The warehouse gets one queue, sorted by deadline, with every lot and spot named.</li>
+</ul>
+<p><strong>What it costs</strong></p>
+<ul>
+<li>Holds stop orders that may have been fine to ship; a seller with many risk-flagged or pending orders has more to release by hand.</li>
+<li>Pending orders hold stock that may never sell, until the marketplace cancels them.</li>
+<li>A Shopify cancellation, and part of an eBay order, must be done in the marketplace&#39;s own tools.</li>
+<li>eBay&#39;s cancellation pool is shared by every seller; past about 5,000 a day across the platform, it needs eBay&#39;s Growth Check, as the Trading pool does.</li>
+<li>A shipment outside Vervoro is trusted to have left the warehouse until a manager says otherwise, so a seller who ships from elsewhere has reversals to make.</li>
+<li>An Amazon order from a marketplace the account does not serve reserves nothing; the seller is warned, not protected.</li>
+<li>One more table, the order key, is read first by every import, because the order table is partitioned.</li>
+</ul>
+<h2>Alternatives considered</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Why not</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Poll orders as the main path</td>
+<td>The owner&#39;s rule: notices are the way orders come in; polling spends shared allowances and brings orders late (ADR-004)</td>
+</tr>
+<tr>
+<td>Import the notice body</td>
+<td>It may be older than the order, carries buyer data, and some carry only ids (ADR-004)</td>
+</tr>
+<tr>
+<td>A unique index on the partitioned order table</td>
+<td>Postgres requires the partition key in it, so the same order in two months would not be caught</td>
+</tr>
+<tr>
+<td>Use Vervoro&#39;s receive time to order updates</td>
+<td>Notices and reads arrive out of order; only the marketplace&#39;s change time says which is newer</td>
+</tr>
+<tr>
+<td>Statuses copied from each marketplace</td>
+<td>The warehouse would need three lists; one table mapped per marketplace is testable</td>
+</tr>
+<tr>
+<td>Holds as statuses (&quot;on hold&quot;)</td>
+<td>An order can be on hold for several reasons at once, and releasing one must not hide another; a set of reasons beside the status keeps both</td>
+</tr>
+<tr>
+<td>Release stock when an order is held</td>
+<td>Units promised to a buyer who will probably get them would be sold again</td>
+</tr>
+<tr>
+<td>Reserve only paid orders</td>
+<td>Pending orders can become sales, and the units would be sold elsewhere meanwhile</td>
+</tr>
+<tr>
+<td>Release on a cancellation request</td>
+<td>A refused request would leave an order without stock (ADR-006)</td>
+</tr>
+<tr>
+<td>Cancel short orders automatically</td>
+<td>Marketplaces count it against the seller; cancelling is the seller&#39;s choice (ADR-006)</td>
+</tr>
+<tr>
+<td>Cancel Shopify orders from Vervoro</td>
+<td>Cancelling there is also a refund and restock decision, which belongs in Shopify; it would also need the right to change a shop&#39;s orders</td>
+</tr>
+<tr>
+<td>Import orders in the order they arrive</td>
+<td>When stock is short, a later buyer could take the earliest buyer&#39;s unit; oldest purchase first is fairer and costs nothing</td>
+</tr>
+<tr>
+<td>One transaction per read page</td>
+<td>Holds the company&#39;s lock for a whole page; one order per transaction keeps it short</td>
+</tr>
+<tr>
+<td>Drop an order that fails validation</td>
+<td>The order would reserve nothing and nobody would know; a problem row keeps it visible</td>
+</tr>
+<tr>
+<td>Skip unlinked lines, or the whole order</td>
+<td>Contradicts ADR-005: the order is real and the seller must see it</td>
+</tr>
+<tr>
+<td>Release reservations when the marketplace says &quot;shipped&quot; with no Vervoro shipment</td>
+<td>If the parcel left the warehouse, those units would be offered again (ADR-006)</td>
+</tr>
+<tr>
+<td>Manual orders as a separate module with its own reservations</td>
+<td>Two ways to reserve drift apart (ADR-006); one order model serves both</td>
+</tr>
+<tr>
+<td>Import Amazon orders from marketplaces the account does not serve</td>
+<td>The backup read would never update them, so their status would go stale (ADR-004.2)</td>
+</tr>
+</tbody></table></div>
+<h2>What later records decide</h2>
+<ul>
+<li><strong>ADR-008: Inventory sync</strong> (planned): the figure each linked listing gets, which orders count as sales out of a figure already sent (an Amazon account serving several marketplaces, a Shopify order split across locations), and how long a raise waits for the order watermark.</li>
+<li><strong>ADR-004.4: Amazon Vendor connector</strong> (planned): Vendor purchase orders, which are demand of their own (ADR-006), not marketplace orders.</li>
+<li><strong>Shipping</strong> (a later record): labels, carriers and rates, tracking and delivery dates, the dispatch notice&#39;s carrier codes, and marketplace returns.</li>
+<li><strong>Customers and invoicing</strong> (a later record): business customers as saved records, and invoices for orders, within ADR-009&#39;s rules.</li>
+</ul>
+
+<footer>Vervoro</footer>
+</main>
+</body>
+</html>

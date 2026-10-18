@@ -1,0 +1,60 @@
+<svg class="diagram" viewBox="0 0 760 336" role="img" aria-label="An order moves from pending to open, picking, packed and shipped; a person may put a picked order back to open; part of an order can ship, and the rest is picked again; a confirmed cancellation before shipping cancels it; holds can sit on any status before shipping without changing it" xmlns="http://www.w3.org/2000/svg" font-size="13">
+  <defs>
+    <marker id="ord-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="edge-fill"/></marker>
+  </defs>
+  <text x="24" y="26" font-size="15" font-weight="600" class="ink">Statuses only move forward; holds sit beside them</text>
+
+  <rect x="14" y="40" width="560" height="100" rx="8" class="band"/>
+  <text x="294" y="56" text-anchor="middle" font-size="11.5" class="quiet">A hold can sit on any of these: the status stays, picking and dispatch wait, the stock stays reserved</text>
+
+  <g class="edge" fill="none" stroke-width="1.25">
+    <path d="M134 100H164" marker-end="url(#ord-arrow)"/>
+    <path d="M284 100H314" marker-end="url(#ord-arrow)"/>
+    <path d="M424 100H454" marker-end="url(#ord-arrow)"/>
+    <path d="M564 100H614" marker-end="url(#ord-arrow)"/>
+    <path d="M509 130V156H254V130" marker-end="url(#ord-arrow)"/>
+    <path d="M548 130V220H614" marker-end="url(#ord-arrow)"/>
+    <path d="M675 190V130" marker-end="url(#ord-arrow)"/>
+    <path d="M614 238H194V130" marker-end="url(#ord-arrow)"/>
+    <path d="M79 130V200" marker-end="url(#ord-arrow)"/>
+  </g>
+
+  <rect x="24" y="70" width="110" height="60" rx="6" class="box"/>
+  <text x="79" y="96" text-anchor="middle" font-weight="600" class="ink">Pending</text>
+  <text x="79" y="113" text-anchor="middle" font-size="10.5" class="quiet">reserved, held</text>
+
+  <rect x="164" y="70" width="120" height="60" rx="6" class="box"/>
+  <text x="224" y="96" text-anchor="middle" font-weight="600" class="ink">Open</text>
+  <text x="224" y="113" text-anchor="middle" font-size="10.5" class="quiet">on the picking list</text>
+
+  <rect x="314" y="70" width="110" height="60" rx="6" class="box"/>
+  <text x="369" y="96" text-anchor="middle" font-weight="600" class="ink">Picking</text>
+  <text x="369" y="113" text-anchor="middle" font-size="10.5" class="quiet">no stock moves</text>
+
+  <rect x="454" y="70" width="110" height="60" rx="6" class="box"/>
+  <text x="509" y="96" text-anchor="middle" font-weight="600" class="ink">Packed</text>
+  <text x="509" y="113" text-anchor="middle" font-size="10.5" class="quiet">every unit scanned</text>
+
+  <rect x="614" y="70" width="122" height="60" rx="8" class="box-main"/>
+  <text x="675" y="96" text-anchor="middle" font-weight="600" class="ink">Shipped</text>
+  <text x="675" y="113" text-anchor="middle" font-size="10.5" class="ink">final</text>
+
+  <rect x="614" y="190" width="122" height="56" rx="6" class="box"/>
+  <text x="675" y="214" text-anchor="middle" font-weight="600" class="ink">Part shipped</text>
+  <text x="675" y="231" text-anchor="middle" font-size="10.5" class="quiet">the rest still reserved</text>
+
+  <rect x="24" y="200" width="110" height="50" rx="6" class="box"/>
+  <text x="79" y="222" text-anchor="middle" font-weight="600" class="ink">Cancelled</text>
+  <text x="79" y="238" text-anchor="middle" font-size="10.5" class="quiet">final</text>
+
+  <text x="382" y="172" text-anchor="middle" font-size="10.5" class="quiet">put back by a person</text>
+  <text x="556" y="178" font-size="10.5" class="quiet">part</text>
+  <text x="556" y="191" font-size="10.5" class="quiet">ships</text>
+  <text x="682" y="166" font-size="10.5" class="quiet">rest shipped</text>
+  <text x="682" y="179" font-size="10.5" class="quiet">or cancelled</text>
+  <text x="404" y="256" text-anchor="middle" font-size="10.5" class="quiet">the rest is picked again</text>
+  <text x="24" y="270" font-size="10.5" class="quiet">A confirmed cancellation of every unit, from any status before shipping</text>
+
+  <text x="24" y="300" font-size="11.5" class="quiet">The marketplace can skip steps: an order it reports shipped goes straight to shipped.</text>
+  <text x="24" y="320" font-size="11.5" class="quiet">Orders the marketplace ships go from pending or open to shipped or cancelled, as it says, and are never picked.</text>
+</svg>
