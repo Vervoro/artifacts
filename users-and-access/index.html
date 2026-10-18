@@ -109,8 +109,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Passwords follow Amazon&#39;s rules,</strong> as ADR-009 decided: at least 12 characters with mixed character types, none of the person&#39;s name, at least a day old before a change, changed at least once a year, and the last 10 not reused. They are also checked against a list of common and breached passwords.</li>
 <li><strong>Nothing else signs anyone in:</strong> no codes by text message or email, no email sign-in links, no Google or Microsoft sign-in at launch.</li>
 <li><strong>One person, one phone, one account.</strong> Every person signs in on their own device. There are no shared accounts and no shared warehouse phones.</li>
-<li><strong>Sessions follow the shift.</strong> A session lasts at most 12 hours. After 1 hour idle the app locks and clears buyer data from the screen; a password or a passkey unlocks it. Account changes, exports with buyer data and connecting a marketplace need a full sign-in check within the last 5 minutes.</li>
-<li><strong>Six fixed roles:</strong> Owner, Admin, Manager, Warehouse, Accountant and Staff. One role per person per company, plus an optional warehouse scope and an optional end date. There are no custom roles at launch.</li>
+<li><strong>Sessions follow the shift.</strong> A session lasts at most 12 hours, then the person signs in again. The app has no idle lock of its own; the phone&#39;s or laptop&#39;s own screen lock covers idle time. Account changes, exports with buyer data and connecting a marketplace need a full sign-in check within the last 5 minutes.</li>
+<li><strong>Six fixed roles:</strong> Owner, Admin, Manager, Warehouse, Accountant and Staff. One role per person per company, plus an optional warehouse scope. There are no custom roles at launch.</li>
 <li><strong>Permissions are named actions.</strong> Each module declares its actions, and one table grants them to roles. The server checks every request against the person&#39;s role, scope and status in that company, read in the same transaction as the work.</li>
 <li><strong>Nobody changes their own access.</strong> Owners manage everyone; Admins manage everyone below Admin. The last Owner cannot leave until there is another.</li>
 <li><strong>People join only by invitation,</strong> sent to their own email address. Sign-up creates a new trial company in a normal cell (ADR-001), with its creator as Owner.</li>
@@ -185,7 +185,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </svg>
 </figure>
 
-<p>A request carries a session cookie and names the company it is for. The Worker reads the session from the control database and checks that it is live. It then confirms that the login has a membership in that company and routes to the company&#39;s cell. There it opens the usual transaction, fixed to the company (ADR-001). The first read in that transaction is the person&#39;s row in the company&#39;s users table: role, warehouse scope, end date and status. The action is allowed only if the role holds it, the scope covers it and the person is active. Revoking a session in control, or removing the person in the cell, therefore stops their very next request.</p>
+<p>A request carries a session cookie and names the company it is for. The Worker reads the session from the control database and checks that it is live. It then confirms that the login has a membership in that company and routes to the company&#39;s cell. There it opens the usual transaction, fixed to the company (ADR-001). The first read in that transaction is the person&#39;s row in the company&#39;s users table: role, warehouse scope and status. The action is allowed only if the role holds it, the scope covers it and the person is active. Revoking a session in control, or removing the person in the cell, therefore stops their very next request.</p>
 <p>An operator&#39;s request takes the same path from a separate console. The control database holds the operator&#39;s grant instead of a membership. The transaction is fixed to the one company in the same way, under the same runtime role, and every request writes an entry in the company&#39;s <code>audit_log</code>.</p>
 <h2>The people</h2>
 <div class="table-wrap"><table>
@@ -226,8 +226,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2>One login, several companies</h2>
 <ul>
 <li><strong>The login</strong> lives in the control database: a random id, the keyed hash of the normalised email (ADR-001), the password&#39;s hash, the authenticator app&#39;s secret (encrypted under a platform key), its passkeys&#39; public keys, the hashes of its recovery codes, its sessions, and its memberships (login, company). It holds no name and no clear email address.</li>
-<li><strong>The member row</strong> lives in each company&#39;s own users table, in that company&#39;s cell: the email address, the name, the role, the warehouse scope, the end date if any, the status (invited, active, locked, removed), and when each changed. It is the authority for what the person may do in that company. Being in the company&#39;s cell, it moves, exports and is erased with the company.</li>
-<li><strong>Switching company</strong> is a menu in the app. The session belongs to the login, not to one company. Every request names the company it is for, so two browser tabs can work in two companies. The current company&#39;s name and colour are on every screen, so nobody acts in the wrong one. Switching asks for no new sign-in; account changes in the new company still ask for a fresh check.</li>
+<li><strong>The member row</strong> lives in each company&#39;s own users table, in that company&#39;s cell: the email address, the name, the role, the warehouse scope, the status (invited, active, removed), and when each changed. It is the authority for what the person may do in that company. Being in the company&#39;s cell, it moves, exports and is erased with the company.</li>
+<li><strong>Switching company</strong> is a menu in the app. The session belongs to the login, not to one company. Every request names the company it is for, so two browser tabs can work in two companies. Switching asks for no new sign-in; account changes in the new company still ask for a fresh check.</li>
 <li><strong>Sending email to a person.</strong> Control has only the hash. A notice to a person reads their address from any company where they are active. Recovery and invitation emails go to the address the person types, once its hash matches.</li>
 <li><strong>Changing email</strong> changes the hash in control and the address in every company where the person is a member. It follows ADR-001&#39;s cross-database pattern: company side first, then control, repaired from the outbox. Both the old and the new address are told.</li>
 </ul>
@@ -236,7 +236,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ul>
 <li><strong>First the password, then the code.</strong> The person enters their email address and password, then a 6-digit code from an authenticator app on their phone. The code changes every 30 seconds, and each code is accepted once.</li>
 <li><strong>The password rules</strong> are Amazon&#39;s (above, and ADR-009). Vervoro also refuses a password found on a list of common or breached passwords, allows passwords up to 64 characters, and lets password managers fill and paste them. The password is stored only as a salted, slow hash, with a platform key held outside the database added to it.</li>
-<li><strong>The yearly change</strong> is asked for 14 days ahead, at sign-in. A password past 365 days must be changed before anything else.</li>
+<li><strong>The yearly change:</strong> a password past 365 days must be changed at the next sign-in.</li>
 <li><strong>Setting up the app</strong> happens at the first sign-in: the app scans a code shown on screen, and the person types one code back to prove it works. A worker who signs in on their own phone keeps the authenticator app on that same phone; the password is still something only they know.</li>
 <li><strong>Recovery codes</strong> are shown once, when the second factor is set up: 10 single-use codes, to print or save. Setup does not finish until the person confirms they have saved them. Each is stored only as a hash.</li>
 </ul>
@@ -249,7 +249,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Offered, not forced.</strong> After a password sign-in on a phone that can hold a passkey, the app offers one. Warehouse staff gain the most: a fingerprint unlocks the app with gloves off, instead of typing a 12-character password.</li>
 </ul>
 <h3>Everyone&#39;s security page</h3>
-<p>Each person sees their sign-in methods, their passkeys with the device each was made on and when it was last used, and their recent sign-ins. Adding or removing a method, changing the password, and using a recovery code each need a fresh check and are told to the person by email.</p>
+<p>Each person sees their sign-in methods and recent sign-ins, and can remove a lost passkey. Adding or removing a method, changing the password, and using a recovery code are told to the person by email.</p>
 <h3>What is not used</h3>
 <div class="table-wrap"><table>
 <thead>
@@ -294,18 +294,13 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>12 hours, then a full sign-in</td>
 </tr>
 <tr>
-<td><strong>Idle</strong></td>
-<td>After 1 hour the app locks and clears buyer data from the screen; the password or a passkey unlocks it</td>
-<td>After 15 minutes, a full sign-in</td>
-</tr>
-<tr>
 <td><strong>Account changes</strong></td>
 <td>A full sign-in check (password and code, or a passkey) within the last 5 minutes</td>
 <td>The same</td>
 </tr>
 <tr>
 <td><strong>Ends at once on</strong></td>
-<td>Sign-out, removal, a role change, a reset, a recovery, the end date, an incident</td>
+<td>Sign-out, removal, a role change, a reset, a recovery, an incident</td>
 <td>Sign-out, an incident</td>
 </tr>
 </tbody></table></div>
@@ -313,8 +308,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>The session is a server-side row</strong> in the control database: a random id of at least 128 bits, the login, when it began and was last used, and its end time. The browser holds only the id, in a cookie marked <code>__Host-</code>, <code>Secure</code>, <code>HttpOnly</code> and <code>SameSite=Strict</code>. No session, role or buyer data is kept in the browser&#39;s storage (ADR-009).</li>
 <li><strong>Every request reads the session,</strong> so revoking it takes effect on the next request. ADR-001&#39;s restore step (&quot;revoke its sessions&quot;) and ADR-009&#39;s incident containment use the same revocation.</li>
 <li><strong>A role change applies to the next request,</strong> because the role is read in the request&#39;s own transaction.</li>
-<li><strong>The idle lock</strong> is the app&#39;s own screen lock. A phone left on a packing bench should not keep showing a buyer&#39;s address, so the app locks itself after 1 hour idle, the longest NIST allows before the person must prove who they are again, and shows nothing of a buyer until it is unlocked. Amazon&#39;s device rules (15-minute screen lock, managed devices) bind Vervoro&#39;s own laptops, where the operator console ends after 15 minutes idle; they are not rules for the seller&#39;s phones.</li>
-<li><strong>Account changes need a fresh check:</strong> inviting, removing or changing anyone&#39;s role, scope or end date; resetting anyone&#39;s sign-in; changing one&#39;s own sign-in methods; connecting, disconnecting, going live on or switching off a marketplace account; an export with buyer data; switching on buyer data for an operator grant; closing the company or changing an Owner. Picking, packing, printing and counting never ask.</li>
+<li><strong>No idle lock in the app.</strong> Idle time is covered by the device&#39;s own screen lock. Amazon&#39;s device rules (a 15-minute screen lock, managed devices) bind Vervoro&#39;s own laptops, which follow them; they are not rules for the seller&#39;s phones.</li>
+<li><strong>Account changes need a fresh check:</strong> inviting, removing or changing anyone&#39;s role or scope; resetting anyone&#39;s sign-in; changing one&#39;s own sign-in methods; connecting, disconnecting, going live on or switching off a marketplace account; an export with buyer data; switching on buyer data for an operator grant; closing the company or changing an Owner. Picking, packing, printing and counting never ask.</li>
 </ul>
 <h2>Account recovery</h2>
 <p>Every way back in is a fixed procedure. Nobody at Vervoro can be talked into an exception.</p>
@@ -346,12 +341,12 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ol>
 <li>A link to the Owner&#39;s email address, as held in the company&#39;s users table.</li>
 <li>The Owner approves Vervoro again on one of the company&#39;s connected marketplace accounts. The marketplace must return the same seller account that the company already holds in the external directory (ADR-001).</li>
-<li>A 72-hour wait. During it, every member of the company is told in the app and by email. An Owner or Admin who objects sends the recovery to Vervoro&#39;s owner for review, rather than ending it, so that one hostile member cannot block it for ever.</li>
+<li>A 72-hour wait. During it, every member of the company is told by email. If an Owner or Admin objects, Vervoro&#39;s owner decides.</li>
 <li>The Owner sets up new sign-in methods; every old method and session of that login ends.</li>
 </ol>
-<p>A company with no connected marketplace is a trial with little in it, and the person signs up again. Anything this procedure cannot cover (a suspended marketplace account, an Owner who has died, a company that was sold) goes through a written legal route: documents showing who now controls the business, decided by Vervoro&#39;s owner, never by the operator alone.</p>
+<p>A company with no connected marketplace is a trial with little in it, and the person signs up again. Any other case is decided by Vervoro&#39;s owner on documents, never by the operator alone.</p>
 <p><strong>After every recovery,</strong> the person and the company&#39;s Owners and Admins are told by email, every session of that login ends, and the recovery is logged in both audit trails.</p>
-<p><strong>Lockouts.</strong> Ten wrong passwords or codes in a row lock the login for 30 minutes and tell the person by email; an Owner or Admin can unlock it sooner. Five wrong recovery or reset codes lock that path the same way. A passkey cannot be guessed, so a login with a passkey can always still sign in with it, which keeps a stranger who knows an Owner&#39;s email address from locking them out. Sign-in requests from one network address slow down with each failure, and a bot check protects sign-up, sign-in after failures, and password reset requests.</p>
+<p><strong>Lockouts.</strong> Ten wrong passwords, codes or recovery codes in a row lock password sign-in for 30 minutes and tell the person by email. A passkey still signs in during the lock. A bot check protects sign-up and password reset.</p>
 <h2>Roles</h2>
 <p>Six roles, fixed at launch. Each person has one role in each company.</p>
 <div class="table-wrap"><table>
@@ -395,7 +390,6 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tbody></table></div>
 <p><strong>Why fixed roles.</strong> Six roles cover a company of 1 to 30 people. Every role is tested against every action, and support can say what a person can do from their role alone. Custom roles would need an editor, a test for every combination, and a review of every role against buyer data before a marketplace data review. Least privilege comes from the role together with warehouse scope and the order&#39;s state.</p>
 <p><strong>Warehouse scope.</strong> A Manager, Warehouse or Staff member can be limited to some warehouses. Outside them, stock, batches, movements, receiving, counts, returns, orders and shipments do not exist for that person. Reports cover only their warehouses. The shared catalogue and the connection settings are not scoped. Owners, Admins and Accountants are never scoped. Scope is enforced by the foundation&#39;s read and command ports, which take the person&#39;s scope with every call. Row-level security stays company-only (ADR-001).</p>
-<p><strong>End date.</strong> An Owner or Admin can give a person an end date, for a temp or a contractor. At the end of that day the person is removed, as below, without anyone having to remember.</p>
 <p><strong>Buyer data follows ADR-009,</strong> unchanged:</p>
 <div class="table-wrap"><table>
 <thead>
@@ -426,7 +420,6 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Never</td>
 </tr>
 </tbody></table></div>
-<p>On a phone, the packing screen shows the address only for the order being packed, and hides it once the label is printed.</p>
 <h2>Who may do what</h2>
 <p>The permission matrix. A module declares each action in its manifest (ADR-000), and this table grants it. Where an earlier record decided an action&#39;s roles, the matrix repeats that decision; the last column names the record.</p>
 <div class="table-wrap"><table>
@@ -473,7 +466,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>This record</td>
 </tr>
 <tr>
-<td>Invite, remove, change role, scope or end date</td>
+<td>Invite, remove, change role or scope</td>
 <td>Yes</td>
 <td>Below Admin</td>
 <td>No</td>
@@ -483,7 +476,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>This record</td>
 </tr>
 <tr>
-<td>Reset a person&#39;s sign-in; unlock a locked login</td>
+<td>Reset a person&#39;s sign-in</td>
 <td>Yes</td>
 <td>Below Admin</td>
 <td>No</td>
@@ -837,34 +830,34 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p><strong>Rules that hold for every action:</strong></p>
 <ul>
 <li><strong>The server decides.</strong> The client mounts only what the person may use (ADR-000), but every request is checked again on the server, in the transaction that does the work.</li>
-<li><strong>A grant needs every condition:</strong> the module is available to the company, the role holds the action, the scope covers the warehouse, and the person is active and before their end date.</li>
+<li><strong>A grant needs every condition:</strong> the module is available to the company, the role holds the action, the scope covers the warehouse, and the person is active.</li>
 <li><strong>The resolver says why.</strong> Every &quot;no&quot; carries its reason (&quot;needs a manager&quot;, &quot;outside your warehouses&quot;), so the screen can say it.</li>
 <li><strong>A test covers every cell of the matrix.</strong> For each action and role, one test proves the server allows or refuses it, and a build check fails when a module declares an action this table does not grant.</li>
 </ul>
 <p><strong>Who manages whom:</strong></p>
 <ul>
 <li>Owners manage everyone. Admins manage everyone below Admin: only an Owner can make, remove, reset or demote an Owner or an Admin.</li>
-<li>Nobody changes their own role, scope or end date, or resets their own sign-in through someone else&#39;s powers.</li>
+<li>Nobody changes their own role or scope, or resets their own sign-in through someone else&#39;s powers.</li>
 <li>The last Owner cannot be removed or demoted, and cannot leave, until another person is Owner.</li>
 <li>Nobody is an Owner or Admin by default except the person who signs a company up.</li>
 </ul>
 <h2>Invitations, sign-up and removal</h2>
 <p><strong>Sign-up.</strong> A person enters their email address and passes a bot check. A link valid for 24 hours proves the address. They set a password and an authenticator app, or create a passkey, save their recovery codes, name their company, and become its Owner. The company starts as a trial in the newest open shared cell (ADR-001). Sign-up writes the company and the member row in that cell, with an outbox note, then the login and membership in control; a failed second write is repaired from the outbox. An address whose hash is already a login does not make a second login: the person signs in, and the new company becomes another membership.</p>
-<p><strong>Invitations.</strong> An Owner, or an Admin for roles below Admin, invites by the person&#39;s own email address, with a role and, where they apply, a warehouse scope and an end date.</p>
+<p><strong>Invitations.</strong> An Owner, or an Admin for roles below Admin, invites by the person&#39;s own email address, with a role and, where it applies, a warehouse scope.</p>
 <ul>
 <li>The link is single-use, valid for 7 days, and works only for the address it names. Accepting it proves the address.</li>
 <li>A new person sets up their sign-in on their own phone or laptop. A person who already has a login signs in, and the company is added to their memberships.</li>
 <li>An invitation can be withdrawn until it is accepted. Accepting, expiry and withdrawal are logged.</li>
 </ul>
 <p><strong>Trials and paying.</strong> A trial is a state, not a place (ADR-001): paying changes the plan and nothing moves, so nobody signs in again. If a company is ever moved to another cell, its member rows move with its slice, and logins, memberships and sessions stay in control. What each role may still do when a trial ends unpaid is ADR-012&#39;s. When the company is erased, its member rows go with it, and a login left with no membership is deleted 30 days later.</p>
-<p><strong>Removing a person.</strong> An Owner, or an Admin for roles below Admin, removes them, with a fresh check. An end date removes them the same way.</p>
+<p><strong>Removing a person.</strong> An Owner, or an Admin for roles below Admin, removes them, with a fresh check.</p>
 <ol>
 <li>In the company&#39;s cell, the member row becomes removed, so their next request in that company is refused. Their email address is cleared. Their name stays, because the stock ledger, the audit log and every record they made name them.</li>
 <li>Their sessions in that company end.</li>
 <li>Their membership in control is removed, through the outbox if that write fails.</li>
 <li>A login left with no membership is deleted after 30 days, with its sign-in methods; the platform security log keeps only its id.</li>
 </ol>
-<p>All of this happens within minutes, well inside ADR-009&#39;s 24 hours. A Manager can lock a Warehouse or Staff worker at once, until an Owner or Admin decides.</p>
+<p>All of this happens within minutes, well inside ADR-009&#39;s 24 hours.</p>
 <h2>Operator access to a company</h2>
 <p>Operators run the platform, not the seller&#39;s business. ADR-009 already decided the core of this section: no standing access, a time-limited grant with a written reason, buyer fields masked unless needed, and every grant visible to the seller.</p>
 <p><strong>Operator accounts</strong> are in the control database (ADR-001), separate from any seller login. They sign in only to a separate operator console on its own address, with passkeys from Vervoro&#39;s own managed laptops, at least two per operator on two devices.</p>
@@ -874,8 +867,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>for one company, with a written reason, for at most 8 hours</strong> (ADR-009);</li>
 <li><strong>read-only:</strong> the operator sees the screens as a viewer and changes nothing;</li>
 <li><strong>the seller is told at once:</strong> every Owner and Admin gets a notice in the app and by email, with the reason and the end time, and any of them can end the grant at any time;</li>
-<li><strong>buyer data stays masked</strong> unless an Owner or Admin switches it on for that grant, with a fresh check, for example when they asked the operator to check an address;</li>
-<li><strong>one open grant per operator at a time;</strong> opening a second alerts Vervoro&#39;s owner.</li>
+<li><strong>buyer data stays masked</strong> unless an Owner or Admin switches it on for that grant, for example when they asked the operator to check an address.</li>
 </ul>
 <p><strong>Never under any grant:</strong> an operator never signs in as a seller&#39;s user, never acts in their name, and never changes a role, a person, a sign-in method, a connection or stock. Every entry says &quot;Vervoro operator&quot;, with the grant.</p>
 <p><strong>How a grant fits row-level security.</strong></p>
@@ -906,7 +898,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Records</strong></td>
-<td>What happened in the company: each session that starts working in it, invitations, role, scope, end date and status changes, resets and recoveries, every view of buyer data (ADR-009), exports, connections connected, gone live, stopped or disconnected, operator grants with every request under them, operator repairs, privacy requests</td>
+<td>What happened in the company: invitations, role, scope and status changes, resets and recoveries, every view of buyer data (ADR-009), exports, connections connected, gone live, stopped or disconnected, operator grants with every request under them, operator repairs, privacy requests</td>
 <td>Every sign-in attempt, with its result, across the platform; sign-in methods added and removed; password changes; recovery codes used; recoveries started, reviewed and completed; sessions revoked; lockouts; bot-check failures; operator sign-ins; grants opened and ended; use of the database owner role</td>
 </tr>
 <tr>
@@ -921,8 +913,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Who reads it</strong></td>
-<td>Owner, Admin, Accountant; each person sees their own sign-ins</td>
-<td>The operator; a person&#39;s own events on their security page</td>
+<td>Owner, Admin, Accountant</td>
+<td>The operator; each person sees their own sign-ins on their security page</td>
 </tr>
 <tr>
 <td><strong>Kept</strong></td>
@@ -966,7 +958,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td>Removal and revocation</td>
 <td>CI</td>
-<td>After removal, an end date, a role change or a revoked session, the very next request is refused</td>
+<td>After removal, a role change or a revoked session, the very next request is refused</td>
 </tr>
 <tr>
 <td>Password rules</td>
@@ -981,7 +973,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td>Lockouts</td>
 <td>CI</td>
-<td>Ten failures lock the login for 30 minutes; a passkey still signs in during the lock</td>
+<td>Ten failures lock password sign-in for 30 minutes; a passkey still signs in</td>
 </tr>
 <tr>
 <td>Fresh check</td>
@@ -989,9 +981,9 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Each listed account change is refused without a full check in the last 5 minutes</td>
 </tr>
 <tr>
-<td>Idle lock</td>
+<td>Session length</td>
 <td>CI</td>
-<td>After 1 hour idle the app shows no buyer data until it is unlocked; after 12 hours a full sign-in is needed</td>
+<td>After 12 hours a full sign-in is needed</td>
 </tr>
 <tr>
 <td>Who manages whom</td>
@@ -1106,7 +1098,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>NIST: sessions</td>
-<td>AAL2: an overall limit of at most 24 hours and an idle limit of at most 1 hour; after idle, a password or biometric may resume the session; session cookies <code>Secure</code>, ideally <code>HttpOnly</code>, <code>__Host-</code> and <code>SameSite</code>; no session secrets in local storage</td>
+<td>AAL2: an overall limit of at most 24 hours, and an idle limit of at most 1 hour advised; session cookies <code>Secure</code>, ideally <code>HttpOnly</code>, <code>__Host-</code> and <code>SameSite</code>; no session secrets in local storage</td>
 <td><a href="https://pages.nist.gov/800-63-4/sp800-63b.html">SP 800-63B rev. 4, 2.2.5 and 5</a></td>
 </tr>
 <tr>
@@ -1125,14 +1117,14 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="https://passkeys.dev/docs/reference/terms/">passkeys.dev: terms</a></td>
 </tr>
 </tbody></table></div>
-<p><strong>Where Vervoro departs from a source, and why.</strong> Amazon&#39;s password rules (mixed character types, a yearly change) are what NIST now advises against. Amazon&#39;s policy binds Vervoro and NIST&#39;s guidance does not, so passwords follow Amazon, and Vervoro adds NIST&#39;s blocklist, length and password-manager advice, which Amazon&#39;s rules allow. Passkeys need no password rule at all, which is why the app offers them.</p>
+<p><strong>Where Vervoro departs from a source, and why.</strong> Amazon&#39;s password rules (mixed character types, a yearly change) are what NIST now advises against. Amazon&#39;s policy binds Vervoro and NIST&#39;s guidance does not, so passwords follow Amazon, and Vervoro adds NIST&#39;s blocklist, length and password-manager advice, which Amazon&#39;s rules allow. Passkeys need no password rule at all, which is why the app offers them. NIST also advises an idle limit of an hour; Vervoro leaves idle time to the device&#39;s own screen lock, because no rule that binds it asks for more and a lock inside the app would mean typing a password again after every break.</p>
 <h2>Consequences</h2>
 <p><strong>What this gives us</strong></p>
 <ul>
 <li>Multi-factor for every person by construction, not by a setting a seller can forget, so every marketplace review sees one rule, and the password rules Amazon and Shopify ask for.</li>
 <li>A method every device can use (password and app code) and a faster, phishing-resistant one for the devices that can (passkeys).</li>
 <li>Every pick, pack and address view has one person&#39;s name on it, because every person is on their own device.</li>
-<li>Removal, end dates, role changes and incidents take effect on the next request, because the session and the role are read on every request.</li>
+<li>Removal, role changes and incidents take effect on the next request, because the session and the role are read on every request.</li>
 <li>Every operator look at a seller&#39;s data has a reason, an end time and an entry the seller can read and end, and still sees only one company under row-level security.</li>
 <li>One login for a person in several companies, with each company holding its own member row, so moves, exports and erasure keep working by company.</li>
 </ul>
@@ -1140,7 +1132,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ul>
 <li>Passwords bring resets, a yearly change, lockouts and phishing risk back; the authenticator app and the offer of passkeys reduce them.</li>
 <li>Every worker needs a phone of their own that runs the app and an authenticator app or a passkey.</li>
-<li>Typing a 12-character password on a phone with gloves is slow; workers without a passkey type it after every hour idle.</li>
+<li>Typing a 12-character password on a phone with gloves is slow; it is needed once a shift, and not at all with a passkey.</li>
 <li>Every request reads its session in the control database, a small indexed read added to each request.</li>
 <li>Recovering a company&#39;s last Owner takes three days and needs a connected marketplace account.</li>
 <li>Fixed roles will not fit every company; some will want, for example, a packer who can hold an order.</li>
