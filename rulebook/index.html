@@ -116,12 +116,13 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ol start="35">
 <li><strong>Every request is checked on the server</strong> against the person&#39;s role, warehouse scope and status in that company, read in the same transaction as the work. <a href="../users-and-access/#decision">ADR-010</a></li>
 <li><strong>Operators have no standing access.</strong> They use a grant with a reason and an end time, which the seller sees and can end. <a href="../users-and-access/#decision">ADR-010</a></li>
+<li><strong>Sign-in lives only in the sign-in Worker.</strong> Only it holds the sign-in keys, writes the login tables and shows a password field. The app asks it whether a session is live and never records a fresh check itself. Its pages and calls are a closed list. <a href="../users-and-access/#the-sign-in-worker">ADR-010</a></li>
 <li><strong>Buyer data comes only from the fetched order,</strong> only the fields ADR-009 allows, encrypted per field under the company&#39;s key. It never goes to control, queues, logs, URLs, caches, emails, client storage or the AI provider. <a href="../buyer-data/#decision">ADR-009</a></li>
 <li><strong>Every view of buyer data is logged.</strong> It is anonymised 30 days after delivery. <a href="../buyer-data/#decision">ADR-009</a></li>
 <li><strong>No real buyer data outside production.</strong> Tests, fixtures and demos use synthetic buyers. <a href="../buyer-data/#decision">ADR-009</a></li>
 </ol>
 <h2 id="7-money-and-countries">7. Money and countries</h2>
-<ol start="40">
+<ol start="41">
 <li><strong>Money always carries its currency,</strong> and amounts in different currencies are never added. <a href="../system-architecture/#decision">ADR-000</a>, <a href="../product-model/#product-fields">ADR-003</a></li>
 <li><strong>Country rules live only where the country matters:</strong> VAT and invoices, Vervoro&#39;s billing, food law, and each marketplace&#39;s site. A product has a VAT class, and every line stores the country, class and rate it used. <a href="../system-architecture/#decision">ADR-000</a>, <a href="../invoicing-and-vat/#decision">ADR-011</a></li>
 <li><strong>Nothing that moves orders or stock is ever refused for a billing reason.</strong> <a href="../billing-and-plans/#decision">ADR-012</a></li>

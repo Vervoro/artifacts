@@ -3,7 +3,8 @@
 | | |
 | --- | --- |
 | **Status** | Proposed |
-| **Date** | 17 October 2026 |
+| **Date** | 17 October 2026, revised 18 October 2026 |
+| **Revision** | 18 October 2026: sign-in runs in a Worker of its own, the only second Worker ([ADR-010](../users-and-access/#the-sign-in-worker)) |
 | **Scope** | The overall shape of the system and the rules every module follows |
 | **Related** | [ADR-001: Multi-tenant database architecture](../database-architecture/), [ADR-002: Data retention and archiving](../data-retention/) |
 
@@ -49,7 +50,7 @@ The design has to meet these requirements:
 
 <!-- DIAGRAM -->
 
-A request from the client reaches the Worker. The Worker works out the company and the user, looks up in the control database which database holds that company, opens a transaction there fixed to that company, and builds the company's set of modules: only the ones switched on for it. A module that wants to change stock calls the foundation through a port. The foundation changes stock, writes the figure each listing should show, and writes an event to the outbox, all in one transaction.
+A request from the client reaches the Worker. The Worker works out the company and the user (asking the sign-in Worker whether the session is live, [ADR-010](../users-and-access/)), looks up in the control database which database holds that company, opens a transaction there fixed to that company, and builds the company's set of modules: only the ones switched on for it. A module that wants to change stock calls the foundation through a port. The foundation changes stock, writes the figure each listing should show, and writes an event to the outbox, all in one transaction.
 
 After commit, the request delivers the outbox note to the modules that handle it, and background work takes over. The Channels host compares what each listing should show with what the marketplace last confirmed, decides what to send, and hands each send to the egress gate. The gate records it in shadow mode, or sends it through the connector in live mode. Orders come back the other way: a marketplace calls a webhook, the Worker checks it and puts it on a queue, and the consumer imports the order through the foundation.
 
@@ -130,7 +131,7 @@ The foundation is always on and cannot be switched off. It holds the catalogue, 
 
 ## Runtime
 
-- **One Worker per environment** serves the built client as static files, the API and every webhook. Deployed code uses web-standard APIs and platform bindings only; Bun is the build, package and test tool.
+- **One app Worker per environment** serves the built client as static files, the API and every webhook. **The sign-in Worker** is the only other one: it serves the sign-in pages, alone holds the sign-in keys and writes the login tables, and answers the app over a service binding. It is separate so that a poisoned package in the app cannot reach those keys, a typed password or a stored hash; its pages and calls are a closed list ([ADR-010](../users-and-access/#the-sign-in-worker)). Deployed code uses web-standard APIs and platform bindings only; Bun is the build, package and test tool.
 - **Background work** runs on one sweeper per database, a Durable Object driven by its alarm. It finds the companies with work due in one query and runs them side by side. It wakes at the next due time, sets no alarm when nothing is due (so the database may sleep), is nudged within seconds by a change, and has an hourly scheduled trigger as the safety net for a lost alarm ([ADR-001](../database-architecture/#background-work-and-events)).
 - **Webhooks** go through one inbound queue with retries and a dead-letter queue.
 - **Live updates** come from one Durable Object per company that holds its open screens' connections, so a screen updates when a background job changes what it shows.

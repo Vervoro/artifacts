@@ -82,7 +82,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Revision</strong></td>
-<td>18 October 2026, after a design review: trials live in a normal cell (no trial database); every transaction checks that its database holds the company; the erasure register moves to control; checks run in production as well as CI; company operations run in batches under their own role</td>
+<td>18 October 2026, after a design review: trials live in a normal cell (no trial database); every transaction checks that its database holds the company; the erasure register moves to control; checks run in production as well as CI; company operations run in batches under their own role. Later the same day: a sign-in role on control, used only by the sign-in Worker (<a href="../users-and-access/#the-sign-in-worker">ADR-010</a>)</td>
 </tr>
 </tbody></table></div>
 <h2 id="context">Context</h2>
@@ -185,6 +185,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Runtime</strong> serves requests and runs the sweeper. It is created in SQL, has <code>NOBYPASSRLS</code> and owns nothing.</li>
 <li><strong>Lifecycle</strong> runs the slice operation (export, move, restore, erase) and the archiver&#39;s row work. It is created in SQL, has <code>NOBYPASSRLS</code>, holds no DDL rights, and is the only role allowed to delete rows from append-only tables. Its credential lives only in the operations job that runs those tasks, outside the Worker that serves requests.</li>
 </ul>
+<p>The control database has one more: <strong>Sign-in</strong>, used only by the sign-in Worker (<a href="../users-and-access/#the-sign-in-worker">ADR-010</a>). It alone reads and writes the logins, their sign-in methods, recovery codes and sessions; the runtime role has no right on those tables. It is created in SQL, has <code>NOBYPASSRLS</code>, owns nothing and reaches control through its own Hyperdrive configuration.</p>
 <p>No other role may log in. Any role created in the Neon console, CLI or API would join <code>neon_superuser</code>, so no other role is ever created there.</p>
 </li>
 <li><p><strong>Append-only tables.</strong> A table declared append-only (today the stock ledger, order holds, the outbox and <code>audit_log</code>) has <code>UPDATE</code>, <code>DELETE</code> and <code>TRUNCATE</code> revoked from the runtime role when its migration runs, so no bug or raw query can rewrite history. Rows leave only through the slice operation (erase, restore, move), as the lifecycle role, and through whole months detached by the monthly migration run once the archiver has verified them (<a href="../data-retention/">ADR-002</a>).</p>
@@ -239,7 +240,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ul>
 <li><p><strong>Audit at every deploy and every night</strong>, over every database and every branch in the Neon project and every Hyperdrive configuration in the Cloudflare account:</p>
 <ul>
-<li>the only login roles are the owner, the runtime role and the lifecycle role; only the owner has <code>BYPASSRLS</code> or belongs to <code>neon_superuser</code>, and no runtime or lifecycle role owns a table;</li>
+<li>the only login roles are the owner, the runtime role and the lifecycle role, plus the sign-in role on control; the runtime role has no right on the login tables; only the owner has <code>BYPASSRLS</code> or belongs to <code>neon_superuser</code>, and no runtime or lifecycle role owns a table;</li>
 <li>the owner of the two definer functions cannot log in, is not in <code>neon_superuser</code>, and can only read <code>due</code> and <code>buyer_ref</code>;</li>
 <li>every Hyperdrive configuration has caching off;</li>
 <li>the catalogue lint passes on the live catalogue, and the next two months&#39; partitions exist;</li>

@@ -5,7 +5,7 @@
 | **Status** | Proposed |
 | **Date** | 17 October 2026, revised 18 October 2026 |
 | **Scope** | How Vervoro stores, isolates, routes and moves each company's data |
-| **Revision** | 18 October 2026, after a design review: trials live in a normal cell (no trial database); every transaction checks that its database holds the company; the erasure register moves to control; checks run in production as well as CI; company operations run in batches under their own role |
+| **Revision** | 18 October 2026, after a design review: trials live in a normal cell (no trial database); every transaction checks that its database holds the company; the erasure register moves to control; checks run in production as well as CI; company operations run in batches under their own role. Later the same day: a sign-in role on control, used only by the sign-in Worker ([ADR-010](../users-and-access/#the-sign-in-worker)) |
 
 ## Context
 
@@ -49,6 +49,8 @@ Every business table exists once per cell and carries `company_id`. Postgres its
    - **Runtime** serves requests and runs the sweeper. It is created in SQL, has `NOBYPASSRLS` and owns nothing.
    - **Lifecycle** runs the slice operation (export, move, restore, erase) and the archiver's row work. It is created in SQL, has `NOBYPASSRLS`, holds no DDL rights, and is the only role allowed to delete rows from append-only tables. Its credential lives only in the operations job that runs those tasks, outside the Worker that serves requests.
 
+   The control database has one more: **Sign-in**, used only by the sign-in Worker ([ADR-010](../users-and-access/#the-sign-in-worker)). It alone reads and writes the logins, their sign-in methods, recovery codes and sessions; the runtime role has no right on those tables. It is created in SQL, has `NOBYPASSRLS`, owns nothing and reaches control through its own Hyperdrive configuration.
+
    No other role may log in. Any role created in the Neon console, CLI or API would join `neon_superuser`, so no other role is ever created there.
 6. **Append-only tables.** A table declared append-only (today the stock ledger, order holds, the outbox and `audit_log`) has `UPDATE`, `DELETE` and `TRUNCATE` revoked from the runtime role when its migration runs, so no bug or raw query can rewrite history. Rows leave only through the slice operation (erase, restore, move), as the lifecycle role, and through whole months detached by the monthly migration run once the archiver has verified them ([ADR-002](../data-retention/)).
 7. **Entering a company.** The data layer's first statement in every transaction is `select app.enter_company($1)`. It sets `app.company_id` for this transaction only (`set_config(…, true)`), and raises unless this database's `tenant` row for that company exists in a state this role may enter: `open` for the runtime role; `open`, `moving_out`, `restoring` or `lookback` for the lifecycle role. The `tenant` table's own policy is `id = app.company()`, and the row is read through row-level security like any other: the check needs no special rights and costs no extra round trip. The data layer refuses autocommit for company work. The setting lasts only for that transaction, which keeps it safe behind a transaction-mode pooler.
@@ -90,7 +92,7 @@ Only the data layer may say which company a transaction belongs to, and these ch
 CI proves the schema it builds. These prove the databases actually running, because a role made in a console, a partition made after deploy or a configuration edited by hand are invisible to CI.
 
 - **Audit at every deploy and every night**, over every database and every branch in the Neon project and every Hyperdrive configuration in the Cloudflare account:
-  - the only login roles are the owner, the runtime role and the lifecycle role; only the owner has `BYPASSRLS` or belongs to `neon_superuser`, and no runtime or lifecycle role owns a table;
+  - the only login roles are the owner, the runtime role and the lifecycle role, plus the sign-in role on control; the runtime role has no right on the login tables; only the owner has `BYPASSRLS` or belongs to `neon_superuser`, and no runtime or lifecycle role owns a table;
   - the owner of the two definer functions cannot log in, is not in `neon_superuser`, and can only read `due` and `buyer_ref`;
   - every Hyperdrive configuration has caching off;
   - the catalogue lint passes on the live catalogue, and the next two months' partitions exist;

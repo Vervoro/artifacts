@@ -1,16 +1,22 @@
-<svg class="diagram" viewBox="0 0 760 360" role="img" aria-label="A seller's user signs in on their own phone or laptop with a password and an authenticator app code, or with a passkey. Each request checks the session and the membership in the control database, then opens a transaction fixed to one company in its cell, where the person's role, scope and status decide the action. An operator's request checks a live grant in control instead of a membership, opens the same kind of transaction under row-level security, and writes an entry in the company's audit log." xmlns="http://www.w3.org/2000/svg" font-size="13">
+<svg class="diagram" viewBox="0 0 900 385" role="img" aria-label="A seller's user, a warehouse worker or an operator signs in on the sign-in Worker's own pages, with a password and an authenticator app code or with a passkey. Only the sign-in Worker holds the sign-in keys and writes the login tables in the control database. Every other request goes to the app Worker, which asks the sign-in Worker over a service binding whether the session is live, checks the membership or the operator's grant in control, then opens a transaction fixed to one company in its cell, where the person's role, scope and status decide the action. The app Worker never sees a typed password." xmlns="http://www.w3.org/2000/svg" font-size="13">
   <defs>
     <marker id="ua-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="edge-fill"/></marker>
   </defs>
   <text x="24" y="26" font-size="15" font-weight="600" class="ink">Every request: who is it, which company, and may they do this here?</text>
 
   <g class="edge" fill="none" stroke-width="1.25">
-    <path d="M184 85H254" marker-end="url(#ua-arrow)"/>
-    <path d="M184 165H230V110H254" marker-end="url(#ua-arrow)"/>
-    <path d="M454 100H514" marker-end="url(#ua-arrow)"/>
-    <path d="M184 285H254" marker-end="url(#ua-arrow)"/>
-    <path d="M454 285H484V130H514" marker-end="url(#ua-arrow)"/>
+    <path d="M184 85H209"/>
+    <path d="M184 165H209"/>
+    <path d="M184 285H209"/>
+    <path d="M209 85V285"/>
+    <path d="M209 100H234" marker-end="url(#ua-arrow)"/>
+    <path d="M209 250H234" marker-end="url(#ua-arrow)"/>
+    <path d="M334 180V152" marker-end="url(#ua-arrow)"/>
+    <path d="M434 100H474" marker-end="url(#ua-arrow)"/>
+    <path d="M434 240H474" marker-end="url(#ua-arrow)"/>
+    <path d="M434 300H454V345H775V322" marker-end="url(#ua-arrow)"/>
   </g>
+  <text x="340" y="170" font-size="10" class="quiet">session live? (service binding)</text>
 
   <rect x="24" y="55" width="160" height="60" rx="6" class="box"/>
   <text x="104" y="80" text-anchor="middle" font-weight="600" class="ink">Seller's user</text>
@@ -24,39 +30,50 @@
   <text x="104" y="280" text-anchor="middle" font-weight="600" class="ink">Operator</text>
   <text x="104" y="297" text-anchor="middle" font-size="10.5" class="quiet">separate console, managed laptop</text>
 
-  <rect x="254" y="50" width="200" height="110" rx="8" class="band"/>
-  <text x="354" y="72" text-anchor="middle" font-weight="600" class="ink">Control database</text>
-  <text x="354" y="94" text-anchor="middle" font-size="11" class="quiet">login: email hash, sign-in methods</text>
-  <text x="354" y="111" text-anchor="middle" font-size="11" class="quiet">session: live? (read every request)</text>
-  <text x="354" y="128" text-anchor="middle" font-size="11" class="quiet">membership in this company?</text>
-  <text x="354" y="145" text-anchor="middle" font-size="11" class="quiet">sign-in: password + code, or passkey</text>
+  <rect x="234" y="50" width="200" height="100" rx="8" class="band"/>
+  <text x="334" y="72" text-anchor="middle" font-weight="600" class="ink">Sign-in Worker</text>
+  <text x="334" y="93" text-anchor="middle" font-size="11" class="quiet">its own pages: password + code,</text>
+  <text x="334" y="108" text-anchor="middle" font-size="11" class="quiet">or passkey</text>
+  <text x="334" y="124" text-anchor="middle" font-size="11" class="quiet">only holder of the sign-in keys</text>
+  <text x="334" y="139" text-anchor="middle" font-size="11" class="quiet">only writer of the login tables</text>
 
-  <rect x="254" y="250" width="200" height="70" rx="8" class="band"/>
-  <text x="354" y="272" text-anchor="middle" font-weight="600" class="ink">Control database</text>
-  <text x="354" y="292" text-anchor="middle" font-size="11" class="quiet">live grant: company, reason,</text>
-  <text x="354" y="308" text-anchor="middle" font-size="11" class="quiet">read-only, buyer data or not, end time</text>
+  <rect x="234" y="190" width="200" height="130" rx="8" class="band"/>
+  <text x="334" y="212" text-anchor="middle" font-weight="600" class="ink">App Worker</text>
+  <text x="334" y="234" text-anchor="middle" font-size="11" class="quiet">membership in this company,</text>
+  <text x="334" y="250" text-anchor="middle" font-size="11" class="quiet">or a live operator grant?</text>
+  <text x="334" y="274" text-anchor="middle" font-size="11" class="quiet">never sees a typed password,</text>
+  <text x="334" y="290" text-anchor="middle" font-size="11" class="quiet">a password hash or a code secret</text>
 
-  <rect x="514" y="50" width="222" height="270" rx="8" class="band"/>
-  <text x="625" y="72" text-anchor="middle" font-weight="600" class="ink">The company's cell</text>
-  <text x="625" y="90" text-anchor="middle" font-size="11" class="quiet">transaction fixed to one company,</text>
-  <text x="625" y="106" text-anchor="middle" font-size="11" class="quiet">runtime role without BYPASSRLS</text>
+  <rect x="474" y="50" width="176" height="270" rx="8" class="band"/>
+  <text x="562" y="72" text-anchor="middle" font-weight="600" class="ink">Control database</text>
+  <text x="562" y="96" text-anchor="middle" font-size="11" class="quiet">login: email hash, methods,</text>
+  <text x="562" y="112" text-anchor="middle" font-size="11" class="quiet">recovery codes (sign-in role only)</text>
+  <text x="562" y="138" text-anchor="middle" font-size="11" class="quiet">session: token hash, end time</text>
+  <text x="562" y="230" text-anchor="middle" font-size="11" class="quiet">memberships</text>
+  <text x="562" y="250" text-anchor="middle" font-size="11" class="quiet">operator grants: company,</text>
+  <text x="562" y="266" text-anchor="middle" font-size="11" class="quiet">reason, read-only, end time</text>
 
-  <rect x="530" y="122" width="190" height="62" rx="6" class="box"/>
-  <text x="625" y="144" text-anchor="middle" font-weight="600" class="ink">Member row</text>
-  <text x="625" y="160" text-anchor="middle" font-size="10.5" class="quiet">role, warehouse scope, status</text>
-  <text x="625" y="174" text-anchor="middle" font-size="10.5" class="quiet">read first, in the same transaction</text>
+  <rect x="674" y="50" width="202" height="270" rx="8" class="band"/>
+  <text x="775" y="72" text-anchor="middle" font-weight="600" class="ink">The company's cell</text>
+  <text x="775" y="90" text-anchor="middle" font-size="11" class="quiet">transaction fixed to one company,</text>
+  <text x="775" y="106" text-anchor="middle" font-size="11" class="quiet">runtime role without BYPASSRLS</text>
 
-  <rect x="530" y="196" width="190" height="46" rx="6" class="box"/>
-  <text x="625" y="216" text-anchor="middle" font-weight="600" class="ink">The action</text>
-  <text x="625" y="232" text-anchor="middle" font-size="10.5" class="quiet">allowed, or refused with a reason</text>
+  <rect x="688" y="122" width="174" height="62" rx="6" class="box"/>
+  <text x="775" y="144" text-anchor="middle" font-weight="600" class="ink">Member row</text>
+  <text x="775" y="160" text-anchor="middle" font-size="10.5" class="quiet">role, warehouse scope, status</text>
+  <text x="775" y="174" text-anchor="middle" font-size="10.5" class="quiet">read first, same transaction</text>
 
-  <rect x="530" y="254" width="190" height="50" rx="6" class="box"/>
-  <text x="625" y="275" text-anchor="middle" font-weight="600" class="ink">audit_log</text>
-  <text x="625" y="291" text-anchor="middle" font-size="10.5" class="quiet">sign-ins, changes, views, grants</text>
+  <rect x="688" y="196" width="174" height="46" rx="6" class="box"/>
+  <text x="775" y="216" text-anchor="middle" font-weight="600" class="ink">The action</text>
+  <text x="775" y="232" text-anchor="middle" font-size="10.5" class="quiet">allowed, or refused with a reason</text>
+
+  <rect x="688" y="254" width="174" height="50" rx="6" class="box"/>
+  <text x="775" y="275" text-anchor="middle" font-weight="600" class="ink">audit_log</text>
+  <text x="775" y="291" text-anchor="middle" font-size="10.5" class="quiet">changes, views, grants</text>
 
   <g class="edge" fill="none" stroke-width="1.25">
-    <path d="M625 184V196" marker-end="url(#ua-arrow)"/>
-    <path d="M625 242V254" marker-end="url(#ua-arrow)"/>
+    <path d="M775 184V196" marker-end="url(#ua-arrow)"/>
+    <path d="M775 242V254" marker-end="url(#ua-arrow)"/>
   </g>
-  <text x="24" y="345" font-size="11" class="quiet">An operator never has a membership: the grant stands in for it, and every request under it is written to the company's audit log.</text>
+  <text x="24" y="375" font-size="11" class="quiet">An operator never has a membership: the grant stands in for it, and every request under it is written to the company's audit log.</text>
 </svg>

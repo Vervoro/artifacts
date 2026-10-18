@@ -3,8 +3,9 @@
 | | |
 | --- | --- |
 | **Status** | Proposed |
-| **Date** | 18 October 2026 |
+| **Date** | 18 October 2026, revised 18 October 2026 |
 | **Scope** | Who signs in to Vervoro and how: the people, one sign-in across several companies, sign-in methods and multi-factor, sessions on phones and laptops, account recovery, the seller's roles and what each may do, warehouse scope, invitations, sign-up and removal, operator access to a company's data, the audit trail, and API tokens |
+| **Revision** | 18 October 2026, after a debate on how sign-in is built: Vervoro builds it itself, on the runtime's own primitives and one pinned library, with no identity provider and no auth framework; sign-in runs in a Worker of its own that alone holds the sign-in keys; a reset re-activates a person only in the company that reset them; recovery codes for every Owner, Admin and Accountant; a bot check before any password is hashed. See [How sign-in is built](#how-sign-in-is-built) |
 | **Builds on** | [ADR-000: System architecture](../system-architecture/), [ADR-001: Multi-tenant database architecture](../database-architecture/), [ADR-002: Data retention and archiving](../data-retention/), [ADR-004: Channel connectors](../channel-connectors/), [ADR-006: Stock ledger and reservations](../stock-ledger/), [ADR-007: Order ingestion](../order-ingestion/), [ADR-008: Inventory sync](../inventory-sync/), [ADR-009: Buyer data and privacy](../buyer-data/) |
 
 ## Context
@@ -41,16 +42,18 @@ The design has to meet these requirements:
 10. **Nobody changes their own access.** Owners manage everyone; Admins manage everyone below Admin. The last Owner cannot leave until there is another.
 11. **People join only by invitation,** sent to their own email address. Sign-up creates a new trial company in a normal cell (ADR-001), with its creator as Owner.
 12. **Removal takes effect on the person's next request.** It ends their sessions in that company and clears their email address there. Their name stays on the history they made.
-13. **Recovery goes through the company first.** A person comes back with their other factor, their recovery codes, or a reset by someone above them. Only a company's last Owner, with nothing left, goes to Vervoro. That case follows a fixed procedure: proof of the company's marketplace account, then a 72-hour wait with notice to everyone.
+13. **Recovery goes through the company first.** A person comes back with their other factor, their recovery codes, or a reset by someone above them. A reset re-activates them only in the company that reset them. Only a company's last Owner, with nothing left, goes to Vervoro. That case follows a fixed procedure: proof of the company's marketplace account, then a 72-hour wait with notice to everyone.
 14. **Operators have no standing access.** An operator looks inside a company only through a grant with a written reason and an end time. The seller is told at once and can end it. Buyer data stays masked unless an Owner or Admin switches it on for that grant. Repairs run as recorded commands, without reading the company's screens. An operator never signs in as a seller's user, and every request still runs as one company under row-level security.
 15. **Two audit trails.** The company's `audit_log` records what happened in that company, for the seller to see. The platform security log records every sign-in and security event across the platform, with no buyer data and no email address.
 16. **No API tokens for sellers at launch.** A later record may add integration access that is scoped, revocable and without buyer data.
+17. **Vervoro builds sign-in itself.** Logins, memberships, sessions, lockouts and recovery are Vervoro's own design. The primitives come from the runtime (scrypt, HMAC, AES-GCM, secure random numbers) and from one exact-pinned library for passkeys. There is no identity provider, no auth framework and no identity server: no third party holds a person's email address, and nothing is billed per user.
+18. **Sign-in runs in a Worker of its own.** It serves the sign-in pages, alone holds the sign-in keys and alone writes the login tables. The app reaches it only over a service binding and never sees a typed password, a password hash or an authenticator secret.
 
 ## Architecture
 
 <!-- DIAGRAM -->
 
-A request carries a session cookie and names the company it is for. The Worker reads the session from the control database and checks that it is live. It then confirms that the login has a membership in that company and routes to the company's cell. There it opens the usual transaction, fixed to the company (ADR-001). The first read in that transaction is the person's row in the company's users table: role, warehouse scope and status. The action is allowed only if the role holds it, the scope covers it and the person is active. Revoking a session in control, or removing the person in the cell, therefore stops their very next request.
+A person signs in on the sign-in Worker's own pages, which set the session cookie. Every other request carries that cookie and names the company it is for. The app Worker asks the sign-in Worker, over a service binding, whether the session is live, and gets back the login and the session's end. It then confirms that the login has a membership in that company and routes to the company's cell. There it opens the usual transaction, fixed to the company (ADR-001). The first read in that transaction is the person's row in the company's users table: role, warehouse scope and status. The action is allowed only if the role holds it, the scope covers it and the person is active. Revoking a session in control, or removing the person in the cell, therefore stops their very next request.
 
 An operator's request takes the same path from a separate console. The control database holds the operator's grant instead of a membership. The transaction is fixed to the one company in the same way, under the same runtime role, and every request writes an entry in the company's `audit_log`.
 
@@ -60,7 +63,7 @@ An operator's request takes the same path from a separate console. The control d
 | --- | --- | --- |
 | **Seller's users** | The app, on their own phone or laptop, as a member of one or more companies | One role per company: Owner, Admin, Manager, Warehouse, Accountant or Staff |
 | **Operators** | The operator console, never the app | Platform work: databases, connectors, alerts, quotas, repairs, and grants to look inside a company. No standing access to any company |
-| **Developers** | Source control and the build pipeline only | No access to production data (ADR-009). Deploys run from the pipeline under its own service identity |
+| **Developers** | Source control and the build pipeline only | No access to production data (ADR-009). Deploys run from the pipeline under its own service identity; the sign-in Worker has a deploy identity of its own |
 | **Buyers, suppliers** | Nothing | Their data arrives through marketplaces and the seller |
 | **System actors** | Nothing: they are not people | The sweeper, the queue consumer and the egress gate act for a company with a named system actor, recorded on every entry they write |
 
@@ -68,7 +71,7 @@ An operator's request takes the same path from a separate console. The control d
 
 ## One login, several companies
 
-- **The login** lives in the control database: a random id, the keyed hash of the normalised email (ADR-001), the password's hash, the authenticator app's secret (encrypted under a platform key), its passkeys' public keys, the hashes of its recovery codes, its sessions, and its memberships (login, company). It holds no name and no clear email address.
+- **The login** lives in the control database: a random id, the keyed hash of the normalised email (ADR-001), the password's hash and the authenticator app's secret (each sealed under the sign-in key), its passkeys' public keys, the hashes of its recovery codes, its sessions, and its memberships (login, company). It holds no name and no clear email address. Only the sign-in Worker reads or writes the login, its methods and its recovery codes.
 - **The member row** lives in each company's own users table, in that company's cell: the email address, the name, the role, the warehouse scope, the status (invited, active, removed), and when each changed. It is the authority for what the person may do in that company. Being in the company's cell, it moves, exports and is erased with the company.
 - **Switching company** is a menu in the app. The session belongs to the login, not to one company. Every request names the company it is for, so two browser tabs can work in two companies. Switching asks for no new sign-in; account changes in the new company still ask for a fresh check.
 - **Sending email to a person.** Control has only the hash. A notice to a person reads their address from any company where they are active. Recovery and invitation emails go to the address the person types, once its hash matches.
@@ -79,10 +82,10 @@ An operator's request takes the same path from a separate console. The control d
 ### Password and authenticator app
 
 - **First the password, then the code.** The person enters their email address and password, then a 6-digit code from an authenticator app on their phone. The code changes every 30 seconds, and each code is accepted once.
-- **The password rules** are Amazon's (above, and ADR-009). Vervoro also refuses a password found on a list of common or breached passwords, allows passwords up to 64 characters, and lets password managers fill and paste them. The password is stored only as a salted, slow hash, with a platform key held outside the database added to it.
+- **The password rules** are Amazon's (above, and ADR-009). Vervoro also refuses a password found on a list of common or breached passwords, allows passwords up to 64 characters, and lets password managers fill and paste them. The password is stored only as a salted scrypt hash, sealed under a key held outside the database ([How sign-in is built](#how-sign-in-is-built)).
 - **The yearly change:** a password past 365 days must be changed at the next sign-in.
 - **Setting up the app** happens at the first sign-in: the app scans a code shown on screen, and the person types one code back to prove it works. A worker who signs in on their own phone keeps the authenticator app on that same phone; the password is still something only they know.
-- **Recovery codes** are shown once, when the second factor is set up: 10 single-use codes, to print or save. Setup does not finish until the person confirms they have saved them. Each is stored only as a hash.
+- **Recovery codes** are shown once, when the second factor is set up: 10 single-use codes, to print or save. Setup does not finish until the person confirms they have saved them. Each is stored only as a keyed hash. Everyone with an authenticator app gets them, and so does every Owner, Admin and Accountant, and anyone who is a member of more than one company, even if they use only passkeys. A person with one membership as a Manager, Warehouse or Staff who uses only passkeys gets none: a synced passkey survives a lost phone, and otherwise their company resets them.
 
 ### Passkeys
 
@@ -91,7 +94,7 @@ A passkey is a WebAuthn credential that the person's phone, laptop or password m
 - **User verification is required:** the device checks a fingerprint, a face or its own PIN. With it, one gesture is two factors: the device that holds the key, and the person who unlocks it. A response without the user-verified flag is refused.
 - **Synced passkeys are accepted.** A person who loses a phone keeps their passkey on the new one.
 - **A laptop without a passkey** can use the person's phone through the browser's cross-device sign-in (a QR code and Bluetooth), or the password and app code.
-- **Offered, not forced.** After a password sign-in on a phone that can hold a passkey, the app offers one. Warehouse staff gain the most: a fingerprint unlocks the app with gloves off, instead of typing a 12-character password.
+- **Offered, not forced.** A person who accepts an invitation on a phone that can hold a passkey is offered one first. After a password sign-in on such a phone, the app offers one. On a phone with a passkey, signing in needs no email address: the phone offers the person's passkey for Vervoro. Warehouse staff gain the most: a fingerprint unlocks the app with gloves off, instead of typing a 12-character password.
 
 ### Everyone's security page
 
@@ -115,11 +118,12 @@ Each person sees their sign-in methods and recent sign-ins, and can remove a los
 | **Account changes** | A full sign-in check (password and code, or a passkey) within the last 5 minutes | The same |
 | **Ends at once on** | Sign-out, removal, a role change, a reset, a recovery, an incident | Sign-out, an incident |
 
-- **The session is a server-side row** in the control database: a random id of at least 128 bits, the login, when it began and was last used, and its end time. The browser holds only the id, in a cookie marked `__Host-`, `Secure`, `HttpOnly` and `SameSite=Strict`. No session, role or buyer data is kept in the browser's storage (ADR-009).
+- **The session is a server-side row** in the control database: the hash of a random token of at least 128 bits, the login, when it began, its end time, and when its last full sign-in check happened. The token itself is never stored. The browser holds only the token, in a cookie marked `__Host-`, `Secure`, `HttpOnly` and `SameSite=Strict`. Nothing is written on each request. No session, role or buyer data is kept in the browser's storage (ADR-009).
 - **Every request reads the session,** so revoking it takes effect on the next request. ADR-001's restore step ("revoke its sessions") and ADR-009's incident containment use the same revocation.
 - **A role change applies to the next request,** because the role is read in the request's own transaction.
 - **No idle lock in the app.** Idle time is covered by the device's own screen lock. Amazon's device rules (a 15-minute screen lock, managed devices) bind Vervoro's own laptops, which follow them; they are not rules for the seller's phones.
-- **Account changes need a fresh check:** inviting, removing or changing anyone's role or scope; resetting anyone's sign-in; changing one's own sign-in methods; connecting, disconnecting, going live on or switching off a marketplace account; an export with buyer data; switching on buyer data for an operator grant; closing the company or changing an Owner. Picking, packing, printing and counting never ask.
+- **The end of a shift.** Before the 12 hours run out, the app asks for a full sign-in, which starts a new 12-hour session; the old one is never extended. With a passkey this happens in place. A password sign-in takes the person to the sign-in page and back to the same screen, and scans already on the open screen survive the round trip.
+- **Account changes need a fresh check:** inviting, removing or changing anyone's role or scope; resetting anyone's sign-in; changing one's own sign-in methods; connecting, disconnecting, going live on or switching off a marketplace account; an export with buyer data; switching on buyer data for an operator grant; closing the company or changing an Owner. Picking, packing, printing and counting never ask. Only the sign-in Worker records a full sign-in check, and it checks the time again itself before it carries out any account change, so the app cannot claim one.
 
 ## Account recovery
 
@@ -129,21 +133,92 @@ Every way back in is a fixed procedure. Nobody at Vervoro can be talked into an 
 | --- | --- |
 | The password | A reset link to their email address, valid 1 hour, plus their app code or a passkey. All other sessions end |
 | The authenticator app or the passkey's phone | The password plus one recovery code, or another passkey; then they set up a new second factor |
-| Everything, below Admin | An Owner or Admin resets them after a fresh check of their own. A one-time code appears on the resetter's screen, to hand over in person or by phone, and a link goes to the person's email address. Both are needed, within 24 hours. An Owner resets an Admin the same way, and another Owner resets an Owner |
+| Everything, below Admin | An Owner or Admin resets them after a fresh check of their own. A one-time code appears on the resetter's screen, on a sign-in page, to hand over in person or by phone, and a link goes to the person's email address. Both are needed, within 24 hours. An Owner resets an Admin the same way, and another Owner resets an Owner. The reset re-activates the person only in the resetter's company (below) |
 | Everything, as the company's last Owner | Vervoro's fixed procedure below |
 
 **The last Owner.** Vervoro's operator runs the procedure, with no room for judgement:
 
 1. A link to the Owner's email address, as held in the company's users table.
-2. The Owner approves Vervoro again on one of the company's connected marketplace accounts. The marketplace must return the same seller account that the company already holds in the external directory (ADR-001).
-3. A 72-hour wait. During it, every member of the company is told by email. If an Owner or Admin objects, Vervoro's owner decides.
+2. The Owner approves Vervoro again on one of the company's connected marketplace accounts. The marketplace must return the same seller account that the company already holds in the external directory (ADR-001). This proves control of the seller's marketplace account, not legal ownership of the business; the wait and the notices cover the rest. The approval is used only to read the seller id: its tokens are discarded at once and the live connection is not touched.
+3. A 72-hour wait. During it, every member of the company is told by email. Any sign-in by that login cancels the recovery. If an Owner or Admin objects, Vervoro's owner decides.
 4. The Owner sets up new sign-in methods; every old method and session of that login ends.
 
 A company with no connected marketplace is a trial with little in it, and the person signs up again. Any other case is decided by Vervoro's owner on documents, never by the operator alone.
 
+**A reset reaches one company.** A reset re-activates the person only in the company whose Owner or Admin reset them. Their other memberships are paused until they prove themselves there: with a recovery code they still hold, or when that company's own Owner or Admin confirms them, with a fresh check. Each paused company's Owners and Admins are told at once, and the person sees each paused company marked "waiting for an Owner or Admin". After a reset, unused recovery codes work only to un-pause a membership, and a new set is issued when the person next sets up a factor. This stops a free trial company from inviting someone, resetting them, and opening every company they belong to.
+
 **After every recovery,** the person and the company's Owners and Admins are told by email, every session of that login ends, and the recovery is logged in both audit trails.
 
-**Lockouts.** Ten wrong passwords, codes or recovery codes in a row lock password sign-in for 30 minutes and tell the person by email. A passkey still signs in during the lock. Failed sign-ins from one network address slow down with each failure, whichever logins they try, so one source cannot guess passwords across many accounts. A bot check protects sign-up and password reset.
+**Lockouts.** Ten wrong passwords, codes or recovery codes in a row lock password sign-in for 30 minutes and tell the person by email, with "ask your Owner or Admin" if it happens again. A passkey still signs in during the lock. A bot check runs before any password is hashed, on every password sign-in, sign-up and password reset; passkey sign-in has none. Requests from one network address are rate-limited at a limit generous enough for a warehouse of 30 phones on one connection, so one source cannot spray guesses across many accounts.
+
+## How sign-in is built
+
+Every method and procedure above could come from an identity provider, from an auth framework, or from Vervoro's own code. This section records which, and why. The owner set three limits for the choice: no recurring identity bill, no third party holding a person's email address (ADR-001's keyed-hash rule stays), and data in the UK or EU. Operators sign in the same way as sellers.
+
+### Who builds what
+
+| Piece | How | Why |
+| --- | --- | --- |
+| **Logins, memberships, sessions, lockouts, resets and recovery** | Vervoro's own code, in the sign-in Worker | They carry rules no provider or framework holds: the email only as a keyed hash, one login across many cells, a reset that reaches one company, Amazon's password rules and the last-Owner procedure. Every option would still need this code |
+| **Password hashing** | The runtime's own scrypt, at N = 2^14, r = 8, p = 5 (16 MiB per hash), one of OWASP's equivalent minimum settings. Only a few hashes run at once in one Worker instance; the number is set from measurement | PBKDF2 is capped at 100,000 iterations on Workers, below OWASP's 600,000. Argon2 is not offered natively. scrypt's N = 2^17 setting needs 128 MiB, a Worker's whole memory |
+| **Sealing** | The password hash, the authenticator secret and the recovery codes' key are sealed with AES-GCM under a versioned sign-in key, a secret of the sign-in Worker only | A copied database or backup holds nothing to crack. The key rotates by sealing again, with no forced password change; a pepper mixed into the hash could not change without resetting everyone |
+| **Authenticator codes** | Vervoro's own, about 30 lines on the runtime's HMAC (RFC 6238: 30 seconds, one step either side), tested against the RFC's own vectors. A code is used up in one database statement, so it works once | Fully specified, small, and checked by official test vectors |
+| **Passkeys** | SimpleWebAuthn, exact-pinned, behind Vervoro's own verify function: user verification required, no attestation | Parsing the authenticator's binary formats is where hand-written verifiers go wrong. It runs on Workers and is listed by passkeys.dev. It brings about 25 packages, mostly attestation code that stays switched off, so the whole tree is pinned and every change to it is reviewed |
+| **Breached passwords** | Have I Been Pwned's range lookup, with padding, when a password is set or changed. Only the first 5 characters of the password's SHA-1 leave Vervoro. If the service is down, the password is accepted, the login is flagged, and the check runs at its next sign-in | Free, no key, and the password itself never leaves |
+| **Bot check** | Turnstile, before any password is hashed | A spray of invented addresses would otherwise fill the hashing slots when the morning shift signs in |
+| **Rate limit per network address** | The runtime's rate-limiting binding | Approximate by design; the lockout counts stay in the database |
+
+**One form, one answer.** The password and the code are judged together, with one error for any failure, so someone trying leaked passwords never learns that one was right. An address with no login takes the same path against a stand-in record, with a full hash, so the answer and its timing do not reveal who has an account.
+
+**No return address.** No sign-in page takes a web address to go back to. Return targets are names of the app's own screens, so a reset or sign-in link cannot send anyone elsewhere.
+
+### The sign-in Worker
+
+**Why it is separate.** Code from a poisoned package anywhere in a Worker runs inside it, and any module can read the Worker's secrets. If sign-in lived in the app, such code could read the sign-in keys and the login tables. Much of what would leak cannot be rotated away. Authenticator secrets keep making valid codes until each person sets up a new app, which at 1,000 sellers means tens of thousands of resets in person. Password hashes can be cracked and tried on the sellers' own marketplace accounts. Cell credentials and buyer-data keys, by contrast, rotate in minutes. Splitting sign-in out costs about two days before launch, and far more once sellers depend on it.
+
+**What it is, and must stay:**
+
+- **It serves only the sign-in pages:** signing in, signing up, setting and resetting a password, adding and removing sign-in methods, showing a reset code, and recovery. They are plain pages with the product's design tokens and none of the app's components. The app registers no service worker over them, so the app never renders a password field.
+- **It answers the app over a service binding, through a fixed list of calls:** is this session live, revoke, reset, un-pause, and the incident commands below. Adding a page or a call needs a decision in this record.
+- **It alone holds the email-hash key and the sign-in key, and alone writes the login tables** (logins, sign-in methods, recovery codes and sessions). It has its own role in the control database and its own connection to it. The app's role has no right on those tables; it reads and writes memberships, operator grants and everything else in control as before.
+- **It carries out, but never decides.** The app decides who may reset whom, by the rules above. The sign-in Worker checks the actor's session and their fresh check itself before any account change, limits how fast resets can happen, and alerts on a burst. The one-time reset code appears only on its page, in the resetter's browser.
+- **It never reaches a cell and never sends email.** It hands the app the event and, for a reset or a recovery, the link; the app sends the mail to the address in the company's users table. The names the "no part of your name" rule needs come with the call.
+- **It is built and shipped on its own terms.** It has its own package list and frozen lockfile with the passkey library as its only dependency, installs with package scripts switched off, builds in its own CI job before anything of the app is installed, and deploys with a token that can deploy only it. Each Worker deploys on its own, only when its own code changes, so everyday app releases never touch the sign-in Worker. Its calls only ever add, never change, so an older app always works with a newer sign-in Worker: when both change, the sign-in Worker goes first, and a test of the calls runs whenever either side changes them.
+
+**A risk accepted.** A poisoned app still receives the session cookie, so it could act as any person who is signed in, with that person's rights, until their session ends: 12 hours at most. It cannot add a sign-in method or reset anyone, because those need a fresh check that only the sign-in Worker records, and the reset code never reaches the app. Signing everyone out ends it.
+
+### Keys
+
+- **The email-hash key** (ADR-001) and **the sign-in key** are versioned secrets of the sign-in Worker only.
+- **Rotating the sign-in key** seals every value again under the new version, in a resumable job, with no sign-in interrupted.
+- **Rotating the email-hash key** reads each person's address from a company where they are a member and stores the new hash. A login whose address has been cleared from every company is waiting for deletion (within 30 days), so the old key version stays readable until the last such login is gone.
+- Both rotations are built and rehearsed before launch, because neither can be written during an incident.
+
+### In an incident
+
+The operator has these commands, built and rehearsed before launch, each written to the platform security log:
+
+| Command | What it does |
+| --- | --- |
+| Sign everyone out | Ends every session of one company, or of the whole platform, in one statement |
+| Force a password change | Every password login must set a new password at its next sign-in |
+| Rotate a key | The email-hash key or the sign-in key, as above |
+| Switch off one way in | Password sign-in, resets, recovery or passkeys, one at a time; the others keep working while a fix is made |
+| Freeze sign-in | No new sessions anywhere; live sessions continue unless also ended |
+| Read a login's history | The security log for one login, for a seller's question or an investigation |
+
+**A poisoned package** in the app: sign everyone out, rotate the app's own secrets and the cells' credentials, and follow ADR-009's incident steps. In the sign-in Worker: also rotate both sign-in keys, force a password change, and ask every person who uses an authenticator app to set it up again. Passkeys stay, because Vervoro holds only their public keys.
+
+**Canary logins.** Each cell's synthetic company (ADR-009) has a synthetic login. Any sign-in attempt on it alerts through the existing alerts.
+
+**Leaving.** Everything stored is in standard forms: scrypt hashes, RFC 6238 secrets and WebAuthn public keys, unsealed with the sign-in key for export. Moving to another system later needs no password reset.
+
+### Checked before launch
+
+- The scrypt setting's time and memory on a deployed Worker, written into this record, and the number of hashes run at once set from them.
+- The runtime's HMAC with SHA-1, which authenticator codes need, on a deployed Worker. If it fails, one audited hashing library is the fallback.
+- Sign-in timing: known and unknown addresses must not be told apart.
+- An outside penetration test of sign-in, recovery, resets and return paths, with a retest of any finding agreed before launch.
 
 ## Roles
 
@@ -302,7 +377,7 @@ Two trails, each in one place.
 | | Company `audit_log` | Platform security log |
 | --- | --- | --- |
 | **Where** | The company's cell, a tenant table (ADR-001) | The control database |
-| **Records** | What happened in the company: invitations, role, scope and status changes, resets and recoveries, every view of buyer data (ADR-009), exports, connections connected, gone live, stopped or disconnected, operator grants with every request under them, operator repairs, privacy requests | Every sign-in attempt, with its result, across the platform; sign-in methods added and removed; password changes; recovery codes used; recoveries started, reviewed and completed; sessions revoked; lockouts; bot-check failures; operator sign-ins; grants opened and ended; use of the database owner role |
+| **Records** | What happened in the company: invitations, role, scope and status changes, resets and recoveries, every view of buyer data (ADR-009), exports, connections connected, gone live, stopped or disconnected, operator grants with every request under them, operator repairs, privacy requests | Every sign-in attempt, with its result, across the platform; sign-in methods added and removed; password changes; recovery codes used; recoveries started, reviewed and completed; resets, paused and un-paused memberships, and bursts of resets; sessions revoked; ways in switched off or frozen; lockouts; bot-check failures; operator sign-ins; grants opened and ended; use of the database owner role |
 | **Each entry** | The time, the actor (person, operator with grant, or system actor), the action, what it named (ids), the result | The time, the login or operator id, the event, the network address and device kind, the result |
 | **Never holds** | Buyer data (a view records which fields were shown, not their values) | Buyer data, email addresses, names, passwords or codes |
 | **Who reads it** | Owner, Admin, Accountant | The operator; each person sees their own sign-ins on their security page |
@@ -337,6 +412,14 @@ If a later record adds integration access, it starts from these rules: created o
 | Operator grants | CI, real Postgres, runtime role | Without a live grant, an operator request reaches no company; with one, it reaches exactly that company, is read-only, writes an audit entry per request, and decrypts buyer fields only when the seller allowed it; ending the grant stops the next request |
 | Recovery | CI | Each path in the recovery table needs every step it names, tells the people it names, and ends every old session |
 | Audit content | CI | No audit or security entry holds a buyer field value, an email address, a password, a code or a session id |
+| Primitives | CI | Authenticator codes match RFC 6238's vectors; a used code is refused; a set of bad passkey responses (no user verification, another site, a replayed challenge, a wrong signature) is refused through Vervoro's verify function, and again after every change to the pinned library |
+| Reset scope | CI | A reset re-activates the person only in the resetter's company; every other membership is paused until a recovery code or that company's Owner or Admin clears it |
+| One answer | CI | A wrong password and a wrong code give the same error; known and unknown addresses take the same time within a set margin |
+| Return paths | CI | A table of hostile return targets always lands on the app's home screen |
+| The sign-in Worker's walls | CI and nightly | The app's database role has no right on the login tables; the app's code and bundle hold neither sign-in key; the sign-in Worker's dependency tree matches its frozen list |
+| Fresh check | CI | An account change from the app with a fresh check the sign-in Worker did not record is refused |
+| End of a shift | Before launch, on a slow low-cost Android phone | A half-packed order survives the sign-in at the end of a shift, with its scans on screen |
+| Incident commands | Before launch, then every six months | Each command in the incident table works on a staging copy, timed |
 | Real devices | Before launch, on the phones sellers use | Password and app-code sign-in, passkey sign-in and cross-device sign-in on a laptop work on current iPhones and low-cost Android phones |
 
 ## Constraints
@@ -364,6 +447,20 @@ Checked against the official sources on 18 October 2026.
 | NIST: email and recovery | Email is not a sign-in factor; AAL2 recovery needs two codes by different routes or a code plus an existing factor; saved recovery codes are allowed; every recovery is notified | [SP 800-63B rev. 4, 3.1.3.2 and 4.2](https://pages.nist.gov/800-63-4/sp800-63b.html) |
 | WebAuthn | A W3C Recommendation; credentials are scoped to the site; flags tell whether the user was verified and whether a credential can be synced | [Web Authentication Level 3](https://www.w3.org/TR/webauthn-3/) |
 | Passkeys | Discoverable WebAuthn credentials, synced or bound to one device; cross-device sign-in by a nearby phone | [passkeys.dev: terms](https://passkeys.dev/docs/reference/terms/) |
+| Passkey libraries | passkeys.dev points relying parties to maintained libraries and lists SimpleWebAuthn | [passkeys.dev: libraries](https://passkeys.dev/docs/tools-libraries/libraries/) |
+| SimpleWebAuthn | MIT licence; names Cloudflare Workers among supported runtimes; user verification can be required | [SimpleWebAuthn](https://github.com/MasterKale/SimpleWebAuthn), [server docs](https://simplewebauthn.dev/docs/packages/server) |
+| OWASP: password storage | scrypt minimums of equal strength include N = 2^17, r = 8, p = 1 (128 MiB) and N = 2^14, r = 8, p = 5 (16 MiB); PBKDF2-HMAC-SHA256 at 600,000 iterations; a pepper that leaks forces every password to be reset | [Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html) |
+| Workers: limits | 128 MB of memory per instance; on the paid plan 30 seconds of CPU per request by default, up to 5 minutes | [Workers limits](https://developers.cloudflare.com/workers/platform/limits/) |
+| Workers: password primitives | Web Crypto PBKDF2 is capped at 100,000 iterations by default in the runtime's source; scrypt is offered through the Node crypto module, Argon2 is not; scrypt's default memory ceiling is 32 MiB | [Node crypto on Workers](https://developers.cloudflare.com/workers/runtime-apis/nodejs/crypto/), [runtime limits source](https://github.com/cloudflare/workerd/blob/main/src/workerd/io/limit-enforcer.h), [runtime scrypt source](https://github.com/cloudflare/workerd/blob/main/src/node/internal/crypto_scrypt.ts) |
+| Workers: secrets | A module can import the Worker's environment, secrets included, from `cloudflare:workers` | [Bindings: importing env as a global](https://developers.cloudflare.com/workers/runtime-apis/bindings/) |
+| Workers: service bindings | No added latency, both Workers on the same thread by default, no added cost; each call counts toward the subrequest limit | [Service bindings](https://developers.cloudflare.com/workers/runtime-apis/bindings/service-bindings/) |
+| Workers: rate limiting | Counters are local to a Cloudflare location and eventually consistent, not an accurate count | [Rate limiting binding](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/) |
+| Turnstile | A free plan exists | [Turnstile plans](https://developers.cloudflare.com/turnstile/plans/) |
+| Breached passwords | The range lookup takes the first 5 characters of a SHA-1, needs no key, and can pad its answers; the full list can be downloaded | [Pwned Passwords API](https://haveibeenpwned.com/API/v3), [Pwned Passwords](https://haveibeenpwned.com/Passwords) |
+| Authenticator codes | 30-second steps, a small allowance for clock drift, a used code not accepted again; test vectors in the appendix | [RFC 6238](https://www.rfc-editor.org/rfc/rfc6238), [RFC 4226](https://www.rfc-editor.org/rfc/rfc4226) |
+| Package supply chain | A self-spreading compromise took over hundreds of npm packages through their maintainers' accounts | [CISA alert, 23 September 2025](https://www.cisa.gov/news-events/alerts/2025/09/23/widespread-supply-chain-compromise-impacting-npm-ecosystem) |
+| Hosted providers | Every hosted provider keeps the person's email address. Clerk offers no regional data residency. Auth0 exports password hashes only through a support request. Cognito's passkeys default to user verification "preferred" | [Clerk security](https://clerk.com/security.md), [Auth0 hash export](https://support.auth0.com/center/s/article/How-to-Use-the-Password-Hashes-Export-from-Auth0), [Cognito sign-in methods](https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-authentication-flow-methods.html) |
+| Better Auth | Its user table requires a unique email address; its passkey plugin defaults to user verification "preferred"; its two-factor plugin trusts a device for 30 days | [Database](https://better-auth.com/docs/concepts/database), [Passkey](https://better-auth.com/docs/plugins/passkey), [Two-factor](https://better-auth.com/docs/plugins/2fa) |
 
 **Where Vervoro departs from a source, and why.** Amazon's password rules (mixed character types, a yearly change) are what NIST now advises against. Amazon's policy binds Vervoro and NIST's guidance does not, so passwords follow Amazon, and Vervoro adds NIST's blocklist, length and password-manager advice, which Amazon's rules allow. Passkeys need no password rule at all, which is why the app offers them. NIST also advises an idle limit of an hour; Vervoro leaves idle time to the device's own screen lock, because no rule that binds it asks for more and a lock inside the app would mean typing a password again after every break.
 
@@ -377,6 +474,7 @@ Checked against the official sources on 18 October 2026.
 - Removal, role changes and incidents take effect on the next request, because the session and the role are read on every request.
 - Every operator look at a seller's data has a reason, an end time and an entry the seller can read and end, and still sees only one company under row-level security.
 - One login for a person in several companies, with each company holding its own member row, so moves, exports and erasure keep working by company.
+- No third party holds a person's email address and nothing is billed per user; a poisoned package in the app cannot reach the sign-in keys, a typed password or a stored hash.
 
 **What it costs**
 
@@ -387,6 +485,9 @@ Checked against the official sources on 18 October 2026.
 - Recovering a company's last Owner takes three days and needs a connected marketplace account.
 - Fixed roles will not fit every company; some will want, for example, a packer who can hold an order.
 - No API tokens: a seller who wants their own integration waits for a later record.
+- Vervoro owns its sign-in code and must keep it correct, with no outside team reading it; the outside penetration test and the tests above are its only second readers.
+- A second Worker, a second database role and a second CI job, each held to a closed list.
+- Every password sign-in costs a scrypt hash on the paid plan, and a bot check before it.
 
 ## Alternatives considered
 
@@ -408,6 +509,27 @@ Checked against the official sources on 18 October 2026.
 | An emergency grant that opens after a 30-minute wait | Repairs already run as recorded commands without a grant, so no grant is urgent enough to need a special kind |
 | API tokens at launch | A standing credential without multi-factor, and a path for buyer data that Vervoro cannot log |
 
+**How sign-in is built: options not taken**
+
+| Option | Why not |
+| --- | --- |
+| A hosted identity provider (Auth0, Clerk, WorkOS, Stytch, Descope, Cognito, Supabase Auth) | Each keeps the person's email address, which the owner ruled out; most bill per active user; Clerk has no EU residency. Vervoro would still build one login across cells, the reset scope, Amazon's password rules and last-Owner recovery around it |
+| A provider fed only the keyed hash, with relay addresses that Vervoro forwards | Removes the email objection, but leaves the bill, the residency questions and hash export by support request, and the same code around it |
+| A self-hosted identity server (Keycloak, Ory, Zitadel) | A long-running server outside Workers, for one operator to run and patch |
+| An auth framework running in Vervoro's Worker (Better Auth) | Requires a clear email in its user table; its organisations assume members in one database, while Vervoro's live in many cells; its defaults (user verification "preferred", trusted devices for 30 days) would need overriding; Vervoro would still own the same rules, plus the framework's upgrades within its fix deadlines |
+| Every primitive in-house, passkeys included | The passkey verifier is the part most often got wrong. A small in-house verifier stays possible behind the same verify function, with the library as its test oracle |
+| Sign-in as a module inside the app Worker | Any package in the app could read the sign-in keys and the login tables; leaked authenticator secrets and hashes cannot be rotated away |
+| PBKDF2 | Capped at 100,000 iterations on Workers, below OWASP's 600,000 |
+| Argon2 | Not offered natively on Workers; in JavaScript or WebAssembly it is slower or unproven there |
+| A pepper mixed into the password hash | Cannot change without resetting every password; sealing under a versioned key gives the same protection and rotates |
+| Hashing the password on the phone | The server must still check Amazon's password rules when it is set, and a stolen hash becomes the password |
+| A copy of the breached-password list in Vervoro's storage | A large list to refresh, for a check that runs only when a password is set |
+| A re-check against breached passwords at every sign-in | One more outside call per sign-in; the password was checked when set and is checked again at the yearly change |
+| Re-enrolment approved remotely by number matching | An attacker can read the number to the approver over the phone; the reset needs a code in person or by phone plus an email link |
+| Managers resetting Warehouse staff | Widens who can take over a login; Owners and Admins are enough at launch |
+| Lockout counted per device | Keeps a stranger from locking a worker out, but adds a counter per device and stretches Amazon's "10 consecutive failures"; passkey sign-in already bypasses the lock |
+| A delay alone for the last Owner, with no marketplace step | Anyone who reaches the Owner's mailbox and waits three days would get in |
+
 ## What later records decide
 
 - **Billing and plans ([ADR-012](../billing-and-plans/)):** decided there: what each role may do while a company is restricted or closed, and the billing rows of the table of who may do what.
@@ -415,3 +537,6 @@ Checked against the official sources on 18 October 2026.
 - **Purchasing, returns and other modules:** their actions, as rows in this matrix.
 - **Integration access:** whether sellers get tokens, outbound notices or connected apps, and on what terms.
 - **Single sign-on for larger customers,** and custom roles, if enough sellers ask.
+- **Lockout counted per device,** if the security log shows the same login locked again and again (an accountant who signs in with a password is the likely case).
+- **An end date on a membership** for agency and seasonal staff, removed by the sweeper; until then, removal by an Owner or Admin meets ADR-009's 24 hours.
+- **A small in-house passkey verifier** in place of the library, if the pinned tree becomes a risk.
