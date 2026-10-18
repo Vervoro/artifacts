@@ -135,7 +135,7 @@ What is never kept:
 | Role | Sees name, address and phone | When |
 | --- | --- | --- |
 | Owner, admin, manager | Yes | Any order that still holds buyer data, to serve the buyer |
-| Warehouse | Yes, in their warehouses only | From picking until the order is shipped, plus label reprints for 24 hours after |
+| Warehouse | Yes, in their warehouses only | From picking until the order is shipped, plus label reprints for 24 hours after, and while clearing an address hold on the order (ADR-007); each such view is recorded |
 | Accountant | Only as printed on issued invoices | Never on orders |
 | Staff | No | Never |
 

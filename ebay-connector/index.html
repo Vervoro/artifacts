@@ -96,7 +96,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2>Decision</h2>
 <ol>
 <li><strong>One Vervoro application, approved by each seller</strong> on eBay&#39;s own consent page. Nobody pastes keys.</li>
-<li><strong>Orders arrive by eBay&#39;s Notification API:</strong> one signed destination for the whole application, and a subscription per seller to order confirmations and cancellation activity. Each notice is answered by fetching the order.</li>
+<li><strong>Orders arrive by eBay&#39;s Notification API:</strong> one signed destination for the whole application, and a subscription per seller to order confirmations, cancellation activity and items marked shipped. Each notice is answered by fetching the order.</li>
 <li><strong>The backup read runs hourly,</strong> because eBay&#39;s order allowance is shared by every seller; an account whose notices look broken is read every 10 minutes. The read goes from the last page of its window back to the first.</li>
 <li><strong>Every linked listing gets the figure:</strong> inventory items through the Inventory API, Seller Hub listings through the Trading API by item number. A listing nobody linked gets none: finding every listing a SKU is on only finds listings for <a href="../catalogue-sync/">ADR-005</a> to suggest.</li>
 <li><strong>The Trading API is spent only where nothing else will do,</strong> from the shared pool of ADR-004, with a daily page cap per account.</li>
@@ -116,13 +116,13 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p><strong>Notices first.</strong> eBay&#39;s Notification API posts signed JSON to one destination for Vervoro&#39;s application.</p>
 <ul>
 <li><strong>The destination is made once per environment</strong> by the operator, because making it needs the endpoint&#39;s verification token, a secret no hook sees. eBay also wants an alert address for the application before it accepts a destination, and checks the endpoint&#39;s challenge before it keeps it.</li>
-<li><strong>Each seller is subscribed on connect</strong> to two topics: order confirmation (the buyer finished checkout and payment cleared) and order cancellation activity (a cancellation requested, declined or completed). The disconnect hook removes both subscriptions. A subscription that fails is retried and alerts, and the account shows as &quot;not notified&quot; until it works.</li>
+<li><strong>Each seller is subscribed on connect</strong> to three topics: order confirmation (the buyer finished checkout and payment cleared), order cancellation activity (a cancellation requested, declined or completed) and item marked shipped (the seller shipped an item outside Vervoro). The disconnect hook removes the subscriptions. A subscription that fails is retried and alerts, and the account shows as &quot;not notified&quot; until it works.</li>
 <li><strong>A notice is verified with eBay&#39;s public key</strong> before any database read, and handed on only for a seller someone holds, as a minimal message: the topic, the notice id, the seller&#39;s user id and the order ids. No user name and no buyer details.</li>
 <li><strong>The order is fetched at once</strong> (one call on the order resource) and imported. A cancellation notice makes the host fetch the order again; the fetched order&#39;s own cancellation state decides, so a declined request needs nothing of its own. A reminder to answer a cancellation is ignored.</li>
 </ul>
 <p><strong>The backup read.</strong> It reads orders changed in a window, hourly by default (24 order calls a day for a quiet seller, against the application&#39;s 100,000; at 1,000 sellers, 24,000). A read every 10 minutes would be 144 a seller, more than the whole allowance at 1,000 sellers. An account whose notices look broken is read every 10 minutes, and any complete read, including one a raise asks for, resets the timer (ADR-004). Early reads are never closer than one minute apart. The window ends 10 seconds before now, so an order eBay is still writing is read next time.</p>
 <p><strong>A window is read backwards.</strong> eBay pages orders by offset. An order that changes while its window is being paged leaves the window, and every order after it moves up one place. Read forwards, an order at the edge of the next page would slip onto a page already read, and no later window would read it, because its change date did not move. So the first call reads offset 0; if more pages exist, the read goes from the last page back to offset 0. A departure can then only move an order onto a page still to come, where it is read twice, and imports are idempotent. Only the final read of offset 0 proves the window complete. A window of n pages costs n + 1 calls; a window of one page costs one.</p>
-<p><strong>Items marked shipped on eBay</strong> (outside Vervoro) come in through the backup read, not by notice: no further scope is asked of the seller for them. Holding stock a little longer is the safe side.</p>
+<p><strong>Items marked shipped on eBay</strong> (outside Vervoro) come by the item-marked-shipped notice, which fetches the order. The scope it needs is read with <code>getTopics</code> on Vervoro&#39;s production keyset before it is asked of sellers; until then, and for any notice that is lost, the backup read finds them. Vervoro&#39;s own shipments come back on the same topic and are not fetched again (ADR-007).</p>
 <p>How an imported order is mapped to statuses and reservations is ADR-007.</p>
 <h2>Listings and stock</h2>
 <p><strong>Every linked listing a SKU is on.</strong> A read names, for each SKU, every listing it is on: the inventory item, each Seller Hub listing by item number, and each variation by item number and its own SKU. Only the listings a person linked (ADR-005) are written to; the host hands their item numbers back on every write and read back. Another listing that carries a linked SKU but is not linked itself gets no figure: it is suggested for linking and treated as shared stock (ADR-005). One SKU on several linked listings shows the highest figure any of them shows, so a listing showing more than Vervoro&#39;s figure is always corrected, and the seller sees a note that each linked listing gets the same figure.</p>
@@ -174,7 +174,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ul>
 <p>Changing the preference for the seller was rejected: it changes how all of their listings behave, including those Vervoro does not manage.</p>
 <h2>Cancellations</h2>
-<p>A seller&#39;s cancellation, and the seller&#39;s answer to a buyer&#39;s request (approve or reject), go through the Post-Order API&#39;s cancellation resource, through the egress gate. eBay cancels whole orders only, up to 30 days after the sale. The resource allows 5,000 calls a day for the whole application: an ADR-004 shared pool. Every call is a person&#39;s action, so the pool has one lane, and the operator is alerted at 90 %. When to send one is <a href="../order-ingestion/">ADR-007</a>.</p>
+<p>Vervoro sends no cancellation and no answer to a buyer&#39;s request (<a href="../order-ingestion/">ADR-007</a>). The seller cancels, approves or rejects in Seller Hub, and the result comes back by the cancellation notice. No Post-Order call is made, so no cancellation pool is shared. The cancellations scope is still asked for, because the cancellation notice needs it. eBay gives the seller 3 calendar days to answer a buyer&#39;s request; ADR-007 fetches the order again when that window closes.</p>
 <h2>Dispatch</h2>
 <p>A shipment is confirmed on the order with its carrier and tracking number, through the fulfilment API, one call per shipment, through the egress gate.</p>
 <h2>Account deletion notices</h2>
@@ -184,7 +184,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>for anyone else, looks up a keyed hash of the user id in each cell; a buyer found there has their orders anonymised at once (<a href="../buyer-data/">ADR-009</a>). Nothing from the notice is kept.</li>
 </ul>
 <h2>Simulator and sandbox</h2>
-<p>The eBay simulator speaks the Inventory, Fulfillment, Feed, Notification and Identity APIs and the Trading API&#39;s XML calls used here, including the consent page, token exchange, signed notices, daily usage limits and the out-of-stock preference. Before launch, each call is recorded against eBay&#39;s sandbox or a real account and the simulator is corrected where it differs. The recordings include a check that the order list keeps a stable order for one filter across calls, which the backwards read relies on. Before launch, eBay&#39;s topic list (<code>getTopics</code>) is also read with Vervoro&#39;s production keyset: it must show both order topics available to Vervoro, with the scopes Vervoro asks for. eBay says some topics are open only to approved partners, so a topic that is not available is requested from eBay before any seller connects.</p>
+<p>The eBay simulator speaks the Inventory, Fulfillment, Feed, Notification and Identity APIs and the Trading API&#39;s XML calls used here, including the consent page, token exchange, signed notices, daily usage limits and the out-of-stock preference. Before launch, each call is recorded against eBay&#39;s sandbox or a real account and the simulator is corrected where it differs. The recordings include a check that the order list keeps a stable order for one filter across calls, which the backwards read relies on. Before launch, eBay&#39;s topic list (<code>getTopics</code>) is also read with Vervoro&#39;s production keyset: it must show the three order topics available to Vervoro, with the scopes Vervoro asks for. eBay says some topics are open only to approved partners, so a topic that is not available is requested from eBay before any seller connects.</p>
 <h2>eBay constraints</h2>
 <p>Checked against eBay&#39;s documentation on 17 October 2026; the order topics row on 18 October 2026.</p>
 <div class="table-wrap"><table>
@@ -242,13 +242,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Order topics</td>
-<td><code>ORDER_CONFIRMATION</code> (the buyer completed checkout) and <code>ORDER_CANCELLATION_ACTIVITY</code> (a cancellation started); some topics are restricted to approved partners, and <code>getTopics</code> gives each topic&#39;s scopes</td>
+<td><code>ORDER_CONFIRMATION</code> (the buyer completed checkout), <code>ORDER_CANCELLATION_ACTIVITY</code> (a cancellation started) and <code>ITEM_MARKED_SHIPPED</code> (an item marked shipped, with tracking and the shipped date); some topics are restricted to approved partners, and <code>getTopics</code> gives each topic&#39;s scopes</td>
 <td><a href="https://developer.ebay.com/develop/api/buy/notification_events">Notification topics</a></td>
-</tr>
-<tr>
-<td>Post-Order API cancellations, per application</td>
-<td>5,000 calls a day; whole orders only, up to 30 days after the sale</td>
-<td><a href="https://developer.ebay.com/develop/api/sell/api_call_limits">API call limits</a>, <a href="https://developer.ebay.com/Devzone/post-order/post-order_v2_cancellation__post.html">Create cancellation</a></td>
 </tr>
 </tbody></table></div>
 <h2>Consequences</h2>

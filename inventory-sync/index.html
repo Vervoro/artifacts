@@ -285,7 +285,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>A bundle</strong> takes, for each component, that component&#39;s avail for account A, divided by the quantity the bundle needs, rounded down, and the smallest of them (ADR-003).</li>
 <li><strong>The listing.</strong> D = floor(avail ÷ u).</li>
 </ol>
-<p><strong>Import problems.</strong> ADR-007 records an order that cannot be imported, with the listing and quantity of each line it could read. Its units are sold on the marketplace but reserved nowhere. So each line whose listing and quantity were read takes its quantity times the units per sale of the link valid at the time of purchase off avail for every account, never below zero. When the order imports, its reservations replace the deduction in the same transaction. A line whose quantity could not be read holds raises on its listing. A line whose listing could not be read holds every raise on the account, as ADR-007&#39;s scope says; after 60 minutes the operator is paged.</p>
+<p><strong>Import problems.</strong> ADR-007 records an order that cannot be imported, with the listing and quantity of each line it could read. Its units are sold on the marketplace but reserved nowhere. So each line whose listing and quantity were read takes its quantity times the units per sale of the link valid at the time of purchase off avail for every account, never below zero. When the order imports, its reservations replace the deduction in the same transaction. A line whose quantity could not be read holds raises on its listing. A line whose listing could not be read holds every raise on the account, as ADR-007&#39;s scope says; after 60 minutes the operator is paged. A mirror&#39;s lines (a Shopify copy of a sale from a marketplace also connected directly, whose direct order has not arrived, ADR-007) are recorded and counted the same way.</p>
 <p><strong>No figure.</strong> Marketplace-shipped listings (ADR-003); pending, ended and missing listings (ADR-005); eBay variations without a SKU; eBay Seller Hub listings never read because the out-of-stock option is off (ADR-004.1); listings that are not managed; disconnected accounts. &quot;No figure&quot; is never sent as 0.</p>
 <p><strong>Versions.</strong> The desired row holds D, a version, and the ledger sequence and time it came from. The version rises only when D changes, so a recompute that changes nothing sends nothing. A policy, link or setting change recomputes under the company&#39;s lock without a ledger entry. An older figure never replaces a newer one (ADR-000).</p>
 <p><strong>Worked example.</strong> Honey has sellable 27. The last 2 are kept for the eBay account, which links honey and jam. The Shopify account has a buffer of 3 for honey. Gift set G is 1 honey and 2 jam; jam has sellable 9.</p>
@@ -664,7 +664,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p><strong>The listing check.</strong> D is compared with what each marketplace shows, listing by listing. A listing showing more than D is never accepted as explained: going live sends the decrease. A listing showing less can be accepted in bulk. A ratio of 3 or more either way is listed first and needs its own tap (ADR-005).</p>
 <p><strong>A company&#39;s first go-live</strong> is a move from an older system, and needs:</p>
 <ul>
-<li><strong>Two on-hand imports from the old system,</strong> one when shadow starts and one at going live. Every product that fell by more than its imported orders explain is listed for the seller to tick off: it shows an order type Vervoro does not see.</li>
+<li><strong>Two on-hand imports from the old system,</strong> one when shadow starts and one at going live. Every product that fell by more than its imported orders explain is listed for the seller to tick off: it shows an order type Vervoro does not see. The import at going live sets each product&#39;s on hand outright to the old system&#39;s figure, as one adjustment for the difference, so units shadow already deducted for orders shipped outside Vervoro (ADR-007) are never taken twice.</li>
 <li><strong>One complete order read</strong> and every linked listing read.</li>
 <li><strong>Every account the old system syncs goes live in one step,</strong> and the seller confirms that the old system&#39;s sync is off. After this, on-hand imports are refused, a restore included: the ledger is the only record of stock.</li>
 </ul>
@@ -927,7 +927,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Holding raises when Amazon orders come from a marketplace the account does not serve</td>
-<td>Those orders are imported and reserve stock like any other (ADR-007), so holding raises protects nothing</td>
+<td>Those orders are imported and reserve stock like any other (ADR-007); the first from each such marketplace waits until the seller says who ships them. Holding raises protects nothing</td>
 </tr>
 <tr>
 <td>A product-wide limit on how far its listings may together show too much</td>

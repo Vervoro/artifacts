@@ -76,7 +76,7 @@ A connector is built per account by a factory. The factory gets the account's HT
 - **Approval connect:** the seller connects by approving Vervoro on the marketplace, instead of pasting keys.
 - **Account setup choices:** what a person picks after connecting, such as which locations or marketplaces of the account Vervoro serves.
 
-Later records add capabilities of their own (catalogue details, cancellations, purchase orders) in the same way. A capability is a typed addition to the contract, so a connector that does not declare it needs no change.
+Later records add capabilities of their own (catalogue details, purchase orders) in the same way. A capability is a typed addition to the contract, so a connector that does not declare it needs no change.
 
 **What a connector cannot do,** enforced by the build:
 

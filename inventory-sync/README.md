@@ -101,7 +101,7 @@ At 2, eBay and Shopify are sent 0 at once, and from then on only Amazon can sell
 3. **A bundle** takes, for each component, that component's avail for account A, divided by the quantity the bundle needs, rounded down, and the smallest of them (ADR-003).
 4. **The listing.** D = floor(avail ÷ u).
 
-**Import problems.** ADR-007 records an order that cannot be imported, with the listing and quantity of each line it could read. Its units are sold on the marketplace but reserved nowhere. So each line whose listing and quantity were read takes its quantity times the units per sale of the link valid at the time of purchase off avail for every account, never below zero. When the order imports, its reservations replace the deduction in the same transaction. A line whose quantity could not be read holds raises on its listing. A line whose listing could not be read holds every raise on the account, as ADR-007's scope says; after 60 minutes the operator is paged.
+**Import problems.** ADR-007 records an order that cannot be imported, with the listing and quantity of each line it could read. Its units are sold on the marketplace but reserved nowhere. So each line whose listing and quantity were read takes its quantity times the units per sale of the link valid at the time of purchase off avail for every account, never below zero. When the order imports, its reservations replace the deduction in the same transaction. A line whose quantity could not be read holds raises on its listing. A line whose listing could not be read holds every raise on the account, as ADR-007's scope says; after 60 minutes the operator is paged. A mirror's lines (a Shopify copy of a sale from a marketplace also connected directly, whose direct order has not arrived, ADR-007) are recorded and counted the same way.
 
 **No figure.** Marketplace-shipped listings (ADR-003); pending, ended and missing listings (ADR-005); eBay variations without a SKU; eBay Seller Hub listings never read because the out-of-stock option is off (ADR-004.1); listings that are not managed; disconnected accounts. "No figure" is never sent as 0.
 
@@ -284,7 +284,7 @@ Every account starts in shadow (ADR-004): orders reserve inside Vervoro and the 
 
 **A company's first go-live** is a move from an older system, and needs:
 
-- **Two on-hand imports from the old system,** one when shadow starts and one at going live. Every product that fell by more than its imported orders explain is listed for the seller to tick off: it shows an order type Vervoro does not see.
+- **Two on-hand imports from the old system,** one when shadow starts and one at going live. Every product that fell by more than its imported orders explain is listed for the seller to tick off: it shows an order type Vervoro does not see. The import at going live sets each product's on hand outright to the old system's figure, as one adjustment for the difference, so units shadow already deducted for orders shipped outside Vervoro (ADR-007) are never taken twice.
 - **One complete order read** and every linked listing read.
 - **Every account the old system syncs goes live in one step,** and the seller confirms that the old system's sync is off. After this, on-hand imports are refused, a restore included: the ledger is the only record of stock.
 
@@ -416,7 +416,7 @@ This record amends three published records, in the same publication.
 | A heartbeat listing written every 15 minutes | A page for the oldest unsent figure finds a stalled sync without writing to any marketplace |
 | Send figures from a queue of messages | Old figures would replay; one row per listing sends only the latest (ADR-000) |
 | A "lowered on the marketplace" hold | The eBay revision count bounds any tug-of-war with a seller's own edits, and a hold would leave a listing at 0 with stock until the seller answers |
-| Holding raises when Amazon orders come from a marketplace the account does not serve | Those orders are imported and reserve stock like any other (ADR-007), so holding raises protects nothing |
+| Holding raises when Amazon orders come from a marketplace the account does not serve | Those orders are imported and reserve stock like any other (ADR-007); the first from each such marketplace waits until the seller says who ships them. Holding raises protects nothing |
 | A product-wide limit on how far its listings may together show too much | With the zone at least T wide, it matters only above about 250 sales an hour, and its writes could not be explained on the seller's screen |
 | A safety reserve sized from each account's shadow use | ADR-004's reserve stands; this is the fallback if eBay's Growth Check grants less (see later records) |
 | Pacing the bulk lane to the pool's daily reset | No pool is contested at 5 to 100 sellers |

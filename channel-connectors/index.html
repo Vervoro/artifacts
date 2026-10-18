@@ -269,7 +269,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Approval connect:</strong> the seller connects by approving Vervoro on the marketplace, instead of pasting keys.</li>
 <li><strong>Account setup choices:</strong> what a person picks after connecting, such as which locations or marketplaces of the account Vervoro serves.</li>
 </ul>
-<p>Later records add capabilities of their own (catalogue details, cancellations, purchase orders) in the same way. A capability is a typed addition to the contract, so a connector that does not declare it needs no change.</p>
+<p>Later records add capabilities of their own (catalogue details, purchase orders) in the same way. A capability is a typed addition to the contract, so a connector that does not declare it needs no change.</p>
 <p><strong>What a connector cannot do,</strong> enforced by the build:</p>
 <ul>
 <li>Call the network. A lint rule bans every network global in connector code, and a test proves the rule fires.</li>

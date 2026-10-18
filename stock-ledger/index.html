@@ -76,7 +76,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Scope</strong></td>
-<td>How Vervoro records and holds stock: the append-only ledger and its nightly proof, the four stock numbers per product, batch and spot, reserving on order (batches, shelf life, packs, bundles), packing and deducting on dispatch (including part of an order), cancellations, returns, orders that wait for a link, marketplace-shipped stock, receiving, counts while picking goes on, adjustments and who may make them, use-by and best-before, recalls, negative stock, concurrency and repeats, and which changes give listings a new figure</td>
+<td>How Vervoro records and holds stock: the append-only ledger and its nightly proof, the four stock numbers per product, batch and spot, reserving on order (batches, shelf life, packs, bundles), packing and deducting on dispatch (one shipment per order), cancellations, returns, orders that wait for a link, marketplace-shipped stock, receiving, counts while picking goes on, adjustments and who may make them, use-by and best-before, recalls, negative stock, concurrency and repeats, and which changes give listings a new figure</td>
 </tr>
 <tr>
 <td><strong>Revision</strong></td>
@@ -141,7 +141,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>A pack reserves its own stock; a bundle reserves its components in whole sets.</strong> The order line records the link version it reserved with and, for a bundle, the components and quantities it used.</li>
 <li><strong>A line for an unlinked listing reserves nothing.</strong> Making the link reserves for every waiting line of that listing, oldest first, in the link&#39;s own transaction.</li>
 <li><strong>A line the marketplace ships reserves nothing.</strong> A line whose fulfilment is not yet known reserves as if the seller ships it.</li>
-<li><strong>Packing records the batch that left; stock leaves only when a shipment is confirmed.</strong> Packing names the batch of every unit and moves it, still reserved, to the warehouse&#39;s packing spot. A shipment may carry part of an order, and deducts exactly what was packed for it, once.</li>
+<li><strong>Packing records the batch that left; stock leaves only when a shipment is confirmed.</strong> Packing names the batch of every unit and moves it, still reserved, to the warehouse&#39;s packing spot. A shipment carries the whole order, possibly in several boxes, and deducts exactly what was packed for it, once.</li>
 <li><strong>A cancellation request is not a cancellation.</strong> A confirmed cancellation before dispatch releases exactly what the line held. After dispatch, nothing moves until goods come back.</li>
 <li><strong>Returns go back into the batch they left from, held, until a person inspects them:</strong> restock, keep as damaged, or write off.</li>
 <li><strong>Received stock is sellable as soon as the receipt is confirmed.</strong> Put-away to a shelf is a move between spots and changes nothing a channel sees. A receipt that needs a manager (no purchase order, or short-dated) enters the ledger at once, quarantined, until a manager accepts or refuses it.</li>
@@ -684,14 +684,14 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ul>
 <p>Sellable does not change on dispatch, because on hand and reserved fall by the same amount. Listings get no new figure from it.</p>
 <p><strong>An order shipped without packing in Vervoro</strong> (a seller who confirms dispatch at the bench without packing on the phone) has its packing done by the dispatch itself: one eligible batch is implied, otherwise the reserved batch is deducted, marked &quot;batch assumed&quot;.</p>
-<p><strong>Part of an order.</strong> A shipment may carry part of a line or some lines only. It deducts what was packed for it. What is not shipped stays reserved. A line can never ship more than it has reserved; a short line ships what it holds, or waits. A bundle line ships whole sets.</p>
+<p><strong>Whole orders.</strong> Vervoro ships an order whole (ADR-007): one shipment, which may be several boxes, carries every unit still to ship and deducts what was packed for it. A line can never ship more than it has reserved, so an order with a short line waits. A bundle line ships whole sets. An order is part shipped only when its marketplace reports part of it shipped outside Vervoro; the rest stays reserved and ships whole.</p>
 <p><strong>Recorded once.</strong> Each shipment has its own id, and confirming it again returns the first answer. Retries, a second tap and tracking updates never deduct twice.</p>
-<p><strong>Shipped outside Vervoro.</strong> A marketplace may report an order as shipped when nobody confirmed a shipment in Vervoro, for example after the seller bought a label in the marketplace&#39;s own tools. Vervoro then deducts what the lines held, packed units first, as a <code>dispatched</code> entry whose source is &quot;marketplace said shipped&quot;, marked &quot;batch assumed&quot; for unpacked units. The seller sees these in the daily digest. If the parcel did not come from the warehouse, a manager reverses it with an <code>adjusted</code> entry and a reason. Deducting is the safe direction: a wrong deduction shows too little, and a count finds it; a wrong release would offer units that left.</p>
+<p><strong>Shipped outside Vervoro.</strong> A marketplace may report an order as shipped when nobody confirmed a shipment in Vervoro, for example after the seller bought a label in the marketplace&#39;s own tools. Vervoro then deducts what the lines held, packed units first, as a <code>dispatched</code> entry whose source is &quot;marketplace said shipped&quot;, marked &quot;batch assumed&quot; for unpacked units. When the deduction had to choose between two or more eligible batches of a dated product, a task asks the warehouse to tap the lot that left; it never blocks anything. It happens in shadow too, where the old system ships: those entries are marked &quot;lot not traced&quot;, and a recall does not rely on their batch. The seller sees these in the daily digest. If the parcel did not come from the warehouse, a manager reverses it with an <code>adjusted</code> entry and a reason. Deducting is the safe direction: a wrong deduction shows too little, and a count finds it; a wrong release would offer units that left.</p>
 <p><strong>Worked example.</strong> A line for 5 jars holds A × 3 (30 Nov 2026) and B × 2 (31 Mar 2027). Shelf 1 holds only batch A, so the packer packs 3 jars from it without a tap.</p>
 <ul>
 <li>Packing: A × 3 moves from Shelf 1 to the packing spot, still reserved. The line&#39;s record shows batch A × 3.</li>
-<li>The packer confirms a shipment of 3. <code>dispatched</code>: A on hand −3 (packing spot), reserved −3. B × 2 stays reserved. The order is part shipped.</li>
-<li>Later the packer packs 2 from Shelf 2, which holds batches B and E. The packer taps the date on the jars: 31 Mar 2027, batch B. The second shipment deducts B. The order is shipped.</li>
+<li>The packer packs 2 more from Shelf 2, which holds batches B and E, and taps the date on the jars: 31 Mar 2027, batch B. B × 2 moves to the packing spot.</li>
+<li>The packer confirms one shipment of 5. <code>dispatched</code>: A on hand −3 and B on hand −2 (packing spot), reserved −5. The order is shipped.</li>
 <li>A repeat of the first confirmation, with the same shipment id, changes nothing and returns &quot;already confirmed&quot;.</li>
 </ul>
 <h2>Cancellations</h2>
@@ -700,12 +700,12 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>A request is not a cancellation.</strong> A buyer&#39;s request keeps the reservation until the marketplace confirms the cancellation. A refused request must not leave an order without stock.</li>
 <li><strong>A confirmed cancellation releases exactly what each line held,</strong> batch by batch, in one transaction. Listings get new figures at once.</li>
 <li><strong>Part of an order:</strong> a line cancelled, or a smaller quantity, releases that part only, latest sell-by date first.</li>
-<li><strong>Already picked, not packed:</strong> the units are in a tote but still on hand in their spot by the books. The release returns them to sellable, and the warehouse is told to put them back.</li>
-<li><strong>Already packed:</strong> the units are in the packing spot. The release returns them to sellable there, and the warehouse is told to put them away (a move).</li>
+<li><strong>Already picked, not packed:</strong> the units are in a tote but still on hand in their spot by the books. The release returns them to sellable, and a put-back task stays open until each unit is scanned back (ADR-007).</li>
+<li><strong>Already packed:</strong> the units are in the packing spot. The release returns them to sellable there, and a put-back task stays open until each unit is scanned away (a move).</li>
 <li><strong>A held order</strong> keeps its reservation; a confirmed cancellation still cancels it (ADR-007).</li>
 </ul>
 <p><strong>After dispatch:</strong> the units have left. A cancellation moves no stock. If the parcel comes back, it is a return.</p>
-<p><strong>Part shipped:</strong> the cancellation releases what is still reserved, and the shipped part follows the after-dispatch rule.</p>
+<p><strong>Part shipped</strong> (the marketplace reported part shipped outside Vervoro): the cancellation releases what is still reserved, and the shipped part follows the after-dispatch rule.</p>
 <h2>Returns</h2>
 <p><strong>A return comes back into the batch it left from.</strong> The returned line names the order line. The units go into one of the batches that line dispatched, in a spot the person chooses (a returns bench, or the warehouse&#39;s default spot), as <code>returned</code>: on hand and quarantined up together. They are held, never sellable, until inspected.</p>
 <ul>
@@ -986,6 +986,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>The sequence has no gaps</strong> since the last check.</li>
 <li><strong>No closed line holds stock.</strong> No open reservation remains on a line that is cancelled, fully shipped or resolved again.</li>
 <li><strong>Documents equal their entries.</strong> Per day, units on shipped order lines equal their <code>dispatched</code> entries, and units dispatched per line equal units shipped × the units per sale of its link version; handed-over marketplace shipments equal their <code>transferred_out</code> entries; received return lines equal their <code>returned</code> entries. One grouped query per document kind.</li>
+<li><strong>Order statuses agree.</strong> Each open order&#39;s status is worked out again from its facts and compared with the stored one (ADR-007). A difference here alerts the operator only.</li>
 </ol>
 <p><strong>A difference</strong> alerts the operator and the company&#39;s managers, and holds raises on every listing of the affected products (decreases still go). The ledger is the truth: the operator finds the cause, rebuilds the balance from the ledger, records the repair in the activity view, and the hold clears.</p>
 <p><strong>Checkpoints</strong> (ADR-002). Before a ledger month leaves the database, the archiver writes, under the company&#39;s lock, one <code>opening_balance</code> entry per spot balance and batch position that had entries up to then. It carries each stored number&#39;s total and the last sequence it covers, and each open reservation&#39;s reserved, packed and dispatched totals. The check sums from it. Reservation rows that are still open are current state and never archived.</p>
@@ -1186,8 +1187,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>The command; a test</td>
 </tr>
 <tr>
-<td>A shipment deducts only what was packed for it</td>
-<td>The command; a test with part shipments</td>
+<td>A shipment deducts only what was packed for it, and carries every unit still to ship</td>
+<td>The command; a test with a short order and a shipment of several boxes</td>
 </tr>
 <tr>
 <td>A move between spots never changes a reservation</td>

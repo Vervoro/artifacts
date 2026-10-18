@@ -93,7 +93,7 @@ There is one invoice layout. With the customer block filled it is a full invoice
 | The order's marketplace order id | Yes | Yes | Yes |
 | No payment instructions on a marketplace order (the marketplace collects payment) | Yes | Yes | Yes |
 
-**The customer's name and address** in the customer block are typed or confirmed by the person who issues it. The delivery recipient and address are offered as a starting point, and a business buyer's company name and VAT number when the marketplace gives them. They are stored on the invoice only, never on the order. They stay for the invoice's 6 years, encrypted with the company's key, as ADR-009 decides.
+**The customer's name and address** in the customer block are typed or confirmed by the person who issues it. The delivery recipient and address are offered as a starting point, and a business buyer's company name and VAT number when the marketplace gives them, or when a manual order records them with the buyer's purchase-order reference (ADR-007). They are stored on the invoice only, never on the order. They stay for the invoice's 6 years, encrypted with the company's key, as ADR-009 decides.
 
 **The seller's details** come from the company's invoicing settings: the registered name and address, and the VAT number with its registration date. Nothing else is needed by law, so there is no logo, footer or trading name at launch. The details are copied into each document when it is issued, so changing them later never changes a document already issued.
 

@@ -46,7 +46,7 @@ Amazon shapes the design in six ways:
 - **One account, one region.** The region decides the API address and which notice destination the seller is subscribed to.
 - **One figure across the account's marketplaces.** A listing update names every marketplace the account serves, and Amazon applies one quantity to all of them.
 - **Whether a sale on one marketplace lowers the others** depends on a seller setting Vervoro cannot see (Amazon's international listings tool). So an order counts as coming out of Vervoro's figure only when the account serves exactly one marketplace; with several, Vervoro assumes the cautious case. ADR-008 decides how that shapes the figure.
-- **An order from a marketplace the account does not serve** is not imported: Amazon's notices cover the whole region, and the backup read would never update such an order.
+- **Orders from every marketplace of the region are imported.** Amazon's notices cover the whole region, so the backup read asks for all of the region's marketplaces in one search (it takes up to 50), and every such order stays up to date at no extra cost. The first order the seller ships from a marketplace the account was not set up for asks who ships that marketplace's orders: this warehouse, or someone else (ADR-007).
 
 ## Notices and the relay
 
@@ -69,7 +69,7 @@ Amazon shapes the design in six ways:
 - **A listing change** makes the host read that listing back, which catches a figure changed in Seller Central.
 - **An Amazon-held stock change** makes the connector read Amazon's stock for the SKUs it names (below).
 
-**The backup read** searches orders changed since the watermark, every 10 minutes: the limit is the seller's own, so a short interval costs no other seller anything (ADR-004). Any complete read, including one a raise asks for, resets the timer. The order search refills only about once every three minutes, so an early check is never closer than that. Each page carries its orders' items, so nothing is fetched per order. Amazon stops a search two minutes before its own clock and says where it stopped; that bound is the window's completeness. How orders are imported is ADR-007.
+**The backup read** searches orders changed since the watermark, on every marketplace of the account's region, every 10 minutes: the limit is the seller's own, so a short interval costs no other seller anything (ADR-004). Any complete read, including one a raise asks for, resets the timer. The order search refills only about once every three minutes, so an early check is never closer than that. Each page carries its orders' items, so nothing is fetched per order. Amazon stops a search two minutes before its own clock and says where it stopped; that bound is the window's completeness. How orders are imported is ADR-007.
 
 ## Stock
 

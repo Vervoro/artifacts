@@ -1,8 +1,8 @@
-<svg class="diagram" viewBox="0 0 760 336" role="img" aria-label="An order moves from pending to open, picking, packed and shipped; a person may put a picked order back to open; part of an order can ship, and the rest is picked again; a confirmed cancellation before shipping cancels it; holds can sit on any status before shipping without changing it" xmlns="http://www.w3.org/2000/svg" font-size="13">
+<svg class="diagram" viewBox="0 0 760 336" role="img" aria-label="An order's status is worked out from its facts: pending, open, picking, packed and shipped; a picked or packed order goes back to open when a person puts it back or the marketplace changes it; only a marketplace report makes an order part shipped, and the rest is picked whole; a confirmed cancellation before shipping cancels it; holds can sit on any status before shipping without changing it" xmlns="http://www.w3.org/2000/svg" font-size="13">
   <defs>
     <marker id="ord-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="edge-fill"/></marker>
   </defs>
-  <text x="24" y="26" font-size="15" font-weight="600" class="ink">Statuses only move forward; holds sit beside them</text>
+  <text x="24" y="26" font-size="15" font-weight="600" class="ink">One status, worked out from the order's facts; holds sit beside it</text>
 
   <rect x="14" y="40" width="560" height="100" rx="8" class="band"/>
   <text x="294" y="56" text-anchor="middle" font-size="11.5" class="quiet">A hold can sit on any of these: the status stays, picking and dispatch wait, the stock stays reserved</text>
@@ -47,14 +47,14 @@
   <text x="79" y="222" text-anchor="middle" font-weight="600" class="ink">Cancelled</text>
   <text x="79" y="238" text-anchor="middle" font-size="10.5" class="quiet">final</text>
 
-  <text x="382" y="172" text-anchor="middle" font-size="10.5" class="quiet">put back by a person</text>
-  <text x="556" y="178" font-size="10.5" class="quiet">part</text>
-  <text x="556" y="191" font-size="10.5" class="quiet">ships</text>
+  <text x="382" y="172" text-anchor="middle" font-size="10.5" class="quiet">put back, or changed</text>
+  <text x="556" y="178" font-size="10.5" class="quiet">marketplace</text>
+  <text x="556" y="191" font-size="10.5" class="quiet">reports part</text>
   <text x="682" y="166" font-size="10.5" class="quiet">rest shipped</text>
   <text x="682" y="179" font-size="10.5" class="quiet">or cancelled</text>
-  <text x="404" y="256" text-anchor="middle" font-size="10.5" class="quiet">the rest is picked again</text>
+  <text x="404" y="256" text-anchor="middle" font-size="10.5" class="quiet">the rest is picked whole</text>
   <text x="24" y="270" font-size="10.5" class="quiet">A confirmed cancellation of every unit, from any status before shipping</text>
 
-  <text x="24" y="300" font-size="11.5" class="quiet">The marketplace can skip steps: an order it reports shipped goes straight to shipped.</text>
+  <text x="24" y="300" font-size="11.5" class="quiet">Only a marketplace report makes an order part shipped; one it reports shipped goes straight to shipped.</text>
   <text x="24" y="320" font-size="11.5" class="quiet">Orders the marketplace ships go from pending or open to shipped or cancelled, as it says, and are never picked.</text>
 </svg>

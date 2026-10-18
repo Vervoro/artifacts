@@ -29,7 +29,7 @@ Shopify is the seller's own shop, not a marketplace, and it shapes the design in
 5. **Every stock write uses compare-and-set,** one listing at a time or up to 250 in one call, decreases included.
 6. **Stock writes have their own share of the shop's cost budget,** with a reserve for the safety lane.
 7. **A variant with a blank or shared SKU is named by its variant id,** so every variant can still be linked and updated.
-8. **An order another marketplace's app put into the shop is marked with that marketplace,** so a sale Vervoro also gets directly is not counted twice. One whose marketplace cannot be told is imported as an ordinary sale, and the seller is warned.
+8. **An order another marketplace's app put into the shop is marked with that marketplace,** so a sale Vervoro also gets directly is not counted twice. One whose marketplace cannot be told is imported as an ordinary sale, and the seller is warned; if it matches a direct order, it is held as a possible duplicate.
 9. **Privacy webhooks are received, as Shopify requires.** A request to forget a buyer is carried out at once; the others are answered within 30 days.
 
 ## Connecting
@@ -59,7 +59,7 @@ Shopify is the seller's own shop, not a marketplace, and it shapes the design in
 
 **The backup read** searches orders updated since the watermark. Shopify's limits are per app and shop, so it runs every 10 minutes and costs no other seller anything. Early reads are never closer than 30 seconds apart. An account whose webhooks look broken is treated as ADR-004 says. Without the extra scope for older orders, only the last 60 days of orders can be read, which is longer than Vervoro keeps buyer data.
 
-**Orders other marketplaces put into the shop.** A seller who connects eBay or Amazon to Shopify with those marketplaces' own apps gets their orders in the shop too. Each order says which app created it. When it names a marketplace's app, the order is marked as sold on that marketplace, so a marketplace connected to Vervoro directly as well reaches Vervoro one way only. An order from a multi-marketplace app that cannot be attributed is imported as an ordinary sale, never dropped, and the seller is warned when any marketplace is also connected directly: counted twice is safer than missed. ADR-007 decides how such orders are imported.
+**Orders other marketplaces put into the shop.** A seller who connects eBay or Amazon to Shopify with those marketplaces' own apps gets their orders in the shop too. Each order says which app created it. When it names a marketplace's app, the order is marked as sold on that marketplace, so a marketplace connected to Vervoro directly as well reaches Vervoro one way only. An order from a multi-marketplace app that cannot be attributed is imported as an ordinary sale, never dropped, and the seller is warned when any marketplace is also connected directly: counted twice is safer than missed. When its SKUs and quantities match a direct order placed within 30 minutes, it is held as a possible duplicate for a manager; no buyer data is compared. ADR-007 decides how such orders are imported, and keeps a mirror's units off every figure until its direct order arrives.
 
 **Lines without a SKU.** A gift card, a tip, or a line that needs no shipping is left out. A line that needs shipping but has no SKU and no variant stays on the order, unmatched, so the order cannot be dispatched until a person looks.
 
