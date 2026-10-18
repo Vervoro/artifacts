@@ -786,6 +786,66 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="../stock-ledger/">ADR-006</a>, <a href="../order-ingestion/">ADR-007</a></td>
 </tr>
 <tr>
+<td><strong>Invoicing</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Issue an invoice; confirm a credit note</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td><a href="../invoicing-and-vat/">ADR-011</a></td>
+</tr>
+<tr>
+<td>Issue on Vervoro&#39;s figure despite a VAT flag (reason required)</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td><a href="../invoicing-and-vat/">ADR-011</a></td>
+</tr>
+<tr>
+<td>Read and download issued documents</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>While the order holds buyer data</td>
+<td>No</td>
+<td>Yes</td>
+<td>No</td>
+<td><a href="../invoicing-and-vat/">ADR-011</a>, <a href="../buyer-data/">ADR-009</a></td>
+</tr>
+<tr>
+<td>Change the invoicing settings (registered details, VAT registration, first number, eBay issuer)</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td><a href="../invoicing-and-vat/">ADR-011</a></td>
+</tr>
+<tr>
+<td>Make the accounting export</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>Yes</td>
+<td>No</td>
+<td><a href="../invoicing-and-vat/">ADR-011</a></td>
+</tr>
+<tr>
 <td><strong>Reports and exports</strong></td>
 <td></td>
 <td></td>
@@ -1210,7 +1270,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2>What later records decide</h2>
 <ul>
 <li><strong>Billing and plans (<a href="../billing-and-plans/">ADR-012</a>):</strong> decided there: what each role may do while a company is restricted or closed, and the billing rows of the table of who may do what.</li>
-<li><strong>Invoicing and VAT (ADR-011):</strong> the roles that issue, correct and read invoices, as rows in this matrix.</li>
+<li><strong>Invoicing and VAT (<a href="../invoicing-and-vat/">ADR-011</a>):</strong> decided there: the roles that issue, correct and read invoices, as rows in this matrix.</li>
 <li><strong>Purchasing, returns and other modules:</strong> their actions, as rows in this matrix.</li>
 <li><strong>Integration access:</strong> whether sellers get tokens, outbound notices or connected apps, and on what terms.</li>
 <li><strong>Single sign-on for larger customers,</strong> and custom roles, if enough sellers ask.</li>

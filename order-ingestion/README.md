@@ -125,7 +125,7 @@ Once an order is shipped or cancelled, its status is final. Later news is record
 
 ## The order and its lines
 
-**The order holds:** the account (or "manual"), the marketplace order id, the time of purchase, the marketplace's last change time, the status, the hold reasons, who ships it, the warehouse (the account's default, ADR-006), the ship-by time, the marketplace it was sold on, where it arrived from (directly, or through a Shopify app, below), the buyer fields of ADR-009, and the times it was shipped, cancelled, delivered and anonymised.
+**The order holds:** the account (or "manual"), the marketplace order id, the time of purchase, the marketplace's last change time, the status, the hold reasons, who ships it, the warehouse (the account's default, ADR-006), the ship-by time, the marketplace it was sold on, where it arrived from (directly, or through a Shopify app, below), the buyer fields of ADR-009, its delivery charge as the buyer paid it and any order-level discount (ADR-011), and the times it was shipped, cancelled, delivered and anonymised.
 
 **Each line holds** ADR-006's fields (the link version, product, units per sale, fulfilment, bundle components, units needed and missing) and:
 
@@ -140,7 +140,9 @@ Once an order is shipped or cancelled, its status is final. Later news is record
 | `fulfilment` | Who ships this line, from the marketplace: seller, marketplace, or unknown |
 | `resolved_by` | Link (the link valid at purchase), person (attached from the order), or none |
 | `stock_state` | Waiting, reserved, short, not reserved, or done (below) |
-| `unit_price`, `currency` | What the line sold for. Money is never added across currencies |
+| `unit_price`, `currency` | What the line sold for, as the buyer paid it: with VAT included when the marketplace includes it. Money is never added across currencies |
+| `discount`, `discount_funded_by` | The line's discount, and whether the seller or the marketplace funded it (ADR-011) |
+| `marketplace_tax`, `marketplace_collects` | The marketplace's own tax figure for the line, when it gives one, and whether it collects and pays that tax itself (ADR-011) |
 | `vat_country`, `vat_class`, `vat_rate` | The rate the line used (ADR-003) |
 
 Units shipped by Vervoro come from the shipments (ADR-006), so they are not stored twice.
@@ -613,4 +615,4 @@ Checked against each marketplace's documentation on 18 October 2026.
 - **ADR-008: Inventory sync** (planned): the figure each linked listing gets, which orders count as sales out of a figure already sent (an Amazon account serving several marketplaces, a Shopify order split across locations), and how long a raise waits for the order watermark.
 - **ADR-004.4: Amazon Vendor connector** (planned): Vendor purchase orders, which are demand of their own (ADR-006), not marketplace orders.
 - **Shipping** (a later record): labels, carriers and rates, tracking and delivery dates, the dispatch notice's carrier codes, and marketplace returns.
-- **Customers and invoicing** (a later record): business customers as saved records, and invoices for orders, within ADR-009's rules.
+- **[ADR-011: Invoicing and VAT](../invoicing-and-vat/):** invoices, credit notes and the VAT on every sale. Business customers as saved records remain a later record.

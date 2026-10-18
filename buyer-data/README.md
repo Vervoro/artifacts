@@ -39,7 +39,7 @@ The design has to meet these requirements:
 5. **Who sees it depends on the role and the order's state.** Packers see an address only while its order is being packed and shipped. Every view of buyer data is logged.
 6. **No one at Vervoro has standing access.** The operator gets a time-limited grant with a recorded reason, and the seller sees it. Developers have no access to production data.
 7. **Buyer data is anonymised 30 days after delivery.** When no delivery date is known, the 30 days count from dispatch. An order cancelled before dispatch counts from its cancellation. When a connection ends, the data of all its orders goes within 30 days. A buyer's erasure request is carried out at once.
-8. **After anonymisation, the order keeps** its marketplace order id, dates, lines, lots, carrier and the destination's country and tax territory. Name, street, town, postcode, phone, tracking number, note, gift message and label files are gone. Nothing personal is stored for that order again.
+8. **After anonymisation, the order keeps** its marketplace order id, dates, lines, lots, carrier and the destination's country and tax territory. Name, street, town, postcode, phone, tracking number, note, gift message and label files are gone. Nothing personal is stored for that order again. An order delivered outside the UK also keeps its carrier, tracking number, dispatch date and the carrier's delivery event (date and country), as export evidence, for the statutory period ([ADR-011](../invoicing-and-vat/)).
 9. **An issued VAT invoice is kept unchanged for 6 years,** because tax law requires the copy. Consumer invoices carry buyer details only where the invoice type requires them.
 10. **Buyers' requests arrive through the seller or a marketplace.** Each becomes a privacy request with a due date. Erasure runs at once; access and correction are prepared for the seller within 7 days.
 11. **Erasure reaches backups when they expire, within 30 days.** Until then they are beyond use: a restore re-applies every erasure made since the backup before anyone can read it. The archive holds buyer details only on retained invoices.
@@ -90,13 +90,13 @@ Each field is kept only for a stated purpose, and only from the marketplaces tha
 | Order note, gift message | The packer reads them; a gift message is printed | Anonymisation |
 | Business buyer's company name and VAT number, when the marketplace gives them | A business invoice | Anonymisation, except on an issued invoice |
 | eBay buyer's user id, as a keyed hash | Matching eBay's account deletion notices | Anonymisation |
-| Tracking number | Confirming the shipment and following delivery | Anonymisation |
+| Tracking number | Confirming the shipment and following delivery | Anonymisation; for an order delivered outside the UK, kept with the carrier's delivery event as export evidence for 6 years ([ADR-011](../invoicing-and-vat/)) |
 | Label file | Printing and reprinting the label | Anonymisation |
 
 What is never kept:
 
 - **Buyer email.** Carriers accept a phone, and marketplaces relay or mask buyer emails anyway. A seller who writes to a buyer does it through the marketplace.
-- **Billing addresses and payment details.** Payment stays with the marketplace.
+- **Billing addresses and payment details.** Payment stays with the marketplace. The one exception is the customer's address printed on an issued full invoice, kept only on the invoice ([ADR-011](../invoicing-and-vat/)).
 - **A buyer's identity across orders.** Each order's buyer data belongs to that order only. Vervoro never builds a buyer profile, never matches buyers across marketplaces or sellers, and never uses buyer data for marketing, reviews or anything but shipping, tax and the seller's own service to that order.
 - **The eBay user id itself.** eBay's terms forbid storing it, so only a hash is kept.
 

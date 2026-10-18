@@ -303,7 +303,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>Branch the database at the restore time (marked <code>lookback</code>).</li>
 <li>Replace the live slice with the branch&#39;s slice, in batches.</li>
 <li>Replay the erasure register for the company and run the anonymisation rule (<a href="../buyer-data/">ADR-009</a>) before anything else reads it.</li>
-<li>Rebuild the company&#39;s directory rows in control; set counters to at least their live values, so numbers already sent to suppliers are not reused.</li>
+<li>Rebuild the company&#39;s directory rows in control; set counters to at least their live values, so numbers already sent to suppliers are not reused. Re-register every issued invoice and credit note found in object storage that is newer than the restore time, and set their counter past the highest number found (<a href="../invoicing-and-vat/">ADR-011</a>).</li>
 <li>Mark restored outbound sends <code>unknown</code>, never resend them; bring every marketplace account back in shadow mode. Raise the company&#39;s sync epoch, kept in the control database, which every stock write&#39;s idempotency key carries (<a href="../inventory-sync/">ADR-008</a>).</li>
 <li>Re-import the marketplace orders placed since the restore time through the once-only import, then re-read the marketplaces and reconcile.</li>
 <li>The seller confirms the differences on the reconcile screen before any stock push resumes, because pushing restored stock straight away would oversell. The account stays in shadow mode until then, and the operator is alerted when a difference is large, but no person is needed at any particular hour.</li>

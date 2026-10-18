@@ -280,7 +280,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </tbody></table></div>
 <h2>The order and its lines</h2>
-<p><strong>The order holds:</strong> the account (or &quot;manual&quot;), the marketplace order id, the time of purchase, the marketplace&#39;s last change time, the status, the hold reasons, who ships it, the warehouse (the account&#39;s default, ADR-006), the ship-by time, the marketplace it was sold on, where it arrived from (directly, or through a Shopify app, below), the buyer fields of ADR-009, and the times it was shipped, cancelled, delivered and anonymised.</p>
+<p><strong>The order holds:</strong> the account (or &quot;manual&quot;), the marketplace order id, the time of purchase, the marketplace&#39;s last change time, the status, the hold reasons, who ships it, the warehouse (the account&#39;s default, ADR-006), the ship-by time, the marketplace it was sold on, where it arrived from (directly, or through a Shopify app, below), the buyer fields of ADR-009, its delivery charge as the buyer paid it and any order-level discount (ADR-011), and the times it was shipped, cancelled, delivered and anonymised.</p>
 <p><strong>Each line holds</strong> ADR-006&#39;s fields (the link version, product, units per sale, fulfilment, bundle components, units needed and missing) and:</p>
 <div class="table-wrap"><table>
 <thead>
@@ -327,7 +327,15 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><code>unit_price</code>, <code>currency</code></td>
-<td>What the line sold for. Money is never added across currencies</td>
+<td>What the line sold for, as the buyer paid it: with VAT included when the marketplace includes it. Money is never added across currencies</td>
+</tr>
+<tr>
+<td><code>discount</code>, <code>discount_funded_by</code></td>
+<td>The line&#39;s discount, and whether the seller or the marketplace funded it (ADR-011)</td>
+</tr>
+<tr>
+<td><code>marketplace_tax</code>, <code>marketplace_collects</code></td>
+<td>The marketplace&#39;s own tax figure for the line, when it gives one, and whether it collects and pays that tax itself (ADR-011)</td>
 </tr>
 <tr>
 <td><code>vat_country</code>, <code>vat_class</code>, <code>vat_rate</code></td>
@@ -1404,7 +1412,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>ADR-008: Inventory sync</strong> (planned): the figure each linked listing gets, which orders count as sales out of a figure already sent (an Amazon account serving several marketplaces, a Shopify order split across locations), and how long a raise waits for the order watermark.</li>
 <li><strong>ADR-004.4: Amazon Vendor connector</strong> (planned): Vendor purchase orders, which are demand of their own (ADR-006), not marketplace orders.</li>
 <li><strong>Shipping</strong> (a later record): labels, carriers and rates, tracking and delivery dates, the dispatch notice&#39;s carrier codes, and marketplace returns.</li>
-<li><strong>Customers and invoicing</strong> (a later record): business customers as saved records, and invoices for orders, within ADR-009&#39;s rules.</li>
+<li><strong><a href="../invoicing-and-vat/">ADR-011: Invoicing and VAT</a>:</strong> invoices, credit notes and the VAT on every sale. Business customers as saved records remain a later record.</li>
 </ul>
 
 <footer>Vervoro</footer>

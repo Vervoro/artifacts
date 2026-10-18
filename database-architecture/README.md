@@ -170,7 +170,7 @@ Every branch the lifecycle tool makes, for a look-back, a rewind or a drill, has
    2. Branch the database at the restore time (marked `lookback`).
    3. Replace the live slice with the branch's slice, in batches.
    4. Replay the erasure register for the company and run the anonymisation rule ([ADR-009](../buyer-data/)) before anything else reads it.
-   5. Rebuild the company's directory rows in control; set counters to at least their live values, so numbers already sent to suppliers are not reused.
+   5. Rebuild the company's directory rows in control; set counters to at least their live values, so numbers already sent to suppliers are not reused. Re-register every issued invoice and credit note found in object storage that is newer than the restore time, and set their counter past the highest number found ([ADR-011](../invoicing-and-vat/)).
    6. Mark restored outbound sends `unknown`, never resend them; bring every marketplace account back in shadow mode. Raise the company's sync epoch, kept in the control database, which every stock write's idempotency key carries ([ADR-008](../inventory-sync/)).
    7. Re-import the marketplace orders placed since the restore time through the once-only import, then re-read the marketplaces and reconcile.
    8. The seller confirms the differences on the reconcile screen before any stock push resumes, because pushing restored stock straight away would oversell. The account stays in shadow mode until then, and the operator is alerted when a difference is large, but no person is needed at any particular hour.

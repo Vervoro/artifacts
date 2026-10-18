@@ -58,7 +58,7 @@ Every stock balance must equal the sum of its ledger entries, and a nightly chec
 | --- | --- | --- | --- |
 | Products, listings, stock levels, open orders and purchase orders, settings, users | Always | Never | Deleted with the company |
 | Closed orders and their lines | 24 months | Until 6 years after the financial year ends | Deleted |
-| Invoices and payments | 24 months | Until 6 years after the financial year ends | Deleted |
+| Invoices, credit notes, VAT records, export evidence and payments | 24 months | Until 6 years after the financial year ends | Deleted |
 | Stock ledger entries | 24 months, then a checkpoint | Until 6 years after the financial year ends | Deleted |
 | Batches with no stock left | 24 months after the last movement | Until 6 years after the financial year ends | Deleted |
 | `audit_log` (security and access) | At least 1 year | 6 years | Deleted |

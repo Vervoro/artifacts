@@ -212,6 +212,12 @@ The permission matrix. A module declares each action in its manifest (ADR-000), 
 | Create, confirm, edit or cancel a manual order | Yes | Yes | Yes | No | No | No | [ADR-007](../order-ingestion/) |
 | Choose another batch, resolve a line again, attach a line | Yes | Yes | Yes | No | No | No | [ADR-006](../stock-ledger/), [ADR-007](../order-ingestion/) |
 | Reverse a shipment reported outside Vervoro | Yes | Yes | Yes | No | No | No | [ADR-006](../stock-ledger/), [ADR-007](../order-ingestion/) |
+| **Invoicing** | | | | | | | |
+| Issue an invoice; confirm a credit note | Yes | Yes | Yes | No | No | No | [ADR-011](../invoicing-and-vat/) |
+| Issue on Vervoro's figure despite a VAT flag (reason required) | Yes | Yes | No | No | No | No | [ADR-011](../invoicing-and-vat/) |
+| Read and download issued documents | Yes | Yes | While the order holds buyer data | No | Yes | No | [ADR-011](../invoicing-and-vat/), [ADR-009](../buyer-data/) |
+| Change the invoicing settings (registered details, VAT registration, first number, eBay issuer) | Yes | Yes | No | No | No | No | [ADR-011](../invoicing-and-vat/) |
+| Make the accounting export | Yes | Yes | Yes | No | Yes | No | [ADR-011](../invoicing-and-vat/) |
 | **Reports and exports** | | | | | | | |
 | Reports | Yes | Yes | Yes | No | Yes | No | This record |
 | Export with buyer data | Yes | Yes | No | No | No | No | [ADR-009](../buyer-data/) |
@@ -401,7 +407,7 @@ Checked against the official sources on 18 October 2026.
 ## What later records decide
 
 - **Billing and plans ([ADR-012](../billing-and-plans/)):** decided there: what each role may do while a company is restricted or closed, and the billing rows of the table of who may do what.
-- **Invoicing and VAT (ADR-011):** the roles that issue, correct and read invoices, as rows in this matrix.
+- **Invoicing and VAT ([ADR-011](../invoicing-and-vat/)):** decided there: the roles that issue, correct and read invoices, as rows in this matrix.
 - **Purchasing, returns and other modules:** their actions, as rows in this matrix.
 - **Integration access:** whether sellers get tokens, outbound notices or connected apps, and on what terms.
 - **Single sign-on for larger customers,** and custom roles, if enough sellers ask.

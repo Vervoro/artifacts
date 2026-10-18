@@ -16,6 +16,7 @@ Architecture decisions and plans, published with GitHub Pages.
 - [ADR-008: Inventory sync](inventory-sync/README.md)
 - [ADR-009: Buyer data and privacy](buyer-data/README.md)
 - [ADR-010: Users, roles and sign-in](users-and-access/README.md)
+- [ADR-011: Invoicing and VAT](invoicing-and-vat/README.md)
 - [ADR-012: Billing and plans](billing-and-plans/README.md)
 
 ## Build order
@@ -30,6 +31,7 @@ The order to build in. Each step needs the ones before it.
 6. **[ADR-005: Catalogue sync and linking](catalogue-sync/README.md).** Needs the connectors' listing reads and the products to link them to.
 7. **[ADR-009: Buyer data and privacy](buyer-data/README.md).** Before any real order stores a buyer's address; the marketplaces' data reviews ask for it. Buyer anonymisation from ADR-002 is built here.
 8. **[ADR-007: Order ingestion](order-ingestion/README.md).** Needs links, reservations and the buyer-data rules.
-9. **[ADR-008: Inventory sync](inventory-sync/README.md).** Last: figures go to marketplaces only once links, the ledger and orders are proven in shadow mode.
-10. **[ADR-012: Billing and plans](billing-and-plans/README.md).** Beside the stock path, not in it: nothing above waits for it, and it never stops orders or stock. It must work before the first trial ends and the first seller pays.
-11. **[ADR-002: Data retention and archiving](data-retention/README.md).** Archiving is switched on by its trigger (a cell past 500 GB, or the start of year 2), not at launch.
+9. **[ADR-011: Invoicing and VAT](invoicing-and-vat/README.md).** Invoices follow orders: needs order lines, refunds, the buyer-data rules and the roles. Built before any real sale, so every sale line has its VAT record from the first day.
+10. **[ADR-008: Inventory sync](inventory-sync/README.md).** Last: figures go to marketplaces only once links, the ledger and orders are proven in shadow mode.
+11. **[ADR-012: Billing and plans](billing-and-plans/README.md).** Beside the stock path, not in it: nothing above waits for it, and it never stops orders or stock. It must work before the first trial ends and the first seller pays.
+12. **[ADR-002: Data retention and archiving](data-retention/README.md).** Archiving is switched on by its trigger (a cell past 500 GB, or the start of year 2), not at launch.
