@@ -88,7 +88,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p>Earlier records already decide parts of this:</p>
 <ul>
 <li><strong>ADR-001:</strong> buyer contact fields are encrypted under each company&#39;s own data key, and erasing a company destroys that key.</li>
-<li><strong>ADR-002:</strong> buyer data is anonymised 30 days after dispatch, and only anonymised order history is archived.</li>
+<li><strong>ADR-002:</strong> buyer data is anonymised 30 days after delivery (after dispatch when no delivery date is known), and only anonymised order history is archived.</li>
 <li><strong>ADR-004:</strong> a notice is never queued with the buyer&#39;s details, and the host handles privacy requests itself.</li>
 <li><strong>ADR-004.1, ADR-004.2 and ADR-004.3:</strong> eBay&#39;s account deletion notices, Amazon&#39;s restricted role and 30 days after delivery, and Shopify&#39;s protected customer data and three privacy webhooks.</li>
 <li><strong>ADR-003:</strong> a recall finds the buyer&#39;s country and date for each lot.</li>
@@ -112,7 +112,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>No one at Vervoro has standing access.</strong> The operator gets a time-limited grant with a recorded reason, and the seller sees it. Developers have no access to production data.</li>
 <li><strong>Buyer data is anonymised 30 days after delivery.</strong> When no delivery date is known, the 30 days count from dispatch. An order cancelled before dispatch counts from its cancellation. When a connection ends, the data of all its orders goes within 30 days. A buyer&#39;s erasure request is carried out at once.</li>
 <li><strong>After anonymisation, the order keeps</strong> its marketplace order id, dates, lines, lots, carrier and the destination&#39;s country and tax territory. Name, street, town, postcode, phone, tracking number, note, gift message and label files are gone. Nothing personal is stored for that order again. An order delivered outside the UK also keeps its carrier, tracking number, dispatch date and the carrier&#39;s delivery event (date and country), as export evidence, for the statutory period (<a href="../invoicing-and-vat/">ADR-011</a>).</li>
-<li><strong>An issued VAT invoice is kept unchanged for 6 years,</strong> because tax law requires the copy. Consumer invoices carry buyer details only where the invoice type requires them.</li>
+<li><strong>An issued VAT invoice is kept unchanged for the statutory period (ADR-002 keeps accounting records 7 years from the end of their month),</strong> because tax law requires the copy. Consumer invoices carry buyer details only where the invoice type requires them.</li>
 <li><strong>Buyers&#39; requests arrive through the seller or a marketplace.</strong> Each becomes a privacy request with a due date. Erasure runs at once; access and correction are prepared for the seller within 7 days.</li>
 <li><strong>Erasure reaches backups when they expire, within 30 days.</strong> Until then they are beyond use: a restore re-applies every erasure made since the backup before anyone can read it. The archive holds buyer details only on retained invoices.</li>
 <li><strong>An incident that touches buyer data is critical.</strong> Vervoro tells the affected sellers and every marketplace whose data is involved within 24 hours of becoming aware. Where Vervoro is itself the controller, it tells the regulator within 72 hours.</li>
@@ -371,7 +371,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ul>
 <li><strong>To a consumer,</strong> Vervoro issues an invoice for the seller only when the buyer asks, or when the law or the marketplace requires one. It is a simplified invoice without buyer details wherever the law allows.</li>
 <li><strong>To a business, or a consumer who asked for a full invoice,</strong> the invoice carries the name and address the law requires.</li>
-<li><strong>Every issued invoice is kept unchanged for 6 years,</strong> because HMRC and EU law require the copy. This is the legal requirement Amazon&#39;s policy allows.</li>
+<li><strong>Every issued invoice is kept unchanged for the statutory period (ADR-002 keeps accounting records 7 years from the end of their month),</strong> because HMRC and EU law require the copy. This is the legal requirement Amazon&#39;s policy allows.</li>
 <li><strong>After the order is anonymised,</strong> the invoice is shown only to owners, admins and accountants, each view logged. It is not searchable by buyer, and it moves to the archive with its month (ADR-002), encrypted with the company&#39;s key.</li>
 </ul>
 <h2>Buyers&#39; requests</h2>

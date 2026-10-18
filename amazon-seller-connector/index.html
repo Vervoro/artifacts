@@ -100,7 +100,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>One account is one seller id in one region,</strong> serving the marketplaces the seller picks there.</li>
 <li><strong>Notices come through a small relay in AWS</strong> that posts each one to Vervoro&#39;s single endpoint, signed with a relay secret. The endpoint checks that the notice names Vervoro&#39;s application.</li>
 <li><strong>Each order notice is answered by fetching the order.</strong> The backup read runs every 10 minutes, because Amazon&#39;s order limit is per seller and costs no other seller anything, and never closer than three minutes apart.</li>
-<li><strong>Decreases go one listing at a time;</strong> raises may go many at once in a listings feed. A feed never carries a decrease.</li>
+<li><strong>Every stock write is one listing at a time at launch</strong> (ADR-008). Listings feeds stay possible for many raises later; a feed never carries a decrease.</li>
 <li><strong>Every write is <code>accepted</code> and read back</strong> before Vervoro counts it as applied.</li>
 <li><strong>A listing Amazon ships on any of the account&#39;s marketplaces is never sent a figure.</strong></li>
 <li><strong>Buyer data is read only under the restricted role,</strong> only for orders the seller ships, and anonymised 30 days after delivery.</li>
@@ -184,7 +184,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </tbody></table></div>
 <p><strong>Read back.</strong> The listing is read (<code>getListingsItem</code>). The quantity sent is <code>applied</code>; an error issue on the quantity, or a listing that has gone, is <code>failed</code>; anything else is still pending. An accepted change can fail minutes later, and its issues appear on that read.</p>
-<p><strong>Listings feeds, for raises only.</strong> Many raises can go as one listings feed: a document uploaded to Amazon, then a feed that names it. The feed is <code>accepted</code> at once and read back when Amazon has processed it; its report names only the messages Amazon refused, by their position, so the host keeps the order it submitted them in.</p>
+<p><strong>Listings feeds, for raises only, not used at launch.</strong> ADR-008 sends every figure as a single patch, because a feed can take hours and Amazon processes its records out of order. If single patches ever fall short, many raises can go as one listings feed: a document uploaded to Amazon, then a feed that names it. The feed is <code>accepted</code> at once and read back when Amazon has processed it; its report names only the messages Amazon refused, by their position, so the host keeps the order it submitted them in.</p>
 <ul>
 <li><strong>A feed never carries a decrease.</strong> A feed is applied when Amazon processes it, not when it is made. A decrease in a feed could land after a later single decrease and put back a figure that is too high. Decreases always go one by one, on the safety lane.</li>
 <li><strong>No compare-and-set</strong> either way. The order watermark is the guard against selling the same unit twice (ADR-007, ADR-008).</li>

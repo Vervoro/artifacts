@@ -703,7 +703,7 @@ Each has a safe default in the design; the check decides whether the default sta
 
 ## What later records decide
 
-- **ADR-008: Inventory sync** (planned): the figure each linked listing gets, which orders count as sales out of a figure already sent (an Amazon account serving several marketplaces, a Shopify order split across locations, a mirror), and how long a raise waits for the order watermark.
+- **[ADR-008: Inventory sync](../inventory-sync/)**: the figure each linked listing gets, which orders count as sales out of a figure already sent (an Amazon account serving several marketplaces, a Shopify order split across locations, a mirror), and how long a raise waits for the order watermark.
 - **ADR-004.4: Amazon Vendor connector** (planned): Vendor purchase orders, which are demand of their own (ADR-006), not marketplace orders.
 - **Shipping** (a later record): labels, carriers and rates, tracking and delivery dates, the dispatch notice's carrier codes, and marketplace returns.
 - **[ADR-011: Invoicing and VAT](../invoicing-and-vat/):** invoices, credit notes and the VAT on every sale. Business customers as saved records remain a later record.

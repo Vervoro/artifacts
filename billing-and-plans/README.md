@@ -13,7 +13,7 @@ Vervoro charges each seller's company a subscription. Earlier records already de
 
 - **ADR-000:** a module is available to a company only when its plan includes it. Stopping stock sends on a live connection always asks first: leave the figures as they are, or send zero.
 - **ADR-001:** the control database holds each company's plan (trial or paid), status and subscription, the usage rollups and the alerts. A trial is a state, not a place: a trial company lives in a normal cell with capped shares of background work and marketplace allowances, and paying changes its plan with nothing moving. What happens when a trial lapses or a paying company closes, and when its data is erased, is left to this record. Trials last 14 to 28 days. One generated company-slice operation exports, moves and erases a company, and erasure releases the company's marketplace seller ids.
-- **ADR-002:** the statutory period for accounting records is 6 years from the end of the financial year.
+- **ADR-002:** the statutory period for accounting records is 6 years from the end of the financial year; sellers' records are kept 7 years from the end of their month, which always covers it.
 - **ADR-004:** some marketplace allowances belong to Vervoro's whole application, and trial companies get a capped, lower-priority share of them, except stock decreases on a live connection. An account's mode is shadow, live, paused or disconnected.
 - **ADR-008:** every stop asks one question, leave the figure or send 0, and a restore or a reconnect returns an account to shadow.
 - **ADR-009:** Vervoro is the controller of its own account data, billing included. When a connection ends, the buyer data of its orders goes within 30 days.
@@ -365,7 +365,7 @@ This record amends five published records, in the same publication.
 
 ## What later records decide
 
-- **ADR-011: Invoicing and VAT** (in draft): the seller's own invoices to their buyers, which this record does not cover.
+- **[ADR-011: Invoicing and VAT](../invoicing-and-vat/)**: the seller's own invoices to their buyers, which this record does not cover.
 - **Prices, tier names and which modules sit in which tier:** the owner's, set in the plan rows and at the provider, and never published here.
 - **Contract plans** (a later record): dedicated databases, residency outside the EU and their terms.
 - **Selling outside the UK:** switching it on after the accountant approves how a customer's use is split between the UK and abroad, and each country outside the UK and the EU after its own rules are checked.

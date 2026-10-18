@@ -14,7 +14,7 @@ A seller who ships their own orders needs the buyer's name and address to pack a
 Earlier records already decide parts of this:
 
 - **ADR-001:** buyer contact fields are encrypted under each company's own data key, and erasing a company destroys that key.
-- **ADR-002:** buyer data is anonymised 30 days after dispatch, and only anonymised order history is archived.
+- **ADR-002:** buyer data is anonymised 30 days after delivery (after dispatch when no delivery date is known), and only anonymised order history is archived.
 - **ADR-004:** a notice is never queued with the buyer's details, and the host handles privacy requests itself.
 - **ADR-004.1, ADR-004.2 and ADR-004.3:** eBay's account deletion notices, Amazon's restricted role and 30 days after delivery, and Shopify's protected customer data and three privacy webhooks.
 - **ADR-003:** a recall finds the buyer's country and date for each lot.
@@ -40,7 +40,7 @@ The design has to meet these requirements:
 6. **No one at Vervoro has standing access.** The operator gets a time-limited grant with a recorded reason, and the seller sees it. Developers have no access to production data.
 7. **Buyer data is anonymised 30 days after delivery.** When no delivery date is known, the 30 days count from dispatch. An order cancelled before dispatch counts from its cancellation. When a connection ends, the data of all its orders goes within 30 days. A buyer's erasure request is carried out at once.
 8. **After anonymisation, the order keeps** its marketplace order id, dates, lines, lots, carrier and the destination's country and tax territory. Name, street, town, postcode, phone, tracking number, note, gift message and label files are gone. Nothing personal is stored for that order again. An order delivered outside the UK also keeps its carrier, tracking number, dispatch date and the carrier's delivery event (date and country), as export evidence, for the statutory period ([ADR-011](../invoicing-and-vat/)).
-9. **An issued VAT invoice is kept unchanged for 6 years,** because tax law requires the copy. Consumer invoices carry buyer details only where the invoice type requires them.
+9. **An issued VAT invoice is kept unchanged for the statutory period (ADR-002 keeps accounting records 7 years from the end of their month),** because tax law requires the copy. Consumer invoices carry buyer details only where the invoice type requires them.
 10. **Buyers' requests arrive through the seller or a marketplace.** Each becomes a privacy request with a due date. Erasure runs at once; access and correction are prepared for the seller within 7 days.
 11. **Erasure reaches backups when they expire, within 30 days.** Until then they are beyond use: a restore re-applies every erasure made since the backup before anyone can read it. The archive holds buyer details only on retained invoices.
 12. **An incident that touches buyer data is critical.** Vervoro tells the affected sellers and every marketplace whose data is involved within 24 hours of becoming aware. Where Vervoro is itself the controller, it tells the regulator within 72 hours.
@@ -192,7 +192,7 @@ The postcode district and the town are not kept. Amazon's policy counts postal c
 
 - **To a consumer,** Vervoro issues an invoice for the seller only when the buyer asks, or when the law or the marketplace requires one. It is a simplified invoice without buyer details wherever the law allows.
 - **To a business, or a consumer who asked for a full invoice,** the invoice carries the name and address the law requires.
-- **Every issued invoice is kept unchanged for 6 years,** because HMRC and EU law require the copy. This is the legal requirement Amazon's policy allows.
+- **Every issued invoice is kept unchanged for the statutory period (ADR-002 keeps accounting records 7 years from the end of their month),** because HMRC and EU law require the copy. This is the legal requirement Amazon's policy allows.
 - **After the order is anonymised,** the invoice is shown only to owners, admins and accountants, each view logged. It is not searchable by buyer, and it moves to the archive with its month (ADR-002), encrypted with the company's key.
 
 ## Buyers' requests

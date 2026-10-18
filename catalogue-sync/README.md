@@ -386,9 +386,9 @@ Checked against each marketplace's documentation on 18 October 2026.
 
 ## What later records decide
 
-- **ADR-006: Stock ledger and reservations** (planned): how an order line records the link it reserved with, and how reserving for waiting orders works when a link is made.
-- **ADR-007: Order ingestion** (planned): importing orders for unlinked listings and flagging them, and the conflict for a seller-shipped order on a marketplace-shipped link.
-- **ADR-008: Inventory sync** (planned): the figure each linked listing gets, the first figure after a link, which lane a bulk link's decreases use, and when held raises go.
+- **[ADR-006: Stock ledger and reservations](../stock-ledger/)**: how an order line records the link it reserved with, and how reserving for waiting orders works when a link is made.
+- **[ADR-007: Order ingestion](../order-ingestion/)**: importing orders for unlinked listings and flagging them, and the conflict for a seller-shipped order on a marketplace-shipped link.
+- **[ADR-008: Inventory sync](../inventory-sync/)**: the figure each linked listing gets, the first figure after a link, which lane a bulk link's decreases use, and when held raises go.
 
 ## Alternatives considered
 

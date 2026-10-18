@@ -16,7 +16,7 @@ A seller who runs their own warehouse sells to consumers on marketplaces and on 
 - **ADR-003:** a product holds a VAT class, not a rate. Rates come from one table per country with `valid_from` and `valid_to`. Every order and invoice line stores the country, class and rate it used, and a later rate change never rewrites it.
 - **ADR-006 and ADR-007:** refunds are made in the channel's own tools. Vervoro records them and moves no stock for them. Returns come back held, for a person to inspect. Manual orders are ordinary orders.
 - **ADR-010:** six fixed roles. An Accountant reads everything a report or an invoice needs and changes nothing. Each later module adds its own rows to the table of who may do what.
-- **ADR-009:** Vervoro issues an invoice for the seller only when the buyer asks, or when the law or the marketplace requires one. It is a simplified invoice without buyer details wherever the law allows. Every issued invoice is kept unchanged for 6 years, and after the order is anonymised only owners, admins and accountants see it. Buyer email and billing addresses are not kept.
+- **ADR-009:** Vervoro issues an invoice for the seller only when the buyer asks, or when the law or the marketplace requires one. It is a simplified invoice without buyer details wherever the law allows. Every issued invoice is kept unchanged for the statutory period, and after the order is anonymised only owners, admins and accountants see it. Buyer email and billing addresses are not kept.
 
 The facts this record has to work with:
 
@@ -70,7 +70,7 @@ The facts this record has to work with:
 
 The cost: a seller who will not use the service has no way to invoice Amazon Business orders through Vervoro. The connections screen says so before the account is connected.
 
-**Why not invoice every order automatically.** A full invoice keeps the buyer's name and address for 6 years (ADR-009). Most of these orders are zero-rated food sold to consumers, who need no invoice at all. Issuing on request keeps the documents that hold personal data to the few that need them. A seller who later finds requests too many could have invoices issued automatically with an empty customer block, which holds no buyer data. That is a small change, left to a later record if it is needed.
+**Why not invoice every order automatically.** A full invoice keeps the buyer's name and address for as long as the invoice is kept: 7 years from the end of its month (ADR-002, ADR-009). Most of these orders are zero-rated food sold to consumers, who need no invoice at all. Issuing on request keeps the documents that hold personal data to the few that need them. A seller who later finds requests too many could have invoices issued automatically with an empty customer block, which holds no buyer data. That is a small change, left to a later record if it is needed.
 
 **The tax point.** For goods it is normally the dispatch date, or an earlier payment. A marketplace order is paid at purchase, so its tax point is the payment time the marketplace reports. A manual order on credit terms has its tax point at dispatch. The tax point picks the rate and the VAT period. A full invoice must be issued within 30 days of it. A manual business order is invoiced at dispatch, so it meets that unless the order is flagged, and the flag's alert covers that case.
 
@@ -93,7 +93,7 @@ There is one invoice layout. With the customer block filled it is a full invoice
 | The order's marketplace order id | Yes | Yes | Yes |
 | No payment instructions on a marketplace order (the marketplace collects payment) | Yes | Yes | Yes |
 
-**The customer's name and address** in the customer block are typed or confirmed by the person who issues it. The delivery recipient and address are offered as a starting point, and a business buyer's company name and VAT number when the marketplace gives them, or when a manual order records them with the buyer's purchase-order reference (ADR-007). They are stored on the invoice only, never on the order. They stay for the invoice's 6 years, encrypted with the company's key, as ADR-009 decides.
+**The customer's name and address** in the customer block are typed or confirmed by the person who issues it. The delivery recipient and address are offered as a starting point, and a business buyer's company name and VAT number when the marketplace gives them, or when a manual order records them with the buyer's purchase-order reference (ADR-007). They are stored on the invoice only, never on the order. They stay as long as the invoice, encrypted with the company's key, as ADR-009 decides.
 
 **The seller's details** come from the company's invoicing settings: the registered name and address, and the VAT number with its registration date. Nothing else is needed by law, so there is no logo, footer or trading name at launch. The details are copied into each document when it is issued, so changing them later never changes a document already issued.
 
