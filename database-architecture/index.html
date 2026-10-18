@@ -30,6 +30,8 @@ h3 { font-size: 18px; margin: 32px 0 8px; }
 p, li { max-width: 72ch; }
 a { color: var(--accent); }
 code { font-family: var(--mono); font-size: 0.86em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--sunken); padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 13.5px; line-height: 1.5; }
+pre code { background: none; padding: 0; overflow-wrap: normal; }
 table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 16px 0; background: var(--surface); }
 .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
 .table-wrap table { margin: 0; }
@@ -58,7 +60,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <body>
 <header class="site"><a href="../">← Vervoro artifacts</a></header>
 <main>
-<h1>ADR-001: Multi-tenant database architecture</h1>
+<h1 id="adr-001-multi-tenant-database-architecture">ADR-001: Multi-tenant database architecture</h1>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -83,7 +85,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>18 October 2026, after a design review: trials live in a normal cell (no trial database); every transaction checks that its database holds the company; the erasure register moves to control; checks run in production as well as CI; company operations run in batches under their own role</td>
 </tr>
 </tbody></table></div>
-<h2>Context</h2>
+<h2 id="context">Context</h2>
 <p>Vervoro is an operations system for marketplace sellers: stock, orders and listings synced with Amazon, eBay, Shopify and other channels. Every customer is a company, and one company must never see another company&#39;s data. The design has to meet these requirements:</p>
 <ul>
 <li><strong>Isolation is the top risk.</strong> Cross-company exposure is the worst failure the product can have, so it must be prevented by the database and by the build, not by developer care.</li>
@@ -94,7 +96,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Lifecycle promises:</strong> export a company, restore one company after a mistake, move a company, and erase a company provably.</li>
 <li><strong>Platform:</strong> Postgres on Neon, reached from Cloudflare Workers through Hyperdrive, in the EU.</li>
 </ul>
-<h2>Decision</h2>
+<h2 id="decision">Decision</h2>
 <ol>
 <li><strong>A control database</strong> on its own compute holds only who the companies are, where they live, and which erasures must survive a restore. It stores no business data.</li>
 <li><strong>Customer databases (&quot;cells&quot;)</strong> hold the business data of up to 200 companies each in <strong>shared tables</strong>. Every row carries <code>company_id</code>, and Postgres enforces <strong>forced row-level security</strong> on every table and every partition.</li>
@@ -105,7 +107,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Guard rails in the runtime, in CI and in production</strong> make a cross-company read or write impossible to write by accident, and catch configuration that drifts after deploy.</li>
 <li><strong>One sweeper per database</strong> finds due work with one query and runs the due companies side by side, waking at the next due time. Events go through an outbox in the same transaction as the change.</li>
 </ol>
-<h2>Architecture</h2>
+<h2 id="architecture">Architecture</h2>
 <figure><svg class="diagram" viewBox="0 0 760 444" role="img" aria-label="Every request reaches one database, and that database checks it holds the company" xmlns="http://www.w3.org/2000/svg" font-size="13">
   <defs>
     <marker id="arch-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="edge-fill"/></marker>
@@ -166,7 +168,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </figure>
 
 <p>Every request names one company. The router looks up which database holds that company and opens a transaction there; the transaction&#39;s first statement fixes it to that one company and checks that the company lives in this database. The control database only knows where each company lives. Every business row sits in a cell, in tables shared by many companies and fenced by <code>company_id</code> and row-level security.</p>
-<h2>Tenancy inside a cell</h2>
+<h2 id="tenancy-inside-a-cell">Tenancy inside a cell</h2>
 <p>Every business table exists once per cell and carries <code>company_id</code>. Postgres itself refuses any row of another company, and the keys make a cross-company reference impossible even with security switched off.</p>
 <ol>
 <li><p><strong>Keys.</strong> <code>company_id</code> (uuid) is the first column of every primary key, unique key, foreign key and index. Foreign keys are composite, <code>(company_id, x)</code>, so a row cannot point at another company&#39;s row. Every table also has <code>company_id → tenant(id) ON DELETE CASCADE</code>. Postgres runs key checks outside row-level security, so these keys are the wall that holds even where policies do not apply.</p>
@@ -192,7 +194,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><p><strong>Tenant states.</strong> The <code>tenant</code> row in each cell is the single authority on whether a company is open there: <code>open</code>, <code>moving_out</code>, <code>moved_out</code>, <code>restoring</code> or <code>lookback</code>. A move or restore changes the source row first, so a stale route to the old cell raises instead of reading an empty company. Nobody enters a <code>moved_out</code> company.</p>
 </li>
 </ol>
-<h2>Declaring tables</h2>
+<h2 id="declaring-tables">Declaring tables</h2>
 <p>Modules never write <code>CREATE TABLE</code>. They declare tables through <code>tenantTable()</code>, and the data layer generates everything tenancy needs.</p>
 <div class="table-wrap"><table>
 <thead>
@@ -221,7 +223,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Operational state</strong> (rate buckets, leases, nonces, staging) lives in per-cell tables keyed by <code>company_id</code>, like everything else.</li>
 <li><strong>Secrets:</strong> one table, <code>secrets(company_id, purpose)</code>.</li>
 </ul>
-<h2>Guard rails</h2>
+<h2 id="guard-rails">Guard rails</h2>
 <p>Only the data layer may say which company a transaction belongs to, and these checks make sure nothing else can.</p>
 <ul>
 <li><strong>Statement filter (runtime).</strong> The data layer refuses any module statement containing <code>set</code>, <code>reset</code>, <code>set_config</code> or the name <code>app.company_id</code>, or naming <code>pg_stats</code> or <code>pg_statistic</code> (their most-common-value statistics show other companies&#39; values). Module-defined functions and <code>DO</code> blocks are not allowed, since they would get round the filter. The foundation&#39;s stock ledger trigger (ADR-006) is not one: it is defined by a migration, runs no module statement, and only applies a ledger entry to its balances. Postgres cannot revoke <code>set_config</code> on a custom setting, so this has to be application code.</li>
@@ -232,7 +234,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Catalogue lint (CI).</strong> Fails the build if any cell table or any partition lacks <code>company_id NOT NULL</code> leading its primary key, forced RLS, both policy clauses or composite foreign keys. The named exceptions are the <code>tenant</code> table, keyed by its own <code>id</code>, and the two read policies of the definer functions&#39; owner. It also fails on raw <code>CREATE TABLE</code>, <code>serial</code> or identity columns, <code>SECURITY DEFINER</code> outside the allow-list, views without <code>security_invoker</code>, materialized views, grants on partitions, default privileges for the runtime role, <code>TRUNCATE</code> grants, <code>ON CONFLICT</code> without <code>company_id</code>, session-level <code>SET</code>, a runtime or lifecycle role with <code>BYPASSRLS</code>, a runtime role holding <code>UPDATE</code>, <code>DELETE</code> or <code>TRUNCATE</code> on an append-only table, and <code>app.company()</code> not labelled <code>STABLE</code>.</li>
 <li><strong>Change control.</strong> A change to the isolation code (the table declaration helper, <code>enter_company</code>, the policies, the lint and the allow-list) needs a person&#39;s approval in CI before it merges.</li>
 </ul>
-<h2>Production checks</h2>
+<h2 id="production-checks">Production checks</h2>
 <p>CI proves the schema it builds. These prove the databases actually running, because a role made in a console, a partition made after deploy or a configuration edited by hand are invisible to CI.</p>
 <ul>
 <li><p><strong>Audit at every deploy and every night</strong>, over every database and every branch in the Neon project and every Hyperdrive configuration in the Cloudflare account:</p>
@@ -249,7 +251,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><p><strong>A canary company in every database.</strong> A second synthetic company must see none of its rows: a few tables every 10 minutes, every table nightly and after each deploy and each new partition. A transaction with no company set must raise. The egress gate scans every outbound payload for the canary&#39;s marker strings. A failure pages the operator and closes the cell&#39;s egress.</p>
 </li>
 </ul>
-<h2>Background work and events</h2>
+<h2 id="background-work-and-events">Background work and events</h2>
 <p>Every database (each shared cell, each dedicated database) has <strong>one sweeper</strong>: a Durable Object named after the database and created on demand from its registry row. Adding a database brings its sweeper with it.</p>
 <ul>
 <li><strong>It finds work; it does not visit everyone.</strong> One indexed query on <code>due</code> returns the companies with something due now. Each runs in its own transaction fixed to that company, side by side, up to a fixed limit set so the cell&#39;s pooled connections keep room for requests. A company with nothing due costs nothing.</li>
@@ -266,7 +268,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ol>
 <p>The outbox, not a queue, is the source of truth. A message put on a queue cannot be part of the database transaction, so a queue would still need the sweeper behind it. The inbound queue carries only marketplace webhooks, which must be answered before anything is written.</p>
 <p><strong>Writes that cross databases</strong> use the same pattern. Sign-up writes the company in its cell together with an outbox note (&quot;control still needs this login&quot;), then writes control. If the second write fails, the sweeper retries the note until it succeeds; the write is idempotent, so a repeat is harmless.</p>
-<h2>Control database and routing</h2>
+<h2 id="control-database-and-routing">Control database and routing</h2>
 <p>The control database is its own database on its own compute. A cell credential can never read the login directory, and restoring a cell&#39;s branch can never rewind control.</p>
 <p><strong>What control holds, and nothing else:</strong></p>
 <ul>
@@ -280,9 +282,30 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ul>
 <p><strong>Emails in control</strong> are stored only as HMAC(normalised email), keyed by a secret held outside Postgres. The address itself lives only in the company&#39;s own users table, so a leak of control is not a leak of customer data.</p>
 <p><strong>The erasure register</strong> is also written, entry by entry, to an append-only log in object storage, so even a restore of control cannot lose an erasure.</p>
-<p><strong>Routing.</strong> <code>forCompany(id)</code> looks the company&#39;s database up in the registry (cached) and uses that database&#39;s connection pool. A stale cache cannot do harm: the old database&#39;s tenant row is no longer <code>open</code>, so <code>enter_company</code> raises and the router reloads. A new company, trial or paid, goes to the newest open shared cell; an enterprise to a dedicated database. Adding a database is one command (<code>db:add</code>) that creates it, sets up its roles in SQL, migrates and registers it, with Hyperdrive caching disabled. The system recommends a new database; the operator decides.</p>
+<p><strong>Routing.</strong> <code>forCompany(id)</code> looks the company&#39;s database up in the registry (cached) and uses that database&#39;s connection pool. A stale cache cannot do harm: the old database&#39;s tenant row is no longer <code>open</code>, so <code>enter_company</code> raises and the router reloads. A new company, trial or paid, goes to the newest open shared cell; an enterprise to a dedicated database. Adding a company and adding a database are separate operations (<a href="#adding-a-company-adding-a-cell">Adding a company, adding a cell</a>).</p>
 <p><strong>Writes that cross databases</strong> (sign-up, adding a user, closing a company) write the company side first, then control, are idempotent, and are repaired from an outbox if the second write fails (see <a href="#background-work-and-events">Background work and events</a>). No transaction spans two databases.</p>
-<h2>Company lifecycle</h2>
+<h2 id="adding-a-company-adding-a-cell">Adding a company, adding a cell</h2>
+<p>Adding a customer and adding database capacity are two different operations. Every company in a cell shares that cell&#39;s database, its Hyperdrive configuration and its binding in the Worker, so a new company needs none of them.</p>
+<p><strong>Adding a company (<code>company:add</code>)</strong> runs at sign-up, or when the operator creates an enterprise company. It needs no new database, no new Hyperdrive configuration and no deploy.</p>
+<ol>
+<li>Pick the database: the newest open shared cell, or the company&#39;s dedicated database. A cell that holds 200 companies, its cap, is closed to new companies (<code>state = closed</code>) and keeps serving the ones it has.</li>
+<li>In that database, write the <code>tenant</code> row (<code>open</code>) and the company&#39;s own rows, with an outbox note for control.</li>
+<li>Write control: the company registry row with its <code>database_id</code>, the login and the membership (ADR-010). The write is idempotent, and the outbox note repairs it if it fails.</li>
+<li>The company is reachable as soon as control routes to it.</li>
+</ol>
+<p><strong>Adding a cell (<code>cell:add</code>)</strong> is infrastructure work, done ahead of need and never as part of a sign-up.</p>
+<ol>
+<li>Create the database.</li>
+<li>Create the runtime, lifecycle and definer-owner roles in SQL, never in the Neon console.</li>
+<li>Run every migration, including the next months&#39; partitions.</li>
+<li>Create its Hyperdrive configuration, with caching off.</li>
+<li>Add the configuration&#39;s binding to the Worker and deploy. A Worker reaches a Hyperdrive configuration only through a binding in its deployed configuration (<a href="https://developers.cloudflare.com/hyperdrive/get-started/">Hyperdrive</a>), so this is the one step that needs a deploy.</li>
+<li>Run the production audit and seed the canary company (see <a href="#production-checks">Production checks</a>).</li>
+<li>Register it in control as <code>open</code>. Its sweeper exists from that row on, and new companies start going to it.</li>
+</ol>
+<p><strong>Adding a dedicated database (<code>dedicated:add</code>)</strong> is <code>cell:add</code> with <code>kind = dedicated</code> and a cap of 1, in a Neon project of its own. The company is then placed there by the slice operation, like any move. Outside the EU it needs a whole cell of its own (<a href="#dedicated-databases-and-residency">Dedicated databases and residency</a>).</p>
+<p>The system recommends a new cell from the signals in <a href="#when-to-add-a-database">When to add a database</a>; the operator decides.</p>
+<h2 id="company-lifecycle">Company lifecycle</h2>
 <p>One operation, generated from the catalogue, does every company-level job: copy or delete every row where <code>company_id = X</code>, in foreign-key order. Export, move, restore, dedicated placement and erase all use it, and CI runs it on every build: copy company A from database 1 to database 2, compare row counts and checksums per table, delete A, then confirm every table counts 0 for A.</p>
 <p><strong>How it runs.</strong> In the operations job, as the lifecycle role, over a direct connection to the database (not through Hyperdrive, whose statements stop at 60 seconds), in committed batches of short transactions while the company is fenced in control. One long transaction would hold back vacuum for every company in the cell. It reads from a branch or a read replica where it can, and through parent tables only. When it loads a slice, it refuses a company that has a tombstone, and it does not finish until it has replayed every entry in the erasure register for that company.</p>
 <p><strong>Erase.</strong> Fence the company, delete its rows in batches and then the tenant row, purge its files and any soft-deleted or versioned copies in object storage, and release its marketplace seller ids in control so the seller can connect again later. Erase is done when all three hold, recorded in the erasure register:</p>
@@ -320,13 +343,13 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p><strong>Move a company</strong> to another database: fence it (<code>moving_out</code>), copy the slice in batches, compare checksums, switch the registry row, set the source tenant row to <code>moved_out</code>, then delete the source slice.</p>
 <p><strong>Export</strong> is a bundle: a manifest with per-table row counts and hashes, machine-readable files that the slice operation can load again, and readable CSV files. It is bound to the company id, refused if loaded under another company, and logged as a view of buyer data.</p>
 <p><strong>Drills.</strong> Weekly, a random real company, and monthly each cell&#39;s largest company, are restored unattended into a temporary branch, timed per gigabyte; the drill checks that the runtime role is refused on that branch and that the neighbours&#39; checksums are unchanged, keeps only timings and checksums, and deletes the branch. Nightly, the canary company is moved between two databases and back, timed and checksummed. Control has a restore drill of its own.</p>
-<h2>Dedicated databases and residency</h2>
+<h2 id="dedicated-databases-and-residency">Dedicated databases and residency</h2>
 <p>Any enterprise that requires it gets a Neon project of its own: its own compute, its own restore history and backups, and its own region if it asks. In the registry it is a database row with <code>kind = dedicated</code> and a cap of 1: the same schema, RLS still on, the same code path, placed by the same slice operation. Each one uses one Hyperdrive configuration.</p>
 <ul>
 <li><strong>Inside the UK and EU,</strong> the database alone is enough: every database is in Neon&#39;s EU region, the Worker is placed next to it, and Durable Objects and object storage use Cloudflare&#39;s EU jurisdiction, as long as Hyperdrive caching stays off.</li>
 <li><strong>Outside the EU,</strong> a dedicated database needs a whole cell: its own Worker placement, Hyperdrive configuration, object-storage bucket, Durable Object jurisdiction, logs and backup location.</li>
 </ul>
-<h2>Trials</h2>
+<h2 id="trials">Trials</h2>
 <p>A trial company lives in a normal shared cell, the newest open one, from sign-up. Paying changes its plan in control at once, and nothing moves.</p>
 <ul>
 <li><strong>No trial database at launch.</strong> A separate trial database would make every conversion a move: a pause, a copy and a route switch on a company that may already be selling on real marketplaces. It would also be a compute running all the time for a handful of trials.</li>
@@ -335,7 +358,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Same safety as production.</strong> A trial company may already sell on real marketplaces from its numbers, so it has the same backups, alerts and switch-off rules as everyone else. Demo companies live in a cell like any other company.</li>
 <li><strong>When a trial lapses</strong> without paying, or a paying company closes, what is kept, for how long, and when the data is erased is decided in <a href="../billing-and-plans/">ADR-012</a>: it is erased 30 days after the company closes. Until it is erased, the data stays in its cell.</li>
 </ul>
-<h2>Platform constraints</h2>
+<h2 id="platform-constraints">Platform constraints</h2>
 <p>Checked against Neon&#39;s and Cloudflare&#39;s documentation on 18 October 2026.</p>
 <p><strong>Neon</strong></p>
 <ul>
@@ -351,10 +374,10 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>25 configurations per paid account, more by request; not every limit can be raised (<a href="https://developers.cloudflare.com/hyperdrive/platform/limits/">limits</a>). A configuration is one connection string: one database and one user. Each database takes one; staging lives in a separate Cloudflare account.</li>
 <li>About 100 origin connections per configuration on a paid plan, so each cell has at most ~100 pooled database connections. A statement stops after 60 seconds.</li>
 <li>Pooling is in transaction mode: a <code>SET</code> inside <code>BEGIN</code>/<code>COMMIT</code> takes effect, and the connection is reset when it returns to the pool (<a href="https://developers.cloudflare.com/hyperdrive/concepts/how-hyperdrive-works/">how Hyperdrive works</a>). This is what the transaction-local company setting relies on.</li>
-<li><strong>Query caching is on by default and is off on every configuration.</strong> Hyperdrive caches read-only query results and cannot see the company setting, so a cached result could be served to another company (<a href="https://developers.cloudflare.com/hyperdrive/concepts/query-caching/">query caching</a>). <code>db:add</code> creates every configuration with caching disabled, and the production audit refuses any configuration in the account with caching on.</li>
+<li><strong>Query caching is on by default and is off on every configuration.</strong> Hyperdrive caches read-only query results and cannot see the company setting, so a cached result could be served to another company (<a href="https://developers.cloudflare.com/hyperdrive/concepts/query-caching/">query caching</a>). <code>cell:add</code> and <code>dedicated:add</code> create every configuration with caching disabled, and the production audit refuses any configuration in the account with caching on.</li>
 <li>Transactions stay short: each holds one pooled connection until it ends, so no marketplace call runs inside a transaction.</li>
 </ul>
-<h2>Operations</h2>
+<h2 id="operations">Operations</h2>
 <ul>
 <li><strong>Timeouts.</strong> The runtime role has a <code>statement_timeout</code> and an <code>idle_in_transaction_session_timeout</code>, so one slow query or one forgotten transaction cannot hold a cell. Every migration sets a <code>lock_timeout</code> and retries, so a migration waiting for a lock on a shared table does not queue every seller behind it.</li>
 <li><strong>Migrations run as a ring.</strong> They run first on the newest cell, which holds the trials and the canary, then on the others, and finish everywhere before the new code goes live.</li>
@@ -362,8 +385,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Hot rows.</strong> The <code>due</code> table and the counter table are updated by almost every command; both get a lower fillfactor and their own autovacuum thresholds.</li>
 <li><strong>Alerts</strong> on transaction-id age, long-running transactions and leftover replication slots.</li>
 </ul>
-<h2>When to add a database</h2>
-<p>The system recommends a new cell when any one of these holds for 7 days; the operator decides.</p>
+<h2 id="when-to-add-a-database">When to add a database</h2>
+<p>The system recommends a new cell when any one of these holds for 7 days; the operator decides. The company count is also a hard limit: a cell that reaches 200 companies takes no new ones, whatever the operator has decided.</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -374,8 +397,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </thead>
 <tbody><tr>
 <td>Companies in the cell</td>
-<td>200</td>
-<td>Limits how many companies one outage, bad migration or misconfiguration reaches: at 1,000 companies, about 5 shared cells</td>
+<td>160, 80% of the cap of 200</td>
+<td>The next cell is ready before this one is full. The cap limits how many companies one outage, bad migration or misconfiguration reaches: at 1,000 companies, about 5 shared cells</td>
 </tr>
 <tr>
 <td>Hyperdrive pool</td>
@@ -404,7 +427,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </tbody></table></div>
 <p>Large append-only tables (orders, the stock ledger, outbound sends) are partitioned by month, with <code>company_id</code> leading every index. How long data stays in a cell, and when older months move to an archive, is <a href="../data-retention/">ADR-002: Data retention and archiving</a>.</p>
-<h2>How isolation is proven</h2>
+<h2 id="how-isolation-is-proven">How isolation is proven</h2>
 <p>Isolation counts as proven only on real Postgres under the runtime role: an embedded or superuser database skips row-level security even when it is forced.</p>
 <div class="table-wrap"><table>
 <thead>
@@ -475,7 +498,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>A real company restores unattended into a branch the runtime role cannot enter, neighbours unchanged, time per gigabyte recorded</td>
 </tr>
 </tbody></table></div>
-<h2>Consequences</h2>
+<h2 id="consequences">Consequences</h2>
 <p><strong>What this gives us</strong></p>
 <ul>
 <li>The database structure exists once per cell, not once per company: about 1,900 database objects per cell, however many companies it holds. A schema per company would be about 1,780 objects for each company, 1.78 million at 1,000 companies.</li>
@@ -494,7 +517,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>Erasure is complete in backups 30 days after it is made.</li>
 <li>Every company in a cell shares its compute and its ~100 connections, so one company&#39;s burst is bounded by fair shares and the cell cap, not by hardware of its own.</li>
 </ul>
-<h2>Alternatives considered</h2>
+<h2 id="alternatives-considered">Alternatives considered</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>

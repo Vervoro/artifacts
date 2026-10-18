@@ -30,6 +30,8 @@ h3 { font-size: 18px; margin: 32px 0 8px; }
 p, li { max-width: 72ch; }
 a { color: var(--accent); }
 code { font-family: var(--mono); font-size: 0.86em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--sunken); padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 13.5px; line-height: 1.5; }
+pre code { background: none; padding: 0; overflow-wrap: normal; }
 table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 16px 0; background: var(--surface); }
 .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
 .table-wrap table { margin: 0; }
@@ -58,7 +60,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <body>
 <header class="site"><a href="../">← Vervoro artifacts</a></header>
 <main>
-<h1>ADR-003: Product model</h1>
+<h1 id="adr-003-product-model">ADR-003: Product model</h1>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -83,7 +85,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="../database-architecture/">ADR-001: Multi-tenant database architecture</a></td>
 </tr>
 </tbody></table></div>
-<h2>Context</h2>
+<h2 id="context">Context</h2>
 <p>A seller keeps one list of the things they stock and sell. Every other part of Vervoro hangs off that list: stock and its ledger, purchase orders, order lines, and the listings on Amazon, eBay, Shopify and other channels. If the product list is wrong, every channel shows the wrong number.</p>
 <p>The design has to meet these requirements:</p>
 <ul>
@@ -98,7 +100,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>VAT</strong> depends on the product and on the country of sale, and rates change.</li>
 </ul>
 <p>Existing ERP practice for warehouse-run sellers informed the field list and the pack and bundle rules below: components with a quantity, a sellable figure set by the scarcest component, repack jobs between a pack and its singles, and spreadsheet edits where a blank cell changes nothing.</p>
-<h2>Decision</h2>
+<h2 id="decision">Decision</h2>
 <ol>
 <li><strong>A product is one thing the seller stocks or sells, counted in whole base units.</strong> Every quantity anywhere in Vervoro is an integer number of base units of one product.</li>
 <li><strong>The SKU is the seller&#39;s permanent name for a product,</strong> unique within the company. It can be corrected until the product is first used, then it is fixed, and it is never reused.</li>
@@ -112,7 +114,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>The product holds no selling price.</strong> Prices live on listings and belong to the channel. The product holds a standard cost for planning; real cost lives on each batch.</li>
 <li><strong>Products are created four ways,</strong> all through the same validation: one at a time on screen, by spreadsheet, from a marketplace listing, and from an Amazon ASIN. Nothing is created without a person confirming it.</li>
 </ol>
-<h2>What a product is</h2>
+<h2 id="what-a-product-is">What a product is</h2>
 <p>A product is the unit the warehouse counts. If a picker can pick it and a stock count can count it, it is a product. If it is only a way of offering or grouping products (a six-pack listing, a family of sizes, a price), it is not.</p>
 <p><strong>What a product holds:</strong> identity (SKU, name, barcodes), its kind and composition, the physical facts a warehouse and a courier need (weight, dimensions), whether it needs best-before dates and lot numbers, the facts customs and tax need (commodity code, country of origin, VAT class), a standard cost, and how it is grouped (family, categories, tags).</p>
 <p><strong>What a product does not hold:</strong></p>
@@ -145,7 +147,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>They differ per supplier</td>
 </tr>
 </tbody></table></div>
-<h2>Product fields</h2>
+<h2 id="product-fields">Product fields</h2>
 <p>All tables are declared through <code>tenantTable()</code> (ADR-001), so every row also carries <code>company_id</code> and every key leads with it. IDs are uuidv7.</p>
 <p><strong><code>product</code></strong></p>
 <div class="table-wrap"><table>
@@ -376,7 +378,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </tbody></table></div>
 <p>Every change to a product, its barcodes, components or packages writes an activity entry: who, when, which field, the old value and the new value.</p>
-<h2>SKU</h2>
+<h2 id="sku">SKU</h2>
 <p>The SKU is the seller&#39;s own code for a product, and the key every spreadsheet, scan and support conversation uses.</p>
 <ul>
 <li><strong>Unique within the company, ignoring case.</strong> <code>HONEY-1</code> and <code>honey-1</code> cannot both exist, because sellers type SKUs by hand and marketplaces compare them differently.</li>
@@ -385,7 +387,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Never reused.</strong> A retired product keeps its SKU, so old documents and reports still resolve to the right product.</li>
 <li><strong>To change a used SKU, make a new product.</strong> &quot;Copy as new product&quot; copies every field except SKU and barcodes, links nothing, and moves no stock. The seller relinks listings, moves stock with a recorded transfer if needed, and retires the old product.</li>
 </ul>
-<h2>Barcodes</h2>
+<h2 id="barcodes">Barcodes</h2>
 <p>A barcode identifies the physical item. It is what a picker scans.</p>
 <ul>
 <li><strong>Many per product.</strong> A product may carry its current barcode, an older one still on stock in the warehouse, and the barcode of each box size.</li>
@@ -396,7 +398,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Unique within the company.</strong> A code belongs to one product, or to one box size of one product. A scan therefore never has to ask &quot;which one?&quot;.</li>
 <li><strong>One primary barcode per product.</strong> It is the one printed on labels and sent when a listing is created.</li>
 </ul>
-<h2>Images</h2>
+<h2 id="images">Images</h2>
 <p>A product&#39;s images are for people in the warehouse and in Vervoro: recognising the item when picking, checking a match. What a shopper sees is the listing&#39;s own photos, managed in the channel.</p>
 <ul>
 <li><strong>Two sources.</strong> An image is uploaded by the seller (<code>upload</code>), or taken from a marketplace listing or catalogue entry (<code>marketplace</code>) when a product is created from one.</li>
@@ -404,7 +406,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Uploads</strong> go straight to object storage. Object keys are never overwritten; replacing an image writes a new key.</li>
 <li><strong>Up to 10 per product.</strong> Position 0 is the main image, shown on pick lists and in search.</li>
 </ul>
-<h2>Product kinds</h2>
+<h2 id="product-kinds">Product kinds</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -451,9 +453,9 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>No</td>
 </tr>
 </tbody></table></div>
-<h3>Simple</h3>
+<h3 id="simple">Simple</h3>
 <p>A simple product is one item on the shelf: one jar, one bottle, one cable. Most products are simple.</p>
-<h3>Pack</h3>
+<h3 id="pack">Pack</h3>
 <p>A pack is a physical product that holds a fixed number of one simple product: a shrink-wrapped six-pack with its own barcode. It sits on the shelf as its own item, so it has its own stock, batches and best-before dates.</p>
 <ul>
 <li><strong>One content product.</strong> <code>pack_of</code> points at a simple product; <code>units_per_pack</code> says how many. A pack of packs is not allowed: a case of four six-packs is a box size, not a product.</li>
@@ -462,7 +464,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Assembly is a manager&#39;s job.</strong> A product built from several others and sealed in advance (a gift set sent to Amazon&#39;s warehouse, which Amazon requires as one labelled unit) is a simple product of its own. A manager&#39;s assembly job states every input and the output quantity, and the output batch records every input lot (ADR-006).</li>
 <li><strong>When to use a pack, and when not.</strong> If the seller ships six singles loose in one parcel, that is a listing with six units per sale, not a pack. A pack exists only when a sealed pack physically sits on the shelf.</li>
 </ul>
-<h3>Bundle</h3>
+<h3 id="bundle">Bundle</h3>
 <p>A bundle (also called a kit or set) is several products sold as one item: a gift set of one jar of honey and two jars of jam. Nobody counts bundles on the shelf, so a bundle has no stock of its own.</p>
 <ul>
 <li><strong>Components.</strong> Each component is a product and a whole-number quantity, 1–1,000. A bundle has 1 to 20 components, and at least 2 units in total. A &quot;bundle&quot; of three of the same product with nothing else is refused, with a pointer to the right tool: a listing with three units per sale.</li>
@@ -476,9 +478,9 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>No bundle stock, ever.</strong> A ledger entry against a bundle is refused.</li>
 <li><strong>Best-before and lots come from the components.</strong> Each component reserves its earliest qualifying batch, and the order line records the lot of each component that left.</li>
 </ul>
-<h3>Changing a product&#39;s kind</h3>
+<h3 id="changing-a-products-kind">Changing a product&#39;s kind</h3>
 <p>A product&#39;s kind can be changed only before first use. After that, stock history, listings and orders depend on it, so the seller creates a new product and retires the old one.</p>
-<h2>Box and pallet sizes</h2>
+<h2 id="box-and-pallet-sizes">Box and pallet sizes</h2>
 <p>A package configuration says how many base units come in one box, case or pallet of a product: &quot;case of 12&quot;, &quot;pallet of 480&quot;. It is a handling unit, not a product.</p>
 <ul>
 <li><strong>Never stock.</strong> Stock is always counted in base units. Five cases of 12 received is 60 units in the ledger, nothing else.</li>
@@ -488,7 +490,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Box size versus pack.</strong> If the box is sold to a shopper as one item and sits on the shelf as one item, it is a pack product. If it is only how goods arrive or travel, it is a box size.</li>
 </ul>
 <p>Units per box on a particular delivery belong to that delivery&#39;s batch (ADR-006), because a supplier may change box sizes between deliveries.</p>
-<h2>Linking listings to products</h2>
+<h2 id="linking-listings-to-products">Linking listings to products</h2>
 <p>A listing is one offer on one channel account. Listings themselves, how they are read and how they are matched, are ADR-005 (catalogue sync and linking). The link from a listing to a product is defined here, because it decides how much stock a sale uses.</p>
 <p><strong><code>listing_link</code></strong></p>
 <div class="table-wrap"><table>
@@ -528,7 +530,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Marketplace-shipped listings.</strong> When the marketplace ships from its own warehouse, Vervoro reserves nothing and sends no quantity to that listing; its orders are recorded for reporting only.</li>
 <li><strong>Unlinked listings.</strong> An order for a listing with no link is imported and flagged, and reserves nothing until someone links it.</li>
 </ul>
-<h2>Amazon: FBA and Vendor</h2>
+<h2 id="amazon-fba-and-vendor">Amazon: FBA and Vendor</h2>
 <p>Both are ways of selling a product, so they live on the listing side. The product model needs nothing of its own for them beyond the fields above.</p>
 <p><strong>Shipped by Amazon (FBA)</strong></p>
 <ul>
@@ -577,7 +579,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Retiring needs an empty product:</strong> no stock on hand, no open reservations or purchase orders, no linked listings, and not a component of any bundle that is not retired. The screen says which of these blocks it.</li>
 <li><strong>Deleting</strong> is allowed only before first use. A used product is retired, never deleted, so history keeps pointing at it.</li>
 </ul>
-<h2>Sizes and colours</h2>
+<h2 id="sizes-and-colours">Sizes and colours</h2>
 <p>A shoe in sizes 40 to 45 is six products in one family. Each size is a product, because each is picked, counted, reordered and runs out on its own. The family is what the seller sees and works with as one design.</p>
 <p><strong><code>product_family</code></strong></p>
 <div class="table-wrap"><table>
@@ -631,7 +633,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Listing as one.</strong> A family can be published or linked as one variation listing: an Amazon parent with children, an eBay listing with variations, a Shopify product with variants (ADR-005). Each child listing still links to exactly one member product, so stock and orders work as for any product.</li>
 <li><strong>Leaving a family.</strong> A product can be moved out of a family or into another; its stock and history do not change.</li>
 </ul>
-<h2>VAT</h2>
+<h2 id="vat">VAT</h2>
 <p>The product holds a VAT class, not a rate. The rate comes from a reference table of rates per country.</p>
 <ul>
 <li><strong>Why not the rate on the product.</strong> One product sold in several countries has several rates: a standard-rate item is 20% in the UK and 19% in Germany. Rates also change by law. A class on the product and one rate table means a rate change is one edit, not thousands.</li>
@@ -682,7 +684,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>7%</td>
 </tr>
 </tbody></table></div>
-<h2>Best-before and lot numbers</h2>
+<h2 id="best-before-and-lot-numbers">Best-before and lot numbers</h2>
 <p>For food, cosmetics and supplements, the date and the lot number are what keep a buyer safe. Two switches on the product decide what the warehouse must record, and <code>date_kind</code> says whether the date is a best-before or a use-by date. Selling food past its use-by date is an offence; food past its best-before date may still be sold if it is of good quality. A company setting gives new products their default, so a food seller has both on from the start.</p>
 <p><strong><code>tracks_best_before</code> on:</strong></p>
 <ul>
@@ -706,7 +708,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>Repacking keeps the batch, best-before date and lot of the stock it came from.</li>
 <li>Turning a switch on while stock is on hand flags that stock for a count, where the missing dates or lots are filled in. Until then it is still sellable but shown as missing them.</li>
 </ul>
-<h2>How products are created</h2>
+<h2 id="how-products-are-created">How products are created</h2>
 <p>Every route ends in the same validation and the same create command. None of them creates a product without a person confirming it.</p>
 <ol>
 <li><strong>On screen.</strong> The seller fills in the form. A scanned barcode is checked at once and, if it belongs to another product, that product is shown.</li>
@@ -714,7 +716,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>From a marketplace listing.</strong> From an unlinked listing or an unmatched order line, &quot;make a product from this&quot; fills a draft from the listing: SKU from the listing&#39;s SKU, name, brand, barcode, main image and weight where the channel has them. The person checks it, saves, and the listing is linked in the same step. When a channel is first connected, catalogue onboarding pulls drafts for every unlinked listing into a workbook, which then imports like any spreadsheet. Listings with the same barcode or SKU on different accounts become one draft. Two listings on the same account never do, because one may be a multipack of the other.</li>
 <li><strong>From an Amazon link or ASIN.</strong> The seller pastes a product link or a bare 10-character ASIN. Vervoro looks it up in the marketplace catalogue and fills in name, brand, barcode, main image, weight and dimensions where available. The person checks the draft before it is created. The ASIN is not stored on the product; it is a listing identifier.</li>
 </ol>
-<h2>Spreadsheet import and bulk edit</h2>
+<h2 id="spreadsheet-import-and-bulk-edit">Spreadsheet import and bulk edit</h2>
 <p>One workbook format serves export, bulk edit and bulk create.</p>
 <ul>
 <li><strong>Sheets:</strong> Products (one row per product, with family name and option values), Bundle components (bundle SKU, component SKU, quantity), Box sizes (SKU, name, units, barcode), Barcodes (SKU, code). Only the Products sheet is required.</li>
@@ -726,7 +728,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Refused outright:</strong> a SKU twice in one file, a bundle component that is itself a bundle, a change of kind or SKU on a used product, a barcode already held by another product.</li>
 <li><strong>Limits.</strong> Up to 10,000 product rows per file. Larger catalogues import in several files.</li>
 </ul>
-<h2>Validation summary</h2>
+<h2 id="validation-summary">Validation summary</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -783,7 +785,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Integer columns everywhere; no decimal quantity type exists</td>
 </tr>
 </tbody></table></div>
-<h2>Consequences</h2>
+<h2 id="consequences">Consequences</h2>
 <p><strong>What this gives us</strong></p>
 <ul>
 <li>One stock number per physical thing. Packs, bundles, box sizes and multi-unit listings each have one rule, so nothing is counted twice or never deducted.</li>
@@ -801,7 +803,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>The operator maintains VAT rates for every supported country.</li>
 <li>With lot tracking on, every receipt and every dispatch asks one more question of warehouse staff.</li>
 </ul>
-<h2>Alternatives considered</h2>
+<h2 id="alternatives-considered">Alternatives considered</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>

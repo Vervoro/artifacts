@@ -30,6 +30,8 @@ h3 { font-size: 18px; margin: 32px 0 8px; }
 p, li { max-width: 72ch; }
 a { color: var(--accent); }
 code { font-family: var(--mono); font-size: 0.86em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--sunken); padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 13.5px; line-height: 1.5; }
+pre code { background: none; padding: 0; overflow-wrap: normal; }
 table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 16px 0; background: var(--surface); }
 .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
 .table-wrap table { margin: 0; }
@@ -58,7 +60,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <body>
 <header class="site"><a href="../">← Vervoro artifacts</a></header>
 <main>
-<h1>ADR-010: Users, roles and sign-in</h1>
+<h1 id="adr-010-users-roles-and-sign-in">ADR-010: Users, roles and sign-in</h1>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -83,7 +85,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="../system-architecture/">ADR-000: System architecture</a>, <a href="../database-architecture/">ADR-001: Multi-tenant database architecture</a>, <a href="../data-retention/">ADR-002: Data retention and archiving</a>, <a href="../channel-connectors/">ADR-004: Channel connectors</a>, <a href="../stock-ledger/">ADR-006: Stock ledger and reservations</a>, <a href="../order-ingestion/">ADR-007: Order ingestion</a>, <a href="../inventory-sync/">ADR-008: Inventory sync</a>, <a href="../buyer-data/">ADR-009: Buyer data and privacy</a></td>
 </tr>
 </tbody></table></div>
-<h2>Context</h2>
+<h2 id="context">Context</h2>
 <p>Every screen, every command and every view of a buyer&#39;s address starts with two questions: who is this, and what may they do here? Earlier records already answer parts of it:</p>
 <ul>
 <li><strong>ADR-000:</strong> each module declares named permissions that a role can be granted; the foundation holds users and roles; the client is a convenience and the server checks every request again.</li>
@@ -101,7 +103,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>One person, several companies.</strong> An owner may run more than one company; an accountant or a consultant serves many.</li>
 <li><strong>One operator.</strong> Every lockout that needs a person at Vervoro costs the operator time. Every operator action on a seller&#39;s data must be visible to the seller.</li>
 </ul>
-<h2>Decision</h2>
+<h2 id="decision">Decision</h2>
 <ol>
 <li><strong>Three kinds of people sign in:</strong> the seller&#39;s users, Vervoro&#39;s operators and Vervoro&#39;s developers. Buyers and suppliers never sign in. Background work is a system actor, never a person.</li>
 <li><strong>One login per person, any number of companies.</strong> The login, its sign-in methods and its sessions live in the control database. Each company&#39;s own users table holds the person&#39;s email address, name, role, warehouse scope and status in that company. That table decides what they may do there.</li>
@@ -120,7 +122,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Two audit trails.</strong> The company&#39;s <code>audit_log</code> records what happened in that company, for the seller to see. The platform security log records every sign-in and security event across the platform, with no buyer data and no email address.</li>
 <li><strong>No API tokens for sellers at launch.</strong> A later record may add integration access that is scoped, revocable and without buyer data.</li>
 </ol>
-<h2>Architecture</h2>
+<h2 id="architecture">Architecture</h2>
 <figure><svg class="diagram" viewBox="0 0 760 360" role="img" aria-label="A seller's user signs in on their own phone or laptop with a password and an authenticator app code, or with a passkey. Each request checks the session and the membership in the control database, then opens a transaction fixed to one company in its cell, where the person's role, scope and status decide the action. An operator's request checks a live grant in control instead of a membership, opens the same kind of transaction under row-level security, and writes an entry in the company's audit log." xmlns="http://www.w3.org/2000/svg" font-size="13">
   <defs>
     <marker id="ua-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="edge-fill"/></marker>
@@ -187,7 +189,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 
 <p>A request carries a session cookie and names the company it is for. The Worker reads the session from the control database and checks that it is live. It then confirms that the login has a membership in that company and routes to the company&#39;s cell. There it opens the usual transaction, fixed to the company (ADR-001). The first read in that transaction is the person&#39;s row in the company&#39;s users table: role, warehouse scope and status. The action is allowed only if the role holds it, the scope covers it and the person is active. Revoking a session in control, or removing the person in the cell, therefore stops their very next request.</p>
 <p>An operator&#39;s request takes the same path from a separate console. The control database holds the operator&#39;s grant instead of a membership. The transaction is fixed to the one company in the same way, under the same runtime role, and every request writes an entry in the company&#39;s <code>audit_log</code>.</p>
-<h2>The people</h2>
+<h2 id="the-people">The people</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -223,7 +225,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </tbody></table></div>
 <p><strong>One account per person.</strong> Every login belongs to one person, identified by their own email address. Generic logins (&quot;packing desk&quot;, &quot;warehouse&quot;) do not exist, and nobody signs in on someone else&#39;s phone or account. The customer terms say so, and the audit log makes a shared account visible: one name packing at two benches at once.</p>
-<h2>One login, several companies</h2>
+<h2 id="one-login-several-companies">One login, several companies</h2>
 <ul>
 <li><strong>The login</strong> lives in the control database: a random id, the keyed hash of the normalised email (ADR-001), the password&#39;s hash, the authenticator app&#39;s secret (encrypted under a platform key), its passkeys&#39; public keys, the hashes of its recovery codes, its sessions, and its memberships (login, company). It holds no name and no clear email address.</li>
 <li><strong>The member row</strong> lives in each company&#39;s own users table, in that company&#39;s cell: the email address, the name, the role, the warehouse scope, the status (invited, active, removed), and when each changed. It is the authority for what the person may do in that company. Being in the company&#39;s cell, it moves, exports and is erased with the company.</li>
@@ -231,8 +233,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Sending email to a person.</strong> Control has only the hash. A notice to a person reads their address from any company where they are active. Recovery and invitation emails go to the address the person types, once its hash matches.</li>
 <li><strong>Changing email</strong> changes the hash in control and the address in every company where the person is a member. It follows ADR-001&#39;s cross-database pattern: company side first, then control, repaired from the outbox. Both the old and the new address are told.</li>
 </ul>
-<h2>Signing in</h2>
-<h3>Password and authenticator app</h3>
+<h2 id="signing-in">Signing in</h2>
+<h3 id="password-and-authenticator-app">Password and authenticator app</h3>
 <ul>
 <li><strong>First the password, then the code.</strong> The person enters their email address and password, then a 6-digit code from an authenticator app on their phone. The code changes every 30 seconds, and each code is accepted once.</li>
 <li><strong>The password rules</strong> are Amazon&#39;s (above, and ADR-009). Vervoro also refuses a password found on a list of common or breached passwords, allows passwords up to 64 characters, and lets password managers fill and paste them. The password is stored only as a salted, slow hash, with a platform key held outside the database added to it.</li>
@@ -240,7 +242,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Setting up the app</strong> happens at the first sign-in: the app scans a code shown on screen, and the person types one code back to prove it works. A worker who signs in on their own phone keeps the authenticator app on that same phone; the password is still something only they know.</li>
 <li><strong>Recovery codes</strong> are shown once, when the second factor is set up: 10 single-use codes, to print or save. Setup does not finish until the person confirms they have saved them. Each is stored only as a hash.</li>
 </ul>
-<h3>Passkeys</h3>
+<h3 id="passkeys">Passkeys</h3>
 <p>A passkey is a WebAuthn credential that the person&#39;s phone, laptop or password manager keeps. It works only on Vervoro&#39;s own site, which makes it resistant to phishing. Vervoro stores only its public key.</p>
 <ul>
 <li><strong>User verification is required:</strong> the device checks a fingerprint, a face or its own PIN. With it, one gesture is two factors: the device that holds the key, and the person who unlocks it. A response without the user-verified flag is refused.</li>
@@ -248,9 +250,9 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>A laptop without a passkey</strong> can use the person&#39;s phone through the browser&#39;s cross-device sign-in (a QR code and Bluetooth), or the password and app code.</li>
 <li><strong>Offered, not forced.</strong> After a password sign-in on a phone that can hold a passkey, the app offers one. Warehouse staff gain the most: a fingerprint unlocks the app with gloves off, instead of typing a 12-character password.</li>
 </ul>
-<h3>Everyone&#39;s security page</h3>
+<h3 id="everyones-security-page">Everyone&#39;s security page</h3>
 <p>Each person sees their sign-in methods and recent sign-ins, and can remove a lost passkey. Adding or removing a method, changing the password, and using a recovery code are told to the person by email.</p>
-<h3>What is not used</h3>
+<h3 id="what-is-not-used">What is not used</h3>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -279,7 +281,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Hardware to buy, issue and replace; a person may still use one they own, as a passkey</td>
 </tr>
 </tbody></table></div>
-<h2>Sessions</h2>
+<h2 id="sessions">Sessions</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -311,7 +313,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>No idle lock in the app.</strong> Idle time is covered by the device&#39;s own screen lock. Amazon&#39;s device rules (a 15-minute screen lock, managed devices) bind Vervoro&#39;s own laptops, which follow them; they are not rules for the seller&#39;s phones.</li>
 <li><strong>Account changes need a fresh check:</strong> inviting, removing or changing anyone&#39;s role or scope; resetting anyone&#39;s sign-in; changing one&#39;s own sign-in methods; connecting, disconnecting, going live on or switching off a marketplace account; an export with buyer data; switching on buyer data for an operator grant; closing the company or changing an Owner. Picking, packing, printing and counting never ask.</li>
 </ul>
-<h2>Account recovery</h2>
+<h2 id="account-recovery">Account recovery</h2>
 <p>Every way back in is a fixed procedure. Nobody at Vervoro can be talked into an exception.</p>
 <div class="table-wrap"><table>
 <thead>
@@ -347,7 +349,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p>A company with no connected marketplace is a trial with little in it, and the person signs up again. Any other case is decided by Vervoro&#39;s owner on documents, never by the operator alone.</p>
 <p><strong>After every recovery,</strong> the person and the company&#39;s Owners and Admins are told by email, every session of that login ends, and the recovery is logged in both audit trails.</p>
 <p><strong>Lockouts.</strong> Ten wrong passwords, codes or recovery codes in a row lock password sign-in for 30 minutes and tell the person by email. A passkey still signs in during the lock. Failed sign-ins from one network address slow down with each failure, whichever logins they try, so one source cannot guess passwords across many accounts. A bot check protects sign-up and password reset.</p>
-<h2>Roles</h2>
+<h2 id="roles">Roles</h2>
 <p>Six roles, fixed at launch. Each person has one role in each company.</p>
 <div class="table-wrap"><table>
 <thead>
@@ -420,7 +422,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Never</td>
 </tr>
 </tbody></table></div>
-<h2>Who may do what</h2>
+<h2 id="who-may-do-what">Who may do what</h2>
 <p>The permission matrix. A module declares each action in its manifest (ADR-000), and this table grants it. Where an earlier record decided an action&#39;s roles, the matrix repeats that decision; the last column names the record.</p>
 <div class="table-wrap"><table>
 <thead>
@@ -941,7 +943,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>The last Owner cannot be removed or demoted, and cannot leave, until another person is Owner.</li>
 <li>Nobody is an Owner or Admin by default except the person who signs a company up.</li>
 </ul>
-<h2>Invitations, sign-up and removal</h2>
+<h2 id="invitations-sign-up-and-removal">Invitations, sign-up and removal</h2>
 <p><strong>Sign-up.</strong> A person enters their email address and passes a bot check. A link valid for 24 hours proves the address. They set a password and an authenticator app, or create a passkey, save their recovery codes, name their company, and become its Owner. The company starts as a trial in the newest open shared cell (ADR-001). Sign-up writes the company and the member row in that cell, with an outbox note, then the login and membership in control; a failed second write is repaired from the outbox. An address whose hash is already a login does not make a second login: the person signs in, and the new company becomes another membership.</p>
 <p><strong>Invitations.</strong> An Owner, or an Admin for roles below Admin, invites by the person&#39;s own email address, with a role and, where it applies, a warehouse scope.</p>
 <ul>
@@ -958,7 +960,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>A login left with no membership is deleted after 30 days, with its sign-in methods; the platform security log keeps only its id.</li>
 </ol>
 <p>All of this happens within minutes, well inside ADR-009&#39;s 24 hours.</p>
-<h2>Operator access to a company</h2>
+<h2 id="operator-access-to-a-company">Operator access to a company</h2>
 <p>Operators run the platform, not the seller&#39;s business. ADR-009 already decided the core of this section: no standing access, a time-limited grant with a written reason, buyer fields masked unless needed, and every grant visible to the seller.</p>
 <p><strong>Operator accounts</strong> are in the control database (ADR-001), separate from any seller login. They sign in only to a separate operator console on its own address, with passkeys from Vervoro&#39;s own managed laptops, at least two per operator on two devices.</p>
 <p><strong>Repairs need no grant.</strong> The operator&#39;s repairs are recorded commands that run as system actors and show no company data to anyone: rebuilding a balance from the ledger after the nightly check (ADR-006), re-importing an order, and the lifecycle operations of ADR-001 (export, move, restore), run by its lifecycle tool. Each writes an entry in the company&#39;s <code>audit_log</code>, naming the operator and the reason. An erasure is never an operator command; it runs on the seller&#39;s privacy request (ADR-009).</p>
@@ -981,7 +983,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p><strong>The seller sees every grant and repair</strong> in a &quot;Vervoro access&quot; view of their audit log: who, the reason, buyer data or not, the start and end, and every screen opened. Every grant also goes to the platform security log and alerts Vervoro&#39;s owner (ADR-009), and every grant is in the quarterly access review.</p>
 <p><strong>The database&#39;s own roles</strong> are not a way around grants. The owner role runs only in the migration job, and an emergency use records the reason first and alerts (ADR-001, ADR-009). The lifecycle role runs only in the operations job, has <code>NOBYPASSRLS</code>, and shows no data on any screen.</p>
 <p><strong>Operator recovery.</strong> Nobody resets their own operator access. The operator and Vervoro&#39;s owner, as the operator&#39;s deputy (ADR-009), each hold an operator account and reset each other. Each keeps recovery codes offline, in a separate place, and using one alerts.</p>
-<h2>Audit</h2>
+<h2 id="audit">Audit</h2>
 <p>Two trails, each in one place.</p>
 <div class="table-wrap"><table>
 <thead>
@@ -1028,7 +1030,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </tbody></table></div>
 <p><strong>Watched, not only kept.</strong> The alerts in ADR-009 read these trails: every operator grant, every use of the database owner role, a burst of failed sign-ins, a recovery of a last Owner, and a person viewing far more buyers than their packing explains. Alerts are reviewed as they come, and the rest of the security log every two weeks (ADR-009).</p>
-<h2>API tokens</h2>
+<h2 id="api-tokens">API tokens</h2>
 <p><strong>No API tokens for sellers at launch.</strong></p>
 <ul>
 <li>A token is a standing credential that skips multi-factor sign-in. Every one would need scopes, an expiry, rotation, a response to leaks and support, and Amazon&#39;s policy asks that every service credential has a documented owner and access rules.</li>
@@ -1036,7 +1038,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>A seller&#39;s own needs at launch are met inside the app and by exports.</li>
 </ul>
 <p>If a later record adds integration access, it starts from these rules: created only by an Owner, with a fresh check; named and scoped to actions; short-lived and revocable; shown once; listed with when it was last used; and never with buyer data.</p>
-<h2>How this is proven</h2>
+<h2 id="how-this-is-proven">How this is proven</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -1111,7 +1113,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Password and app-code sign-in, passkey sign-in and cross-device sign-in on a laptop work on current iPhones and low-cost Android phones</td>
 </tr>
 </tbody></table></div>
-<h2>Constraints</h2>
+<h2 id="constraints">Constraints</h2>
 <p>Checked against the official sources on 18 October 2026.</p>
 <div class="table-wrap"><table>
 <thead>
@@ -1218,7 +1220,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </tbody></table></div>
 <p><strong>Where Vervoro departs from a source, and why.</strong> Amazon&#39;s password rules (mixed character types, a yearly change) are what NIST now advises against. Amazon&#39;s policy binds Vervoro and NIST&#39;s guidance does not, so passwords follow Amazon, and Vervoro adds NIST&#39;s blocklist, length and password-manager advice, which Amazon&#39;s rules allow. Passkeys need no password rule at all, which is why the app offers them. NIST also advises an idle limit of an hour; Vervoro leaves idle time to the device&#39;s own screen lock, because no rule that binds it asks for more and a lock inside the app would mean typing a password again after every break.</p>
-<h2>Consequences</h2>
+<h2 id="consequences">Consequences</h2>
 <p><strong>What this gives us</strong></p>
 <ul>
 <li>Multi-factor for every person by construction, not by a setting a seller can forget, so every marketplace review sees one rule, and the password rules Amazon and Shopify ask for.</li>
@@ -1238,7 +1240,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>Fixed roles will not fit every company; some will want, for example, a packer who can hold an order.</li>
 <li>No API tokens: a seller who wants their own integration waits for a later record.</li>
 </ul>
-<h2>Alternatives considered</h2>
+<h2 id="alternatives-considered">Alternatives considered</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -1307,7 +1309,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>A standing credential without multi-factor, and a path for buyer data that Vervoro cannot log</td>
 </tr>
 </tbody></table></div>
-<h2>What later records decide</h2>
+<h2 id="what-later-records-decide">What later records decide</h2>
 <ul>
 <li><strong>Billing and plans (<a href="../billing-and-plans/">ADR-012</a>):</strong> decided there: what each role may do while a company is restricted or closed, and the billing rows of the table of who may do what.</li>
 <li><strong>Invoicing and VAT (<a href="../invoicing-and-vat/">ADR-011</a>):</strong> decided there: the roles that issue, correct and read invoices, as rows in this matrix.</li>

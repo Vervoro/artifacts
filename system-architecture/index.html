@@ -30,6 +30,8 @@ h3 { font-size: 18px; margin: 32px 0 8px; }
 p, li { max-width: 72ch; }
 a { color: var(--accent); }
 code { font-family: var(--mono); font-size: 0.86em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--sunken); padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 13.5px; line-height: 1.5; }
+pre code { background: none; padding: 0; overflow-wrap: normal; }
 table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 16px 0; background: var(--surface); }
 .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
 .table-wrap table { margin: 0; }
@@ -58,7 +60,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <body>
 <header class="site"><a href="../">← Vervoro artifacts</a></header>
 <main>
-<h1>ADR-000: System architecture</h1>
+<h1 id="adr-000-system-architecture">ADR-000: System architecture</h1>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -83,7 +85,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="../database-architecture/">ADR-001: Multi-tenant database architecture</a>, <a href="../data-retention/">ADR-002: Data retention and archiving</a></td>
 </tr>
 </tbody></table></div>
-<h2>Context</h2>
+<h2 id="context">Context</h2>
 <p>Vervoro is an operations system for marketplace sellers who run their own warehouse: products, stock, orders, purchasing and listings, kept in step with Amazon, eBay, Shopify and other channels. This record proposes the decisions that give the system its shape, together with ADR-001 (how data is stored and isolated) and ADR-002 (how long it is kept). Each decision is enforced by the build, the tests or the database, not by developer care. Later records build on this one.</p>
 <p>The design has to meet these requirements:</p>
 <ul>
@@ -94,7 +96,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Features come and go per company.</strong> A company switches modules on and off, plans include different modules, and a new marketplace must be addable without touching the rest.</li>
 <li><strong>Phone first.</strong> Warehouse staff work on a phone, often with gloves and patchy Wi-Fi.</li>
 </ul>
-<h2>Decision</h2>
+<h2 id="decision">Decision</h2>
 <ol>
 <li><strong>A modular monolith.</strong> One codebase and one deployable per environment. Every feature is a module inside it, not a separate service.</li>
 <li><strong>Every capability is a module</strong> that declares itself in one manifest, owns its own tables, and talks to other modules only through their contract: typed ports and typed events.</li>
@@ -112,8 +114,15 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>English first, every word in a catalogue.</strong> Other languages are typed against the English keys and filled in a batched pass before release.</li>
 <li><strong>Tests run on the real kernel against real databases, with no mocks.</strong> &quot;Green&quot; means one verify command passed, and nobody weakens a test to get there.</li>
 <li><strong>Every change follows one path:</strong> new modules start from a scaffold, migrations only add, and the docs change with the code.</li>
+<li><strong>UK first, not UK hard-coded.</strong> Launch serves UK companies, the UK marketplaces, UK VAT and Vervoro&#39;s UK billing. That is product scope, not an assumption in the model:</li>
 </ol>
-<h2>Architecture</h2>
+<ul>
+<li>money always carries its currency, and amounts in different currencies are never added;</li>
+<li>a product has a VAT class, and rates come from a per-country table;</li>
+<li>every order line stores the country, class and rate it used.</li>
+</ul>
+<p>   UK rules live only where the country matters: invoices and VAT (ADR-011), Vervoro&#39;s own billing (ADR-012), food law (ADR-006), and each marketplace&#39;s site (ADR-004.1 to 004.3). Selling into the EU is a later record (<a href="../invoicing-and-vat/">ADR-011</a>). It adds rates, rules and marketplace sites in those places, and changes nothing in stock, orders, listings or tenancy.</p>
+<h2 id="architecture">Architecture</h2>
 <figure><svg class="diagram" viewBox="0 0 760 676" role="img" aria-label="Every change goes through the foundation; every send goes through the egress gate" xmlns="http://www.w3.org/2000/svg" font-size="13">
   <defs>
     <marker id="sys-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="edge-fill"/></marker>
@@ -223,7 +232,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 
 <p>A request from the client reaches the Worker. The Worker works out the company and the user, looks up in the control database which database holds that company, opens a transaction there fixed to that company, and builds the company&#39;s set of modules: only the ones switched on for it. A module that wants to change stock calls the foundation through a port. The foundation changes stock, writes the figure each listing should show, and writes an event to the outbox, all in one transaction.</p>
 <p>After commit, the request delivers the outbox note to the modules that handle it, and background work takes over. The Channels host compares what each listing should show with what the marketplace last confirmed, decides what to send, and hands each send to the egress gate. The gate records it in shadow mode, or sends it through the connector in live mode. Orders come back the other way: a marketplace calls a webhook, the Worker checks it and puts it on a queue, and the consumer imports the order through the foundation.</p>
-<h2>Modules and the kernel</h2>
+<h2 id="modules-and-the-kernel">Modules and the kernel</h2>
 <p>Every module is built on <strong>the kernel</strong>, a small library with no business rules. It gives modules typed results and ids, a controllable clock, one database port over two drivers, transactions, the outbox, a keyed dispatcher, the egress gate, configuration and composition.</p>
 <p><strong>What a module declares.</strong> Each module exports one manifest, and the build, the server, the client and the tests all read it.</p>
 <div class="table-wrap"><table>
@@ -277,7 +286,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>A composition test wires each module with only the ports it declares.</li>
 <li>The database refuses the runtime role any update or delete on an append-only table.</li>
 </ul>
-<h2>The foundation and the stock ledger</h2>
+<h2 id="the-foundation-and-the-stock-ledger">The foundation and the stock ledger</h2>
 <p>The foundation is always on and cannot be switched off. It holds the catalogue, stock, orders, the links between listings and products, users and roles, settings, the activity view and the warehouse work area (receiving, picking, packing, dispatch and returns inspection). It exposes <strong>command ports</strong> (reserve, release, dispatch, adjust, receive, ingest an order) and <strong>read ports</strong> (stock, orders, listings). No other code writes its tables, and screens read through its ports, not its tables.</p>
 <p><strong>Every stock command follows the same rules:</strong></p>
 <ul>
@@ -289,7 +298,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>One order per marketplace order.</strong> Importing again updates the order, never duplicates it, and an older state is ignored.</li>
 </ul>
 <p><strong>Desired state per listing.</strong> Pushes are not messages in a queue. Each linked listing has one row holding the figure the marketplace should show, written by the foundation in the same transaction as the stock change, with the ledger sequence it was computed from. The figure applies pack sizes, bundles, buffers and the low-stock policy. Ten changes to one listing update one row, so the latest figure is sent once, nothing old is ever replayed, and losing a background worker loses nothing: the work list is a query.</p>
-<h2>Talking to marketplaces</h2>
+<h2 id="talking-to-marketplaces">Talking to marketplaces</h2>
 <p><strong>Every connection starts in shadow.</strong> Orders come in and stock is reserved inside Vervoro, but no stock figure, dispatch notice or confirmation leaves. The gate records what it would have sent. A seller goes live once every difference is explained. Stopping sends on a live connection always asks first: leave the figures as they are, or send zero. The question is first asked when the connection goes live, and the answer is kept. When a company closes for non-payment, its answer is carried out, and the connection then only lowers its figures until the company is erased (<a href="../billing-and-plans/">ADR-012</a>).</p>
 <p><strong>The egress gate is the one door to marketplaces and suppliers.</strong></p>
 <ul>
@@ -331,7 +340,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tbody></table></div>
 <p><strong>Orders arrive by webhook.</strong> A webhook is verified, put on the inbound queue, and answered at once. The consumer fetches and imports the order afterwards. A failed delivery is retried with growing delays for about 40 minutes, then moves to a dead-letter queue that alerts the operator. A scheduled read of each account is the completeness check behind the webhooks: it catches what a marketplace failed to send and moves the order watermark, which only moves forward. Amazon delivers order notices only to its own cloud queue, so a small relay in AWS forwards them to the same webhook.</p>
 <p><strong>Simulators.</strong> Every marketplace, the parcel carriers, mail and the AI provider has a simulator: a real HTTP server that speaks the real API shapes, with a control interface to change its world (orders, stock, the clock) and its behaviour (latency, failures, throttling, late or repeated notices), and a typed log of every request. Connectors are written against the real APIs, so the same code runs against the simulators and against the marketplaces. Where a simulator is simpler than the real service, its documentation says how. Before launch, every call the launch connectors make is checked against a recorded real reply, and each difference is fixed in the simulator. A build check refuses any simulator code in the production bundle.</p>
-<h2>Runtime</h2>
+<h2 id="runtime">Runtime</h2>
 <ul>
 <li><strong>One Worker per environment</strong> serves the built client as static files, the API and every webhook. Deployed code uses web-standard APIs and platform bindings only; Bun is the build, package and test tool.</li>
 <li><strong>Background work</strong> runs on one sweeper per database, a Durable Object driven by its alarm. It finds the companies with work due in one query and runs them side by side. It wakes at the next due time, sets no alarm when nothing is due (so the database may sleep), is nudged within seconds by a change, and has an hourly scheduled trigger as the safety net for a lost alarm (<a href="../database-architecture/#background-work-and-events">ADR-001</a>).</li>
@@ -345,14 +354,14 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Alerts page the operator</strong> on the failures that matter: a stalled order watermark, a non-empty dead-letter queue, a difference in the nightly stock check, a failed migration.</li>
 <li><strong>Deploying is one command.</strong> Migrations run first, on the control database and every cell, and finish before the new code goes live. Migrations only add, so a rollback is switching back to the previous version. A database below the version the code needs is an error that alerts, never a state the code handles.</li>
 </ul>
-<h2>Data</h2>
+<h2 id="data">Data</h2>
 <p>How data is stored and isolated is decided in two records of its own, which this record builds on.</p>
 <ul>
 <li><strong><a href="../database-architecture/">ADR-001: Multi-tenant database architecture</a>.</strong> A control database knows only who the companies are and where they live. Customer databases (&quot;cells&quot;) hold many companies in shared tables, each row carrying its company and fenced by forced row-level security. Every company-level operation (export, move, restore, erase) is one generated operation over that company&#39;s rows, and guard rails in the runtime and in CI make a cross-company read or write impossible to write by accident.</li>
 <li><strong><a href="../data-retention/">ADR-002: Data retention and archiving</a>.</strong> About 24 months of history stay in a cell, current state never leaves, and older months move to compressed per-company files in object storage for the statutory period.</li>
 </ul>
 <p>Two architecture rules hold across both: only the data layer says which company a transaction belongs to, and a module never writes raw table definitions; it declares its tables, and the data layer adds everything tenancy needs.</p>
-<h2>The client</h2>
+<h2 id="the-client">The client</h2>
 <ul>
 <li><strong>One React single-page app,</strong> phone first. At sign-in it asks for the user&#39;s capabilities and mounts only the modules and actions available to them. A disabled module&#39;s screens are never downloaded. The client is a convenience, not a security boundary: the server checks every request again.</li>
 <li><strong>One UI package</strong> is the only place that imports the UI libraries (accessible components, tables, the barcode scanner, icons, charts). A lint rule bans them everywhere else, and a test proves the rule fires. A library can change without any screen&#39;s code or test ids changing.</li>
@@ -361,9 +370,9 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Every interactive element has a stable test id,</strong> so end-to-end tests do not depend on layout or wording.</li>
 <li><strong>Slow marketplaces never block a screen.</strong> Talking to a marketplace always happens in the background.</li>
 </ul>
-<h2>Languages and formats</h2>
+<h2 id="languages-and-formats">Languages and formats</h2>
 <p>Every word on screen comes from a catalogue. English is written first; other languages (Turkish first) are typed against the English keys, so a missing translation fails the typecheck. While building, only English is required, and a batched pass fills the rest before release. Numbers, money, dates and times come from one set of formatters: money keeps its currency and is never added across currencies, and every moment is shown in the company&#39;s time zone.</p>
-<h2>Testing and verification</h2>
+<h2 id="testing-and-verification">Testing and verification</h2>
 <ul>
 <li><strong>Tests run on the real kernel,</strong> with real databases and the simulators. Nothing is mocked.</li>
 <li><strong>Two database drivers, one contract.</strong> The fast local mode uses an embedded Postgres in the process; everything else uses real Postgres. One contract test suite runs against both, so they cannot drift. Concurrency, duplicate delivery and database roles are proved only on real Postgres: many orders racing for the last unit reserve it exactly once.</li>
@@ -372,14 +381,14 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Every code example in the core packages&#39; documentation is executed</strong> by a test, so the documentation always runs.</li>
 <li><strong>Never weaken a test to go green.</strong> Fix the code, or ask.</li>
 </ul>
-<h2>How work is done</h2>
+<h2 id="how-work-is-done">How work is done</h2>
 <ul>
 <li><strong>A new module starts from a scaffold</strong> in the reference shape: contract and screens agreed first, then one vertical slice (data and commands, server routes with access and warehouse scoping, the client page, tests), then one review of the whole change.</li>
 <li><strong>Migrations are forward-only.</strong> A migration already merged is never edited, because other copies and databases have applied it.</li>
 <li><strong>Docs follow the code</strong> in the same change: the design decision, the package&#39;s own documentation, and the launch checklist row the work serves.</li>
 <li><strong>AI coding agents follow the same rules,</strong> with checks they cannot skip: a hook refuses edits that delete or skip tests or touch secrets, verify runs automatically at the end of any turn that changed code, parallel work runs in separate worktrees with disjoint files, and one read-only review runs on each integrated change.</li>
 </ul>
-<h2>Consequences</h2>
+<h2 id="consequences">Consequences</h2>
 <p><strong>What this gives us</strong></p>
 <ul>
 <li>One deploy, one log and one database transaction for a stock change. A seller&#39;s stock is changed in one place, by one set of rules, under one lock.</li>
@@ -396,7 +405,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>The simulators are a large second codebase and can drift from the real APIs; recorded real replies are what keep them honest.</li>
 <li>Two database drivers and two local modes to keep working.</li>
 </ul>
-<h2>Alternatives considered</h2>
+<h2 id="alternatives-considered">Alternatives considered</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>

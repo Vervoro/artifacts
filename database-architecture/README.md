@@ -138,9 +138,34 @@ The control database is its own database on its own compute. A cell credential c
 
 **The erasure register** is also written, entry by entry, to an append-only log in object storage, so even a restore of control cannot lose an erasure.
 
-**Routing.** `forCompany(id)` looks the company's database up in the registry (cached) and uses that database's connection pool. A stale cache cannot do harm: the old database's tenant row is no longer `open`, so `enter_company` raises and the router reloads. A new company, trial or paid, goes to the newest open shared cell; an enterprise to a dedicated database. Adding a database is one command (`db:add`) that creates it, sets up its roles in SQL, migrates and registers it, with Hyperdrive caching disabled. The system recommends a new database; the operator decides.
+**Routing.** `forCompany(id)` looks the company's database up in the registry (cached) and uses that database's connection pool. A stale cache cannot do harm: the old database's tenant row is no longer `open`, so `enter_company` raises and the router reloads. A new company, trial or paid, goes to the newest open shared cell; an enterprise to a dedicated database. Adding a company and adding a database are separate operations ([Adding a company, adding a cell](#adding-a-company-adding-a-cell)).
 
 **Writes that cross databases** (sign-up, adding a user, closing a company) write the company side first, then control, are idempotent, and are repaired from an outbox if the second write fails (see [Background work and events](#background-work-and-events)). No transaction spans two databases.
+
+## Adding a company, adding a cell
+
+Adding a customer and adding database capacity are two different operations. Every company in a cell shares that cell's database, its Hyperdrive configuration and its binding in the Worker, so a new company needs none of them.
+
+**Adding a company (`company:add`)** runs at sign-up, or when the operator creates an enterprise company. It needs no new database, no new Hyperdrive configuration and no deploy.
+
+1. Pick the database: the newest open shared cell, or the company's dedicated database. A cell that holds 200 companies, its cap, is closed to new companies (`state = closed`) and keeps serving the ones it has.
+2. In that database, write the `tenant` row (`open`) and the company's own rows, with an outbox note for control.
+3. Write control: the company registry row with its `database_id`, the login and the membership (ADR-010). The write is idempotent, and the outbox note repairs it if it fails.
+4. The company is reachable as soon as control routes to it.
+
+**Adding a cell (`cell:add`)** is infrastructure work, done ahead of need and never as part of a sign-up.
+
+1. Create the database.
+2. Create the runtime, lifecycle and definer-owner roles in SQL, never in the Neon console.
+3. Run every migration, including the next months' partitions.
+4. Create its Hyperdrive configuration, with caching off.
+5. Add the configuration's binding to the Worker and deploy. A Worker reaches a Hyperdrive configuration only through a binding in its deployed configuration ([Hyperdrive](https://developers.cloudflare.com/hyperdrive/get-started/)), so this is the one step that needs a deploy.
+6. Run the production audit and seed the canary company (see [Production checks](#production-checks)).
+7. Register it in control as `open`. Its sweeper exists from that row on, and new companies start going to it.
+
+**Adding a dedicated database (`dedicated:add`)** is `cell:add` with `kind = dedicated` and a cap of 1, in a Neon project of its own. The company is then placed there by the slice operation, like any move. Outside the EU it needs a whole cell of its own ([Dedicated databases and residency](#dedicated-databases-and-residency)).
+
+The system recommends a new cell from the signals in [When to add a database](#when-to-add-a-database); the operator decides.
 
 ## Company lifecycle
 
@@ -223,7 +248,7 @@ Checked against Neon's and Cloudflare's documentation on 18 October 2026.
 - 25 configurations per paid account, more by request; not every limit can be raised ([limits](https://developers.cloudflare.com/hyperdrive/platform/limits/)). A configuration is one connection string: one database and one user. Each database takes one; staging lives in a separate Cloudflare account.
 - About 100 origin connections per configuration on a paid plan, so each cell has at most ~100 pooled database connections. A statement stops after 60 seconds.
 - Pooling is in transaction mode: a `SET` inside `BEGIN`/`COMMIT` takes effect, and the connection is reset when it returns to the pool ([how Hyperdrive works](https://developers.cloudflare.com/hyperdrive/concepts/how-hyperdrive-works/)). This is what the transaction-local company setting relies on.
-- **Query caching is on by default and is off on every configuration.** Hyperdrive caches read-only query results and cannot see the company setting, so a cached result could be served to another company ([query caching](https://developers.cloudflare.com/hyperdrive/concepts/query-caching/)). `db:add` creates every configuration with caching disabled, and the production audit refuses any configuration in the account with caching on.
+- **Query caching is on by default and is off on every configuration.** Hyperdrive caches read-only query results and cannot see the company setting, so a cached result could be served to another company ([query caching](https://developers.cloudflare.com/hyperdrive/concepts/query-caching/)). `cell:add` and `dedicated:add` create every configuration with caching disabled, and the production audit refuses any configuration in the account with caching on.
 - Transactions stay short: each holds one pooled connection until it ends, so no marketplace call runs inside a transaction.
 
 ## Operations
@@ -236,11 +261,11 @@ Checked against Neon's and Cloudflare's documentation on 18 October 2026.
 
 ## When to add a database
 
-The system recommends a new cell when any one of these holds for 7 days; the operator decides.
+The system recommends a new cell when any one of these holds for 7 days; the operator decides. The company count is also a hard limit: a cell that reaches 200 companies takes no new ones, whatever the operator has decided.
 
 | Signal | Recommend a new cell when | Why |
 | --- | --- | --- |
-| Companies in the cell | 200 | Limits how many companies one outage, bad migration or misconfiguration reaches: at 1,000 companies, about 5 shared cells |
+| Companies in the cell | 160, 80% of the cap of 200 | The next cell is ready before this one is full. The cap limits how many companies one outage, bad migration or misconfiguration reaches: at 1,000 companies, about 5 shared cells |
 | Hyperdrive pool | Over 80% of ~100 connections in use at peak, or requests waiting for a connection | The hard ceiling per cell |
 | Compute | At its autoscaling maximum for over 20% of the busiest hour | No headroom left for a burst |
 | Restore time | The drill's measured restore of the cell's largest company takes over 15 minutes, or the cell holds over 500 GB | Keeps the per-company recovery promise; a branch restore does not grow with size, a slice copy does. A company that alone breaks it is offered a dedicated database |

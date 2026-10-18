@@ -30,6 +30,8 @@ h3 { font-size: 18px; margin: 32px 0 8px; }
 p, li { max-width: 72ch; }
 a { color: var(--accent); }
 code { font-family: var(--mono); font-size: 0.86em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--sunken); padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 13.5px; line-height: 1.5; }
+pre code { background: none; padding: 0; overflow-wrap: normal; }
 table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 16px 0; background: var(--surface); }
 .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
 .table-wrap table { margin: 0; }
@@ -58,7 +60,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <body>
 <header class="site"><a href="../">← Vervoro artifacts</a></header>
 <main>
-<h1>ADR-008: Inventory sync</h1>
+<h1 id="adr-008-inventory-sync">ADR-008: Inventory sync</h1>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -83,7 +85,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="../system-architecture/">ADR-000: System architecture</a>, <a href="../database-architecture/">ADR-001: Multi-tenant database architecture</a>, <a href="../product-model/">ADR-003: Product model</a>, <a href="../channel-connectors/">ADR-004: Channel connectors</a> with <a href="../ebay-connector/">ADR-004.1</a>, <a href="../amazon-seller-connector/">ADR-004.2</a> and <a href="../shopify-connector/">ADR-004.3</a>, <a href="../catalogue-sync/">ADR-005: Catalogue sync and linking</a>, <a href="../stock-ledger/">ADR-006: Stock ledger and reservations</a>, <a href="../order-ingestion/">ADR-007: Order ingestion</a></td>
 </tr>
 </tbody></table></div>
-<h2>Context</h2>
+<h2 id="context">Context</h2>
 <p>Vervoro is the stock master. Every linked listing shows the figure Vervoro sends. Earlier records fixed the pieces around that figure:</p>
 <ul>
 <li><strong>ADR-000:</strong> only the foundation writes the figure a listing should show, in the same transaction as the stock change. One egress gate is the only door out. Every account starts in shadow. A timeout is <code>unknown</code>.</li>
@@ -101,7 +103,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Things fail.</strong> Calls time out, workers crash, marketplaces go down, a company is restored from a backup. Nothing may be sent twice by mistake, and nothing may be lost.</li>
 <li><strong>One operator</strong> runs the platform, with a small team. Every rule must earn its place by a failure it prevents at launch: 5 to 10 sellers, then 100.</li>
 </ul>
-<h2>Decision</h2>
+<h2 id="decision">Decision</h2>
 <ol>
 <li><strong>One figure per listing, worked out by the foundation</strong> from one warehouse&#39;s sellable stock: less the units kept for another account, less the account&#39;s buffer, divided by units per sale, the scarcest component for a bundle.</li>
 <li><strong>One belief per listing, kept by the host:</strong> the figure Vervoro believes the marketplace shows. It may err only upward.</li>
@@ -117,7 +119,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>The seller sees what every marketplace shows and how fresh it is.</strong> One kind of problem is also emailed: a marketplace showing more than the seller has, which Vervoro cannot fix. The operator is paged for a stalled sync, never per listing.</li>
 <li><strong>Amazon Vendor accounts get no figure</strong> from this record (ADR-004.4).</li>
 </ol>
-<h2>How a figure travels</h2>
+<h2 id="how-a-figure-travels">How a figure travels</h2>
 <figure><svg class="diagram" viewBox="0 0 760 520" role="img" aria-label="A stock change writes each linked listing's desired figure in the same transaction; the host compares it with the figure it believes the marketplace shows near zero every change is sent at once, above it only a gap of 20 is sent; raises wait for the order read and an empty hold set; the dispatcher leases one write target at a time and sends through the egress gate; outcomes, read backs and notices update the believed figure, and the rules run again" xmlns="http://www.w3.org/2000/svg" font-size="13">
   <defs>
     <marker id="sync-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="edge-fill"/></marker>
@@ -191,7 +193,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </figure>
 
 <p>A stock change commits with the listing&#39;s new figure (ADR-000, ADR-006). The host&#39;s work list is a query: every listing whose figure differs from what the marketplace is believed to show, and whose rules say it is due. The dispatcher leases the listing&#39;s write target, takes a call from the account&#39;s bucket and from any shared pool on the right lane, and hands the write to the egress gate. In shadow, the gate records it. In live mode, it sends it. Outcomes, read backs, notices and the channel&#39;s own sales update the belief, and the same rules run again.</p>
-<h2>Terms</h2>
+<h2 id="terms">Terms</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -228,7 +230,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>What one write names: an eBay inventory item, an eBay Seller Hub listing or variation, an Amazon SKU on the account, a Shopify inventory item at Vervoro&#39;s location</td>
 </tr>
 </tbody></table></div>
-<h2>100 units, three channels</h2>
+<h2 id="100-units-three-channels">100 units, three channels</h2>
 <p>A worked walk through the rules. One warehouse holds 100 jars of honey. The seller sells on Amazon (one marketplace, connected first), eBay and Shopify, with the defaults: T = 20, W = 20, the last 2 units kept for Amazon.</p>
 <p><strong>The start.</strong> Amazon is shown 100; eBay and Shopify 98 each, because the last 2 belong to Amazon.</p>
 <p><strong>A sale on eBay.</strong> eBay sells one, and shows 97 by itself. The order is imported and reserves a jar: 99 can be sold. The figures become Amazon 99, eBay 97, Shopify 97.</p>
@@ -276,7 +278,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </tbody></table></div>
 <p>At 2, eBay and Shopify are sent 0 at once, and from then on only Amazon can sell. Above 2, the last units can still sell twice if two channels sell them inside the minute or two before the next figure lands. Keeping 2 units makes that rarer, not impossible. The seller&#39;s screen shows those zeros as &quot;0 by policy&quot;.</p>
-<h2>The figure per listing</h2>
+<h2 id="the-figure-per-listing">The figure per listing</h2>
 <p><strong>One warehouse.</strong> Each account is served by its default warehouse (ADR-006), and only by it; on Shopify, by the location picked as Vervoro&#39;s (ADR-004.3). A sum over warehouses would promise units no single parcel can reach. Changing an account&#39;s warehouse recomputes its listings, and their decreases go at once. Serving one account from several warehouses is a later record.</p>
 <p><strong>The steps,</strong> for a listing on account A, linked to product P with <code>units_per_sale</code> u:</p>
 <ol>
@@ -329,7 +331,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>3</td>
 </tr>
 </tbody></table></div>
-<h2>When a figure is sent</h2>
+<h2 id="when-a-figure-is-sent">When a figure is sent</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -386,7 +388,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>W is per listing.</strong> A listing that has sold in lines of 30 has W = 60, so the listing is already sending every change before one more order of its usual largest size could take more than the figure that is left. One large trade order on one listing never puts the whole account in the zone. W is in the listing&#39;s own units, so a six-pack or a bundle is in the zone as soon as its own figure is.</li>
 <li><strong>One write in flight per listing.</strong> New figures only update the desired row. When a write ends, the latest D is compared with B again, so ten changes cost one more write at most.</li>
 </ul>
-<h2>What Vervoro believes each marketplace shows</h2>
+<h2 id="what-vervoro-believes-each-marketplace-shows">What Vervoro believes each marketplace shows</h2>
 <p><strong>B may err only upward.</strong> A belief that is too high costs one extra write. A belief that is too low hides an overshow, and that oversells.</p>
 <ul>
 <li><strong>A confirmed write or a read sets B.</strong></li>
@@ -426,7 +428,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </tbody></table></div>
 <p><strong>Worked example.</strong> Vervoro believes eBay shows 6. A sale on Shopify makes D 5, and Vervoro sends 5 at 10:00:00, confirmed at 10:00:01. An eBay buyer had bought one at 09:59:58: eBay went from 6 to 5, and Vervoro&#39;s write set 5 again. The truth is 4. The eBay order is imported at 10:00:40. It was placed before the confirmation plus 2 minutes, so B stays at 5. D is 4, and the listing is in the zone, so 4 goes at once.</p>
-<h2>The order read before a raise</h2>
+<h2 id="the-order-read-before-a-raise">The order read before a raise</h2>
 <p>A notice can say that an order exists, never that none is missing (ADR-004). A raise sent too early lets a marketplace sell units that already went.</p>
 <ul>
 <li><strong>A raise becomes due</strong> when D rises above B, or when a read lowers B. A decrease, or a read that changes nothing, does not restart the wait. A busy listing is never kept waiting by its own sales.</li>
@@ -464,7 +466,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </tbody></table></div>
 <p><strong>Worked example.</strong> An Amazon account on one marketplace. At 14:00:10 a delivery makes D 54 for a listing that shows 6. The raise is due at 14:00:10, so the watermark must reach 14:02:10. The last order read ran at 13:58 and covers up to 13:56, because Amazon stops two minutes before its clock. The next allowed reads, at 14:01 and 14:04, cover up to 13:59 and 14:02. The one at 14:07 covers up to 14:05. It imported an order for 2 placed at 14:03, so D is now 52, and 52 goes at 14:07:30. Had the raise gone at 14:00:10, Amazon would have shown 54 with 52 left.</p>
-<h2>Confirming every write</h2>
+<h2 id="confirming-every-write">Confirming every write</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -510,11 +512,11 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Drift</strong> (a figure Vervoro did not send) is found by notices where the marketplace has them (Amazon&#39;s listing-quantity notices, Shopify&#39;s inventory webhook), by eBay inventory item reads every 6 hours from the Inventory API&#39;s own allowance, and by the catalogue&#39;s daily safety read (ADR-005). A reading replaces B, and the rules decide. Showing more is corrected like any decrease. Showing less is a raise, and waits for the order read.</li>
 <li><strong>Entering the zone.</strong> An eBay inventory item entering the zone is read once, from the Inventory API&#39;s own allowance. A Seller Hub listing is read on entering the zone only within the account&#39;s share of the Trading pool; otherwise a seller&#39;s hand edit to it waits for the daily read.</li>
 </ul>
-<h2>Limits and who goes next</h2>
+<h2 id="limits-and-who-goes-next">Limits and who goes next</h2>
 <p><strong>Order of claims.</strong> One ladder across all of an account&#39;s work: reading back an <code>unknown</code> write; a safety-lane write and the fetch of a new order whose notice carried no lines; any other order fetch; a bulk-lane raise; the scheduled order read; background reads. Within a rung: zeros first, then the smallest D, then the oldest. On a shared pool, accounts take turns within a rung, one call each, so one seller&#39;s go-live cannot starve the others.</p>
 <p><strong>Shared pools</strong> (ADR-004). An account&#39;s reserve is spent only after the pool&#39;s bulk lane has paused for the day. From then on, raises on the safety lane may take only the first half of what is left of the account&#39;s share; decreases may take all of it.</p>
 <p><strong>Go-lives and bulk links on a shared pool.</strong> Their raises take at most a tenth of the pool&#39;s bulk lane per account per day. Their decreases must fit the day&#39;s free room; if they do not, the screen offers the first day that has room.</p>
-<h3>eBay</h3>
+<h3 id="ebay">eBay</h3>
 <ul>
 <li><strong>250 revisions a listing a day.</strong> eBay allows each listing 250 revisions a calendar day, whichever API is used, and does not say which time zone the day is in. Vervoro counts over a rolling 24 hours: every calendar day, in any time zone, is one of those windows, so the count holds whichever day eBay uses. It counts per item, every variation together, each variation revised counting as one revision. eBay does not say how variations count, and this reading can only overcount.</li>
 <li><strong>2,000 a month, possibly.</strong> The change history of eBay&#39;s inventory revision call also states a limit of 2,000 revisions per item per month (2011); eBay&#39;s current listing guide names only the daily one. Vervoro also counts each item&#39;s revisions over 30 days, and from 1,800 an item takes only zeros, as at 240 a day. The operator asks eBay&#39;s developer support whether the monthly limit still applies; if it does not, the rule goes.</li>
@@ -544,17 +546,17 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>eBay&#39;s own sales cost no revision.</strong> Under the tolerance, a listing selling 400 a day elsewhere costs about 20 revisions a day while well stocked, and at most about 44 on the day it sells down to 0 (24 above the zone, 20 inside it).</li>
 <li><strong>Trading calls</strong> carry up to four listings or variations of one account. A call waits at most 2 seconds to fill; a zero never waits. eBay answers at once, so no read follows an applied write.</li>
 </ul>
-<h3>Amazon</h3>
+<h3 id="amazon">Amazon</h3>
 <ul>
 <li><strong>Single patches only.</strong> At 5 a second per seller, that is 18,000 an hour: a 25,000-listing go-live drains in about 83 minutes. Amazon says a listings feed with only a few records can still take several hours, and processes its records out of order, so a raise in a feed can overwrite hours of Amazon&#39;s own sales. ADR-004.2 allows feeds for raises; this record does not use them.</li>
 <li><strong>One open write per SKU.</strong> A decrease may overtake an open write; the later of the two is confirmed by the rule above.</li>
 <li><strong>Reads</strong> come from their own bucket, 5 a second per seller. Scheduled reads use the all-listings report and notices, never one read per listing, which keeps the application under Amazon&#39;s 100 reads a second.</li>
 </ul>
-<h3>Shopify</h3>
+<h3 id="shopify">Shopify</h3>
 <ul>
 <li><strong>Compare-and-set on every write</strong> (ADR-004.3), in batches of up to 250 on the bulk lane, singly on the safety lane, always leaving 55 points in the bucket.</li>
 </ul>
-<h3>Budget</h3>
+<h3 id="budget">Budget</h3>
 <p>Assumptions: per seller, 2,000 linked listings on two or three accounts and 150 orders a day; at 1,000 sellers, about 600 eBay accounts (240 with Seller Hub listings), 500 Amazon and 500 Shopify.</p>
 <div class="table-wrap"><table>
 <thead>
@@ -603,7 +605,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </tbody></table></div>
 <p><strong>What binds is ADR-004&#39;s reserve rule, not Vervoro&#39;s own writes.</strong> A tenth of the Trading pool is its reserve, and a new account waits in shadow when its share would fall below 50 calls, so the pool needs 500 calls per Seller Hub account. The default 5,000 serves 10. More need eBay&#39;s Application Growth Check, asked for in time for each stage.</p>
-<h2>The low-stock policy</h2>
+<h2 id="the-low-stock-policy">The low-stock policy</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -634,32 +636,32 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>A campaign is a dated keep.</strong> &quot;Keep 50 for Amazon until Sunday&quot; stops other channels selling the units committed to a deal, which Amazon cancels when the stock behind it falls short. Every change shows a preview first: what each other account can still sell, and how long that lasts at last week&#39;s pace.</li>
 <li><strong>Owner, Admin or Manager</strong> change the settings; each change recomputes the figures in one transaction, and its decreases go at once.</li>
 </ul>
-<h2>Listing modes and stopping</h2>
+<h2 id="listing-modes-and-stopping">Listing modes and stopping</h2>
 <ul>
 <li><strong>A listing is managed or not managed,</strong> optionally until a date. Not managed means no figure is sent; its orders still reserve.</li>
 <li><strong>Every stop asks one question:</strong> leave the figure as it is, or send 0. It applies to stopping an account, stepping it back to shadow, disconnecting, switching a marketplace off, and setting one listing to not managed (ADR-000, ADR-004). A 0 is confirmed applied before the mode changes.</li>
 <li><strong>A not-managed listing that shows more than the stock</strong> is flagged to the seller, because nothing else will correct it.</li>
 <li><strong>Decrease-only</strong> is an account mode for a company closed under ADR-012, from its closing date until its erasure. Orders still import and reserve, and D is worked out as usual, but a figure is sent only when it is lower than B. A higher D is never sent, whatever raised it: a receipt, a return, a cancellation or a policy change. Rows of the sending table that would send a higher D send nothing.</li>
 </ul>
-<h2>Held raises</h2>
+<h2 id="held-raises">Held raises</h2>
 <p>ADR-005 keeps one set of reasons per listing. While the set is not empty, D is still worked out truthfully, every decrease goes, and raises wait. The reasons: the listing came back after ending; its SKU was edited onto another product&#39;s; a live bulk link is not yet confirmed; a fulfilment conflict is open (ADR-005, ADR-007); its product failed the nightly check (ADR-006); an open import problem names it (above). When the last reason clears, the raise becomes due at that moment and waits for the order read.</p>
-<h2>The first figure after a link</h2>
+<h2 id="the-first-figure-after-a-link">The first figure after a link</h2>
 <ul>
 <li><strong>B comes from the link&#39;s catalogue read</strong> if it is under an hour old; otherwise the listing is read first. The raise, if any, becomes due when the link is made.</li>
 <li><strong>A single link</strong> follows the rules at once: a lower figure goes now, a higher one after the order read.</li>
 <li><strong>A bulk link</strong> on a live account sends its decreases under the rules, within the admission rule above. Its raises wait for the seller&#39;s one confirm (ADR-005).</li>
 <li><strong>A listing moving from marketplace-shipped to seller-shipped,</strong> and a pending Amazon offer, get no figure until ADR-005&#39;s conditions clear.</li>
 </ul>
-<h2>Amazon accounts on several marketplaces</h2>
+<h2 id="amazon-accounts-on-several-marketplaces">Amazon accounts on several marketplaces</h2>
 <p>One patch sets one quantity for every marketplace the account serves (ADR-004.2). Whether a sale on one lowers the others depends on a seller setting Vervoro cannot see. So such an account&#39;s own sales are not vouched: B is never lowered by them, the tolerance does not apply, and every change is sent. A sale is always followed by a write, so every marketplace returns to the same figure within minutes. Such an account is never the priority account for kept units.</p>
-<h2>One writer per listing</h2>
+<h2 id="one-writer-per-listing">One writer per listing</h2>
 <ul>
 <li><strong>One job per write target at a time.</strong> A batch takes the lease of every member; a member already leased is left out.</li>
 <li><strong>Leases</strong> last the call&#39;s timeout plus 15 seconds. A lease that expires is written <code>unknown</code> before anything else, and the write is settled as above.</li>
 <li><strong>The idempotency key</strong> is the company&#39;s sync epoch, the write target, the version, the figure, and how many writes of that figure at that version have already settled. A repeat after a crash carries the same key and is never sent twice. A deliberate second write of the same figure, after the first settled, gets a new key.</li>
 <li><strong>The sync epoch</strong> is kept in the control database (ADR-001), outside the company&#39;s own data, so a restore can never roll it back.</li>
 </ul>
-<h2>Shadow and going live</h2>
+<h2 id="shadow-and-going-live">Shadow and going live</h2>
 <p>Every account starts in shadow (ADR-004): orders reserve inside Vervoro and the gate records each figure it would send.</p>
 <p><strong>The listing check.</strong> D is compared with what each marketplace shows, listing by listing. A listing showing more than D is never accepted as explained: going live sends the decrease. A listing showing less can be accepted in bulk. A ratio of 3 or more either way is listed first and needs its own tap (ADR-005).</p>
 <p><strong>A company&#39;s first go-live</strong> is a move from an older system, and needs:</p>
@@ -670,7 +672,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ul>
 <p><strong>Later accounts,</strong> added to a company already live, go live on the listing check, one complete order read and every listing read.</p>
 <p><strong>Going live</strong> is one confirm with the totals: &quot;Going live sends 143 decreases now and 212 raises after the next order read.&quot;</p>
-<h2>Recovery</h2>
+<h2 id="recovery">Recovery</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -703,7 +705,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Every account returns to shadow and every B is unknown. Goods received while it was closed are recorded first; each account goes live again on the listing check, like a later account</td>
 </tr>
 </tbody></table></div>
-<h2>What the seller and the operator see</h2>
+<h2 id="what-the-seller-and-the-operator-see">What the seller and the operator see</h2>
 <p><strong>Every listing shows two figures,</strong> Vervoro&#39;s and what the marketplace last showed, each with its age in words: &quot;confirmed 3 min ago&quot;, &quot;waiting for Amazon, 4 min&quot;, &quot;read 6 h ago&quot;. An account&#39;s health is one of four words: not measured (in shadow, or nothing confirmed yet), right, catching up, or needs you.</p>
 <p><strong>Seller alerts, in the app:</strong></p>
 <ul>
@@ -714,9 +716,9 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ul>
 <p><strong>One email:</strong> &quot;a marketplace shows more than you have and Vervoro cannot fix it&quot; (a refused decrease, eBay&#39;s revision limit, a frozen item). It goes to the account&#39;s owner and admins, grouped per account, at most one every 30 minutes, never during an incident on the marketplace&#39;s side, and it names the listings and the fix. Vervoro runs in the browser, so email is how a seller hears about this while away from the screen.</p>
 <p><strong>Operator pages,</strong> per marketplace, never per listing: the order watermark more than 60 minutes behind; a decrease or a change in the zone that no rule is holding, unsent for 15 minutes; a shared pool at 90 %; an Amazon write accepted but not confirmed after 60 minutes; an <code>unknown</code> write not settled after three reads. When a fifth of a marketplace&#39;s accounts page at once, one &quot;marketplace down&quot; page replaces them.</p>
-<h2>Amazon Vendor</h2>
+<h2 id="amazon-vendor">Amazon Vendor</h2>
 <p>A Vendor account sells to Amazon by purchase order and has no listing figure in this sense. Its orders reserve stock (ADR-006) and so lower every seller-shipped listing&#39;s figure. What a Vendor account sends, if anything, is ADR-004.4&#39;s (planned).</p>
-<h2>Storage</h2>
+<h2 id="storage">Storage</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -752,7 +754,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </tbody></table></div>
 <p>The host and the foundation name each other&#39;s rows by plain ids, read through ports; no foreign key crosses modules (ADR-000).</p>
-<h2>Rules, each with a test</h2>
+<h2 id="rules-each-with-a-test">Rules, each with a test</h2>
 <ol>
 <li>Recomputing every desired row from committed state gives the stored rows. The nightly check (ADR-006) runs this too.</li>
 <li>B is never lowered without evidence: a confirmed write, a read, or a vouched own sale on the listing the order names.</li>
@@ -768,7 +770,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>After a restore, nothing is sent before the operator signs off.</li>
 <li>An account in decrease-only mode never sends a figure above B; a sale on one account still lowers the others.</li>
 </ol>
-<h2>Constraints</h2>
+<h2 id="constraints">Constraints</h2>
 <p>Checked against each marketplace&#39;s documentation on 18 October 2026.</p>
 <div class="table-wrap"><table>
 <thead>
@@ -829,14 +831,14 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="https://shopify.dev/docs/apps/build/apis/graphql-admin/rate-limits">GraphQL Admin API rate limits</a></td>
 </tr>
 </tbody></table></div>
-<h2>Changes to earlier records</h2>
+<h2 id="changes-to-earlier-records">Changes to earlier records</h2>
 <p>This record amends three published records, in the same publication.</p>
 <ul>
 <li><strong>ADR-000, the send rules.</strong> &quot;A decrease, or any change while the shelf is low, goes at once. … A well-stocked figure is sent again only once the channel has drifted from it.&quot; becomes &quot;Any change while a listing is near zero goes at once. Above that, a figure is sent again only once the channel has drifted from it by the tolerance, in either direction.&quot;</li>
 <li><strong>ADR-001, restoring one company, step 6.</strong> Adds: &quot;Raise the company&#39;s sync epoch, kept in the control database, which every write&#39;s idempotency key carries (ADR-008).&quot;</li>
 <li><strong>ADR-005.</strong> &quot;Accounts go live one at a time&quot; adds: &quot;except at a company&#39;s first go-live, when every account the old system served goes live in one step (ADR-008)&quot;. The set of held-raise reasons adds &quot;its product failed the nightly check (ADR-006)&quot; and &quot;an open import problem names it (ADR-007)&quot;.</li>
 </ul>
-<h2>Consequences</h2>
+<h2 id="consequences">Consequences</h2>
 <p><strong>What this gives us</strong></p>
 <ul>
 <li>Near zero, every channel hears every change at once, and the last 2 units can be sold by only one channel.</li>
@@ -857,7 +859,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>More than 10 Seller Hub accounts need eBay&#39;s Growth Check.</li>
 <li>An order that cannot be imported holds back its units everywhere until it imports or a person resolves it.</li>
 </ul>
-<h2>Alternatives considered</h2>
+<h2 id="alternatives-considered">Alternatives considered</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -942,7 +944,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>No pool is contested at 5 to 100 sellers</td>
 </tr>
 </tbody></table></div>
-<h2>What later records decide</h2>
+<h2 id="what-later-records-decide">What later records decide</h2>
 <ul>
 <li><strong>ADR-004.4: Amazon Vendor connector</strong> (planned): whether a Vendor account sends any availability.</li>
 <li><strong>Serving one account from several warehouses:</strong> needs order routing.</li>

@@ -48,7 +48,7 @@ The design has to meet these requirements:
 11. **Returns go back into the batch they left from, held, until a person inspects them:** restock, keep as damaged, or write off.
 12. **Received stock is sellable as soon as the receipt is confirmed.** Put-away to a shelf is a move between spots and changes nothing a channel sees. A receipt that needs a manager (no purchase order, or short-dated) enters the ledger at once, quarantined, until a manager accepts or refuses it.
 13. **Counts and adjustments need a role and a reason.** A count compares against the ledger at the moment the figure was saved, and allows for units on orders being picked from that spot. A shortfall beyond that leaves sale at once and is written off when a manager approves.
-14. **One stock writer per company at a time.** The company's lock is the first statement of every stock command. The database's checks are the hard stop.
+14. **One stock writer per company at a time.** The company's lock is the first statement of every stock command. The database's checks are the hard stop. The decision is revisited only when measured lock wait or command time for the busiest company passes its threshold for 7 days ([Concurrency and repeats](#concurrency-and-repeats)).
 15. **Every stock command is safe to repeat.** Each carries a key, and a repeat returns the first answer without moving stock.
 16. **Every night, a check proves the ledger.** Every balance equals its entries since the latest checkpoint, every reserved number equals its open reservations, the sequence has no gaps, no closed line holds a reservation, and every shipped line, handover and return equals its entries. A difference alerts the operator and the seller, and holds raises for that product's listings.
 17. **A change to sellable gives the affected listings a new figure in the same transaction.** The figure itself is ADR-008's.
@@ -479,6 +479,13 @@ When the shelf has fewer units than the system, the way to say so is a count, wh
 
 The transaction is short: about eight round trips next to the database for an order, counted by a test. Each stock command reads and writes only what it touches, in statements that work on whole sets of rows, so a 2,000-line count approval or a 500-link chunk holds the lock for a few round trips, not one per row. No marketplace call ever runs inside a stock transaction. Other modules change stock only through the foundation's command ports, so their writes take the same lock.
 
+**When to revisit one lock per company.** The lock stays until measured behaviour says otherwise, never because of a guessed future size. Two figures are recorded for every stock command: how long it took, and how much of that it spent waiting for the company's lock. The decision is revisited when, for the busiest company, either of these holds for 7 days running:
+
+- the p95 time of stock commands is over its target;
+- the p95 share of a command's time spent waiting for the lock is over its threshold.
+
+Both numbers are set from the load test before launch and are open until then. Revisiting means a new record that replaces this decision; a finer lock is never introduced without one.
+
 **Every command is safe to repeat.** Each command carries a key:
 
 | Command | Key |
@@ -590,7 +597,7 @@ The order line's link and component fields are on the order line table (ADR-007)
 
 **What it costs**
 
-- Every stock change holds the company's lock, so one company's stock writes are serial. Transactions must stay short, and large counts are split.
+- Every stock change holds the company's lock, so one company's stock writes are serial. Transactions must stay short, and large counts are split. Every stock command records its time and its lock wait, so the moment to revisit is measured, not guessed.
 - Earliest-first is the plan and a daily report, not a lock: the floor may take another eligible batch.
 - A reservation promises a batch, not a shelf; the pick task chooses the shelf when picking starts.
 - Counts are exact only outside the minutes an order is being picked from that spot; inside them, a small difference waits for packing.

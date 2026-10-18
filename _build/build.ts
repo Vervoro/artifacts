@@ -4,6 +4,16 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { marked } from "marked";
 
+// Give every heading the id GitHub would give it, so in-page links such as #platform-constraints work on the site.
+const headingId = (text: string) => text.toLowerCase().replace(/<[^>]+>/g, "").replace(/&[a-z]+;|&#\d+;/g, "").replace(/[^\w\- ]/g, "").trim().replace(/ /g, "-");
+marked.use({
+  renderer: {
+    heading({ tokens, depth, text }) {
+      return `<h${depth} id="${headingId(text)}">${this.parser.parseInline(tokens)}</h${depth}>\n`;
+    },
+  },
+});
+
 const site = join(import.meta.dir, "..");
 
 const css = `
@@ -30,6 +40,8 @@ h3 { font-size: 18px; margin: 32px 0 8px; }
 p, li { max-width: 72ch; }
 a { color: var(--accent); }
 code { font-family: var(--mono); font-size: 0.86em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--sunken); padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 13.5px; line-height: 1.5; }
+pre code { background: none; padding: 0; overflow-wrap: normal; }
 table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 16px 0; background: var(--surface); }
 .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
 .table-wrap table { margin: 0; }
@@ -76,17 +88,18 @@ ${body}
 `;
 
 const docs: { dir: string; title: string; blurb: string; parent?: string }[] = [
+  { dir: "guide", title: "Architecture map and glossary", blurb: "How the records fit together, one word per concept, and what each status (Proposed, Accepted, Implemented, Superseded, Deprecated) means. Every record is Proposed today." },
   { dir: "system-architecture", title: "ADR-000: System architecture", blurb: "A modular monolith of modules with typed ports, one core that owns stock and orders, an outbox, one egress gate, connector plugins and simulators. Proposed, 17 October 2026." },
   { dir: "database-architecture", title: "ADR-001: Multi-tenant database architecture", blurb: "Control database, shared-table customer databases with forced row-level security, a wrong-database check on every transaction, dedicated databases, trials as a state. Proposed 17 October 2026, revised 18 October 2026." },
   { dir: "data-retention", title: "ADR-002: Data retention and archiving", blurb: "24 months of history in each cell, older months archived per company in object storage, statutory retention, then deletion. Proposed, 17 October 2026." },
   { dir: "product-model", title: "ADR-003: Product model", blurb: "SKU identity, barcodes, simple products, packs with their own stock, bundles built from components, box sizes, size and colour families, VAT classes, best-before and lot tracking, listing links including FBA and Vendor, and how products are created. Proposed, 17 October 2026." },
   { dir: "channel-connectors", title: "ADR-004: Channel connectors", blurb: "Each marketplace is a translator behind a small contract (read orders, read listings, write stock, read back); the host owns credentials, HTTP, rate limits and shared daily allowances; orders arrive by notice; simulators, shadow mode, and failures kept per account. Proposed, 17 October 2026." },
   { dir: "ebay-connector", parent: "channel-connectors", title: "ADR-004.1: eBay connector", blurb: "One app every seller approves, orders by eBay's Notification API, the Inventory API and the Trading API for every linked listing, the shared Trading pool, the out-of-stock option, account deletion notices. Proposed, 17 October 2026." },
-  { dir: "amazon-seller-connector", parent: "channel-connectors", title: "ADR-004.2: Amazon Seller connector", blurb: "Seller Central approval renewed yearly, one account per seller and region, the AWS notice relay, single decreases and feeds for raises, read back on every write, no figure for listings Amazon ships, buyer data. Proposed, 17 October 2026." },
+  { dir: "amazon-seller-connector", parent: "channel-connectors", title: "ADR-004.2: Amazon Seller connector", blurb: "Seller Central approval renewed yearly, one account per seller and region, the AWS notice relay, every stock write a single listing update at launch, read back on every write, no figure for listings Amazon ships, buyer data. Proposed, 17 October 2026." },
   { dir: "shopify-connector", parent: "channel-connectors", title: "ADR-004.3: Shopify connector", blurb: "Installing Vervoro's app, expiring tokens, one warehouse location, webhooks to one address, compare-and-set writes in batches of 250, a cost-point budget, variants without a unique SKU, orders other marketplaces put into the shop, privacy webhooks. Proposed, 18 October 2026." },
   { dir: "catalogue-sync", title: "ADR-005: Catalogue sync and linking", blurb: "Listings keyed by the marketplace's own id, a full read on connect plus notices, a daily safety read and refresh, two proofs before a listing ends, suggestions in three tiers with vetoes, links made only by a person and kept as versions, unlinked listings left to the marketplace, products from listings, Amazon offers by ASIN. Proposed, 18 October 2026." },
   { dir: "stock-ledger", title: "ADR-006: Stock ledger and reservations", blurb: "An append-only ledger that only its own entries can change, proved every night; four numbers per product, batch and spot (on hand, reserved, held, sellable); reserving a batch on import, earliest sell-by date first among batches with the shelf life the demand needs; packing that records the batch that left; use-by dates; bundles in whole sets; counts while picking goes on; returns, receiving, no negative stock, one lock per company and commands safe to repeat. Proposed 18 October 2026, revised after review the same day." },
-  { dir: "order-ingestion", title: "ADR-007: Order ingestion", blurb: "Notices first with the backup read behind, one order per marketplace order, one status list mapped from every marketplace, holds beside the status, reserving on import oldest purchase first, cancellation requests that keep stock, seller cancellations only when a person asks, unlinked and marketplace-shipped orders, orders shipped outside Vervoro, manual orders, and what dispatch is handed. Proposed, 18 October 2026." },
+  { dir: "order-ingestion", title: "ADR-007: Order ingestion", blurb: "Notices first with the backup read behind, one order per marketplace order, one status list mapped from every marketplace, holds beside the status, reserving on import oldest purchase first, cancellation requests that keep stock, cancellations made only on the marketplace (Vervoro never sends one), holds in three kinds, unlinked and marketplace-shipped orders, orders shipped outside Vervoro, manual orders, and what dispatch is handed. Proposed, 18 October 2026." },
   { dir: "inventory-sync", title: "ADR-008: Inventory sync", blurb: "The figure per listing from one warehouse's sellable stock, near zero every change sent at once and above it only a gap of 20 (the reverse cap), raises only after a complete order read, one belief per listing that errs only upward, every write confirmed, eBay's 250 revisions a day, single Amazon patches, the last 2 units kept for one account, one stop question, one switch day off an old system, and recovery. Proposed, 18 October 2026." },
   { dir: "buyer-data", title: "ADR-009: Buyer data and privacy", blurb: "The seller as controller and Vervoro as processor, only what a label needs, one place and three layers of encryption, views by role and order state and every view logged, anonymised 30 days after delivery, VAT invoices kept, buyers' requests through the seller or marketplace, erasure through backups and restores, incidents within 24 hours, the security schedule marketplaces ask for, and each marketplace's rules. Proposed, 18 October 2026." },
   { dir: "users-and-access", title: "ADR-010: Users, roles and sign-in", blurb: "One login per person across companies, a password with an authenticator app code or a passkey, one person per phone, sessions that follow the shift, recovery through the company first, six fixed roles with warehouse scope in one permission matrix, read-only operator grants the seller sees and can end, two audit trails, and no API tokens at launch. Proposed, 18 October 2026." },
@@ -127,7 +140,7 @@ for (const d of docs) {
 }
 
 const index = `<h1>Vervoro artifacts</h1>
-<p>Architecture decisions and plans.</p>
+<p>Architecture decisions and plans. Every record is <b>Proposed</b> until the developer has reviewed it and the owner has signed it off; see the <a href="guide/">architecture map and glossary</a> for what each status means.</p>
 <ul class="cards">
 ${docs
   .filter((d) => !d.parent)

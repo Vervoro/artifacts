@@ -30,6 +30,8 @@ h3 { font-size: 18px; margin: 32px 0 8px; }
 p, li { max-width: 72ch; }
 a { color: var(--accent); }
 code { font-family: var(--mono); font-size: 0.86em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--sunken); padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 13.5px; line-height: 1.5; }
+pre code { background: none; padding: 0; overflow-wrap: normal; }
 table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 16px 0; background: var(--surface); }
 .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
 .table-wrap table { margin: 0; }
@@ -58,7 +60,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <body>
 <header class="site"><a href="../">← Vervoro artifacts</a></header>
 <main>
-<h1>ADR-006: Stock ledger and reservations</h1>
+<h1 id="adr-006-stock-ledger-and-reservations">ADR-006: Stock ledger and reservations</h1>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -87,7 +89,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="../system-architecture/">ADR-000: System architecture</a>, <a href="../database-architecture/">ADR-001: Multi-tenant database architecture</a>, <a href="../data-retention/">ADR-002: Data retention and archiving</a>, <a href="../product-model/">ADR-003: Product model</a>, <a href="../catalogue-sync/">ADR-005: Catalogue sync and linking</a></td>
 </tr>
 </tbody></table></div>
-<h2>Context</h2>
+<h2 id="context">Context</h2>
 <p>Vervoro is the stock master. Every figure a linked listing shows comes from Vervoro&#39;s stock, so a wrong stock number is a wrong number on every channel at once. ADR-000 decided the shape: the foundation is the only code that changes stock, stock is an append-only ledger, every stock command takes the company&#39;s lock, and the database refuses stock below zero. ADR-003 decided what is counted: whole base units of simple products and packs, never of bundles, with best-before dates and lots where a product needs them. ADR-005 decided how listings are linked to products. This record decides how stock is recorded, held for orders and released.</p>
 <p>The design has to meet these requirements:</p>
 <ul>
@@ -131,7 +133,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="https://sellercentral.amazon.com/gp/help/external/201003420">Amazon: Expiration dates on FBA products</a></td>
 </tr>
 </tbody></table></div>
-<h2>Decision</h2>
+<h2 id="decision">Decision</h2>
 <ol>
 <li><strong>The ledger is the record of stock.</strong> Every change is one or more append-only entries, each with a reason, a person or process, and a source. <strong>Only the ledger insert changes a balance or a reservation:</strong> the database applies each entry, and nothing else can write them.</li>
 <li><strong>Stock is counted per product, batch and spot,</strong> and every balance holds four numbers: <strong>on hand, reserved, held and sellable</strong>. Reserved is kept per batch in each warehouse, not per spot. Sellable is on hand less reserved less held, and only sellable ever reaches a listing. Incoming stock is shown beside them, but it is not stock.</li>
@@ -146,13 +148,13 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Returns go back into the batch they left from, held, until a person inspects them:</strong> restock, keep as damaged, or write off.</li>
 <li><strong>Received stock is sellable as soon as the receipt is confirmed.</strong> Put-away to a shelf is a move between spots and changes nothing a channel sees. A receipt that needs a manager (no purchase order, or short-dated) enters the ledger at once, quarantined, until a manager accepts or refuses it.</li>
 <li><strong>Counts and adjustments need a role and a reason.</strong> A count compares against the ledger at the moment the figure was saved, and allows for units on orders being picked from that spot. A shortfall beyond that leaves sale at once and is written off when a manager approves.</li>
-<li><strong>One stock writer per company at a time.</strong> The company&#39;s lock is the first statement of every stock command. The database&#39;s checks are the hard stop.</li>
+<li><strong>One stock writer per company at a time.</strong> The company&#39;s lock is the first statement of every stock command. The database&#39;s checks are the hard stop. The decision is revisited only when measured lock wait or command time for the busiest company passes its threshold for 7 days (<a href="#concurrency-and-repeats">Concurrency and repeats</a>).</li>
 <li><strong>Every stock command is safe to repeat.</strong> Each carries a key, and a repeat returns the first answer without moving stock.</li>
 <li><strong>Every night, a check proves the ledger.</strong> Every balance equals its entries since the latest checkpoint, every reserved number equals its open reservations, the sequence has no gaps, no closed line holds a reservation, and every shipped line, handover and return equals its entries. A difference alerts the operator and the seller, and holds raises for that product&#39;s listings.</li>
 <li><strong>A change to sellable gives the affected listings a new figure in the same transaction.</strong> The figure itself is ADR-008&#39;s.</li>
 <li><strong>A dated product&#39;s date is either a use-by or a best-before date.</strong> A use-by batch is never reserved, packed or dispatched on or after its date, by any route and with no override.</li>
 </ol>
-<h2>How stock moves</h2>
+<h2 id="how-stock-moves">How stock moves</h2>
 <figure><svg class="diagram" viewBox="0 0 760 450" role="img" aria-label="Units arrive by receipt or return; an order moves sellable units to reserved; a confirmed shipment or a handover takes reserved units out; dates, damage and lot blocks move units to held, inspection brings them back, and write-offs remove them; every arrow is a ledger entry" xmlns="http://www.w3.org/2000/svg" font-size="13">
   <defs>
     <marker id="led-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="edge-fill"/></marker>
@@ -220,7 +222,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </figure>
 
 <p>Units arrive by receiving or by a return. Received units are sellable, unless their batch is already past its sell-by date or the receipt waits for a manager. Returned units are held until someone inspects them. An order moves sellable units of a batch to reserved. Packing moves reserved units to the packing spot, naming the batch that left. A confirmed shipment takes them out of the warehouse. Held units come back to sellable only when a person or a date says so, or leave by write-off. Every arrow is a ledger entry under the company&#39;s lock.</p>
-<h2>Where stock is counted</h2>
+<h2 id="where-stock-is-counted">Where stock is counted</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -262,7 +264,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>A transit spot</strong> belongs to the destination warehouse of a transfer but to no warehouse&#39;s on hand. Its units are in the ledger, so the nightly check balances, and they are shown as incoming at the destination.</li>
 <li><strong>A bundle has no balance.</strong> A ledger entry against a bundle is refused (ADR-003).</li>
 </ul>
-<h2>The ledger</h2>
+<h2 id="the-ledger">The ledger</h2>
 <p>Every change to stock is written as entries in <code>stock_ledger</code>, a tenant table (ADR-001) that is append-only: the runtime role cannot update, delete or truncate it. It is partitioned by month.</p>
 <p><strong>Only the ledger insert changes a balance.</strong> The foundation&#39;s migration defines one trigger on <code>stock_ledger</code> that applies each new entry to its spot balance, its batch position and, for a <code>reserved</code>, <code>released</code> or <code>dispatched</code> entry, its reservation row, and stores the running totals on the entry. The runtime role can read spot balances, batch positions and reservation rows, but not write them. A code path that changes a balance without an entry is therefore impossible, not merely found the next night.</p>
 <p><strong>One entry</strong></p>
@@ -406,7 +408,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tbody></table></div>
 <p><strong>Bundle components</strong> are not a kind of their own. An order for a bundle writes ordinary <code>reserved</code> and <code>dispatched</code> entries against each component&#39;s batches, and each entry&#39;s <code>demand</code> names the bundle&#39;s order line. That is how a recall of a honey lot finds the gift sets that contained it.</p>
 <p><strong>What is not an entry.</strong> Printing a label or a pick list, starting to pick, holding an order, and telling a marketplace that an order shipped move no stock and write nothing to the ledger.</p>
-<h2>The four numbers</h2>
+<h2 id="the-four-numbers">The four numbers</h2>
 <p>Every batch position (product, batch and warehouse) has four numbers, and every spot balance has on hand and the held part of it. A product&#39;s numbers in a warehouse are the sums of its batch positions there. A bundle has only a sellable figure, worked out from its components (ADR-003).</p>
 <div class="table-wrap"><table>
 <thead>
@@ -516,7 +518,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>Sellable: 48 − 12 − 9 = <strong>27</strong>. A single-jar listing is based on 27. A listing that sells six jars at a time is based on 27 ÷ 6 = 4, rounded down. ADR-008 adds buffers and the low-stock policy.</li>
 <li>A purchase order for 24 jars, not yet received, shows as incoming 24. Sellable stays 27.</li>
 </ul>
-<h2>Reserving on order</h2>
+<h2 id="reserving-on-order">Reserving on order</h2>
 <p>An order line reserves when the order is imported (ADR-007), in the import&#39;s own transaction:</p>
 <ol>
 <li>Take the company&#39;s lock (the first statement).</li>
@@ -545,7 +547,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>A second order for 40 arrives. B gives its remaining 28. The line records 12 missing.</li>
 <li>A receipt of 24 jars in batch D arrives the next day. In the receipt&#39;s transaction, the second order&#39;s line takes 12 from D. Sellable becomes 12.</li>
 </ul>
-<h2>Packs and bundles</h2>
+<h2 id="packs-and-bundles">Packs and bundles</h2>
 <p><strong>A pack reserves its own stock.</strong> A listing linked to a six-pack product reserves six-packs, never singles (ADR-003). With one six-pack sellable and an order for two, the line reserves one and is short by one. Vervoro shows that 6 singles could make the missing pack and offers a repack job; it never repacks on its own, because opening or making packs is physical work.</p>
 <p><strong>A listing with several units per sale</strong> reserves that many units of its product. A listing that sells six loose jars per sale, ordered twice, reserves 12 jars.</p>
 <p><strong>A bundle reserves its components in whole sets,</strong> each component by the rules above, in the same transaction. A line reserves the most whole sets its components can cover, and records the rest as missing on every component alike. It ships whole sets only. A half-reserved set would hold a jar a single-jar buyer could have had, and a packer could send half a gift set. The line records, for each component, the product and the quantity per bundle that it used.</p>
@@ -559,7 +561,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>Had only 5 jam been sellable, the line would reserve 2 sets (2 honey, 4 jam) and record 1 set missing; the fifth jam stays on sale for single-jar listings.</li>
 <li>Next week the seller changes G to 1 honey + 1 jam + 1 tea. Orders received afterwards use the new list. This order keeps honey × 3 and jam × 6, and ships what it reserved.</li>
 </ul>
-<h2>What the order line records</h2>
+<h2 id="what-the-order-line-records">What the order line records</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -587,7 +589,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p><strong>Reservation rows</strong> (<code>stock_reservation</code>) hold the detail: demand, product, batch, warehouse, quantity reserved, quantity packed, quantity dispatched, and when the reservation was closed. A batch position&#39;s reserved number is the sum of its open reservation rows, and the nightly check proves it.</p>
 <p><strong>A line&#39;s reservation never changes because a link changed.</strong> That is ADR-005&#39;s rule. A line&#39;s reservation changes only in these recorded ways: a person resolves the line again, a manager pins another batch, the floor packs another eligible batch, or a date pass, block or count moves it.</p>
 <p><strong>Resolving a line again.</strong> When a line was reserved under a wrong link (wrong product, wrong units per sale), a manager can resolve it again against the listing&#39;s current link. In one transaction, it releases what the line held and reserves under the new link. A line with any units packed or dispatched cannot be resolved again.</p>
-<h2>Orders that wait for a link</h2>
+<h2 id="orders-that-wait-for-a-link">Orders that wait for a link</h2>
 <p>A line for an unlinked listing is imported, flagged, and reserves nothing (ADR-003, ADR-005). It waits.</p>
 <p><strong>A waiting line</strong> is a line with no link, on an order that is open, not cancelled and seller-shipped (or of unknown fulfilment).</p>
 <p><strong>Making a link reserves for every waiting line of that listing</strong> in the link&#39;s own transaction: oldest order first, by the rules above, each line recording the new link version. ADR-005&#39;s link screen says what will happen before the person confirms: &quot;Linking reserves stock for 3 waiting orders.&quot; If stock runs out, the remaining lines are short, and the screen says so too. A bulk link (ADR-005, written in chunks of 500 links per transaction) reserves for each chunk&#39;s waiting lines in that chunk&#39;s transaction.</p>
@@ -605,7 +607,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>In the link&#39;s transaction: O1 reserves 2. O3 reserves 3 and records 1 missing. O2 is cancelled, so it reserves nothing.</li>
 <li>Every listing of honey gets a new figure in the same transaction, based on 0 sellable.</li>
 </ul>
-<h2>Stock the marketplace ships</h2>
+<h2 id="stock-the-marketplace-ships">Stock the marketplace ships</h2>
 <p>When the marketplace ships from its own warehouse (Amazon FBA and similar), Vervoro holds none of the units.</p>
 <ul>
 <li><strong>A marketplace-shipped line reserves nothing.</strong> The order is recorded for reports (ADR-003, ADR-007).</li>
@@ -614,7 +616,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Stock in the marketplace&#39;s warehouse is not in the ledger.</strong> Once handed over, it is the marketplace&#39;s to count. The figure the marketplace reports for it (ADR-004.2 reads it) is stored as a dated reading per product, shown beside the four numbers, never added to on hand or sellable.</li>
 <li><strong>A removal shipped back</strong> from the marketplace&#39;s warehouse arrives as a receipt with its reason, into a new batch or the batch the label names.</li>
 </ul>
-<h2>Other demands</h2>
+<h2 id="other-demands">Other demands</h2>
 <p>The same reservation serves every demand, so no copy drifts.</p>
 <div class="table-wrap"><table>
 <thead>
@@ -663,7 +665,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </tbody></table></div>
 <p><strong>A count may free part of a marketplace shipment.</strong> When a count finds fewer units than a batch holds, and the shortfall reaches reserved units, a reservation for a shipment to a marketplace warehouse that is not yet handed over gives way first, latest shipment first. The shipment shows what it lacks and cannot be handed over until it is reserved again or reduced.</p>
-<h2>Picking and packing</h2>
+<h2 id="picking-and-packing">Picking and packing</h2>
 <p><strong>Picking chooses the spots.</strong> When an order starts picking (ADR-007), a pick task records, for each reservation, the spot to take it from: the spot of that batch with the fewest units first, so part-used spots empty out, less what other open pick tasks already take from it. The pick list names the batch, its lot and date, and the spot. Starting a pick task writes no ledger entry; it is a plan.</p>
 <p><strong>Packing records what left.</strong> Packing (ADR-007&#39;s &quot;packed&quot;) is a server command. For each unit it records the batch:</p>
 <ul>
@@ -675,7 +677,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p>Packing moves the packed units, still reserved, from their spot to the warehouse&#39;s packing spot (a <code>transferred</code> entry, source &quot;packing&quot;). Putting a packed order back (ADR-007) moves them back, or leaves them in the packing spot for put-away. Units in the packing spot for more than 24 hours are listed on Home.</p>
 <p><strong>&quot;Not found&quot; at a pick.</strong> A picker who cannot find a planned unit says so: the unit is quarantined with that reason (out of sale at once), the reservation moves to another qualifying batch or the line becomes short, and the spot is put on the count list.</p>
 <p><strong>A unit picked where the books do not show it</strong> (a jar of batch B taken from Shelf 5 when the books hold B only on Shelf 2) is recorded as a move from the spot where the books hold that batch, and both spots go on the count list. The batch and the product total are right at once; only which shelf it left from may be wrong until the count. Only when no spot in the warehouse holds that batch is the unit <strong>found</strong>: it is received with the reason &quot;found at pick&quot; and packed in the same transaction, so it never reaches a channel, and listed for a manager.</p>
-<h2>Deducting on dispatch</h2>
+<h2 id="deducting-on-dispatch">Deducting on dispatch</h2>
 <p><strong>Stock leaves when a shipment is confirmed,</strong> and only then. A shipment names an order, the lines and the quantities in the parcel, the carrier and tracking. Confirming it, in one locked transaction:</p>
 <ul>
 <li>writes a <code>dispatched</code> entry for each packed reservation it uses, taking on hand (in the packing spot) and reserved down together,</li>
@@ -694,7 +696,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>The packer confirms one shipment of 5. <code>dispatched</code>: A on hand −3 and B on hand −2 (packing spot), reserved −5. The order is shipped.</li>
 <li>A repeat of the first confirmation, with the same shipment id, changes nothing and returns &quot;already confirmed&quot;.</li>
 </ul>
-<h2>Cancellations</h2>
+<h2 id="cancellations">Cancellations</h2>
 <p><strong>Before dispatch:</strong></p>
 <ul>
 <li><strong>A request is not a cancellation.</strong> A buyer&#39;s request keeps the reservation until the marketplace confirms the cancellation. A refused request must not leave an order without stock.</li>
@@ -706,7 +708,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ul>
 <p><strong>After dispatch:</strong> the units have left. A cancellation moves no stock. If the parcel comes back, it is a return.</p>
 <p><strong>Part shipped</strong> (the marketplace reported part shipped outside Vervoro): the cancellation releases what is still reserved, and the shipped part follows the after-dispatch rule.</p>
-<h2>Returns</h2>
+<h2 id="returns">Returns</h2>
 <p><strong>A return comes back into the batch it left from.</strong> The returned line names the order line. The units go into one of the batches that line dispatched, in a spot the person chooses (a returns bench, or the warehouse&#39;s default spot), as <code>returned</code>: on hand and quarantined up together. They are held, never sellable, until inspected.</p>
 <ul>
 <li><strong>Which batch.</strong> If the product tracks lots, the person scans or picks the lot from those the line received. Otherwise the earliest-dated batch the line received comes first, so a returned unit is never given a later date than it might have.</li>
@@ -746,7 +748,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>Inspection: 1 restocked (quarantined −1, moved to Shelf 1: sellable +1), 1 kept as damaged (quarantined −1, damaged +1), 1 written off with &quot;broken seal&quot; (on hand −1, quarantined −1).</li>
 <li>Net: on hand +2, sellable +1, damaged +1. Listings get a new figure once, from the restock.</li>
 </ul>
-<h2>Receiving and put-away</h2>
+<h2 id="receiving-and-put-away">Receiving and put-away</h2>
 <p>Purchase orders themselves (suppliers, drafting, approving, sending, reorder suggestions, sharing landed cost) are a later purchasing record. This section covers only what a receipt does to stock.</p>
 <p><strong>Goods in against a purchase order.</strong> A warehouse user opens the delivery&#39;s purchase order on a phone and counts each line in, by scanning or typing. Confirming a receipt line, in one locked transaction:</p>
 <ul>
@@ -784,7 +786,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>Thursday brings the last 12 with a different best-before: batch F. The line is complete; incoming is 0.</li>
 <li>The same week, the supplier sends a free case of 12 jam with no purchase order. A warehouse user records it: batch J3, 12 on hand, 12 quarantined. That evening a count of the shelf finds 12, as the books say. Next morning a manager accepts it as &quot;supplier extra&quot;: sellable 12, cost blank.</li>
 </ul>
-<h2>Counts and adjustments</h2>
+<h2 id="counts-and-adjustments">Counts and adjustments</h2>
 <p><strong>Counts.</strong> Anyone who may count picks a spot or a product and counts; a manager approves. Counts are always blind: the counter is never shown the expected figure, because a visible number pulls counts towards it. Home lists the spots counted least recently, so every shelf gets counted.</p>
 <ul>
 <li><strong>Counted against the moment the figure was saved.</strong> Each figure stores the ledger sequence at which it was saved; the expected figure is the spot&#39;s on hand at that sequence. A sale or a receipt between counting and approval does not read as a difference.</li>
@@ -909,7 +911,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </tbody></table></div>
 <p>A person limited to some warehouses can act only on their stock. The operator never writes a seller&#39;s ledger; a repair after the nightly check only rebuilds a balance from it.</p>
-<h2>Recalls</h2>
+<h2 id="recalls">Recalls</h2>
 <p>A recall starts from a lot number. One search returns:</p>
 <ul>
 <li>every order line, Vendor purchase order line and marketplace warehouse handover that received a batch of that lot, bundles included, with the buyer&#39;s country and the date;</li>
@@ -919,7 +921,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>archived months, read from the archive (ADR-002), for long-dated lots.</li>
 </ul>
 <p>Article 18 asks only for the businesses supplied (a Vendor order, a marketplace&#39;s warehouse). The order list goes further, because the seller needs it to reach the buyers, which they do through the marketplace&#39;s own messaging with the order id (ADR-009).</p>
-<h2>Negative stock</h2>
+<h2 id="negative-stock">Negative stock</h2>
 <p><strong>Never.</strong> Every spot balance and batch position holds these checks in the database:</p>
 <ul>
 <li>spot balance: <code>on_hand &gt;= 0</code>, <code>quarantined &gt;= 0</code>, <code>damaged &gt;= 0</code>, <code>quarantined + damaged &lt;= on_hand</code></li>
@@ -927,7 +929,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ul>
 <p>A command plans its change, and the checks are the last line if the plan is ever wrong: the transaction fails, nothing is written, and the command returns a typed refusal (&quot;would go negative&quot;) that names the product, batch and spot. Nothing is clamped to zero.</p>
 <p>When the shelf has fewer units than the system, the way to say so is a count, which takes the units out of sale at once and moves reservations first. When a unit turns up where the books have none, it is a move from where the books hold its batch, or, when none do, a find that a manager reviews. Allowing a negative balance would let one channel sell stock that does not exist and hide the real problem until a later count.</p>
-<h2>Concurrency and repeats</h2>
+<h2 id="concurrency-and-repeats">Concurrency and repeats</h2>
 <p><strong>One writer per company.</strong> The first statement of every stock command takes the company&#39;s lock, held until commit (ADR-000). Batch choice reads and then writes, so two commands must not plan at the same time. With one lock per company:</p>
 <ul>
 <li>two orders for the last unit run one after the other, and exactly one gets it,</li>
@@ -935,6 +937,12 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>other companies never wait.</li>
 </ul>
 <p>The transaction is short: about eight round trips next to the database for an order, counted by a test. Each stock command reads and writes only what it touches, in statements that work on whole sets of rows, so a 2,000-line count approval or a 500-link chunk holds the lock for a few round trips, not one per row. No marketplace call ever runs inside a stock transaction. Other modules change stock only through the foundation&#39;s command ports, so their writes take the same lock.</p>
+<p><strong>When to revisit one lock per company.</strong> The lock stays until measured behaviour says otherwise, never because of a guessed future size. Two figures are recorded for every stock command: how long it took, and how much of that it spent waiting for the company&#39;s lock. The decision is revisited when, for the busiest company, either of these holds for 7 days running:</p>
+<ul>
+<li>the p95 time of stock commands is over its target;</li>
+<li>the p95 share of a command&#39;s time spent waiting for the lock is over its threshold.</li>
+</ul>
+<p>Both numbers are set from the load test before launch and are open until then. Revisiting means a new record that replaces this decision; a finer lock is never introduced without one.</p>
 <p><strong>Every command is safe to repeat.</strong> Each command carries a key:</p>
 <div class="table-wrap"><table>
 <thead>
@@ -978,7 +986,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tbody></table></div>
 <p>A <code>stock_command</code> table holds each key with its answer and the ledger sequence it wrote, with a unique index on company and key. A repeat finds the key under the lock and returns the stored answer. A phone that lost its reply on patchy Wi-Fi can send the same tap again.</p>
 <p><strong>The ledger sequence</strong> is taken from the company&#39;s counter row inside the locked transaction, so it is gapless and in commit order. It is the order of every change, and each desired figure records the sequence it was computed from, so a figure from an older sequence never replaces a newer one (ADR-000).</p>
-<h2>The nightly check and checkpoints</h2>
+<h2 id="the-nightly-check-and-checkpoints">The nightly check and checkpoints</h2>
 <p>Every night the sweeper (ADR-001) runs the check for each company, outside the company&#39;s lock, on a consistent snapshot:</p>
 <ol>
 <li><strong>Balances equal entries.</strong> For every spot balance and batch position, each stored number equals the latest checkpoint plus the sum of the entries after it.</li>
@@ -991,7 +999,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p><strong>A difference</strong> alerts the operator and the company&#39;s managers, and holds raises on every listing of the affected products (decreases still go). The ledger is the truth: the operator finds the cause, rebuilds the balance from the ledger, records the repair in the activity view, and the hold clears.</p>
 <p><strong>Checkpoints</strong> (ADR-002). Before a ledger month leaves the database, the archiver writes, under the company&#39;s lock, one <code>opening_balance</code> entry per spot balance and batch position that had entries up to then. It carries each stored number&#39;s total and the last sequence it covers, and each open reservation&#39;s reserved, packed and dispatched totals. The check sums from it. Reservation rows that are still open are current state and never archived.</p>
 <p><strong>Worked example.</strong> May 2024 is archived. By the end of May, batch B had entries summing to on hand 40 on Shelf 2 and reserved 3 in the warehouse, up to sequence 18,204. The archiver writes <code>opening_balance</code> entries: +40 on hand for Shelf 2, +40 on hand and +3 reserved for batch B&#39;s position, covering up to 18,204. From then on, the check adds every entry after 18,204 to them.</p>
-<h2>What gives listings a new figure</h2>
+<h2 id="what-gives-listings-a-new-figure">What gives listings a new figure</h2>
 <p>The foundation writes the desired figure of each linked listing in the same transaction as the change (ADR-000). A listing is affected when its product&#39;s sellable changes, or a component&#39;s sellable when its product is a bundle. How the figure is worked out and sent is ADR-008.</p>
 <div class="table-wrap"><table>
 <thead>
@@ -1077,7 +1085,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Yes, by the date pass</td>
 </tr>
 </tbody></table></div>
-<h2>Storage</h2>
+<h2 id="storage">Storage</h2>
 <p>All tables belong to the foundation and are tenant tables (ADR-001): <code>company_id</code> on every row and leading every key, under row-level security.</p>
 <div class="table-wrap"><table>
 <thead>
@@ -1211,7 +1219,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>A test that inspects every command</td>
 </tr>
 </tbody></table></div>
-<h2>Consequences</h2>
+<h2 id="consequences">Consequences</h2>
 <p><strong>What this gives us</strong></p>
 <ul>
 <li>One record explains every unit: where it came from, where it went, who moved it and why. A recall is one search by lot, bundles and marketplace warehouses included, and the lot recorded is the lot that left.</li>
@@ -1225,7 +1233,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ul>
 <p><strong>What it costs</strong></p>
 <ul>
-<li>Every stock change holds the company&#39;s lock, so one company&#39;s stock writes are serial. Transactions must stay short, and large counts are split.</li>
+<li>Every stock change holds the company&#39;s lock, so one company&#39;s stock writes are serial. Transactions must stay short, and large counts are split. Every stock command records its time and its lock wait, so the moment to revisit is measured, not guessed.</li>
 <li>Earliest-first is the plan and a daily report, not a lock: the floor may take another eligible batch.</li>
 <li>A reservation promises a batch, not a shelf; the pick task chooses the shelf when picking starts.</li>
 <li>Counts are exact only outside the minutes an order is being picked from that spot; inside them, a small difference waits for packing.</li>
@@ -1237,7 +1245,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>Stock held by a marketplace is a reading, not a ledger, so Vervoro cannot prove it the way it proves its own.</li>
 <li>Short lines refill by deadline, not by who ordered first.</li>
 </ul>
-<h2>Alternatives considered</h2>
+<h2 id="alternatives-considered">Alternatives considered</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -1350,7 +1358,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>The ledger is the truth; a balance is rebuilt from it and the repair is recorded</td>
 </tr>
 </tbody></table></div>
-<h2>What later records decide</h2>
+<h2 id="what-later-records-decide">What later records decide</h2>
 <ul>
 <li><strong>ADR-007: Order ingestion:</strong> importing an order once per marketplace order, its statuses and holds, the ship-by time, cancellation requests, manual and business orders, fulfilment that becomes known later, and the conflict for a seller-shipped line on a marketplace-shipped link.</li>
 <li><strong>ADR-008: Inventory sync:</strong> the figure each linked listing gets from sellable, buffers and the low-stock policy, which warehouses serve which account, held raises, and how each new figure is sent.</li>

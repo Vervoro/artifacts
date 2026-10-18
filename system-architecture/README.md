@@ -38,6 +38,12 @@ The design has to meet these requirements:
 14. **English first, every word in a catalogue.** Other languages are typed against the English keys and filled in a batched pass before release.
 15. **Tests run on the real kernel against real databases, with no mocks.** "Green" means one verify command passed, and nobody weakens a test to get there.
 16. **Every change follows one path:** new modules start from a scaffold, migrations only add, and the docs change with the code.
+17. **UK first, not UK hard-coded.** Launch serves UK companies, the UK marketplaces, UK VAT and Vervoro's UK billing. That is product scope, not an assumption in the model:
+   - money always carries its currency, and amounts in different currencies are never added;
+   - a product has a VAT class, and rates come from a per-country table;
+   - every order line stores the country, class and rate it used.
+
+   UK rules live only where the country matters: invoices and VAT (ADR-011), Vervoro's own billing (ADR-012), food law (ADR-006), and each marketplace's site (ADR-004.1 to 004.3). Selling into the EU is a later record ([ADR-011](../invoicing-and-vat/)). It adds rates, rules and marketplace sites in those places, and changes nothing in stock, orders, listings or tenancy.
 
 ## Architecture
 

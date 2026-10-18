@@ -30,6 +30,8 @@ h3 { font-size: 18px; margin: 32px 0 8px; }
 p, li { max-width: 72ch; }
 a { color: var(--accent); }
 code { font-family: var(--mono); font-size: 0.86em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--sunken); padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 13.5px; line-height: 1.5; }
+pre code { background: none; padding: 0; overflow-wrap: normal; }
 table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 16px 0; background: var(--surface); }
 .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
 .table-wrap table { margin: 0; }
@@ -58,7 +60,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <body>
 <header class="site"><a href="../">← Vervoro artifacts</a></header>
 <main>
-<h1>ADR-011: Invoicing and VAT</h1>
+<h1 id="adr-011-invoicing-and-vat">ADR-011: Invoicing and VAT</h1>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -83,7 +85,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="../database-architecture/">ADR-001: Multi-tenant database architecture</a>, <a href="../data-retention/">ADR-002: Data retention and archiving</a>, <a href="../product-model/">ADR-003: Product model</a>, <a href="../channel-connectors/">ADR-004: Channel connectors</a> with <a href="../ebay-connector/">ADR-004.1</a>, <a href="../amazon-seller-connector/">ADR-004.2</a> and <a href="../shopify-connector/">ADR-004.3</a>, <a href="../stock-ledger/">ADR-006: Stock ledger and reservations</a>, <a href="../order-ingestion/">ADR-007: Order ingestion</a>, <a href="../buyer-data/">ADR-009: Buyer data and privacy</a>, <a href="../users-and-access/">ADR-010: Users, roles and sign-in</a></td>
 </tr>
 </tbody></table></div>
-<h2>Context</h2>
+<h2 id="context">Context</h2>
 <p>A seller who runs their own warehouse sells to consumers on marketplaces and on their own shop, and to businesses by phone or email. VAT is due on every one of those sales, but an invoice is needed for only some of them. Earlier records already decide parts of this:</p>
 <ul>
 <li><strong>ADR-001:</strong> human-readable numbers come from a counter table keyed <code>(company_id, name)</code>, taken in the writer&#39;s transaction.</li>
@@ -102,7 +104,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>The seller stays responsible.</strong> A third party may issue invoices for a business, but the legal duties for their content and storage remain the seller&#39;s.</li>
 <li><strong>The seller&#39;s books live elsewhere.</strong> Sellers file their VAT returns from accounting software under Making Tax Digital. What Vervoro holds must reach that software by a digital link, not by retyping.</li>
 </ul>
-<h2>Decision</h2>
+<h2 id="decision">Decision</h2>
 <ol>
 <li><strong>The seller is the supplier, and Vervoro issues documents in the seller&#39;s name.</strong> Vervoro never files a VAT return and is never the supplier.</li>
 <li><strong>One issuer per sale.</strong> Each marketplace account records who invoices its orders: the marketplace, or Vervoro. Vervoro refuses to issue an invoice or a credit note for an order whose account says the marketplace invoices. For an eBay order, the person issuing also confirms that eBay holds no invoice for it.</li>
@@ -121,7 +123,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>The accounting export is a file.</strong> It holds a register of documents and a VAT summary of every sale, refund and correction, per period, as CSV. That counts as a digital link for Making Tax Digital. The summary is split by who issued each sale&#39;s documents, so a seller who already imports marketplace payouts posts nothing twice. Vervoro connects to no accounting software at launch.</li>
 <li><strong>Launch covers sales delivered in the UK, Northern Ireland included, at UK rates.</strong> An order delivered outside the UK is a zero-rated export. Its carrier, tracking number and the carrier&#39;s delivery event are kept as export evidence. Where a marketplace collects the VAT itself, the line is recorded as marketplace-collected, and Vervoro issues nothing for it. EU VAT schemes are a later record.</li>
 </ol>
-<h2>When a document is needed, and who issues it</h2>
+<h2 id="when-a-document-is-needed-and-who-issues-it">When a document is needed, and who issues it</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -182,7 +184,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p>The cost: a seller who will not use the service has no way to invoice Amazon Business orders through Vervoro. The connections screen says so before the account is connected.</p>
 <p><strong>Why not invoice every order automatically.</strong> A full invoice keeps the buyer&#39;s name and address for as long as the invoice is kept: 7 years from the end of its month (ADR-002, ADR-009). Most of these orders are zero-rated food sold to consumers, who need no invoice at all. Issuing on request keeps the documents that hold personal data to the few that need them. A seller who later finds requests too many could have invoices issued automatically with an empty customer block, which holds no buyer data. That is a small change, left to a later record if it is needed.</p>
 <p><strong>The tax point.</strong> For goods it is normally the dispatch date, or an earlier payment. A marketplace order is paid at purchase, so its tax point is the payment time the marketplace reports. A manual order on credit terms has its tax point at dispatch. The tax point picks the rate and the VAT period. A full invoice must be issued within 30 days of it. A manual business order is invoiced at dispatch, so it meets that unless the order is flagged, and the flag&#39;s alert covers that case.</p>
-<h2>What a document holds</h2>
+<h2 id="what-a-document-holds">What a document holds</h2>
 <p>There is one invoice layout. With the customer block filled it is a full invoice. With it empty it is a simplified invoice, allowed up to £250 when the buyer is a consumer who has not asked for their details on it.</p>
 <div class="table-wrap"><table>
 <thead>
@@ -269,7 +271,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p><strong>The customer&#39;s name and address</strong> in the customer block are typed or confirmed by the person who issues it. The delivery recipient and address are offered as a starting point, and a business buyer&#39;s company name and VAT number when the marketplace gives them, or when a manual order records them with the buyer&#39;s purchase-order reference (ADR-007). They are stored on the invoice only, never on the order. They stay as long as the invoice, encrypted with the company&#39;s key, as ADR-009 decides.</p>
 <p><strong>The seller&#39;s details</strong> come from the company&#39;s invoicing settings: the registered name and address, and the VAT number with its registration date. Nothing else is needed by law, so there is no logo, footer or trading name at launch. The details are copied into each document when it is issued, so changing them later never changes a document already issued.</p>
 <p><strong>Not VAT-registered.</strong> A company without a VAT number issues invoices that show no VAT, no rates and no VAT number. Every line takes treatment <code>none</code>. A company that registers sets a registration date, and orders whose tax point falls on or after it use the rates.</p>
-<h2>Numbering</h2>
+<h2 id="numbering">Numbering</h2>
 <ul>
 <li><strong>One series:</strong> a single counter named <code>invoice</code> in ADR-001&#39;s table, shared by invoices and credit notes. The law allows one series or several, and one means one counter and one rule to test.</li>
 <li><strong>Taken at issue, in the same transaction</strong> that writes the document&#39;s record. A refused or failed issue rolls the number back with everything else, so the series has no gaps. The issuing transaction locks the counter&#39;s row, so two issues at once wait for each other.</li>
@@ -277,7 +279,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Never reused, never deleted, never edited.</strong> Cancelling a mistaken invoice means a credit note for all of it. If a corrected invoice is needed, it takes a new number.</li>
 <li><strong>A company restore</strong> (ADR-001) may roll the database back past documents that were already issued and handed to buyers. Their files are still in object storage. The restore re-registers every document found there that is newer than the restore point, and sets each counter past the highest number found. The series stays whole, and no number is issued twice.</li>
 </ul>
-<h2>VAT rates and classes</h2>
+<h2 id="vat-rates-and-classes">VAT rates and classes</h2>
 <p>ADR-003 keeps the class on the product and the rate in one table. This record adds how a line&#39;s VAT is decided.</p>
 <p><strong>When the VAT record is written.</strong> The tax point of a marketplace order is its payment, which comes before dispatch, so the record is written when the order is imported. Orders paid on the last weekend of a VAT quarter and shipped on the Monday are therefore in the quarter they were paid. Nothing is ever rewritten:</p>
 <ul>
@@ -340,7 +342,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tbody></table></div>
 <p>The class is the seller&#39;s decision, recorded on the product. Vervoro shows what each class means and never guesses one.</p>
 <p><strong>Northern Ireland</strong> is in the UK&#39;s VAT territory for goods sold from Great Britain to consumers and businesses there, at UK rates. ADR-009 keeps the tax territory with the order after anonymisation, so reports can show it. Sales of goods between Northern Ireland and the EU follow different rules and are left to the later record on the EU.</p>
-<h2>Working out the VAT</h2>
+<h2 id="working-out-the-vat">Working out the VAT</h2>
 <p><strong>What the buyer paid wins.</strong> The gross line price, the delivery charge and the discounts come from the marketplace order, as ADR-007 imports them. Vervoro never changes what was charged; it works out how much of it is VAT.</p>
 <p><strong>Per line, to the nearest penny, half up.</strong></p>
 <ul>
@@ -360,7 +362,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ul>
 <p><strong>Delivery.</strong> These sellers must deliver under the contract of sale, so delivery follows the VAT of the goods it carries, even when it is charged separately. On an order whose lines share one rate, delivery takes that rate. On a mixed order, delivery is split in proportion to the lines&#39; gross values after discounts, by the same rounding. A partial refund of delivery reuses the stored split.</p>
 <p><strong>Discounts.</strong> A discount the marketplace gives per line reduces that line. A discount on the whole order is split across the lines by their gross values. A discount the marketplace funds itself does not lower what the seller is paid for the goods. Where the marketplace does not say who funded a discount, it counts as the seller&#39;s.</p>
-<h3>Worked example: a mixed basket on the seller&#39;s shop</h3>
+<h3 id="worked-example-a-mixed-basket-on-the-sellers-shop">Worked example: a mixed basket on the seller&#39;s shop</h3>
 <p>A buyer, A. Sample, orders on the seller&#39;s shop: two jars of honey at £6.00 each, a box of fudge at £9.00, and standard delivery at £4.80. All prices include VAT. The buyer asks for an invoice.</p>
 <div class="table-wrap"><table>
 <thead>
@@ -409,7 +411,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </tbody></table></div>
 <p>The total is under £250 and the buyer is a consumer, so the invoice&#39;s customer block is empty, which makes it a simplified invoice: <code>INV-000232</code>. It shows the seller&#39;s details, the tax point, the descriptions, and per rate the total with VAT: zero rate £14.74, standard rate £11.06 with VAT of £1.84. It holds no buyer details.</p>
-<h3>Worked example: a hamper</h3>
+<h3 id="worked-example-a-hamper">Worked example: a hamper</h3>
 <p>A &quot;Breakfast hamper&quot; bundle sells on eBay for £30.00, VAT included. Its components and their standard costs:</p>
 <div class="table-wrap"><table>
 <thead>
@@ -451,7 +453,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Standard part:</strong> 7 ÷ 12 of £30.00 = £17.50, of which VAT is £17.50 ÷ 6 = £2.9166…, rounded to £2.92, and the net is £14.58.</li>
 </ul>
 <p>The line&#39;s VAT record keeps both parts and the costs used. A credit note for this hamper reuses the same split.</p>
-<h3>Worked example: a business order and its credit note</h3>
+<h3 id="worked-example-a-business-order-and-its-credit-note">Worked example: a business order and its credit note</h3>
 <p>A manager enters a manual order for Sample Foods Ltd, VAT number GB 000 0000 00. It is 40 boxes of fudge at £2.35 each and 24 jars of honey at £4.10 each, plus delivery of £12.00. All prices are without VAT. On dispatch, Vervoro issues an invoice with the customer block filled, <code>INV-000231</code>.</p>
 <div class="table-wrap"><table>
 <thead>
@@ -507,7 +509,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tbody></table></div>
 <p>Standard-rated net £99.86 with VAT £19.97. Zero-rated net £104.54, totalled separately. The amount payable is £224.37. The invoice carries Sample Foods Ltd&#39;s name, address and VAT number, as the manager confirmed them, and the due date from the order&#39;s terms.</p>
 <p>Ten boxes of fudge come back damaged. The manager records the return (ADR-006) and the refund, £23.50 plus £4.70 VAT. The order&#39;s screen offers a credit note for 10 × fudge at £2.35, net £23.50, VAT at 20% £4.70, naming <code>INV-000231</code> and its date. The manager confirms it, and it takes the next number, <code>CN-000233</code>, within the 14 days the law allows after the refund is paid. The VAT adjustment falls in the period the refund was paid.</p>
-<h3>Worked example: a figure that differs</h3>
+<h3 id="worked-example-a-figure-that-differs">Worked example: a figure that differs</h3>
 <p>The seller&#39;s shop is set to charge 20% on everything. A buyer, B. Example, pays £6.00 for a jar of honey, and the marketplace&#39;s tax line says £1.00 of it is VAT. The honey&#39;s class is zero, so Vervoro&#39;s figure is £0.00.</p>
 <ul>
 <li><strong>The order is flagged.</strong> The goods at the zero rate show &quot;VAT differs from the marketplace: £1.00 against £0.00&quot;. The order ships as normal.</li>
@@ -517,7 +519,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ul>
 <p><strong>What is compared.</strong> Only the goods, per order and per rate. Delivery and discounts are split by Vervoro&#39;s rule, and a shop may tax delivery differently, for example at 20% whatever the goods. Comparing them would flag almost every mixed basket for a difference in method, not in the VAT owed. Their figures are shown beside Vervoro&#39;s but never flag the order.</p>
 <p>The comparison runs only where the marketplace gives a figure: the shop&#39;s tax lines, and Amazon&#39;s per-item tax, which its order read gives as the tax part of each item&#39;s proceeds. That is sales data, not personal data, so it needs none of Amazon&#39;s restricted roles. eBay gives none for a UK seller&#39;s domestic sale: a consumer price in the UK already includes VAT, so eBay adds no tax at checkout, and its order shows a tax only when tax is added or when eBay itself collects it. For Amazon orders, the VAT that counts is what Amazon put on the invoice it issued for the seller. So the VAT record takes Amazon&#39;s figure, keeps Vervoro&#39;s beside it, and the flag asks the seller to fix the product&#39;s tax code at Amazon.</p>
-<h2>Refunds, returns and credit notes</h2>
+<h2 id="refunds-returns-and-credit-notes">Refunds, returns and credit notes</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -549,7 +551,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p><strong>Refund VAT records</strong> are negative records against the original line. They take its treatment, rate and split, for the amount refunded. They fall in the VAT period of the refund date, as HMRC requires.</p>
 <p><strong>A refund that names no lines</strong> (a goodwill refund on the whole order) is split across the lines by their gross values, like an order discount.</p>
 <p><strong>An invoice asked for after a refund</strong> shows the order as it stands, less what was refunded, so no credit note is needed.</p>
-<h2>Delivering and keeping documents</h2>
+<h2 id="delivering-and-keeping-documents">Delivering and keeping documents</h2>
 <p><strong>PDF, made once.</strong> Issuing renders the PDF and a data file (the document&#39;s record as JSON) and writes both to object storage. The keys are never overwritten (ADR-002), and both files are encrypted with the company&#39;s data key. A hash of each file is stored with the record. That proves the document has not changed, as HMRC&#39;s rules on electronic invoices ask.</p>
 <p><strong>Delivery is by the seller.</strong> The order&#39;s screen offers the PDF to the roles in the table below. A download is a link that expires after 24 hours, and each download is logged (ADR-009). The seller sends the file to the buyer through the marketplace&#39;s own messages, or to a business customer directly. Vervoro keeps no buyer email (ADR-009), so it sends no invoice itself.</p>
 <p><strong>Retention.</strong> Documents and VAT records are accounting records. They stay in the cell for 24 months, then move to the archive with their month, and are deleted 7 years after the end of their month (ADR-002). After the order is anonymised, a full invoice is the only place the buyer&#39;s name and address remain. It is shown only to owners, admins and accountants, and it is not searchable by buyer (ADR-009). A buyer&#39;s erasure request keeps the invoice, and records why.</p>
@@ -560,7 +562,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>An export line dispatched without a tracking number is flagged,</strong> because it has no evidence from day one. Nothing is reclassified automatically. Changing a line to standard-rated is the seller&#39;s decision, and it is recorded as a correction.</li>
 <li>This needs an edit to ADR-009, below.</li>
 </ul>
-<h2>Selling outside the UK</h2>
+<h2 id="selling-outside-the-uk">Selling outside the UK</h2>
 <p>The reference sellers sell in the UK. Launch covers that, and records the rest correctly without trying to account for it.</p>
 <ul>
 <li><strong>Delivered to Northern Ireland from Great Britain:</strong> treatment <code>domestic</code>, at UK rates.</li>
@@ -570,7 +572,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Stock held in the EU, or Amazon&#39;s European fulfilment programmes:</strong> not supported at launch.</li>
 </ul>
 <p>UK rules on overseas sellers do not apply to these sellers. A UK marketplace becomes the supplier for goods in the UK only when the seller is not established in the UK, or for imported consignments up to £135. A UK-established seller stays liable for their own UK sales.</p>
-<h2>Accounting export</h2>
+<h2 id="accounting-export">Accounting export</h2>
 <p><strong>Two CSV files per period,</strong> made on request by anyone who may export without buyer data (ADR-010), for any date range:</p>
 <div class="table-wrap"><table>
 <thead>
@@ -601,7 +603,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Direct connections</strong> to accounting software are a later record.</li>
 </ul>
 <p><strong>Currency.</strong> At a UK launch almost every order is in pounds. An export or a marketplace-collected line carries no UK VAT, so its currency needs no conversion for VAT. The VAT summary uses the sterling amounts the channel reports for its shop or account currency. A domestic order not priced in pounds is the one case where VAT would need converting to sterling. Vervoro refuses to issue an invoice for one and flags the order, rather than keeping a table of exchange rates for a case the launch sellers do not have.</p>
-<h2>Who may do what</h2>
+<h2 id="who-may-do-what">Who may do what</h2>
 <p>These are rows for ADR-010&#39;s table, in its six roles. An Accountant reads and exports but changes nothing, as ADR-010 decides, so issuing stays with the roles that run the orders.</p>
 <div class="table-wrap"><table>
 <thead>
@@ -662,7 +664,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </tbody></table></div>
 <p>Overriding a VAT flag decides what VAT the seller owes on a document they cannot withdraw, so it sits with Owners and Admins. A Manager who meets a flag fixes the product&#39;s class, or asks an Admin.</p>
-<h2>Storage</h2>
+<h2 id="storage">Storage</h2>
 <p>The invoicing module owns its tables. They are tenant tables (ADR-001), with <code>company_id</code> on every row, leading every key, under row-level security. They name orders and products by plain id, never by foreign key, as ADR-000 requires.</p>
 <div class="table-wrap"><table>
 <thead>
@@ -738,7 +740,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>The issue command</td>
 </tr>
 </tbody></table></div>
-<h2>Proposed edits to earlier records</h2>
+<h2 id="proposed-edits-to-earlier-records">Proposed edits to earlier records</h2>
 <p>These follow from this record and are proposed with it:</p>
 <ul>
 <li><strong>ADR-010: Users, roles and sign-in.</strong> The five rows in &quot;Who may do what&quot; join its table of who may do what, under a new heading &quot;Invoicing&quot;, decided in this record. Its later-records entry for ADR-011 then points here.</li>
@@ -747,7 +749,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>ADR-001: Multi-tenant database architecture.</strong> Restoring one company gains a step: re-register issued documents found in object storage that are newer than the restore point, and set their counters past them.</li>
 <li><strong>ADR-002: Data retention and archiving.</strong> The row &quot;Invoices and payments&quot; becomes &quot;Invoices, credit notes, VAT records, export evidence and payments&quot;.</li>
 </ul>
-<h2>Constraints</h2>
+<h2 id="constraints">Constraints</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -897,7 +899,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="https://vat-one-stop-shop.ec.europa.eu/one-stop-shop/declare-and-pay-oss_en">EU One Stop Shop</a>, <a href="https://eur-lex.europa.eu/eli/dir/2006/112/oj">VAT Directive, article 14a</a></td>
 </tr>
 </tbody></table></div>
-<h2>Consequences</h2>
+<h2 id="consequences">Consequences</h2>
 <p><strong>What this gives us</strong></p>
 <ul>
 <li>No sale is invoiced twice, and no invoice shows VAT the seller does not owe.</li>
@@ -918,7 +920,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>The seller still imports the export file into their accounting software by hand each period.</li>
 <li>EU sales beyond marketplace-collected VAT are recorded but not accounted for.</li>
 </ul>
-<h2>Alternatives considered</h2>
+<h2 id="alternatives-considered">Alternatives considered</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -1015,7 +1017,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>The reference sellers sell in the UK; marketplaces collect VAT on their EU sales up to €150</td>
 </tr>
 </tbody></table></div>
-<h2>What later records decide</h2>
+<h2 id="what-later-records-decide">What later records decide</h2>
 <ul>
 <li><strong>Amazon invoice upload</strong> (a later record): uploading Vervoro&#39;s invoices, or sending them through Amazon&#39;s buyer messages, for sellers who will not use Amazon&#39;s service. It needs the tax invoicing role, and so an edit to ADR-009.</li>
 <li><strong>Selling into the EU</strong> (a later record): the EU&#39;s import and One Stop Shop schemes for the seller&#39;s own shop, stock held in the EU, Amazon&#39;s European fulfilment, and goods between Northern Ireland and the EU.</li>

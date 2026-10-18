@@ -30,6 +30,8 @@ h3 { font-size: 18px; margin: 32px 0 8px; }
 p, li { max-width: 72ch; }
 a { color: var(--accent); }
 code { font-family: var(--mono); font-size: 0.86em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--sunken); padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 13.5px; line-height: 1.5; }
+pre code { background: none; padding: 0; overflow-wrap: normal; }
 table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 16px 0; background: var(--surface); }
 .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
 .table-wrap table { margin: 0; }
@@ -58,7 +60,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <body>
 <header class="site"><a href="../">← Vervoro artifacts</a></header>
 <main>
-<h1>ADR-004.3: Shopify connector</h1>
+<h1 id="adr-0043-shopify-connector">ADR-004.3: Shopify connector</h1>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -83,7 +85,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="../channel-connectors/">ADR-004: Channel connectors</a>, <a href="../product-model/">ADR-003: Product model</a>, <a href="../database-architecture/">ADR-001: Multi-tenant database architecture</a></td>
 </tr>
 </tbody></table></div>
-<h2>Context</h2>
+<h2 id="context">Context</h2>
 <p>ADR-004 decided the connector contract and everything the host does around it. This record covers only what is particular to Shopify.</p>
 <p>Shopify is the seller&#39;s own shop, not a marketplace, and it shapes the design in six ways:</p>
 <ul>
@@ -94,7 +96,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Tokens expire.</strong> Shopify&#39;s offline tokens for public apps last an hour, and each refresh hands out a new pair.</li>
 <li><strong>Other marketplaces sell through the shop.</strong> A seller may already connect eBay or Amazon to Shopify with those marketplaces&#39; own apps, so the shop&#39;s orders can include sales Vervoro also sees directly.</li>
 </ul>
-<h2>Decision</h2>
+<h2 id="decision">Decision</h2>
 <ol>
 <li><strong>The seller installs Vervoro&#39;s Shopify app</strong> on their shop. Nobody pastes a token.</li>
 <li><strong>Expiring offline tokens,</strong> refreshed by the host under the account&#39;s lock, the new pair sealed in the same step.</li>
@@ -106,7 +108,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>An order another marketplace&#39;s app put into the shop is marked with that marketplace,</strong> so a sale Vervoro also gets directly is not counted twice. One whose marketplace cannot be told is imported as an ordinary sale, and the seller is warned; if it matches a direct order, it is held as a possible duplicate.</li>
 <li><strong>Privacy webhooks are received, as Shopify requires.</strong> A request to forget a buyer is carried out at once; the others are answered within 30 days.</li>
 </ol>
-<h2>Connecting</h2>
+<h2 id="connecting">Connecting</h2>
 <ul>
 <li><strong>Installing the app.</strong> The seller gives their shop&#39;s address and approves on Shopify&#39;s install screen. Shopify signs its redirect back with the app&#39;s secret, and the host checks that signature as well as its own single-use state.</li>
 <li><strong>Scopes.</strong> Orders, products, inventory and locations to read; inventory to write; the seller&#39;s own fulfilment orders to read and write; a fulfilment partner&#39;s to read only. Reading a partner&#39;s lets Vervoro see that an order is theirs to ship, not the seller&#39;s.</li>
@@ -115,13 +117,13 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>The app&#39;s secret</strong> rotates with a current and a previous value, because Shopify takes a while to switch.</li>
 <li><strong>Picking the warehouse.</strong> After connecting, a person picks one of the shop&#39;s active locations that fulfil online orders as Vervoro&#39;s warehouse. It cannot be changed while the account is live (ADR-004), because what Vervoro sends must not change under it.</li>
 </ul>
-<h2>Locations</h2>
+<h2 id="locations">Locations</h2>
 <ul>
 <li><strong>Vervoro writes one location.</strong> It sets the available quantity at the warehouse location. Stock Shopify holds at other locations is the seller&#39;s and is never touched.</li>
 <li><strong>Orders follow Shopify&#39;s assignment.</strong> Shopify assigns each order&#39;s lines to a location. An order assigned to Vervoro&#39;s warehouse is the seller&#39;s to ship and reserves Vervoro&#39;s stock. An order assigned entirely elsewhere (a shop counter, a fulfilment partner) is recorded and reserves nothing. An order assigned to a location that no longer exists is held for a person.</li>
 <li><strong>Only orders assigned wholly to the warehouse</strong> are counted as sales out of the figure Vervoro sent, because Shopify takes a sale&#39;s units from the location it is assigned to.</li>
 </ul>
-<h2>Orders</h2>
+<h2 id="orders">Orders</h2>
 <p><strong>Webhooks first.</strong> Shopify&#39;s webhooks are declared once in the app&#39;s own configuration, so every shop that installs the app gets them, and they all go to one address.</p>
 <ul>
 <li><strong>Verified before anything is read.</strong> Each webhook is checked with the app&#39;s secret (current or previous) before any database read. The shop is named in a header that the signature does not cover, so the host uses it only to find the account. A genuine body sent again under another shop&#39;s name can at most make Vervoro fetch an order that shop does not have.</li>
@@ -133,7 +135,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p><strong>The backup read</strong> searches orders updated since the watermark. Shopify&#39;s limits are per app and shop, so it runs every 10 minutes and costs no other seller anything. Early reads are never closer than 30 seconds apart. An account whose webhooks look broken is treated as ADR-004 says. Without the extra scope for older orders, only the last 60 days of orders can be read, which is longer than Vervoro keeps buyer data.</p>
 <p><strong>Orders other marketplaces put into the shop.</strong> A seller who connects eBay or Amazon to Shopify with those marketplaces&#39; own apps gets their orders in the shop too. Each order says which app created it. When it names a marketplace&#39;s app, the order is marked as sold on that marketplace, so a marketplace connected to Vervoro directly as well reaches Vervoro one way only. An order from a multi-marketplace app that cannot be attributed is imported as an ordinary sale, never dropped, and the seller is warned when any marketplace is also connected directly: counted twice is safer than missed. When its SKUs and quantities match a direct order placed within 30 minutes, it is held as a possible duplicate for a manager; no buyer data is compared. ADR-007 decides how such orders are imported, and keeps a mirror&#39;s units off every figure until its direct order arrives.</p>
 <p><strong>Lines without a SKU.</strong> A gift card, a tip, or a line that needs no shipping is left out. A line that needs shipping but has no SKU and no variant stays on the order, unmatched, so the order cannot be dispatched until a person looks.</p>
-<h2>Stock</h2>
+<h2 id="stock">Stock</h2>
 <p><strong>Compare-and-set on every write.</strong> Each change carries the available figure Vervoro believes Shopify shows now. If a sale got there first, Shopify refuses the change, the connector reads the figure again and answers <code>compare-mismatch</code> with it, and the host decides again (ADR-004).</p>
 <p><strong>Batches of up to 250.</strong> One call can set up to 250 listings, each with its own expected figure. Because the check is per item, a decrease is as safe in a batch as on its own, so on Shopify both lanes may carry decreases.</p>
 <ul>
@@ -142,7 +144,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Shopify answers at once.</strong> A write is <code>applied</code>, <code>compare-mismatch</code> or refused, never <code>accepted</code>.</li>
 </ul>
 <p><strong>Read back</strong> reads the available quantity at the warehouse location for the listing&#39;s inventory item.</p>
-<h2>The cost budget</h2>
+<h2 id="the-cost-budget">The cost budget</h2>
 <p>Shopify meters each app and shop pair by query cost: a bucket that refills by the shop&#39;s plan (100 points a second on the standard plan, more on larger plans), and no single query above 1,000 points.</p>
 <ul>
 <li><strong>Writes are cheap and do not grow with their size.</strong> A stock change costs the mutation&#39;s 10 points plus a point for its errors, for 1 item or 250.</li>
@@ -150,21 +152,21 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Reads go by Shopify&#39;s own throttle reply.</strong> A throttled reply says how many points the call needs and how fast they return, and the host waits exactly that long.</li>
 <li><strong>Large reads use Shopify&#39;s bulk operations,</strong> which run inside Shopify and are downloaded when done, so reading a whole catalogue does not drain the bucket. How the catalogue is read and matched is ADR-005.</li>
 </ul>
-<h2>Variants without a unique SKU</h2>
+<h2 id="variants-without-a-unique-sku">Variants without a unique SKU</h2>
 <p>Shopify lets a variant have a blank SKU, or the same SKU as another variant. Such a variant is named by its variant id, both as a listing and on order lines, so it can be linked and updated like any other. Every other variant goes by its SKU exactly as Shopify has it. Whether a SKU is shared is checked against the shop, within a small cost cap. A SKU the check could not settle goes by its plain SKU: unique, it matches at once; shared, its line arrives unmatched until a later check names the variant.</p>
-<h2>Buyer data and privacy</h2>
+<h2 id="buyer-data-and-privacy">Buyer data and privacy</h2>
 <ul>
 <li><strong>Protected customer data.</strong> Names, addresses and phone numbers are protected data that Shopify releases only to approved apps. Without approval, Shopify sends the order with those fields empty, and the order still arrives without them; nothing is guessed.</li>
 <li><strong>Only what is needed to ship:</strong> the delivery address with the recipient&#39;s name and phone, the order note, a gift message, and each line&#39;s title as a packer reads it. Vervoro anonymises buyer data 30 days after delivery, or after dispatch when no delivery date is known (<a href="../buyer-data/">ADR-009</a>).</li>
 <li><strong>Privacy webhooks.</strong> Shopify requires every App Store app to receive three: a buyer&#39;s data request, a request to forget a buyer, and a request to forget a shop. A request to forget a buyer has that buyer&#39;s orders anonymised at once. The others are recorded for a person, due within 30 days.</li>
 </ul>
-<h2>Dispatch</h2>
+<h2 id="dispatch">Dispatch</h2>
 <p>A shipment is confirmed against the order&#39;s fulfilment orders at the warehouse location, with carrier and tracking, through the egress gate. A fulfilment partner&#39;s fulfilment orders are never written.</p>
-<h2>The app inside Shopify</h2>
+<h2 id="the-app-inside-shopify">The app inside Shopify</h2>
 <p>A Shopify App Store listing needs a page inside the Shopify admin. Vervoro&#39;s is one small page: whether the shop is connected, to which company, and a link into Vervoro. It holds no session and no cookie, and checks Shopify&#39;s session token on every request. Until the listing, sellers install the app from Vervoro&#39;s own link.</p>
-<h2>Simulator and sandbox</h2>
+<h2 id="simulator-and-sandbox">Simulator and sandbox</h2>
 <p>The Shopify simulator speaks the GraphQL Admin API calls used here, with cost-point buckets and throttled replies, compare-and-set races on demand, bulk operations, the install flow, expiring tokens and signed webhooks. Development stores stand in for Shopify&#39;s sandbox. Before launch, each call is recorded against a development store and the simulator is corrected where it differs; the recordings include the shape of an unapproved protected field, the app names on orders other marketplaces put into a shop, and a stock batch with one stale entry, to learn whether Shopify refuses the whole call or only that entry. Either answer is safe, because the connector already handles the whole call failing.</p>
-<h2>Shopify constraints</h2>
+<h2 id="shopify-constraints">Shopify constraints</h2>
 <p>Checked against Shopify&#39;s documentation on 17 October 2026.</p>
 <div class="table-wrap"><table>
 <thead>
@@ -210,7 +212,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="https://shopify.dev/docs/apps/build/compliance/privacy-law-compliance">Privacy law compliance</a></td>
 </tr>
 </tbody></table></div>
-<h2>Consequences</h2>
+<h2 id="consequences">Consequences</h2>
 <p><strong>What this gives us</strong></p>
 <ul>
 <li>A stale figure can never overwrite a newer one on Shopify, and decreases can travel in batches.</li>
@@ -225,7 +227,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>Buyer addresses depend on Shopify approving Vervoro for protected customer data.</li>
 <li>Orders from an app that does not say which marketplace they came from may be counted twice until the seller sorts the duplicate connection.</li>
 </ul>
-<h2>Alternatives considered</h2>
+<h2 id="alternatives-considered">Alternatives considered</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>

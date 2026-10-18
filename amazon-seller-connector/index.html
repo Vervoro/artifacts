@@ -30,6 +30,8 @@ h3 { font-size: 18px; margin: 32px 0 8px; }
 p, li { max-width: 72ch; }
 a { color: var(--accent); }
 code { font-family: var(--mono); font-size: 0.86em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--sunken); padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 13.5px; line-height: 1.5; }
+pre code { background: none; padding: 0; overflow-wrap: normal; }
 table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 16px 0; background: var(--surface); }
 .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
 .table-wrap table { margin: 0; }
@@ -58,7 +60,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <body>
 <header class="site"><a href="../">← Vervoro artifacts</a></header>
 <main>
-<h1>ADR-004.2: Amazon Seller connector</h1>
+<h1 id="adr-0042-amazon-seller-connector">ADR-004.2: Amazon Seller connector</h1>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -83,7 +85,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="../channel-connectors/">ADR-004: Channel connectors</a>, <a href="../product-model/">ADR-003: Product model</a>, <a href="../database-architecture/">ADR-001: Multi-tenant database architecture</a></td>
 </tr>
 </tbody></table></div>
-<h2>Context</h2>
+<h2 id="context">Context</h2>
 <p>ADR-004 decided the connector contract and everything the host does around it. This record covers only what is particular to Amazon, for a seller who ships their own orders (merchant-fulfilled) and may also use Amazon&#39;s own fulfilment (FBA). Selling to Amazon as a vendor is a different shape and is not covered here.</p>
 <p>Amazon shapes the design in six ways:</p>
 <ul>
@@ -94,7 +96,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Approvals expire.</strong> A public application must be re-authorised by each seller every 365 days, and Amazon gives no expiry date through the API.</li>
 <li><strong>Buyer data is restricted.</strong> Addresses need a restricted role, and Amazon&#39;s data protection policy limits how long they are kept.</li>
 </ul>
-<h2>Decision</h2>
+<h2 id="decision">Decision</h2>
 <ol>
 <li><strong>The seller approves Vervoro in Seller Central,</strong> from Vervoro&#39;s own page or from Amazon&#39;s app store. Nobody pastes keys.</li>
 <li><strong>One account is one seller id in one region,</strong> serving the marketplaces the seller picks there.</li>
@@ -106,7 +108,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Buyer data is read only under the restricted role,</strong> only for orders the seller ships, and anonymised 30 days after delivery.</li>
 <li><strong>Stock in Amazon&#39;s warehouses is read daily and on Amazon&#39;s notice,</strong> as a reading beside Vervoro&#39;s figures, never added to them.</li>
 </ol>
-<h2>Connecting and renewing</h2>
+<h2 id="connecting-and-renewing">Connecting and renewing</h2>
 <ul>
 <li><strong>Two ways in, one flow.</strong> A seller starts from Vervoro (picking their marketplace) or from Amazon&#39;s app store. Either way, the host sends the seller only to Seller Central&#39;s own consent or confirm page, checks the single-use state on the way back (Amazon does not sign its redirect), and exchanges the code for a refresh token at Amazon&#39;s login service.</li>
 <li><strong>Proof before the claim.</strong> Before the seller id is claimed in the external directory, the host makes one read with the new token for that seller id. A seller id changed on the way is refused.</li>
@@ -115,14 +117,14 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Renewal every 365 days.</strong> Amazon cannot be asked when an approval ends, so the host records the moment of approval plus 365 days and reminds the seller 30 days ahead. Approving again writes a fresh date. A refresh refused as an invalid grant means the seller removed the app, and the account is disconnected.</li>
 <li><strong>The app&#39;s client secret</strong> lasts 180 days. The host reminds the operator from day 150. Rotation is an operator step, not a seller one.</li>
 </ul>
-<h2>Regions and marketplaces</h2>
+<h2 id="regions-and-marketplaces">Regions and marketplaces</h2>
 <ul>
 <li><strong>One account, one region.</strong> The region decides the API address and which notice destination the seller is subscribed to.</li>
 <li><strong>One figure across the account&#39;s marketplaces.</strong> A listing update names every marketplace the account serves, and Amazon applies one quantity to all of them.</li>
 <li><strong>Whether a sale on one marketplace lowers the others</strong> depends on a seller setting Vervoro cannot see (Amazon&#39;s international listings tool). So an order counts as coming out of Vervoro&#39;s figure only when the account serves exactly one marketplace; with several, Vervoro assumes the cautious case. ADR-008 decides how that shapes the figure.</li>
 <li><strong>Orders from every marketplace of the region are imported.</strong> Amazon&#39;s notices cover the whole region, so the backup read asks for all of the region&#39;s marketplaces in one search (it takes up to 50), and every such order stays up to date at no extra cost. The first order the seller ships from a marketplace the account was not set up for asks who ships that marketplace&#39;s orders: this warehouse, or someone else (ADR-007).</li>
 </ul>
-<h2>Notices and the relay</h2>
+<h2 id="notices-and-the-relay">Notices and the relay</h2>
 <p><strong>The relay.</strong> One AWS stack, in one AWS region next to the databases, serves sellers in every Amazon region: each regional destination points at the same queue and event bus.</p>
 <div class="table-wrap"><table>
 <thead>
@@ -157,7 +159,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>An Amazon-held stock change</strong> makes the connector read Amazon&#39;s stock for the SKUs it names (below).</li>
 </ul>
 <p><strong>The backup read</strong> searches orders changed since the watermark, on every marketplace of the account&#39;s region, every 10 minutes: the limit is the seller&#39;s own, so a short interval costs no other seller anything (ADR-004). Any complete read, including one a raise asks for, resets the timer. The order search refills only about once every three minutes, so an early check is never closer than that. Each page carries its orders&#39; items, so nothing is fetched per order. Amazon stops a search two minutes before its own clock and says where it stopped; that bound is the window&#39;s completeness. How orders are imported is ADR-007.</p>
-<h2>Stock</h2>
+<h2 id="stock">Stock</h2>
 <p><strong>Single writes.</strong> One listing at a time through the Listings Items API: a patch of the merchant-fulfilled quantity across the account&#39;s marketplaces.</p>
 <div class="table-wrap"><table>
 <thead>
@@ -191,7 +193,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ul>
 <p><strong>Listings Amazon ships.</strong> A SKU that Amazon fulfils on any of the account&#39;s marketplaces is read as Amazon&#39;s and never sent a figure: one update names every marketplace, and would put a merchant figure on Amazon&#39;s own listing. Its orders are recorded for reports (ADR-003).</p>
 <p><strong>Reading every listing</strong> uses Amazon&#39;s merchant listings report, one per marketplace. How the catalogue is read and matched is ADR-005.</p>
-<h2>Stock Amazon holds</h2>
+<h2 id="stock-amazon-holds">Stock Amazon holds</h2>
 <p>Stock in Amazon&#39;s warehouses is not in Vervoro&#39;s ledger. ADR-006 keeps Amazon&#39;s figure for it as a dated reading per product, shown beside the four numbers and never added to them. The connector reads it with the FBA Inventory API (<code>getInventorySummaries</code>).</p>
 <ul>
 <li><strong>What is read.</strong> Per marketplace the account serves, with details: units Amazon can ship, units reserved for its customers&#39; orders or moving between its warehouses, units it cannot sell (damaged, expired, defective), units under investigation, and units on their way in. Each summary names the SKU, so it reaches the product through the listing&#39;s link; a pack&#39;s units are multiplied by its units per sale (ADR-003). A SKU with no link is kept on the listing until it is linked.</li>
@@ -200,24 +202,24 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>It never moves stock or a figure.</strong> A reading changes nothing in the ledger and sends nothing to any listing. A shipment to Amazon is ADR-006&#39;s transfer, and a listing Amazon ships still gets no figure.</li>
 <li><strong>The role it needs</strong> is Product Listing or Amazon Fulfillment, neither of them restricted. Writing listings already needs Product Listing, so the seller approves nothing more.</li>
 </ul>
-<h2>Buyer data</h2>
+<h2 id="buyer-data">Buyer data</h2>
 <ul>
 <li><strong>The restricted role.</strong> Names, addresses and phone numbers of buyers are visible only under Amazon&#39;s direct-to-consumer shipping role, for orders the seller ships, while they are unshipped or shipped.</li>
 <li><strong>Only what is needed to ship.</strong> Name, address, phone and gift message ride on the order. What Amazon withholds or masks is left out, never stored as blank, so it never erases what an earlier read kept.</li>
 <li><strong>Orders Amazon ships carry no buyer data.</strong></li>
 <li><strong>Thirty days after delivery</strong> the foundation anonymises the order&#39;s buyer data, as Amazon&#39;s data protection policy asks. The policy also asks for multi-factor sign-in on every user account.</li>
 </ul>
-<h2>Dispatch</h2>
+<h2 id="dispatch">Dispatch</h2>
 <p>A shipment is confirmed with Amazon&#39;s carrier code where the carrier is on Amazon&#39;s list, or as &quot;Other&quot; with the carrier&#39;s name. Amazon requires a tracking number, so a shipment without one is not sent and goes to a person. A confirmation whose outcome is unknown is never sent twice: it goes to a person, who checks the order in Seller Central.</p>
-<h2>Limits</h2>
+<h2 id="limits">Limits</h2>
 <ul>
 <li><strong>A token bucket per seller and application</strong> for most operations, declared from Amazon&#39;s published figures, with the live figure from Amazon&#39;s header when it is present.</li>
 <li><strong>Per-application ceilings</strong> sit above them (for example 500 listing updates a second for the whole application). They are not counted centrally: each seller&#39;s bucket keeps Vervoro far below them, and an application-wide throttle is waited on and alerts the operator (ADR-004).</li>
 <li><strong>The slow ones</strong> set the rhythm: the order search, report requests and feed creation each refill in minutes, not seconds. Their buckets are never spent on anything a notice or a single call can do.</li>
 </ul>
-<h2>Simulator and sandbox</h2>
+<h2 id="simulator-and-sandbox">Simulator and sandbox</h2>
 <p>The Amazon simulator speaks the consent and token flow, the order, listing, report, feed and notification APIs used here, its token buckets, and an SQS-style queue the host reads directly in development. Before launch, each call is recorded against Amazon&#39;s sandbox or a real seller account and the simulator is corrected where it differs. The recordings include the listings feed&#39;s message and report shape, the approval pages&#39; paths, and an Amazon-held stock notice, to confirm which SKUs and quantities it carries.</p>
-<h2>Amazon constraints</h2>
+<h2 id="amazon-constraints">Amazon constraints</h2>
 <p>Checked against Amazon&#39;s documentation on 17 October 2026; the rows on Amazon-held stock on 18 October 2026.</p>
 <div class="table-wrap"><table>
 <thead>
@@ -278,7 +280,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="https://developer-docs.amazon.com/sp-api/docs/rotate-your-application-client-secret">Rotate your application&#39;s client secret</a></td>
 </tr>
 </tbody></table></div>
-<h2>Consequences</h2>
+<h2 id="consequences">Consequences</h2>
 <p><strong>What this gives us</strong></p>
 <ul>
 <li>Amazon&#39;s notices reach the same endpoint, queue and consumer as every other marketplace&#39;s.</li>
@@ -293,7 +295,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>With several marketplaces on one account, Vervoro must assume the cautious case for which marketplace a sale came out of.</li>
 <li>Sellers must re-approve Vervoro every year, and the operator must rotate the client secret twice a year.</li>
 </ul>
-<h2>Alternatives considered</h2>
+<h2 id="alternatives-considered">Alternatives considered</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>
