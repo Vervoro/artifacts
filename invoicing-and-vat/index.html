@@ -516,7 +516,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Flags are grouped in the account&#39;s alerts</strong> by product, with the VAT at stake, so a wrongly set listing shows once, not once per order.</li>
 </ul>
 <p><strong>What is compared.</strong> Only the goods, per order and per rate. Delivery and discounts are split by Vervoro&#39;s rule, and a shop may tax delivery differently, for example at 20% whatever the goods. Comparing them would flag almost every mixed basket for a difference in method, not in the VAT owed. Their figures are shown beside Vervoro&#39;s but never flag the order.</p>
-<p>The comparison runs only where the marketplace gives a figure: the shop&#39;s tax lines, and Amazon&#39;s per-item tax. eBay gives none for a UK seller&#39;s domestic sale. For Amazon orders, the VAT that counts is what Amazon put on the invoice it issued for the seller. So the VAT record takes Amazon&#39;s figure, keeps Vervoro&#39;s beside it, and the flag asks the seller to fix the product&#39;s tax code at Amazon.</p>
+<p>The comparison runs only where the marketplace gives a figure: the shop&#39;s tax lines, and Amazon&#39;s per-item tax, which its order read gives as the tax part of each item&#39;s proceeds. That is sales data, not personal data, so it needs none of Amazon&#39;s restricted roles. eBay gives none for a UK seller&#39;s domestic sale: a consumer price in the UK already includes VAT, so eBay adds no tax at checkout, and its order shows a tax only when tax is added or when eBay itself collects it. For Amazon orders, the VAT that counts is what Amazon put on the invoice it issued for the seller. So the VAT record takes Amazon&#39;s figure, keeps Vervoro&#39;s beside it, and the flag asks the seller to fix the product&#39;s tax code at Amazon.</p>
 <h2>Refunds, returns and credit notes</h2>
 <div class="table-wrap"><table>
 <thead>
@@ -867,8 +867,18 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="https://www.ebay.co.uk/sellercentre/news/2025-april/vat-invoices">eBay UK: VAT invoices</a></td>
 </tr>
 <tr>
+<td>Amazon: per-item tax</td>
+<td>The order read&#39;s proceeds give each item&#39;s tax; restricted roles are needed only for personal data (shipping address, buyer information)</td>
+<td><a href="https://github.com/amzn/selling-partner-api-models/blob/main/models/orders-api-model/orders_2026-01-01.json">Orders API model, 2026-01-01</a>, <a href="https://developer-docs.amazon.com/sp-api/docs/get-order-information">Get order information</a></td>
+</tr>
+<tr>
+<td>UK: consumer prices</td>
+<td>A selling price shown to consumers includes VAT</td>
+<td><a href="https://www.legislation.gov.uk/uksi/2004/102/article/2/made">Price Marking Order 2004, article 2</a></td>
+</tr>
+<tr>
 <td>eBay: order data</td>
-<td>No invoice upload in the Fulfillment API; VAT eBay collects is reported per line; buyer tax ids only for Italy and Spain</td>
+<td>No invoice upload in the Fulfillment API; a line&#39;s tax amount is returned only when a tax applies, and VAT eBay collects is reported per line; buyer tax ids only for Italy and Spain</td>
 <td><a href="https://developer.ebay.com/develop/api/sell/fulfillment_api">Fulfillment API</a></td>
 </tr>
 <tr>
