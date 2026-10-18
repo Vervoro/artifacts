@@ -19,7 +19,7 @@ Storage itself is cheap and has no hard cap. What degrades with old data is ever
 
 Two rules limit what can be deleted:
 
-- **Accounting records** (invoices, payments, the orders behind them) must be kept for the statutory period, about 6 years in the UK. To be confirmed with an accountant.
+- **Accounting records** (invoices, payments, the orders behind them) must be kept for the statutory period. In the UK the longest general rule is 6 years from the end of the financial year they belong to (see "Statutory periods" below). Vervoro keeps them 7 years from the end of the month they belong to, which covers any financial year without asking when the seller's ends.
 - **Buyer personal data** is anonymised 30 days after delivery, or after dispatch when no delivery date is known ([ADR-009](../buyer-data/)), so old order history holds almost no personal data. Issued VAT invoices keep the buyer details the law requires.
 
 ## Decision
@@ -27,7 +27,7 @@ Two rules limit what can be deleted:
 1. **Hot data stays in the cell for 24 months:** orders, stock movements and logs from the last 24 months. That covers year-on-year reports.
 2. **Current state is never archived:** products, listings, stock levels, open orders, open purchase orders, settings and users.
 3. **Older months move to an archive in object storage,** as compressed files per company per month, then leave the cell.
-4. **The archive is kept for the statutory period** (6 years from the end of the financial year), then deleted per company.
+4. **The archive is kept for 7 years from the end of each month,** then that month is deleted per company. Any financial year ends within 12 months of the month, so this is never shorter than the statutory 6 years from the year's end, and no year-end setting is needed. The seller is told 90 days before a month is deleted, with its export, because only the seller knows when HMRC needs it kept longer.
 5. **Archived data is read only on request:** through an export or an "older history" report, never by everyday screens.
 6. **Archiving is switched on by a trigger,** not at launch: when a cell passes 500 GB, or at the start of year 2, whichever comes first.
 
@@ -57,14 +57,27 @@ Every stock balance must equal the sum of its ledger entries, and a nightly chec
 | Data | In the cell | Archive | Then |
 | --- | --- | --- | --- |
 | Products, listings, stock levels, open orders and purchase orders, settings, users | Always | Never | Deleted with the company |
-| Closed orders and their lines | 24 months | Until 6 years after the financial year ends | Deleted |
-| Invoices, credit notes, VAT records, export evidence and payments | 24 months | Until 6 years after the financial year ends | Deleted |
-| Stock ledger entries | 24 months, then a checkpoint | Until 6 years after the financial year ends | Deleted |
-| Batches with no stock left | 24 months after the last movement | Until 6 years after the financial year ends | Deleted |
+| Closed orders and their lines | 24 months | Until 7 years after the month ends | Deleted |
+| Invoices, credit notes, VAT records, export evidence and payments | 24 months | Until 7 years after the month ends | Deleted |
+| Stock ledger entries | 24 months, then a checkpoint | Until 7 years after the month ends | Deleted |
+| Batches with no stock left | 24 months after the last movement | Until 7 years after the month ends | Deleted |
 | `audit_log` (security and access) | At least 1 year | 6 years | Deleted |
 | `event_log` (module activity) | 90 days | Never | Dropped |
 | Outbound sends, sync attempts, operational state | 30 days | Never | Dropped |
 | Buyer personal data | 30 days after delivery (or dispatch when no delivery date is known), then anonymised | Archived only anonymised, except on issued invoices | Deleted with the order, or with the invoice |
+
+## Statutory periods
+
+Checked against GOV.UK and the Companies Act on 18 October 2026.
+
+| Record | Keep for | Source |
+| --- | --- | --- |
+| VAT records | At least 6 years | [VAT Notice 700/21, 2.4](https://www.gov.uk/guidance/record-keeping-for-vat-notice-70021) |
+| A limited company's tax records | 6 years from the end of the last financial year they relate to; longer if a transaction covers more than one accounting period, an asset is expected to last more than 6 years, the tax return was sent late, or HMRC has opened a compliance check | [Company and accounting records](https://www.gov.uk/running-a-limited-company/company-and-accounting-records) |
+| A sole trader's records | At least 5 years after the 31 January filing deadline of the tax year, which ends before the 6 years above | [Self-employed records](https://www.gov.uk/self-employed-records/how-long-to-keep-your-records) |
+| A company's accounting records under company law | 3 years from when they are made for a private company, 6 for a public one | [Companies Act 2006, section 388(4)](https://www.legislation.gov.uk/ukpga/2006/46/section/388) |
+
+So 6 years from the end of the financial year meets every general rule, and 7 years from the end of the month always reaches it. The cost is up to a year more of archived data than the law needs. The longer cases depend on facts only the seller has (a late return, an open check), so Vervoro does not guess them: the seller is told 90 days before a month is deleted and keeps what they need from the export.
 
 ## Reading archived data
 
@@ -106,5 +119,6 @@ Every stock balance must equal the sum of its ledger entries, and a nightly chec
 | --- | --- |
 | Keep everything in the cell | Simple, but speed, moves, restores and housekeeping degrade every year |
 | Delete after 3 years | Breaks the statutory retention of accounting records |
+| Ask each seller's financial year-end and delete exactly 6 years after it | A setting to ask for and keep right; a wrong or changed year-end deletes records too early |
 | A separate archive database | Still a database to run, size and back up; object storage is cheaper and immutable |
 | Archive at launch | Not needed until a cell is large; the trigger avoids running a second store before it pays off |

@@ -184,9 +184,9 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>for anyone else, looks up a keyed hash of the user id in each cell; a buyer found there has their orders anonymised at once (<a href="../buyer-data/">ADR-009</a>). Nothing from the notice is kept.</li>
 </ul>
 <h2>Simulator and sandbox</h2>
-<p>The eBay simulator speaks the Inventory, Fulfillment, Feed, Notification and Identity APIs and the Trading API&#39;s XML calls used here, including the consent page, token exchange, signed notices, daily usage limits and the out-of-stock preference. Before launch, each call is recorded against eBay&#39;s sandbox or a real account and the simulator is corrected where it differs. The recordings include a check that the order list keeps a stable order for one filter across calls, which the backwards read relies on.</p>
+<p>The eBay simulator speaks the Inventory, Fulfillment, Feed, Notification and Identity APIs and the Trading API&#39;s XML calls used here, including the consent page, token exchange, signed notices, daily usage limits and the out-of-stock preference. Before launch, each call is recorded against eBay&#39;s sandbox or a real account and the simulator is corrected where it differs. The recordings include a check that the order list keeps a stable order for one filter across calls, which the backwards read relies on. Before launch, eBay&#39;s topic list (<code>getTopics</code>) is also read with Vervoro&#39;s production keyset: it must show both order topics available to Vervoro, with the scopes Vervoro asks for. eBay says some topics are open only to approved partners, so a topic that is not available is requested from eBay before any seller connects.</p>
 <h2>eBay constraints</h2>
-<p>Checked against eBay&#39;s documentation on 17 October 2026.</p>
+<p>Checked against eBay&#39;s documentation on 17 October 2026; the order topics row on 18 October 2026.</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -239,6 +239,11 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Notices</td>
 <td>Destinations, per-topic subscriptions, public keys to verify signatures</td>
 <td><a href="https://developer.ebay.com/develop/api/sell/notification_api">Notification API</a></td>
+</tr>
+<tr>
+<td>Order topics</td>
+<td><code>ORDER_CONFIRMATION</code> (the buyer completed checkout) and <code>ORDER_CANCELLATION_ACTIVITY</code> (a cancellation started); some topics are restricted to approved partners, and <code>getTopics</code> gives each topic&#39;s scopes</td>
+<td><a href="https://developer.ebay.com/develop/api/buy/notification_events">Notification topics</a></td>
 </tr>
 <tr>
 <td>Post-Order API cancellations, per application</td>

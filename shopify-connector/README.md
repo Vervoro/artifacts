@@ -104,7 +104,7 @@ A Shopify App Store listing needs a page inside the Shopify admin. Vervoro's is 
 
 ## Simulator and sandbox
 
-The Shopify simulator speaks the GraphQL Admin API calls used here, with cost-point buckets and throttled replies, compare-and-set races on demand, bulk operations, the install flow, expiring tokens and signed webhooks. Development stores stand in for Shopify's sandbox. Before launch, each call is recorded against a development store and the simulator is corrected where it differs; the recordings include the shape of an unapproved protected field and the app names on orders other marketplaces put into a shop.
+The Shopify simulator speaks the GraphQL Admin API calls used here, with cost-point buckets and throttled replies, compare-and-set races on demand, bulk operations, the install flow, expiring tokens and signed webhooks. Development stores stand in for Shopify's sandbox. Before launch, each call is recorded against a development store and the simulator is corrected where it differs; the recordings include the shape of an unapproved protected field, the app names on orders other marketplaces put into a shop, and a stock batch with one stale entry, to learn whether Shopify refuses the whole call or only that entry. Either answer is safe, because the connector already handles the whole call failing.
 
 ## Shopify constraints
 

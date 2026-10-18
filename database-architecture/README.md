@@ -94,7 +94,7 @@ CI proves the schema it builds. These prove the databases actually running, beca
   - the owner of the two definer functions cannot log in, is not in `neon_superuser`, and can only read `due` and `buyer_ref`;
   - every Hyperdrive configuration has caching off;
   - the catalogue lint passes on the live catalogue, and the next two months' partitions exist;
-  - scheduled snapshots are kept 30 days, and no manual snapshot exists;
+  - the project's history window is 7 days, and scheduled snapshots are kept 30 days, and no manual snapshot exists;
   - every branch was made by the lifecycle tool and is younger than its limit.
 
   A failure pages the operator and closes egress for the affected database.
@@ -212,11 +212,11 @@ Checked against Neon's and Cloudflare's documentation on 18 October 2026.
 **Neon**
 
 - All databases on one branch share its compute and its `max_connections` (839 for a 0.25–2 CU autoscaling compute) ([compatibility](https://neon.com/docs/reference/compatibility)). So control has a compute of its own.
-- Point-in-time restore covers up to 7 days on the Launch plan and up to 30 days on Scale ([plans](https://neon.com/docs/introduction/plans)). Restore works on a whole branch, never one database or one company ([backup and restore](https://neon.com/docs/guides/backup-restore)): restoring one company is a branch at the restore time plus the slice copy.
+- Point-in-time restore reaches back as far as the project's history window: 1 day by default on paid plans, at most 7 days on Launch and 30 on Scale. Change records older than the window are deleted ([history window](https://neon.com/docs/postgres/backup-restore/history-window)). **Vervoro sets the window to 7 days** (`history_retention_seconds` 604800), and the production audit checks it. Restore works on a whole branch, never one database or one company ([backup and restore](https://neon.com/docs/guides/backup-restore)): restoring one company is a branch at the restore time plus the slice copy.
 - Scheduled snapshots are kept up to 35 days; manual snapshots never expire unless given an expiry ([backup and restore](https://neon.com/docs/guides/backup-restore)). Vervoro keeps scheduled snapshots 30 days and makes no manual ones.
 - Roles created in the Neon console, CLI or API join `neon_superuser`, which has `BYPASSRLS`; roles created with `CREATE ROLE` in SQL get only what is granted ([roles](https://neon.com/docs/manage/roles)). **Every role is created in SQL**, and the production audit checks it.
 - Scale to zero is off for production databases, so no request waits for a cold start.
-- Hyperdrive connects to Neon's direct endpoint, not Neon's own pooler, so two poolers are never stacked.
+- Hyperdrive connects to Neon's direct endpoint, not Neon's own pooler, so two poolers are never stacked. Cloudflare's guide for Neon says the same: copy the connection string with Neon's pooling unchecked, because Hyperdrive pools ([Hyperdrive with Neon](https://developers.cloudflare.com/hyperdrive/examples/connect-to-postgres/postgres-database-providers/neon/)).
 
 **Hyperdrive**
 
@@ -267,7 +267,6 @@ Isolation counts as proven only on real Postgres under the runtime role: an embe
 | Slice round trip | CI | Copy, compare checksums, erase, count 0; a tombstoned company's slice is refused; the erasure register is replayed |
 | Canary | Production | Another company sees none of the canary's rows; outbound payloads never carry its markers |
 | Restore drill | Production, weekly and monthly | A real company restores unattended into a branch the runtime role cannot enter, neighbours unchanged, time per gigabyte recorded |
-| RLS cost | Benchmark before launch | The policy adds an acceptable cost to stock reservation, order import and marketplace sync |
 
 ## Consequences
 

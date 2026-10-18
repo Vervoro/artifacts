@@ -87,7 +87,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p>A seller who runs their own warehouse sells to consumers on marketplaces and on their own shop, and to businesses by phone or email. VAT is due on every one of those sales, but an invoice is needed for only some of them. Earlier records already decide parts of this:</p>
 <ul>
 <li><strong>ADR-001:</strong> human-readable numbers come from a counter table keyed <code>(company_id, name)</code>, taken in the writer&#39;s transaction.</li>
-<li><strong>ADR-002:</strong> accounting records are kept for 6 years from the end of the financial year, then deleted.</li>
+<li><strong>ADR-002:</strong> accounting records are kept for 7 years from the end of their month, which always covers the statutory 6 years from the end of the financial year, then deleted.</li>
 <li><strong>ADR-003:</strong> a product holds a VAT class, not a rate. Rates come from one table per country with <code>valid_from</code> and <code>valid_to</code>. Every order and invoice line stores the country, class and rate it used, and a later rate change never rewrites it.</li>
 <li><strong>ADR-006 and ADR-007:</strong> refunds are made in the channel&#39;s own tools. Vervoro records them and moves no stock for them. Returns come back held, for a person to inspect. Manual orders are ordinary orders.</li>
 <li><strong>ADR-010:</strong> six fixed roles. An Accountant reads everything a report or an invoice needs and changes nothing. Each later module adds its own rows to the table of who may do what.</li>
@@ -171,7 +171,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Records the line as marketplace-collected; issues nothing for it</td>
 </tr>
 </tbody></table></div>
-<p><strong>The account&#39;s issuer is a setting, asked when the account is connected.</strong> For Amazon it is fixed to &quot;the marketplace&quot;. For eBay, the seller says whether they have opted in to eBay&#39;s VAT invoices. eBay&#39;s API does not say, and eBay&#39;s own invoices cannot be cancelled. Vervoro cannot find out for itself, so it asks, and it repeats the warning about doubled VAT next to the setting. A change applies to orders imported afterwards. A setting typed once is a weak guard against the one outcome eBay warns about, so each invoice for an eBay order also asks the person issuing to confirm &quot;eBay holds no invoice for this order&quot;, and the confirmation is kept with the document.</p>
+<p><strong>The account&#39;s issuer is a setting, asked when the account is connected.</strong> For Amazon it is fixed to &quot;the marketplace&quot;. For eBay, the seller says whether they have opted in to eBay&#39;s VAT invoices. No eBay API says: the seller opts in through a form and out by email to eBay, and the programmes eBay&#39;s account API reports are only out-of-stock control, motors dealers and business policies. eBay&#39;s own invoices cannot be cancelled. Vervoro cannot find out for itself, so it asks, and it repeats the warning about doubled VAT next to the setting. A change applies to orders imported afterwards. A setting typed once is a weak guard against the one outcome eBay warns about, so each invoice for an eBay order also asks the person issuing to confirm &quot;eBay holds no invoice for this order&quot;, and the confirmation is kept with the document.</p>
 <p><strong>Why Amazon invoices its own orders.</strong> Four reasons:</p>
 <ul>
 <li>Uploading invoices needs Amazon&#39;s tax invoicing role, a restricted role that releases buyer tax data. ADR-009 asks Amazon only for the shipping role.</li>
@@ -552,7 +552,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2>Delivering and keeping documents</h2>
 <p><strong>PDF, made once.</strong> Issuing renders the PDF and a data file (the document&#39;s record as JSON) and writes both to object storage. The keys are never overwritten (ADR-002), and both files are encrypted with the company&#39;s data key. A hash of each file is stored with the record. That proves the document has not changed, as HMRC&#39;s rules on electronic invoices ask.</p>
 <p><strong>Delivery is by the seller.</strong> The order&#39;s screen offers the PDF to the roles in the table below. A download is a link that expires after 24 hours, and each download is logged (ADR-009). The seller sends the file to the buyer through the marketplace&#39;s own messages, or to a business customer directly. Vervoro keeps no buyer email (ADR-009), so it sends no invoice itself.</p>
-<p><strong>Retention.</strong> Documents and VAT records are accounting records. They stay in the cell for 24 months, then move to the archive with their month, and are deleted 6 years after the end of the financial year (ADR-002). After the order is anonymised, a full invoice is the only place the buyer&#39;s name and address remain. It is shown only to owners, admins and accountants, and it is not searchable by buyer (ADR-009). A buyer&#39;s erasure request keeps the invoice, and records why.</p>
+<p><strong>Retention.</strong> Documents and VAT records are accounting records. They stay in the cell for 24 months, then move to the archive with their month, and are deleted 7 years after the end of their month (ADR-002). After the order is anonymised, a full invoice is the only place the buyer&#39;s name and address remain. It is shown only to owners, admins and accountants, and it is not searchable by buyer (ADR-009). A buyer&#39;s erasure request keeps the invoice, and records why.</p>
 <p><strong>Export evidence.</strong> An order delivered outside the UK is zero-rated only with proof it left the UK, obtained within 3 months and kept 6 years. The seller&#39;s courier invoices, which list each waybill, are their commercial evidence. Vervoro keeps the link from each order to its parcel:</p>
 <ul>
 <li><strong>What is kept:</strong> the carrier, the tracking number, the dispatch date, and the carrier&#39;s delivery event (its date and country) captured when it arrives, with a hash. No postcode and no name: the destination country is already kept with the order (ADR-009).</li>
@@ -863,8 +863,13 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>eBay: invoices</td>
-<td>eBay can generate VAT invoices, receipts and credit notes for a UK seller who opts in; they cannot be cancelled, and invoices issued elsewhere too double the VAT</td>
+<td>eBay can generate VAT invoices, receipts and credit notes for a UK seller who opts in through a form (out by email); they cannot be cancelled, and invoices issued elsewhere too double the VAT</td>
 <td><a href="https://www.ebay.co.uk/sellercentre/news/2025-april/vat-invoices">eBay UK: VAT invoices</a></td>
+</tr>
+<tr>
+<td>eBay: opt-in not readable</td>
+<td>The account API&#39;s seller programmes are <code>OUT_OF_STOCK_CONTROL</code>, <code>PARTNER_MOTORS_DEALER</code> and <code>SELLING_POLICY_MANAGEMENT</code>; the selling preferences have no VAT invoice setting</td>
+<td><a href="https://developer.ebay.com/develop/api/sell/account_api_v1">Account API, getOptedInPrograms</a>, <a href="https://developer.ebay.com/devzone/xml/docs/Reference/eBay/GetUserPreferences.html">GetUserPreferences</a></td>
 </tr>
 <tr>
 <td>Amazon: per-item tax</td>

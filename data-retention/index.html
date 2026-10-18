@@ -93,7 +93,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ul>
 <p>Two rules limit what can be deleted:</p>
 <ul>
-<li><strong>Accounting records</strong> (invoices, payments, the orders behind them) must be kept for the statutory period, about 6 years in the UK. To be confirmed with an accountant.</li>
+<li><strong>Accounting records</strong> (invoices, payments, the orders behind them) must be kept for the statutory period. In the UK the longest general rule is 6 years from the end of the financial year they belong to (see &quot;Statutory periods&quot; below). Vervoro keeps them 7 years from the end of the month they belong to, which covers any financial year without asking when the seller&#39;s ends.</li>
 <li><strong>Buyer personal data</strong> is anonymised 30 days after delivery, or after dispatch when no delivery date is known (<a href="../buyer-data/">ADR-009</a>), so old order history holds almost no personal data. Issued VAT invoices keep the buyer details the law requires.</li>
 </ul>
 <h2>Decision</h2>
@@ -101,7 +101,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Hot data stays in the cell for 24 months:</strong> orders, stock movements and logs from the last 24 months. That covers year-on-year reports.</li>
 <li><strong>Current state is never archived:</strong> products, listings, stock levels, open orders, open purchase orders, settings and users.</li>
 <li><strong>Older months move to an archive in object storage,</strong> as compressed files per company per month, then leave the cell.</li>
-<li><strong>The archive is kept for the statutory period</strong> (6 years from the end of the financial year), then deleted per company.</li>
+<li><strong>The archive is kept for 7 years from the end of each month,</strong> then that month is deleted per company. Any financial year ends within 12 months of the month, so this is never shorter than the statutory 6 years from the year&#39;s end, and no year-end setting is needed. The seller is told 90 days before a month is deleted, with its export, because only the seller knows when HMRC needs it kept longer.</li>
 <li><strong>Archived data is read only on request:</strong> through an export or an &quot;older history&quot; report, never by everyday screens.</li>
 <li><strong>Archiving is switched on by a trigger,</strong> not at launch: when a cell passes 500 GB, or at the start of year 2, whichever comes first.</li>
 </ol>
@@ -142,25 +142,25 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td>Closed orders and their lines</td>
 <td>24 months</td>
-<td>Until 6 years after the financial year ends</td>
+<td>Until 7 years after the month ends</td>
 <td>Deleted</td>
 </tr>
 <tr>
 <td>Invoices, credit notes, VAT records, export evidence and payments</td>
 <td>24 months</td>
-<td>Until 6 years after the financial year ends</td>
+<td>Until 7 years after the month ends</td>
 <td>Deleted</td>
 </tr>
 <tr>
 <td>Stock ledger entries</td>
 <td>24 months, then a checkpoint</td>
-<td>Until 6 years after the financial year ends</td>
+<td>Until 7 years after the month ends</td>
 <td>Deleted</td>
 </tr>
 <tr>
 <td>Batches with no stock left</td>
 <td>24 months after the last movement</td>
-<td>Until 6 years after the financial year ends</td>
+<td>Until 7 years after the month ends</td>
 <td>Deleted</td>
 </tr>
 <tr>
@@ -188,6 +188,38 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Deleted with the order, or with the invoice</td>
 </tr>
 </tbody></table></div>
+<h2>Statutory periods</h2>
+<p>Checked against GOV.UK and the Companies Act on 18 October 2026.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Record</th>
+<th>Keep for</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>VAT records</td>
+<td>At least 6 years</td>
+<td><a href="https://www.gov.uk/guidance/record-keeping-for-vat-notice-70021">VAT Notice 700/21, 2.4</a></td>
+</tr>
+<tr>
+<td>A limited company&#39;s tax records</td>
+<td>6 years from the end of the last financial year they relate to; longer if a transaction covers more than one accounting period, an asset is expected to last more than 6 years, the tax return was sent late, or HMRC has opened a compliance check</td>
+<td><a href="https://www.gov.uk/running-a-limited-company/company-and-accounting-records">Company and accounting records</a></td>
+</tr>
+<tr>
+<td>A sole trader&#39;s records</td>
+<td>At least 5 years after the 31 January filing deadline of the tax year, which ends before the 6 years above</td>
+<td><a href="https://www.gov.uk/self-employed-records/how-long-to-keep-your-records">Self-employed records</a></td>
+</tr>
+<tr>
+<td>A company&#39;s accounting records under company law</td>
+<td>3 years from when they are made for a private company, 6 for a public one</td>
+<td><a href="https://www.legislation.gov.uk/ukpga/2006/46/section/388">Companies Act 2006, section 388(4)</a></td>
+</tr>
+</tbody></table></div>
+<p>So 6 years from the end of the financial year meets every general rule, and 7 years from the end of the month always reaches it. The cost is up to a year more of archived data than the law needs. The longer cases depend on facts only the seller has (a late return, an open check), so Vervoro does not guess them: the seller is told 90 days before a month is deleted and keeps what they need from the export.</p>
 <h2>Reading archived data</h2>
 <ul>
 <li><strong>Export:</strong> a company&#39;s full export includes its archive files, decrypted for that company.</li>
@@ -236,6 +268,10 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td>Delete after 3 years</td>
 <td>Breaks the statutory retention of accounting records</td>
+</tr>
+<tr>
+<td>Ask each seller&#39;s financial year-end and delete exactly 6 years after it</td>
+<td>A setting to ask for and keep right; a wrong or changed year-end deletes records too early</td>
 </tr>
 <tr>
 <td>A separate archive database</td>

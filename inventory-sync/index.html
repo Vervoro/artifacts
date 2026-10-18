@@ -516,7 +516,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p><strong>Go-lives and bulk links on a shared pool.</strong> Their raises take at most a tenth of the pool&#39;s bulk lane per account per day. Their decreases must fit the day&#39;s free room; if they do not, the screen offers the first day that has room.</p>
 <h3>eBay</h3>
 <ul>
-<li><strong>250 revisions a listing a day.</strong> eBay allows each listing 250 revisions a calendar day, whichever API is used, and does not say which time zone the day is in. Vervoro counts per item (every variation together, each variation revised counting as one revision, the cautious reading, since eBay does not say) over a rolling 24 hours, which is never looser than eBay&#39;s day.</li>
+<li><strong>250 revisions a listing a day.</strong> eBay allows each listing 250 revisions a calendar day, whichever API is used, and does not say which time zone the day is in. Vervoro counts over a rolling 24 hours: every calendar day, in any time zone, is one of those windows, so the count holds whichever day eBay uses. It counts per item, every variation together, each variation revised counting as one revision. eBay does not say how variations count, and this reading can only overcount.</li>
+<li><strong>2,000 a month, possibly.</strong> The change history of eBay&#39;s inventory revision call also states a limit of 2,000 revisions per item per month (2011); eBay&#39;s current listing guide names only the daily one. Vervoro also counts each item&#39;s revisions over 30 days, and from 1,800 an item takes only zeros, as at 240 a day. The operator asks eBay&#39;s developer support whether the monthly limit still applies; if it does not, the rule goes.</li>
 </ul>
 <div class="table-wrap"><table>
 <thead>
@@ -759,7 +760,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>A write target has at most one open write, except that an Amazon decrease may overtake an open write; a crash ends in <code>unknown</code> and a settle, never a blind resend.</li>
 <li>No idempotency key repeats across a restore.</li>
 <li>Every stop, at account and at listing scale, asks leave or 0, and a 0 is confirmed before the mode changes.</li>
-<li>On a simulated eBay day, no item passes 250 revisions from Vervoro, every write past 240 is a 0, and a 0 always has room.</li>
+<li>On a simulated eBay day, no item passes 250 revisions from Vervoro, every write past 240 is a 0, and a 0 always has room; over a simulated 30 days, every write past 1,800 is a 0.</li>
 <li>No figure is ever sent to a marketplace-shipped listing, and &quot;no figure&quot; is never sent as 0.</li>
 <li>Kept units go only to a live, managed priority listing.</li>
 <li>A listing above its zone shows at most T − 1 more than D once its writes have settled.</li>
@@ -779,8 +780,13 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </thead>
 <tbody><tr>
 <td>eBay revisions per listing</td>
-<td>Up to 250 a calendar day, whichever API is used; then blocked until the next day; the time zone is not stated</td>
+<td>Up to 250 a calendar day, whichever API is used; then blocked until the next day; the time zone is not stated, nor how variations count</td>
 <td><a href="https://developer.ebay.com/develop/guides/sell/listing-management">Listing management</a>, <a href="https://developer.ebay.com/api-docs/sell/inventory/resources/inventory_item/methods/bulkUpdatePriceQuantity">bulkUpdatePriceQuantity</a></td>
+</tr>
+<tr>
+<td>eBay revisions per month</td>
+<td>2,000 per item, counting every revision call, in the call&#39;s change history (2011); not in the current listing guide</td>
+<td><a href="https://developer.ebay.com/devzone/xml/docs/Reference/eBay/ReviseInventoryStatus.html">ReviseInventoryStatus, change history</a></td>
 </tr>
 <tr>
 <td>eBay Trading inventory revision</td>

@@ -114,11 +114,11 @@ eBay requires every application to receive marketplace account deletion notices 
 
 ## Simulator and sandbox
 
-The eBay simulator speaks the Inventory, Fulfillment, Feed, Notification and Identity APIs and the Trading API's XML calls used here, including the consent page, token exchange, signed notices, daily usage limits and the out-of-stock preference. Before launch, each call is recorded against eBay's sandbox or a real account and the simulator is corrected where it differs. The recordings include a check that the order list keeps a stable order for one filter across calls, which the backwards read relies on.
+The eBay simulator speaks the Inventory, Fulfillment, Feed, Notification and Identity APIs and the Trading API's XML calls used here, including the consent page, token exchange, signed notices, daily usage limits and the out-of-stock preference. Before launch, each call is recorded against eBay's sandbox or a real account and the simulator is corrected where it differs. The recordings include a check that the order list keeps a stable order for one filter across calls, which the backwards read relies on. Before launch, eBay's topic list (`getTopics`) is also read with Vervoro's production keyset: it must show both order topics available to Vervoro, with the scopes Vervoro asks for. eBay says some topics are open only to approved partners, so a topic that is not available is requested from eBay before any seller connects.
 
 ## eBay constraints
 
-Checked against eBay's documentation on 17 October 2026.
+Checked against eBay's documentation on 17 October 2026; the order topics row on 18 October 2026.
 
 | Constraint | Figure | Source |
 | --- | --- | --- |
@@ -131,6 +131,7 @@ Checked against eBay's documentation on 17 October 2026.
 | Bulk price and quantity update | One SKU, up to 25 offers; up to 250 revisions per listing per calendar day | [bulkUpdatePriceQuantity](https://developer.ebay.com/api-docs/sell/inventory/resources/inventory_item/methods/bulkUpdatePriceQuantity) |
 | Trading API inventory status revision | Up to 4 listings or variations per call; a variation is named by its SKU | [ReviseInventoryStatus](https://developer.ebay.com/devzone/xml/docs/Reference/eBay/ReviseInventoryStatus.html) |
 | Notices | Destinations, per-topic subscriptions, public keys to verify signatures | [Notification API](https://developer.ebay.com/develop/api/sell/notification_api) |
+| Order topics | `ORDER_CONFIRMATION` (the buyer completed checkout) and `ORDER_CANCELLATION_ACTIVITY` (a cancellation started); some topics are restricted to approved partners, and `getTopics` gives each topic's scopes | [Notification topics](https://developer.ebay.com/develop/api/buy/notification_events) |
 | Post-Order API cancellations, per application | 5,000 calls a day; whole orders only, up to 30 days after the sale | [API call limits](https://developer.ebay.com/develop/api/sell/api_call_limits), [Create cancellation](https://developer.ebay.com/Devzone/post-order/post-order_v2_cancellation__post.html) |
 
 ## Consequences

@@ -13,7 +13,7 @@ Vervoro charges each seller's company a subscription. Earlier records already de
 
 - **ADR-000:** a module is available to a company only when its plan includes it. Stopping stock sends on a live connection always asks first: leave the figures as they are, or send zero.
 - **ADR-001:** the control database holds each company's plan (trial or paid), status and subscription, the usage rollups and the alerts. A trial is a state, not a place: a trial company lives in a normal cell with capped shares of background work and marketplace allowances, and paying changes its plan with nothing moving. What happens when a trial lapses or a paying company closes, and when its data is erased, is left to this record. Trials last 14 to 28 days. One generated company-slice operation exports, moves and erases a company, and erasure releases the company's marketplace seller ids.
-- **ADR-002:** accounting records are kept for the statutory period, 6 years from the end of the financial year.
+- **ADR-002:** the statutory period for accounting records is 6 years from the end of the financial year.
 - **ADR-004:** some marketplace allowances belong to Vervoro's whole application, and trial companies get a capped, lower-priority share of them, except stock decreases on a live connection. An account's mode is shadow, live, paused or disconnected.
 - **ADR-008:** every stop asks one question, leave the figure or send 0, and a restore or a reconnect returns an account to shadow.
 - **ADR-009:** Vervoro is the controller of its own account data, billing included. When a connection ends, the buyer data of its orders goes within 30 days.
@@ -228,10 +228,13 @@ Stripe's events are handled like marketplace notices (ADR-004):
 **VAT on Vervoro's charges.** Vervoro is a UK business selling software to businesses.
 
 - **At launch, UK businesses only,** charged UK VAT at the standard rate, with or without a VAT number of their own. Sign-up asks the company to declare that it is a business, and the customer terms are for businesses only.
-- **Businesses outside the UK, when switched on:** no UK VAT, because a service to a business is supplied where the customer belongs, and the customer accounts for VAT under the reverse charge. The invoice says "reverse charge" and shows the customer's VAT number. The evidence is that VAT number, checked against the EU's register (VIES) for EU customers, or the customer's registration elsewhere. Checkout is refused until the number is verified, because Stripe's tax calculation would apply the reverse charge to any number of the right shape. This is built when the setting is switched on, after Vervoro's accountant confirms the setup.
+- **Businesses outside the UK, when switched on:** a service to a business is supplied where the customer belongs, so no UK VAT, and the customer accounts for VAT under the reverse charge. The invoice says "reverse charge" and shows the customer's VAT number. The evidence is that VAT number, checked against the EU's register (VIES) for EU customers, or the customer's registration elsewhere. Checkout is refused until the number is verified, because Stripe's tax calculation would apply the reverse charge to any number of the right shape.
+  - **No registration in the EU.** For an EU business customer the place of supply is its own country and the customer is liable for the VAT, so Vervoro does not register there. A country outside the UK and the EU is switched on only after its own rules are checked.
+  - **Use in the UK brings UK VAT back.** Vervoro is an electronically supplied service. HMRC's use and enjoyment rule makes such a service to a business taxable in the UK for the part used in the UK, even when the customer belongs abroad. A business abroad that runs a UK warehouse through Vervoro uses it in the UK. So sign-up asks where the company's warehouses are: all outside the UK, the reverse charge; any in the UK, UK VAT on the share the accountant's apportionment sets.
+  - This is built when the setting is switched on, after Vervoro's accountant approves the apportionment.
 - **Consumers are not accepted.**
 
-**Keeping the records.** Vervoro's billing records (invoices, credit notes, payments, VAT evidence) are kept for 6 years after the end of Vervoro's financial year in which they were made, as ADR-002 sets for accounting records.
+**Keeping the records.** Vervoro's billing records (invoices, credit notes, payments, VAT evidence) are kept for 6 years after the end of Vervoro's financial year in which they were made, the statutory period ADR-002 cites.
 
 - **Where:** in Stripe, and in Vervoro's accounting software, which holds a copy of each invoice and the digital VAT records. A yearly check confirms the two agree.
 - **They outlive the company.** Erasing a company (ADR-001) removes its cell data. Its tombstone in control keeps the company id, Stripe's customer id and the invoice numbers. The billing contact's name and address stay only on the invoices, which the law requires Vervoro to keep.
@@ -293,7 +296,9 @@ Checked against official sources on 18 October 2026.
 | B2B place of supply | Services to a business are supplied where the customer belongs; an EU customer's VAT number is the best evidence that it is in business | [VAT Notice 741A, section 6](https://www.gov.uk/guidance/vat-place-of-supply-of-services-notice-741a) |
 | VAT invoices | A sequential number that uniquely identifies the document, the tax point, the supplier's VAT number and the rest; normally issued within 30 days of the tax point | [VAT Notice 700, section 16](https://www.gov.uk/guidance/vat-guide-notice-700) |
 | VAT records | Kept for at least 6 years; the VAT account kept digitally | [VAT Notice 700/21, sections 2.4 and 7](https://www.gov.uk/guidance/record-keeping-for-vat-notice-70021) |
-| Reverse charge in the EU | The customer is liable for VAT on these services; the invoice must say "reverse charge" | [VAT Directive 2006/112/EC, articles 196 and 226](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32006L0112) |
+| Reverse charge in the EU | A service to a business is supplied where the business is established; the customer is liable for the VAT when the supplier is not established in that country; the invoice must say "reverse charge" | [VAT Directive 2006/112/EC, articles 44, 196 and 226](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32006L0112) |
+| Use and enjoyment | For electronically supplied services to a business, the place of supply moves to where the service is effectively used and enjoyed; the part used in the UK is taxable in the UK, apportioned | [VAT Notice 741A, section 13](https://www.gov.uk/guidance/vat-place-of-supply-of-services-notice-741a), [VATPOSS15500](https://www.gov.uk/hmrc-internal-manuals/vat-place-of-supply-services/vatposs15500) |
+| Electronically supplied services | Include website hosting, online data warehousing and access to software and its updates | [VATPOSS13550](https://www.gov.uk/hmrc-internal-manuals/vat-place-of-supply-services/vatposs13550) |
 
 ## Changes to earlier records
 
@@ -329,7 +334,7 @@ This record amends five published records, in the same publication.
 - Bacs disputes can arrive at any time and cannot be contested, so a paid invoice is never quite final.
 - Unlimited users and connections mean a large seller pays by orders only; the top tier and contract plans carry that.
 - Vervoro depends on one payment provider for charging, invoices and its emails. Changing provider later means moving every mandate.
-- Sellers outside the UK wait for the accountant's check.
+- Sellers outside the UK wait for the accountant's apportionment, and a business abroad with a UK warehouse still pays UK VAT on the UK share.
 
 ## Alternatives considered
 
@@ -363,4 +368,4 @@ This record amends five published records, in the same publication.
 - **ADR-011: Invoicing and VAT** (in draft): the seller's own invoices to their buyers, which this record does not cover.
 - **Prices, tier names and which modules sit in which tier:** the owner's, set in the plan rows and at the provider, and never published here.
 - **Contract plans** (a later record): dedicated databases, residency outside the EU and their terms.
-- **Selling outside the UK:** switching it on after the accountant's check, and whether Vervoro then needs any registration outside the UK.
+- **Selling outside the UK:** switching it on after the accountant approves how a customer's use is split between the UK and abroad, and each country outside the UK and the EU after its own rules are checked.

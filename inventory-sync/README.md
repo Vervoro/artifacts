@@ -197,7 +197,8 @@ A notice can say that an order exists, never that none is missing (ADR-004). A r
 
 ### eBay
 
-- **250 revisions a listing a day.** eBay allows each listing 250 revisions a calendar day, whichever API is used, and does not say which time zone the day is in. Vervoro counts per item (every variation together, each variation revised counting as one revision, the cautious reading, since eBay does not say) over a rolling 24 hours, which is never looser than eBay's day.
+- **250 revisions a listing a day.** eBay allows each listing 250 revisions a calendar day, whichever API is used, and does not say which time zone the day is in. Vervoro counts over a rolling 24 hours: every calendar day, in any time zone, is one of those windows, so the count holds whichever day eBay uses. It counts per item, every variation together, each variation revised counting as one revision. eBay does not say how variations count, and this reading can only overcount.
+- **2,000 a month, possibly.** The change history of eBay's inventory revision call also states a limit of 2,000 revisions per item per month (2011); eBay's current listing guide names only the daily one. Vervoro also counts each item's revisions over 30 days, and from 1,800 an item takes only zeros, as at 240 a day. The operator asks eBay's developer support whether the monthly limit still applies; if it does not, the rule goes.
 
 | Revisions in the last 24 hours | What may go |
 | --- | --- |
@@ -341,7 +342,7 @@ The host and the foundation name each other's rows by plain ids, read through po
 4. A write target has at most one open write, except that an Amazon decrease may overtake an open write; a crash ends in `unknown` and a settle, never a blind resend.
 5. No idempotency key repeats across a restore.
 6. Every stop, at account and at listing scale, asks leave or 0, and a 0 is confirmed before the mode changes.
-7. On a simulated eBay day, no item passes 250 revisions from Vervoro, every write past 240 is a 0, and a 0 always has room.
+7. On a simulated eBay day, no item passes 250 revisions from Vervoro, every write past 240 is a 0, and a 0 always has room; over a simulated 30 days, every write past 1,800 is a 0.
 8. No figure is ever sent to a marketplace-shipped listing, and "no figure" is never sent as 0.
 9. Kept units go only to a live, managed priority listing.
 10. A listing above its zone shows at most T − 1 more than D once its writes have settled.
@@ -355,7 +356,8 @@ Checked against each marketplace's documentation on 18 October 2026.
 
 | Constraint | Figure | Source |
 | --- | --- | --- |
-| eBay revisions per listing | Up to 250 a calendar day, whichever API is used; then blocked until the next day; the time zone is not stated | [Listing management](https://developer.ebay.com/develop/guides/sell/listing-management), [bulkUpdatePriceQuantity](https://developer.ebay.com/api-docs/sell/inventory/resources/inventory_item/methods/bulkUpdatePriceQuantity) |
+| eBay revisions per listing | Up to 250 a calendar day, whichever API is used; then blocked until the next day; the time zone is not stated, nor how variations count | [Listing management](https://developer.ebay.com/develop/guides/sell/listing-management), [bulkUpdatePriceQuantity](https://developer.ebay.com/api-docs/sell/inventory/resources/inventory_item/methods/bulkUpdatePriceQuantity) |
+| eBay revisions per month | 2,000 per item, counting every revision call, in the call's change history (2011); not in the current listing guide | [ReviseInventoryStatus, change history](https://developer.ebay.com/devzone/xml/docs/Reference/eBay/ReviseInventoryStatus.html) |
 | eBay Trading inventory revision | Up to four listings or variations a call; sets the quantity available; the reply no longer returns the quantity | [ReviseInventoryStatus](https://developer.ebay.com/devzone/xml/docs/Reference/eBay/ReviseInventoryStatus.html) |
 | eBay out-of-stock option | Keeps a fixed-price listing alive at quantity 0, hidden from search; off by default | [SetUserPreferences](https://developer.ebay.com/devzone/xml/docs/Reference/eBay/SetUserPreferences.html) |
 | eBay daily limits per application | Trading 5,000; order resource 100,000; Inventory 2 million; raised after the Application Growth Check | [API call limits](https://developer.ebay.com/develop/api/sell/api_call_limits) |
