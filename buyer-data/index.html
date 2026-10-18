@@ -289,7 +289,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </tbody></table></div>
 <p><strong>Every view is logged.</strong> Opening an order with buyer data, the packing screen, printing or reprinting a label, a buyer search and an export each write one entry to <code>audit_log</code>: the user, the order, the fields shown, the screen and the time. Lists show no buyer data, so they write nothing. The seller sees the entries in their audit log. <code>audit_log</code> is kept at least a year (ADR-001).</p>
-<p><strong>The operator</strong> has no standing access to any company. To help a seller, the operator opens an access grant:</p>
+<p><strong>The operator</strong> has no standing access to any company. To help a seller, the operator opens an access grant, which the seller is told about at once and can end (<a href="../users-and-access/">ADR-010</a>):</p>
 <ul>
 <li>for one company, with a written reason, for at most 8 hours;</li>
 <li>with buyer fields still masked, unless the reason names a buyer-data need (for example, the seller asked to fix an address);</li>

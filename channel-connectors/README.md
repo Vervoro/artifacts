@@ -209,7 +209,7 @@ A connector that passes the suite works with the host. A new connector starts fr
 | Level | Who sets it | What off means |
 | --- | --- | --- |
 | **Platform** | The operator | The connector is not offered to new companies. For an incident on the marketplace's side, the operator can also hold every send to that marketplace: queued figures wait as desired state and the latest one is sent when released, so nothing is lost |
-| **Company** | The company's plan and its owner | The connector module is off for that company: no reads, no writes, notices dropped. Switching off is refused while one of its live accounts has no stop choice |
+| **Company** | The company's plan, and its Owner or an Admin ([ADR-010](../users-and-access/)) | The connector module is off for that company: no reads, no writes, notices dropped. Switching off is refused while one of its live accounts has no stop choice |
 | **Account** | The seller | The account's mode: shadow, live, paused or disconnected. Disconnected also forgets the credentials |
 
 A connector that is off costs nothing. Its accounts have no work due, so the sweeper never visits them (ADR-001).

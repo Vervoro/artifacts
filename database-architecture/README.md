@@ -50,7 +50,7 @@ Every business table exists once per cell and carries `company_id`. Postgres its
    - **Lifecycle** runs the slice operation (export, move, restore, erase) and the archiver's row work. It is created in SQL, has `NOBYPASSRLS`, holds no DDL rights, and is the only role allowed to delete rows from append-only tables. Its credential lives only in the operations job that runs those tasks, outside the Worker that serves requests.
 
    No other role may log in. Any role created in the Neon console, CLI or API would join `neon_superuser`, so no other role is ever created there.
-6. **Append-only tables.** A table declared append-only (today the stock ledger, order holds and the outbox) has `UPDATE`, `DELETE` and `TRUNCATE` revoked from the runtime role when its migration runs, so no bug or raw query can rewrite history. Rows leave only through the slice operation (erase, restore, move), as the lifecycle role, and through whole months detached by the monthly migration run once the archiver has verified them ([ADR-002](../data-retention/)).
+6. **Append-only tables.** A table declared append-only (today the stock ledger, order holds, the outbox and `audit_log`) has `UPDATE`, `DELETE` and `TRUNCATE` revoked from the runtime role when its migration runs, so no bug or raw query can rewrite history. Rows leave only through the slice operation (erase, restore, move), as the lifecycle role, and through whole months detached by the monthly migration run once the archiver has verified them ([ADR-002](../data-retention/)).
 7. **Entering a company.** The data layer's first statement in every transaction is `select app.enter_company($1)`. It sets `app.company_id` for this transaction only (`set_config(…, true)`), and raises unless this database's `tenant` row for that company exists in a state this role may enter: `open` for the runtime role; `open`, `moving_out`, `restoring` or `lookback` for the lifecycle role. The `tenant` table's own policy is `id = app.company()`, and the row is read through row-level security like any other: the check needs no special rights and costs no extra round trip. The data layer refuses autocommit for company work. The setting lasts only for that transaction, which keeps it safe behind a transaction-mode pooler.
 8. **Tenant states.** The `tenant` row in each cell is the single authority on whether a company is open there: `open`, `moving_out`, `moved_out`, `restoring` or `lookback`. A move or restore changes the source row first, so a stale route to the old cell raises instead of reading an empty company. Nobody enters a `moved_out` company.
 
@@ -128,10 +128,10 @@ The control database is its own database on its own compute. A cell credential c
 
 - the company registry: plan (trial or paid), status, subscription, tombstones
 - the database registry: `database(id, region, kind shared|dedicated, state open|closed|draining, cap)`, with `company.database_id`
-- the login directory and the external directory (marketplace seller id → company)
+- the login directory (logins, their sign-in methods, sessions and memberships; [ADR-010](../users-and-access/)) and the external directory (marketplace seller id → company)
 - the **erasure register**: every buyer erasure and every company tombstone, by id and time only
 - each company's sync epoch, raised on every restore ([ADR-008](../inventory-sync/))
-- operator accounts and grants, platform settings, the migration ledger per database
+- operator accounts and grants, platform settings, the platform security log, the migration ledger per database
 - shared marketplace call quotas, usage rollups, alerts
 
 **Emails in control** are stored only as HMAC(normalised email), keyed by a secret held outside Postgres. The address itself lives only in the company's own users table, so a leak of control is not a leak of customer data.

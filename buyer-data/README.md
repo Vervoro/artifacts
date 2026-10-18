@@ -141,7 +141,7 @@ What is never kept:
 
 **Every view is logged.** Opening an order with buyer data, the packing screen, printing or reprinting a label, a buyer search and an export each write one entry to `audit_log`: the user, the order, the fields shown, the screen and the time. Lists show no buyer data, so they write nothing. The seller sees the entries in their audit log. `audit_log` is kept at least a year (ADR-001).
 
-**The operator** has no standing access to any company. To help a seller, the operator opens an access grant:
+**The operator** has no standing access to any company. To help a seller, the operator opens an access grant, which the seller is told about at once and can end ([ADR-010](../users-and-access/)):
 
 - for one company, with a written reason, for at most 8 hours;
 - with buyer fields still masked, unless the reason names a buyer-data need (for example, the seller asked to fix an address);

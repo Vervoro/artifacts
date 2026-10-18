@@ -185,7 +185,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ul>
 <p>No other role may log in. Any role created in the Neon console, CLI or API would join <code>neon_superuser</code>, so no other role is ever created there.</p>
 </li>
-<li><p><strong>Append-only tables.</strong> A table declared append-only (today the stock ledger, order holds and the outbox) has <code>UPDATE</code>, <code>DELETE</code> and <code>TRUNCATE</code> revoked from the runtime role when its migration runs, so no bug or raw query can rewrite history. Rows leave only through the slice operation (erase, restore, move), as the lifecycle role, and through whole months detached by the monthly migration run once the archiver has verified them (<a href="../data-retention/">ADR-002</a>).</p>
+<li><p><strong>Append-only tables.</strong> A table declared append-only (today the stock ledger, order holds, the outbox and <code>audit_log</code>) has <code>UPDATE</code>, <code>DELETE</code> and <code>TRUNCATE</code> revoked from the runtime role when its migration runs, so no bug or raw query can rewrite history. Rows leave only through the slice operation (erase, restore, move), as the lifecycle role, and through whole months detached by the monthly migration run once the archiver has verified them (<a href="../data-retention/">ADR-002</a>).</p>
 </li>
 <li><p><strong>Entering a company.</strong> The data layer&#39;s first statement in every transaction is <code>select app.enter_company($1)</code>. It sets <code>app.company_id</code> for this transaction only (<code>set_config(…, true)</code>), and raises unless this database&#39;s <code>tenant</code> row for that company exists in a state this role may enter: <code>open</code> for the runtime role; <code>open</code>, <code>moving_out</code>, <code>restoring</code> or <code>lookback</code> for the lifecycle role. The <code>tenant</code> table&#39;s own policy is <code>id = app.company()</code>, and the row is read through row-level security like any other: the check needs no special rights and costs no extra round trip. The data layer refuses autocommit for company work. The setting lasts only for that transaction, which keeps it safe behind a transaction-mode pooler.</p>
 </li>
@@ -272,10 +272,10 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ul>
 <li>the company registry: plan (trial or paid), status, subscription, tombstones</li>
 <li>the database registry: <code>database(id, region, kind shared|dedicated, state open|closed|draining, cap)</code>, with <code>company.database_id</code></li>
-<li>the login directory and the external directory (marketplace seller id → company)</li>
+<li>the login directory (logins, their sign-in methods, sessions and memberships; <a href="../users-and-access/">ADR-010</a>) and the external directory (marketplace seller id → company)</li>
 <li>the <strong>erasure register</strong>: every buyer erasure and every company tombstone, by id and time only</li>
 <li>each company&#39;s sync epoch, raised on every restore (<a href="../inventory-sync/">ADR-008</a>)</li>
-<li>operator accounts and grants, platform settings, the migration ledger per database</li>
+<li>operator accounts and grants, platform settings, the platform security log, the migration ledger per database</li>
 <li>shared marketplace call quotas, usage rollups, alerts</li>
 </ul>
 <p><strong>Emails in control</strong> are stored only as HMAC(normalised email), keyed by a secret held outside Postgres. The address itself lives only in the company&#39;s own users table, so a leak of control is not a leak of customer data.</p>
