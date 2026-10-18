@@ -14,7 +14,7 @@ Every screen, every command and every view of a buyer's address starts with two 
 - **ADR-000:** each module declares named permissions that a role can be granted; the foundation holds users and roles; the client is a convenience and the server checks every request again.
 - **ADR-001:** the control database holds the login directory, with each email stored only as a keyed hash, and the operator accounts and grants. A person's email address lives only in the company's own users table. Every transaction is fixed to one company, and the runtime role cannot bypass row-level security, operator code included.
 - **ADR-002:** `audit_log` stays in the cell for at least a year and in the archive for 6 years.
-- **ADR-006 and ADR-007:** who may do what with stock, and the order actions that need a manager: office holds, manual orders, reversals; and which holds anyone in the warehouse may clear.
+- **ADR-006 and ADR-007:** who may do what with stock, and the order actions that need a manager: office holds, business orders on account terms, reversals; and which holds, manual orders and line attachments anyone in the warehouse may handle.
 - **ADR-009:** which roles see buyer data and when, every view logged, multi-factor sign-in for everyone, the password rules wherever passwords are used, the operator's time-limited grant, no standing access for anyone at Vervoro, and access removed within 24 hours.
 
 This record ties those pieces into one design and makes them consistent. It is part of the skeleton every later module relies on: a module only names its actions, and this record decides who holds them.
@@ -153,8 +153,8 @@ Six roles, fixed at launch. Each person has one role in each company.
 | --- | --- | --- |
 | **Owner** | Whoever owns the business | Everything, including the plan and billing, closing the company, and making or removing Owners |
 | **Admin** | The office lead | Everything except the plan and billing, closing the company, and Owners and Admins. Manages people below Admin, connects marketplaces |
-| **Manager** | The operations lead | All day-to-day work, and the approvals that need a manager (ADR-006, ADR-007): counts, adjustments, office holds, manual orders. Links listings, stops sends. No people, roles, connections or billing |
-| **Warehouse** | Pickers, packers, goods-in | Floor work: receive, move, count, pick, pack, label, inspect returns, floor holds, counter sales. Sees a buyer's address only while packing and shipping its order (ADR-009). No costs, margins or exports |
+| **Manager** | The operations lead | All day-to-day work, and the approvals that need a manager (ADR-006, ADR-007): counts, adjustments, office holds, business orders on account terms. Links listings, stops sends. No people, roles, connections or billing |
+| **Warehouse** | Pickers, packers, goods-in | Floor work: receive, move, count, pick, pack, label, inspect returns, floor holds, attach a line to a product, phone, email and counter orders. Sees a buyer's address only while packing and shipping its order (ADR-009). No costs, margins or exports |
 | **Accountant** | A bookkeeper, in the company or outside it | Reads everything a report or an invoice needs, including costs and the audit log. Exports without buyer data. Changes nothing |
 | **Staff** | Anyone who only needs to look things up | Reads products, stock and orders without buyer data and without costs. Changes nothing |
 
@@ -210,9 +210,11 @@ The permission matrix. A module declares each action in its manifest (ADR-000), 
 | Pick, pack (and take another eligible batch, recorded), print labels, confirm a shipment | Yes | Yes | Yes | Yes | No | No | [ADR-006](../stock-ledger/), [ADR-007](../order-ingestion/) |
 | Place or clear a floor hold (stock check, address changed after label, order changed, label to void; an address check on an order being picked or packed) | Yes | Yes | Yes | Yes | No | No | [ADR-007](../order-ingestion/) |
 | Place or clear an office hold (an address check before picking, fraud check, refunded, payment, customer request, a possible duplicate and the others ADR-007 lists); release an Amazon buyer's cancellation request to ship anyway | Yes | Yes | Yes | No | No | No | [ADR-007](../order-ingestion/) |
-| Create, confirm, edit or cancel a manual order | Yes | Yes | Yes | No | No | No | [ADR-007](../order-ingestion/) |
+| Create, confirm, edit or cancel a phone or email order | Yes | Yes | Yes | Yes | No | No | [ADR-007](../order-ingestion/) |
+| Confirm a business order on account terms (ships before it is paid) | Yes | Yes | Yes | No | No | No | [ADR-007](../order-ingestion/) |
 | Make a counter sale (paid and collected at once) | Yes | Yes | Yes | Yes | No | No | [ADR-007](../order-ingestion/) |
-| Pin a batch for a line, resolve a line again, attach a line | Yes | Yes | Yes | No | No | No | [ADR-006](../stock-ledger/), [ADR-007](../order-ingestion/) |
+| Attach an order line to a product (its listing stays unlinked) | Yes | Yes | Yes | Yes | No | No | [ADR-007](../order-ingestion/) |
+| Pin a batch for a line, resolve a line again | Yes | Yes | Yes | No | No | No | [ADR-006](../stock-ledger/), [ADR-007](../order-ingestion/) |
 | Reverse a shipment reported outside Vervoro | Yes | Yes | Yes | No | No | No | [ADR-006](../stock-ledger/), [ADR-007](../order-ingestion/) |
 | **Invoicing** | | | | | | | |
 | Issue an invoice; confirm a credit note | Yes | Yes | Yes | No | No | No | [ADR-011](../invoicing-and-vat/) |

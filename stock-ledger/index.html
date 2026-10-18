@@ -700,8 +700,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>A request is not a cancellation.</strong> A buyer&#39;s request keeps the reservation until the marketplace confirms the cancellation. A refused request must not leave an order without stock.</li>
 <li><strong>A confirmed cancellation releases exactly what each line held,</strong> batch by batch, in one transaction. Listings get new figures at once.</li>
 <li><strong>Part of an order:</strong> a line cancelled, or a smaller quantity, releases that part only, latest sell-by date first.</li>
-<li><strong>Already picked, not packed:</strong> the units are in a tote but still on hand in their spot by the books. The release returns them to sellable, and a put-back task stays open until each unit is scanned back (ADR-007).</li>
-<li><strong>Already packed:</strong> the units are in the packing spot. The release returns them to sellable there, and a put-back task stays open until each unit is scanned away (a move).</li>
+<li><strong>Already picked, not packed:</strong> the units are in a tote but still on hand in their spot by the books. The release returns them to sellable, and a put-back task stays open until each unit is confirmed back, by a scan or a tap (ADR-007).</li>
+<li><strong>Already packed:</strong> the units are in the packing spot. The release returns them to sellable there, and a put-back task stays open until each unit is confirmed put away, by a scan or a tap (a move).</li>
 <li><strong>A held order</strong> keeps its reservation; a confirmed cancellation still cancels it (ADR-007).</li>
 </ul>
 <p><strong>After dispatch:</strong> the units have left. A cancellation moves no stock. If the parcel comes back, it is a return.</p>

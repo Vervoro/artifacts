@@ -255,7 +255,7 @@ The connector maps the marketplace's states onto the contract's order. The found
 | Risk recommendation `CANCEL` or `INVESTIGATE` | Held "fraud check", unless a manager released that same recommendation before |
 | Remaining quantity on the warehouse's fulfilment-order lines lower than before | A smaller quantity: the difference is released (ADR-006); on a picked or packed order, a floor stop |
 
-**Manual orders** have no marketplace. A manager confirms them and cancels them in Vervoro.
+**Manual orders** have no marketplace. They are confirmed and cancelled in Vervoro.
 
 ## Reserving on import
 
@@ -354,11 +354,11 @@ A hold pauses an order. It does not release it.
 | Stock check | Floor | A person holds an order by hand | Anyone in the warehouse |
 | Address changed after label | Floor | The delivery address changed after a label was bought | A person checks or replaces the label |
 | Order changed: check the parcel | Floor | The marketplace changed a picked or packed order (lines, quantities, address, a new hold) | A person checks the parcel against the order; the put-back task says what to return |
-| Label to void | Floor | The order changed or was cancelled after its label was bought | The label is voided, confirmed by scanning it |
+| Label to void | Floor | The order changed or was cancelled after its label was bought | The label is voided, confirmed by a scan or a tap |
 
 **Floor holds never widen who sees buyer data.** The warehouse places or clears an address hold only on an order it is picking or packing, when it already sees the address to prepare the parcel and label (ADR-009). Before picking starts, an address check is an office hold.
 
-**Decide-by and escalation.** Every hold shows the time by which someone must decide: the order's leave-by time, or the marketplace's own deadline when it is sooner (the end of eBay's answer window, below). Two hours before it, the people who may clear that hold are alerted; when it passes, the owner is told as well. No hold expires on its own.
+**Decide-by and escalation.** Every hold shows the time by which someone must decide: the order's leave-by time, or the marketplace's own deadline when it is sooner (the end of eBay's answer window, below). Two hours before it, the people who may clear that hold are alerted; when it passes, they are alerted again, and the owner too if the owner has switched that on. No hold expires on its own.
 
 **Orders waiting on the marketplace are fetched again.** An order that has had a marketplace hold for more than 24 hours is fetched once a day, so a change whose notice was lost still arrives.
 
@@ -412,8 +412,8 @@ A change that reaches an order the warehouse has already started must reach the 
 
 - **Any marketplace change to a picked or packed order** (a line added or removed, a smaller or larger quantity, a new address, a new hold, a confirmed cancellation) holds it "order changed: check the parcel". The packer's screen shows a red stop with what changed.
 - **Four commands check again on the server:** starting to pick, packing, buying a label and confirming a shipment. Each is refused for an order with any hold, so a stop that arrives between two taps still stops the parcel.
-- **Put-back tasks.** Units released from a picked or packed order get a task that names each unit and where it goes. It stays open until each unit is scanned back to a spot (ADR-006 records the move). Open tasks are listed on the warehouse's home screen until done.
-- **Label to void.** A label bought for an order that changed or was cancelled must be voided; the stop clears when the label is scanned as voided.
+- **Put-back tasks.** Units released from a picked or packed order get a task that names each unit and where it goes. It stays open until each unit is confirmed back in a spot, by a scan or a tap (ADR-006 records the move). Open tasks are listed on the warehouse's home screen until done.
+- **Label to void.** A label bought for an order that changed or was cancelled must be voided; the stop clears when the label is confirmed voided, by a scan or a tap.
 
 ## Orders for unlinked listings
 
@@ -430,7 +430,7 @@ An unlinked listing is left to the marketplace (ADR-005), but its orders are imp
 | Choice | What it does | When to use it |
 | --- | --- | --- |
 | **Link the listing** | Opens ADR-005's link screen. The link reserves for every waiting line of that listing, oldest first, in its own transaction (ADR-006), and the listing starts getting figures | The seller wants Vervoro to manage this listing from now on |
-| **Attach this line** | Resolves only this line to a product and units per sale, chosen by a manager. It reserves at once. The listing stays unlinked and gets no figure. The line records `resolved_by` = person | The listing stays with the marketplace, but this parcel ships from the warehouse |
+| **Attach this line** | Resolves only this line to a product and units per sale, chosen by the packer holding the item or by a manager. It reserves at once. The listing stays unlinked and gets no figure. The line records `resolved_by` = person | The listing stays with the marketplace, but this parcel ships from the warehouse |
 
 **A waiting line shipped outside Vervoro** reserved nothing, so nothing is deducted. It stays flagged. Attaching it deducts its units at once, earliest sell-by first, as ADR-006 decides. "Not from our stock" closes the flag and moves nothing.
 
@@ -501,7 +501,7 @@ A marketplace may say units shipped that no Vervoro shipment covers: the seller 
 
 They belong here, because they are orders: one list, one status, one way to reserve and dispatch. A seller takes them by phone or email, from a business customer, or at a counter.
 
-- **Who:** a manager, admin or owner creates, confirms, edits and cancels phone, email and business orders. Anyone who works in the warehouse may make a counter sale (below).
+- **Who:** anyone who works in the warehouse, or a manager, admin or owner, creates, confirms, edits and cancels phone and email orders, and makes counter sales (below). A business order on account terms, which ships before it is paid, is confirmed by a manager, admin or owner.
 - **A draft first.** Lines name products directly (no listing, no link), with quantities, prices and currency, a delivery address, and for a business buyer the company name, VAT number and their purchase-order reference. A draft reserves nothing, so a half-typed order or a quote never takes the last unit a marketplace order needs. A previous order can be copied into a new draft: there is no saved customer list at launch (ADR-011).
 - **Confirming reserves,** by ADR-006's rules, in one transaction. Confirming carries a key the client makes, so a double tap confirms once. The order takes the next number from the company's counter.
 - **Payment.** A manager may hold a confirmed order "payment pending" (here an office hold) until the customer pays. A business customer on account terms is confirmed without it.
@@ -543,7 +543,7 @@ Shipping itself (labels, carriers, rates, tracking and delivery) is a later reco
 
 **Worked example.** The warehouse's cut-off is 16:00, with no collection on Monday 31 August (a bank holiday). An eBay order placed on Saturday has a ship-by of Tuesday 23:59. Its leave-by is Tuesday 16:00. An Amazon order placed on Friday morning with ship-by Monday 23:59 has a leave-by of Friday 16:00, because Monday has no collection: it is picked first that Friday, and the eBay order waits for Tuesday.
 
-**Deadlines are watched.** Two hours before an order's leave-by, if it has not shipped, Vervoro fetches it once, and then alerts the people who can unblock it: the warehouse for an open order, a manager for an office hold or a short order. When leave-by passes, the owner is told as well, and the order is listed until it ships. The home screen shows each cut-off with the orders that will miss it.
+**Deadlines are watched.** Two hours before an order's leave-by, if it has not shipped, Vervoro fetches it once, and then alerts the people who can unblock it: the warehouse for an open order, a manager for an office hold or a short order. When leave-by passes, they are alerted again (the owner too, if the owner has switched that on), and the order is listed until it ships. The home screen shows each cut-off with the orders that will miss it.
 
 **The pick list** names, for each line still to ship: the product, its image, the quantity in base units and in box sizes where one fits (ADR-003), and each reservation's batch, lot and date, with the spot its pick task takes it from (ADR-006). For a bundle, each component. The pick list always shows the current reservations. Packing records the batch of every unit: implied when the spot holds one eligible batch, otherwise tapped from the date or lot on the unit; another eligible batch may be taken, and is recorded (ADR-006).
 
@@ -577,10 +577,10 @@ All tables belong to the foundation and are tenant tables (ADR-001): `company_id
 | `sales_order_cancellation` | Each buyer request and each change to it: lines and quantities, the marketplace's id, the answer deadline, state (requested, declined, lapsed, confirmed), times | Append-only |
 | `sales_order_refund` | Each refund: amount, currency, lines, time | |
 | `sales_order_problem` | Account, marketplace order id, reason, first and last seen, resolved, and per line the marketplace line id, the listing key and the quantity, each or "not readable" | No order body and no buyer data. Its scope is the listings named, or the whole account if any line's listing is not readable. Also holds a mirror's lines until its direct order arrives |
-| `sales_order_task` | Put-back, label-to-void and confirm-the-batch tasks: order, line, units, what to scan, opened and closed | Open until scanned |
+| `sales_order_task` | Put-back, label-to-void and confirm-the-batch tasks: order, line, units, what to confirm, opened and closed | Open until confirmed by a scan or a tap |
 | `warehouse_collection` | Each warehouse's collection cut-off and its dated exceptions | |
 
-Settings: each Shopify account's handling time (used only when Shopify sets no deadline), each warehouse's collection cut-off, and, per Amazon marketplace of a region, who ships its orders.
+Settings: whether the owner is told about orders that miss their leave-by, each Shopify account's handling time (used only when Shopify sets no deadline), each warehouse's collection cut-off, and, per Amazon marketplace of a region, who ships its orders.
 
 **Rules, each with a test:**
 

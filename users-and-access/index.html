@@ -89,7 +89,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>ADR-000:</strong> each module declares named permissions that a role can be granted; the foundation holds users and roles; the client is a convenience and the server checks every request again.</li>
 <li><strong>ADR-001:</strong> the control database holds the login directory, with each email stored only as a keyed hash, and the operator accounts and grants. A person&#39;s email address lives only in the company&#39;s own users table. Every transaction is fixed to one company, and the runtime role cannot bypass row-level security, operator code included.</li>
 <li><strong>ADR-002:</strong> <code>audit_log</code> stays in the cell for at least a year and in the archive for 6 years.</li>
-<li><strong>ADR-006 and ADR-007:</strong> who may do what with stock, and the order actions that need a manager: office holds, manual orders, reversals; and which holds anyone in the warehouse may clear.</li>
+<li><strong>ADR-006 and ADR-007:</strong> who may do what with stock, and the order actions that need a manager: office holds, business orders on account terms, reversals; and which holds, manual orders and line attachments anyone in the warehouse may handle.</li>
 <li><strong>ADR-009:</strong> which roles see buyer data and when, every view logged, multi-factor sign-in for everyone, the password rules wherever passwords are used, the operator&#39;s time-limited grant, no standing access for anyone at Vervoro, and access removed within 24 hours.</li>
 </ul>
 <p>This record ties those pieces into one design and makes them consistent. It is part of the skeleton every later module relies on: a module only names its actions, and this record decides who holds them.</p>
@@ -370,12 +370,12 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td><strong>Manager</strong></td>
 <td>The operations lead</td>
-<td>All day-to-day work, and the approvals that need a manager (ADR-006, ADR-007): counts, adjustments, office holds, manual orders. Links listings, stops sends. No people, roles, connections or billing</td>
+<td>All day-to-day work, and the approvals that need a manager (ADR-006, ADR-007): counts, adjustments, office holds, business orders on account terms. Links listings, stops sends. No people, roles, connections or billing</td>
 </tr>
 <tr>
 <td><strong>Warehouse</strong></td>
 <td>Pickers, packers, goods-in</td>
-<td>Floor work: receive, move, count, pick, pack, label, inspect returns, floor holds, counter sales. Sees a buyer&#39;s address only while packing and shipping its order (ADR-009). No costs, margins or exports</td>
+<td>Floor work: receive, move, count, pick, pack, label, inspect returns, floor holds, attach a line to a product, phone, email and counter orders. Sees a buyer&#39;s address only while packing and shipping its order (ADR-009). No costs, margins or exports</td>
 </tr>
 <tr>
 <td><strong>Accountant</strong></td>
@@ -766,7 +766,17 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="../order-ingestion/">ADR-007</a></td>
 </tr>
 <tr>
-<td>Create, confirm, edit or cancel a manual order</td>
+<td>Create, confirm, edit or cancel a phone or email order</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td><a href="../order-ingestion/">ADR-007</a></td>
+</tr>
+<tr>
+<td>Confirm a business order on account terms (ships before it is paid)</td>
 <td>Yes</td>
 <td>Yes</td>
 <td>Yes</td>
@@ -786,7 +796,17 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="../order-ingestion/">ADR-007</a></td>
 </tr>
 <tr>
-<td>Pin a batch for a line, resolve a line again, attach a line</td>
+<td>Attach an order line to a product (its listing stays unlinked)</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td><a href="../order-ingestion/">ADR-007</a></td>
+</tr>
+<tr>
+<td>Pin a batch for a line, resolve a line again</td>
 <td>Yes</td>
 <td>Yes</td>
 <td>Yes</td>

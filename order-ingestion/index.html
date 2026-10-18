@@ -710,7 +710,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>A smaller quantity: the difference is released (ADR-006); on a picked or packed order, a floor stop</td>
 </tr>
 </tbody></table></div>
-<p><strong>Manual orders</strong> have no marketplace. A manager confirms them and cancels them in Vervoro.</p>
+<p><strong>Manual orders</strong> have no marketplace. They are confirmed and cancelled in Vervoro.</p>
 <h2>Reserving on import</h2>
 <p>ADR-006 owns how units are chosen and held. This record decides when, in what order, and what happens on failure.</p>
 <p><strong>When.</strong> Every import is one transaction under the company&#39;s lock, in ADR-006&#39;s steps:</p>
@@ -952,11 +952,11 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Label to void</td>
 <td>Floor</td>
 <td>The order changed or was cancelled after its label was bought</td>
-<td>The label is voided, confirmed by scanning it</td>
+<td>The label is voided, confirmed by a scan or a tap</td>
 </tr>
 </tbody></table></div>
 <p><strong>Floor holds never widen who sees buyer data.</strong> The warehouse places or clears an address hold only on an order it is picking or packing, when it already sees the address to prepare the parcel and label (ADR-009). Before picking starts, an address check is an office hold.</p>
-<p><strong>Decide-by and escalation.</strong> Every hold shows the time by which someone must decide: the order&#39;s leave-by time, or the marketplace&#39;s own deadline when it is sooner (the end of eBay&#39;s answer window, below). Two hours before it, the people who may clear that hold are alerted; when it passes, the owner is told as well. No hold expires on its own.</p>
+<p><strong>Decide-by and escalation.</strong> Every hold shows the time by which someone must decide: the order&#39;s leave-by time, or the marketplace&#39;s own deadline when it is sooner (the end of eBay&#39;s answer window, below). Two hours before it, the people who may clear that hold are alerted; when it passes, they are alerted again, and the owner too if the owner has switched that on. No hold expires on its own.</p>
 <p><strong>Orders waiting on the marketplace are fetched again.</strong> An order that has had a marketplace hold for more than 24 hours is fetched once a day, so a change whose notice was lost still arrives.</p>
 <p><strong>Worked example.</strong> A Shopify order for 3 jars of jam arrives at 14:00 with payment <code>PENDING</code> (a bank transfer). It reserves 3 jars and is held &quot;payment pending&quot; (marketplace). At 16:30 Shopify&#39;s risk check recommends investigating; &quot;fraud check&quot; (office) is added. The next morning the payment arrives: &quot;payment pending&quot; clears, but the order is still held. A manager checks the order, releases &quot;fraud check&quot; with the reason &quot;buyer confirmed by phone&quot;, and the order joins the picking list. A later fetch with the same recommendation does not hold it again.</p>
 <h2>Cancellations</h2>
@@ -997,8 +997,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ul>
 <li><strong>Any marketplace change to a picked or packed order</strong> (a line added or removed, a smaller or larger quantity, a new address, a new hold, a confirmed cancellation) holds it &quot;order changed: check the parcel&quot;. The packer&#39;s screen shows a red stop with what changed.</li>
 <li><strong>Four commands check again on the server:</strong> starting to pick, packing, buying a label and confirming a shipment. Each is refused for an order with any hold, so a stop that arrives between two taps still stops the parcel.</li>
-<li><strong>Put-back tasks.</strong> Units released from a picked or packed order get a task that names each unit and where it goes. It stays open until each unit is scanned back to a spot (ADR-006 records the move). Open tasks are listed on the warehouse&#39;s home screen until done.</li>
-<li><strong>Label to void.</strong> A label bought for an order that changed or was cancelled must be voided; the stop clears when the label is scanned as voided.</li>
+<li><strong>Put-back tasks.</strong> Units released from a picked or packed order get a task that names each unit and where it goes. It stays open until each unit is confirmed back in a spot, by a scan or a tap (ADR-006 records the move). Open tasks are listed on the warehouse&#39;s home screen until done.</li>
+<li><strong>Label to void.</strong> A label bought for an order that changed or was cancelled must be voided; the stop clears when the label is confirmed voided, by a scan or a tap.</li>
 </ul>
 <h2>Orders for unlinked listings</h2>
 <p>An unlinked listing is left to the marketplace (ADR-005), but its orders are imported.</p>
@@ -1025,7 +1025,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Attach this line</strong></td>
-<td>Resolves only this line to a product and units per sale, chosen by a manager. It reserves at once. The listing stays unlinked and gets no figure. The line records <code>resolved_by</code> = person</td>
+<td>Resolves only this line to a product and units per sale, chosen by the packer holding the item or by a manager. It reserves at once. The listing stays unlinked and gets no figure. The line records <code>resolved_by</code> = person</td>
 <td>The listing stays with the marketplace, but this parcel ships from the warehouse</td>
 </tr>
 </tbody></table></div>
@@ -1097,7 +1097,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2>Manual orders</h2>
 <p>They belong here, because they are orders: one list, one status, one way to reserve and dispatch. A seller takes them by phone or email, from a business customer, or at a counter.</p>
 <ul>
-<li><strong>Who:</strong> a manager, admin or owner creates, confirms, edits and cancels phone, email and business orders. Anyone who works in the warehouse may make a counter sale (below).</li>
+<li><strong>Who:</strong> anyone who works in the warehouse, or a manager, admin or owner, creates, confirms, edits and cancels phone and email orders, and makes counter sales (below). A business order on account terms, which ships before it is paid, is confirmed by a manager, admin or owner.</li>
 <li><strong>A draft first.</strong> Lines name products directly (no listing, no link), with quantities, prices and currency, a delivery address, and for a business buyer the company name, VAT number and their purchase-order reference. A draft reserves nothing, so a half-typed order or a quote never takes the last unit a marketplace order needs. A previous order can be copied into a new draft: there is no saved customer list at launch (ADR-011).</li>
 <li><strong>Confirming reserves,</strong> by ADR-006&#39;s rules, in one transaction. Confirming carries a key the client makes, so a double tap confirms once. The order takes the next number from the company&#39;s counter.</li>
 <li><strong>Payment.</strong> A manager may hold a confirmed order &quot;payment pending&quot; (here an office hold) until the customer pays. A business customer on account terms is confirmed without it.</li>
@@ -1149,7 +1149,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tbody></table></div>
 <p><strong>Leave-by: when the parcel must go.</strong> A marketplace&#39;s ship-by is often 23:59, but the van leaves at 16:00. Each warehouse has one collection cut-off (the earliest collection it must meet), with a list of dated exceptions (a bank holiday with no collection, a day with a different time). An order&#39;s leave-by is the last cut-off at or before its ship-by. With no cut-off set, leave-by is the ship-by.</p>
 <p><strong>Worked example.</strong> The warehouse&#39;s cut-off is 16:00, with no collection on Monday 31 August (a bank holiday). An eBay order placed on Saturday has a ship-by of Tuesday 23:59. Its leave-by is Tuesday 16:00. An Amazon order placed on Friday morning with ship-by Monday 23:59 has a leave-by of Friday 16:00, because Monday has no collection: it is picked first that Friday, and the eBay order waits for Tuesday.</p>
-<p><strong>Deadlines are watched.</strong> Two hours before an order&#39;s leave-by, if it has not shipped, Vervoro fetches it once, and then alerts the people who can unblock it: the warehouse for an open order, a manager for an office hold or a short order. When leave-by passes, the owner is told as well, and the order is listed until it ships. The home screen shows each cut-off with the orders that will miss it.</p>
+<p><strong>Deadlines are watched.</strong> Two hours before an order&#39;s leave-by, if it has not shipped, Vervoro fetches it once, and then alerts the people who can unblock it: the warehouse for an open order, a manager for an office hold or a short order. When leave-by passes, they are alerted again (the owner too, if the owner has switched that on), and the order is listed until it ships. The home screen shows each cut-off with the orders that will miss it.</p>
 <p><strong>The pick list</strong> names, for each line still to ship: the product, its image, the quantity in base units and in box sizes where one fits (ADR-003), and each reservation&#39;s batch, lot and date, with the spot its pick task takes it from (ADR-006). For a bundle, each component. The pick list always shows the current reservations. Packing records the batch of every unit: implied when the spot holds one eligible batch, otherwise tapped from the date or lot on the unit; another eligible batch may be taken, and is recorded (ADR-006).</p>
 <p><strong>Packing details</strong> are the line titles as the marketplace gave them, the gift message, the order note, and the recipient and address, shown to warehouse users only from picking until shipped, and for label reprints for 24 hours after (ADR-009).</p>
 <p><strong>A fresh read before the label.</strong> When a label is bought for an Amazon or Shopify order, Vervoro first fetches the order and imports it. A cancellation or a new hold whose notice was lost stops the label. The read costs about one call per parcel from the seller&#39;s own allowance, under 1 % of it, and about a second. If the marketplace does not answer in time, the label is bought and the screen says the order could not be checked. eBay orders are not read again here, because eBay&#39;s order allowance is shared by every seller (ADR-004.1).</p>
@@ -1213,8 +1213,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><code>sales_order_task</code></td>
-<td>Put-back, label-to-void and confirm-the-batch tasks: order, line, units, what to scan, opened and closed</td>
-<td>Open until scanned</td>
+<td>Put-back, label-to-void and confirm-the-batch tasks: order, line, units, what to confirm, opened and closed</td>
+<td>Open until confirmed by a scan or a tap</td>
 </tr>
 <tr>
 <td><code>warehouse_collection</code></td>
@@ -1222,7 +1222,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td></td>
 </tr>
 </tbody></table></div>
-<p>Settings: each Shopify account&#39;s handling time (used only when Shopify sets no deadline), each warehouse&#39;s collection cut-off, and, per Amazon marketplace of a region, who ships its orders.</p>
+<p>Settings: whether the owner is told about orders that miss their leave-by, each Shopify account&#39;s handling time (used only when Shopify sets no deadline), each warehouse&#39;s collection cut-off, and, per Amazon marketplace of a region, who ships its orders.</p>
 <p><strong>Rules, each with a test:</strong></p>
 <div class="table-wrap"><table>
 <thead>

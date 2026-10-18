@@ -327,8 +327,8 @@ Sellable does not change on dispatch, because on hand and reserved fall by the s
 - **A request is not a cancellation.** A buyer's request keeps the reservation until the marketplace confirms the cancellation. A refused request must not leave an order without stock.
 - **A confirmed cancellation releases exactly what each line held,** batch by batch, in one transaction. Listings get new figures at once.
 - **Part of an order:** a line cancelled, or a smaller quantity, releases that part only, latest sell-by date first.
-- **Already picked, not packed:** the units are in a tote but still on hand in their spot by the books. The release returns them to sellable, and a put-back task stays open until each unit is scanned back (ADR-007).
-- **Already packed:** the units are in the packing spot. The release returns them to sellable there, and a put-back task stays open until each unit is scanned away (a move).
+- **Already picked, not packed:** the units are in a tote but still on hand in their spot by the books. The release returns them to sellable, and a put-back task stays open until each unit is confirmed back, by a scan or a tap (ADR-007).
+- **Already packed:** the units are in the packing spot. The release returns them to sellable there, and a put-back task stays open until each unit is confirmed put away, by a scan or a tap (a move).
 - **A held order** keeps its reservation; a confirmed cancellation still cancels it (ADR-007).
 
 **After dispatch:** the units have left. A cancellation moves no stock. If the parcel comes back, it is a return.
