@@ -167,7 +167,7 @@ Six roles, fixed at launch. Each person has one role in each company.
 | Role | Sees name, address and phone | When |
 | --- | --- | --- |
 | Owner, Admin, Manager | Yes | Any order that still holds buyer data |
-| Warehouse | Yes, in their warehouses only | From picking until shipped, plus label reprints for 24 hours, and while clearing an address hold (each view recorded) |
+| Warehouse | Yes, in their warehouses only | From picking until shipped, plus label reprints for 24 hours |
 | Accountant | Only as printed on issued invoices | Never on orders |
 | Staff | No | Never |
 
@@ -208,8 +208,8 @@ The permission matrix. A module declares each action in its manifest (ADR-000), 
 | **Orders** | | | | | | | |
 | Read orders (buyer data as in the table above) | Yes | Yes | Yes | Yes | Yes | Yes | [ADR-009](../buyer-data/) |
 | Pick, pack (and take another eligible batch, recorded), print labels, confirm a shipment | Yes | Yes | Yes | Yes | No | No | [ADR-006](../stock-ledger/), [ADR-007](../order-ingestion/) |
-| Place or clear a floor hold (address check, stock check, address changed after label, order changed, label to void) | Yes | Yes | Yes | Yes | No | No | [ADR-007](../order-ingestion/) |
-| Place or clear an office hold (fraud check, refunded, payment, customer request, a possible duplicate and the others ADR-007 lists); release an Amazon buyer's cancellation request to ship anyway | Yes | Yes | Yes | No | No | No | [ADR-007](../order-ingestion/) |
+| Place or clear a floor hold (stock check, address changed after label, order changed, label to void) | Yes | Yes | Yes | Yes | No | No | [ADR-007](../order-ingestion/) |
+| Place or clear an office hold (address check, fraud check, refunded, payment, customer request, a possible duplicate and the others ADR-007 lists); release an Amazon buyer's cancellation request to ship anyway | Yes | Yes | Yes | No | No | No | [ADR-007](../order-ingestion/) |
 | Create, confirm, edit or cancel a manual order | Yes | Yes | Yes | No | No | No | [ADR-007](../order-ingestion/) |
 | Make a counter sale (paid and collected at once) | Yes | Yes | Yes | Yes | No | No | [ADR-007](../order-ingestion/) |
 | Pin a batch for a line, resolve a line again, attach a line | Yes | Yes | Yes | No | No | No | [ADR-006](../stock-ledger/), [ADR-007](../order-ingestion/) |
