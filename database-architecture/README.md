@@ -21,7 +21,7 @@ Vervoro is an operations system for marketplace sellers: stock, orders and listi
 
 ## Decision
 
-1. **A control database** on its own compute holds only who the companies are, where they live, and which erasures must survive a restore. It stores no business data.
+1. **A control database** on its own compute holds the platform's own data: which companies exist and where each lives, logins and memberships, operators, plans, shared quotas and the erasure register. It stores no company business data. The full list is in [Control database and routing](#control-database-and-routing).
 2. **Customer databases ("cells")** hold the business data of up to 200 companies each in **shared tables**. Every row carries `company_id`, and Postgres enforces **forced row-level security** on every table and every partition.
 3. **Every transaction proves where it is.** Its first statement sets the company and raises unless this database holds that company and it is open, so a wrong route fails loudly instead of reading nothing.
 4. **A dedicated database** for an enterprise customer is its own Neon project: a cell with the same schema holding one company.
@@ -34,7 +34,7 @@ Vervoro is an operations system for marketplace sellers: stock, orders and listi
 
 <!-- DIAGRAM -->
 
-Every request names one company. The router looks up which database holds that company and opens a transaction there; the transaction's first statement fixes it to that one company and checks that the company lives in this database. The control database only knows where each company lives. Every business row sits in a cell, in tables shared by many companies and fenced by `company_id` and row-level security.
+Every request names one company. The router looks up which database holds that company and opens a transaction there; the transaction's first statement fixes it to that one company and checks that the company lives in this database. For routing, the control database supplies where each company lives; it holds no company business data. Every business row sits in a cell, in tables shared by many companies and fenced by `company_id` and row-level security.
 
 ## Tenancy inside a cell
 

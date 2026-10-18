@@ -11,7 +11,7 @@ Load this page with any task. Load the linked record before changing the area it
 
 ## 2. Companies and databases
 
-3. **One control database and many cells; no schema per company.** Control holds who the companies are and where they live, never business data. A cell holds many companies in shared tables. A dedicated database is a cell with one company, using the same schema and code path. [ADR-001](../database-architecture/#decision)
+3. **One control database and many cells; no schema per company.** Control holds the platform's own data (companies and where they live, logins, operators, plans, quotas, the erasure register), never company business data. A cell holds many companies in shared tables. A dedicated database is a cell with one company, using the same schema and code path. [ADR-001](../database-architecture/#decision)
 4. **Every transaction enters exactly one company first.** Its first statement is `app.enter_company`, which raises unless this database holds that company and it is open. An unset company is an error, never zero rows. No autocommit for company work. [ADR-001](../database-architecture/#tenancy-inside-a-cell)
 5. **Isolation is enforced by the database, not by remembering a filter.** Every tenant table has `company_id` first in every key, composite foreign keys, and forced row-level security. The runtime role has `NOBYPASSRLS`, and no role is ever created in the Neon console. [ADR-001](../database-architecture/#tenancy-inside-a-cell)
 6. **Modules never write `CREATE TABLE`.** They declare tables through `tenantTable()`, and upserts go through `conflict()`. There are no serial or identity columns; ids are uuidv7. [ADR-001](../database-architecture/#declaring-tables)

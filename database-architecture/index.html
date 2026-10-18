@@ -98,7 +98,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ul>
 <h2 id="decision">Decision</h2>
 <ol>
-<li><strong>A control database</strong> on its own compute holds only who the companies are, where they live, and which erasures must survive a restore. It stores no business data.</li>
+<li><strong>A control database</strong> on its own compute holds the platform&#39;s own data: which companies exist and where each lives, logins and memberships, operators, plans, shared quotas and the erasure register. It stores no company business data. The full list is in <a href="#control-database-and-routing">Control database and routing</a>.</li>
 <li><strong>Customer databases (&quot;cells&quot;)</strong> hold the business data of up to 200 companies each in <strong>shared tables</strong>. Every row carries <code>company_id</code>, and Postgres enforces <strong>forced row-level security</strong> on every table and every partition.</li>
 <li><strong>Every transaction proves where it is.</strong> Its first statement sets the company and raises unless this database holds that company and it is open, so a wrong route fails loudly instead of reading nothing.</li>
 <li><strong>A dedicated database</strong> for an enterprise customer is its own Neon project: a cell with the same schema holding one company.</li>
@@ -167,7 +167,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </svg>
 </figure>
 
-<p>Every request names one company. The router looks up which database holds that company and opens a transaction there; the transaction&#39;s first statement fixes it to that one company and checks that the company lives in this database. The control database only knows where each company lives. Every business row sits in a cell, in tables shared by many companies and fenced by <code>company_id</code> and row-level security.</p>
+<p>Every request names one company. The router looks up which database holds that company and opens a transaction there; the transaction&#39;s first statement fixes it to that one company and checks that the company lives in this database. For routing, the control database supplies where each company lives; it holds no company business data. Every business row sits in a cell, in tables shared by many companies and fenced by <code>company_id</code> and row-level security.</p>
 <h2 id="tenancy-inside-a-cell">Tenancy inside a cell</h2>
 <p>Every business table exists once per cell and carries <code>company_id</code>. Postgres itself refuses any row of another company, and the keys make a cross-company reference impossible even with security switched off.</p>
 <ol>
