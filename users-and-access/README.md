@@ -210,8 +210,8 @@ The permission matrix. A module declares each action in its manifest (ADR-000), 
 | Pick, pack (and take another eligible batch, recorded), print labels, confirm a shipment | Yes | Yes | Yes | Yes | No | No | [ADR-006](../stock-ledger/), [ADR-007](../order-ingestion/) |
 | Place or clear a floor hold (stock check, address changed after label, order changed, label to void; an address check on an order being picked or packed) | Yes | Yes | Yes | Yes | No | No | [ADR-007](../order-ingestion/) |
 | Place or clear an office hold (an address check before picking, fraud check, refunded, payment, customer request, a possible duplicate and the others ADR-007 lists); release an Amazon buyer's cancellation request to ship anyway | Yes | Yes | Yes | No | No | No | [ADR-007](../order-ingestion/) |
-| Create, confirm, edit or cancel a phone or email order | Yes | Yes | Yes | Yes | No | No | [ADR-007](../order-ingestion/) |
-| Confirm a business order on account terms (ships before it is paid) | Yes | Yes | Yes | No | No | No | [ADR-007](../order-ingestion/) |
+| Create, confirm, edit or cancel a phone or email order (a warehouse user confirms with a payment reference, or it is held for a manager; their copies of earlier orders carry no buyer details) | Yes | Yes | Yes | Yes | No | No | [ADR-007](../order-ingestion/) |
+| Confirm a manual order without payment (account terms), or release its payment hold | Yes | Yes | Yes | No | No | No | [ADR-007](../order-ingestion/) |
 | Make a counter sale (paid and collected at once) | Yes | Yes | Yes | Yes | No | No | [ADR-007](../order-ingestion/) |
 | Attach an order line to a product (its listing stays unlinked) | Yes | Yes | Yes | Yes | No | No | [ADR-007](../order-ingestion/) |
 | Pin a batch for a line, resolve a line again | Yes | Yes | Yes | No | No | No | [ADR-006](../stock-ledger/), [ADR-007](../order-ingestion/) |
