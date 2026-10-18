@@ -111,7 +111,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Every write is single, keyed and confirmed.</strong> One writer per listing, one open write at a time (an Amazon decrease may overtake one), a deadline, and a read back after it. Amazon&#39;s <code>accepted</code> is not applied. An <code>unknown</code> write is settled before anything else is sent.</li>
 <li><strong>Lanes and limits follow ADR-004.</strong> Decreases and every change near zero use the safety lane; other raises use the bulk lane. eBay&#39;s 250 revisions are counted per listing over a rolling 24 hours, with the last ones kept for a zero. Amazon stock goes by single patches.</li>
 <li><strong>One low-stock policy:</strong> the last 2 units are kept for one account, and either the units kept or the account can be changed per product, until an end date. A campaign on Amazon is such a dated keep.</li>
-<li><strong>Every stop asks one question, at every scale:</strong> leave the figure, or send 0. A listing is managed or not managed.</li>
+<li><strong>Every stop asks one question, at every scale:</strong> leave the figure, or send 0. A listing is managed or not managed. A company that closes for non-payment carries out each account&#39;s answer on its closing date, and its accounts are then decrease-only until it is erased (<a href="../billing-and-plans/">ADR-012</a>).</li>
 <li><strong>Shadow before live.</strong> A company&#39;s first go-live compares the old system&#39;s stock twice and moves every account the old system served at once. A listing showing more than Vervoro&#39;s figure is never accepted as explained.</li>
 <li><strong>A restore or a reconnect returns to shadow.</strong> A restore raises the company&#39;s sync epoch, so no write from before it can be mistaken for one after it.</li>
 <li><strong>The seller sees what every marketplace shows and how fresh it is.</strong> One kind of problem is also emailed: a marketplace showing more than the seller has, which Vervoro cannot fix. The operator is paged for a stalled sync, never per listing.</li>
@@ -638,6 +638,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>A listing is managed or not managed,</strong> optionally until a date. Not managed means no figure is sent; its orders still reserve.</li>
 <li><strong>Every stop asks one question:</strong> leave the figure as it is, or send 0. It applies to stopping an account, stepping it back to shadow, disconnecting, switching a marketplace off, and setting one listing to not managed (ADR-000, ADR-004). A 0 is confirmed applied before the mode changes.</li>
 <li><strong>A not-managed listing that shows more than the stock</strong> is flagged to the seller, because nothing else will correct it.</li>
+<li><strong>Decrease-only</strong> is an account mode for a company closed under ADR-012, from its closing date until its erasure. Orders still import and reserve, and D is worked out as usual, but a figure is sent only when it is lower than B. A higher D is never sent, whatever raised it: a receipt, a return, a cancellation or a policy change. Rows of the sending table that would send a higher D send nothing.</li>
 </ul>
 <h2>Held raises</h2>
 <p>ADR-005 keeps one set of reasons per listing. While the set is not empty, D is still worked out truthfully, every decrease goes, and raises wait. The reasons: the listing came back after ending; its SKU was edited onto another product&#39;s; a live bulk link is not yet confirmed; a fulfilment conflict is open (ADR-005, ADR-007); its product failed the nightly check (ADR-006); an open import problem names it (above). When the last reason clears, the raise becomes due at that moment and waits for the order read.</p>
@@ -695,6 +696,10 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td><strong>An account reconnects</strong></td>
 <td>A new shadow period with B unknown; it goes live on the listing check like any later account</td>
+</tr>
+<tr>
+<td><strong>A closed company reopens</strong> (ADR-012)</td>
+<td>Every account returns to shadow and every B is unknown. Goods received while it was closed are recorded first; each account goes live again on the listing check, like a later account</td>
 </tr>
 </tbody></table></div>
 <h2>What the seller and the operator see</h2>
@@ -760,6 +765,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>A listing above its zone shows at most T − 1 more than D once its writes have settled.</li>
 <li>An import problem&#39;s units are off every account&#39;s figure until it imports, and come back exactly once.</li>
 <li>After a restore, nothing is sent before the operator signs off.</li>
+<li>An account in decrease-only mode never sends a figure above B; a sale on one account still lowers the others.</li>
 </ol>
 <h2>Constraints</h2>
 <p>Checked against each marketplace&#39;s documentation on 18 October 2026.</p>

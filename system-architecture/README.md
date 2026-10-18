@@ -95,7 +95,7 @@ The foundation is always on and cannot be switched off. It holds the catalogue, 
 
 ## Talking to marketplaces
 
-**Every connection starts in shadow.** Orders come in and stock is reserved inside Vervoro, but no stock figure, dispatch notice or confirmation leaves. The gate records what it would have sent. A seller goes live once every difference is explained. Stopping sends on a live connection always asks first: leave the figures as they are, or send zero.
+**Every connection starts in shadow.** Orders come in and stock is reserved inside Vervoro, but no stock figure, dispatch notice or confirmation leaves. The gate records what it would have sent. A seller goes live once every difference is explained. Stopping sends on a live connection always asks first: leave the figures as they are, or send zero. The question is first asked when the connection goes live, and the answer is kept. When a company closes for non-payment, its answer is carried out, and the connection then only lowers its figures until the company is erased ([ADR-012](../billing-and-plans/)).
 
 **The egress gate is the one door to marketplaces and suppliers.**
 

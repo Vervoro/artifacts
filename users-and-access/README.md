@@ -406,7 +406,7 @@ Checked against the official sources on 18 October 2026.
 
 ## What later records decide
 
-- **Billing and plans (ADR-012):** what each role may still do when a trial ends unpaid or a payment fails.
+- **Billing and plans ([ADR-012](../billing-and-plans/)):** decided there: what each role may do while a company is restricted or closed, and the billing rows of the table of who may do what.
 - **Invoicing and VAT (ADR-011):** the roles that issue, correct and read invoices, as rows in this matrix.
 - **Purchasing, returns and other modules:** their actions, as rows in this matrix.
 - **Integration access:** whether sellers get tokens, outbound notices or connected apps, and on what terms.

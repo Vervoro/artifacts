@@ -1,0 +1,52 @@
+<svg class="diagram" viewBox="0 0 760 300" role="img" aria-label="A company moves from trial to active when it pays, or to restricted when the trial ends without a payment method; an active company with a payment failed for 14 days is restricted, and closed at day 30; paying in restricted returns it to active; a cancellation closes it at the end of the paid period; the stock path runs in trial, active and restricted; a closed company carries out each connection's stop choice, sending zero or lowering figures only, and is erased 30 days later" xmlns="http://www.w3.org/2000/svg" font-size="13">
+  <defs>
+    <marker id="bil-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="edge-fill"/></marker>
+  </defs>
+  <text x="24" y="24" font-size="15" font-weight="600" class="ink">Company states, computed from dates</text>
+
+  <rect x="14" y="36" width="476" height="128" rx="8" class="band"/>
+  <text x="478" y="157" text-anchor="end" font-size="11.5" class="quiet">The stock path runs in all three</text>
+
+  <g class="edge" fill="none" stroke-width="1.25">
+    <path d="M83 70V56H413V70" marker-end="url(#bil-arrow)"/>
+    <path d="M138 100H190" marker-end="url(#bil-arrow)"/>
+    <path d="M300 92H354" marker-end="url(#bil-arrow)"/>
+    <path d="M413 130V142H265V130" marker-end="url(#bil-arrow)"/>
+    <path d="M472 100H530" marker-end="url(#bil-arrow)"/>
+    <path d="M225 130V196H570V130" marker-end="url(#bil-arrow)"/>
+    <path d="M640 130V214" marker-end="url(#bil-arrow)"/>
+  </g>
+  <text x="248" y="51" text-anchor="middle" font-size="10.5" class="quiet">trial ends with no payment method</text>
+  <text x="164" y="94" text-anchor="middle" font-size="10.5" class="quiet">pays</text>
+  <text x="327" y="86" text-anchor="middle" font-size="10.5" class="quiet">day 14</text>
+  <text x="340" y="139" text-anchor="middle" font-size="10.5" class="quiet">pays</text>
+  <text x="501" y="94" text-anchor="middle" font-size="10.5" class="quiet">day 30</text>
+  <text x="400" y="210" text-anchor="middle" font-size="10.5" class="quiet">cancelled: at the end of the paid period</text>
+  <text x="652" y="176" font-size="10.5" class="quiet">30 days</text>
+
+  <rect x="28" y="70" width="110" height="60" rx="6" class="box"/>
+  <text x="83" y="96" text-anchor="middle" font-weight="600" class="ink">Trial</text>
+  <text x="83" y="113" text-anchor="middle" font-size="10.5" class="quiet">21 days</text>
+
+  <rect x="190" y="70" width="110" height="60" rx="6" class="box-main"/>
+  <text x="245" y="92" text-anchor="middle" font-weight="600" class="ink">Active</text>
+  <text x="245" y="108" text-anchor="middle" font-size="10.5" class="quiet">paid; banner while</text>
+  <text x="245" y="121" text-anchor="middle" font-size="10.5" class="quiet">a payment fails</text>
+
+  <rect x="354" y="70" width="118" height="60" rx="6" class="box"/>
+  <text x="413" y="96" text-anchor="middle" font-weight="600" class="ink">Restricted</text>
+  <text x="413" y="113" text-anchor="middle" font-size="10.5" class="quiet">the rest read-only</text>
+
+  <rect x="530" y="70" width="216" height="60" rx="6" class="box"/>
+  <text x="638" y="90" text-anchor="middle" font-weight="600" class="ink">Closed</text>
+  <text x="638" y="106" text-anchor="middle" font-size="10.5" class="quiet">send zero if chosen, then</text>
+  <text x="638" y="120" text-anchor="middle" font-size="10.5" class="quiet">figures only fall; export</text>
+
+  <rect x="585" y="214" width="110" height="50" rx="6" class="box"/>
+  <text x="640" y="236" text-anchor="middle" font-weight="600" class="ink">Erased</text>
+  <text x="640" y="252" text-anchor="middle" font-size="10.5" class="quiet">connections end</text>
+
+  <text x="24" y="240" font-size="11.5" class="quiet">The stop choice is asked when a connection goes live.</text>
+  <text x="24" y="257" font-size="11.5" class="quiet">Paying before erasure reopens a closed company, its</text>
+  <text x="24" y="274" font-size="11.5" class="quiet">connections back in shadow. Processing never restricts.</text>
+</svg>

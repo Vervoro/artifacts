@@ -203,7 +203,7 @@ A trial company lives in a normal shared cell, the newest open one, from sign-up
 - **A trial cell when trials outgrow their share.** If trial companies use more than about 25% of a cell's compute for a week, the system recommends a cell for trials only. New trials then start there, and a trial that pays is moved to a paid cell by the slice operation, with the same fencing, `moved_out` source row and checks as any move.
 - **Trials cannot crowd out paying companies.** Trials together get a capped share of the cell's sweeper slots and bulk jobs, and a capped, lower-priority share of any marketplace allowance limited for the whole application, except stock decreases on an active connection, which always go first. Sign-up is gated against abuse.
 - **Same safety as production.** A trial company may already sell on real marketplaces from its numbers, so it has the same backups, alerts and switch-off rules as everyone else. Demo companies live in a cell like any other company.
-- **When a trial lapses** without paying, or a paying company closes, what is kept, for how long, and when the data is erased is decided with billing and plans. Until it is erased, the data stays in its cell.
+- **When a trial lapses** without paying, or a paying company closes, what is kept, for how long, and when the data is erased is decided in [ADR-012](../billing-and-plans/): it is erased 30 days after the company closes. Until it is erased, the data stays in its cell.
 
 ## Platform constraints
 

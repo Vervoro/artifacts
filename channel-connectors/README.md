@@ -198,7 +198,7 @@ A connector that passes the suite works with the host. A new connector starts fr
 
 **Sandboxes check the simulators, not the code.** eBay and Amazon both offer a sandbox. They are slow, limited and not deterministic, so tests never call them. Before launch, every call the launch connectors make is made once against the sandbox or the real marketplace, the reply is recorded, and the simulator is fixed wherever it differs. Each simulator's documentation lists where it is simpler than the real service.
 
-**Shadow and live at the egress gate.** Every account starts in **shadow**: orders come in, listings are read, stock is reserved inside Vervoro, and the gate records each figure it would have sent without sending it. The shadow check compares what Vervoro would send with what the marketplace shows, listing by listing. The seller goes **live** once every difference is explained and acknowledged. Stopping a live account always asks first: leave the figures as they are, or send zero and wait until every zero is confirmed. Reconnecting after a disconnect starts a new shadow period.
+**Shadow and live at the egress gate.** Every account starts in **shadow**: orders come in, listings are read, stock is reserved inside Vervoro, and the gate records each figure it would have sent without sending it. The shadow check compares what Vervoro would send with what the marketplace shows, listing by listing. The seller goes **live** once every difference is explained and acknowledged. Stopping a live account always asks first: leave the figures as they are, or send zero and wait until every zero is confirmed. The answer is first asked when the account goes live, and kept. A company that closes for non-payment carries it out on its closing date, and its accounts are then decrease-only until the company is erased, when they are disconnected ([ADR-012](../billing-and-plans/)). Reconnecting after a disconnect starts a new shadow period.
 
 ## Switching a marketplace on and off
 
@@ -210,7 +210,7 @@ A connector that passes the suite works with the host. A new connector starts fr
 | --- | --- | --- |
 | **Platform** | The operator | The connector is not offered to new companies. For an incident on the marketplace's side, the operator can also hold every send to that marketplace: queued figures wait as desired state and the latest one is sent when released, so nothing is lost |
 | **Company** | The company's plan, and its Owner or an Admin ([ADR-010](../users-and-access/)) | The connector module is off for that company: no reads, no writes, notices dropped. Switching off is refused while one of its live accounts has no stop choice |
-| **Account** | The seller | The account's mode: shadow, live, paused or disconnected. Disconnected also forgets the credentials |
+| **Account** | The seller | The account's mode: shadow, live, paused, decrease-only (a closed company, [ADR-012](../billing-and-plans/)) or disconnected. Disconnected also forgets the credentials |
 
 A connector that is off costs nothing. Its accounts have no work due, so the sweeper never visits them (ADR-001).
 

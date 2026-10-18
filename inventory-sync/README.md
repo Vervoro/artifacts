@@ -36,7 +36,7 @@ This record decides the figure and how it reaches each marketplace. The design h
 6. **Every write is single, keyed and confirmed.** One writer per listing, one open write at a time (an Amazon decrease may overtake one), a deadline, and a read back after it. Amazon's `accepted` is not applied. An `unknown` write is settled before anything else is sent.
 7. **Lanes and limits follow ADR-004.** Decreases and every change near zero use the safety lane; other raises use the bulk lane. eBay's 250 revisions are counted per listing over a rolling 24 hours, with the last ones kept for a zero. Amazon stock goes by single patches.
 8. **One low-stock policy:** the last 2 units are kept for one account, and either the units kept or the account can be changed per product, until an end date. A campaign on Amazon is such a dated keep.
-9. **Every stop asks one question, at every scale:** leave the figure, or send 0. A listing is managed or not managed.
+9. **Every stop asks one question, at every scale:** leave the figure, or send 0. A listing is managed or not managed. A company that closes for non-payment carries out each account's answer on its closing date, and its accounts are then decrease-only until it is erased ([ADR-012](../billing-and-plans/)).
 10. **Shadow before live.** A company's first go-live compares the old system's stock twice and moves every account the old system served at once. A listing showing more than Vervoro's figure is never accepted as explained.
 11. **A restore or a reconnect returns to shadow.** A restore raises the company's sync epoch, so no write from before it can be mistaken for one after it.
 12. **The seller sees what every marketplace shows and how fresh it is.** One kind of problem is also emailed: a marketplace showing more than the seller has, which Vervoro cannot fix. The operator is paged for a stalled sync, never per listing.
@@ -251,6 +251,7 @@ Assumptions: per seller, 2,000 linked listings on two or three accounts and 150 
 - **A listing is managed or not managed,** optionally until a date. Not managed means no figure is sent; its orders still reserve.
 - **Every stop asks one question:** leave the figure as it is, or send 0. It applies to stopping an account, stepping it back to shadow, disconnecting, switching a marketplace off, and setting one listing to not managed (ADR-000, ADR-004). A 0 is confirmed applied before the mode changes.
 - **A not-managed listing that shows more than the stock** is flagged to the seller, because nothing else will correct it.
+- **Decrease-only** is an account mode for a company closed under ADR-012, from its closing date until its erasure. Orders still import and reserve, and D is worked out as usual, but a figure is sent only when it is lower than B. A higher D is never sent, whatever raised it: a receipt, a return, a cancellation or a policy change. Rows of the sending table that would send a higher D send nothing.
 
 ## Held raises
 
@@ -299,6 +300,7 @@ Every account starts in shadow (ADR-004): orders reserve inside Vervoro and the 
 | **The operator's hold on a marketplace** (ADR-004) | Figures wait as desired rows; on release, `unknown` writes are settled first |
 | **A restore** (ADR-001) | The sync epoch rises; every account returns to shadow; every B is unknown; listings are read by reports and bulk reads, never one Trading call per listing. eBay revisions are counted at their worst for 24 hours. The operator signs off the differences before anything is sent |
 | **An account reconnects** | A new shadow period with B unknown; it goes live on the listing check like any later account |
+| **A closed company reopens** (ADR-012) | Every account returns to shadow and every B is unknown. Goods received while it was closed are recorded first; each account goes live again on the listing check, like a later account |
 
 ## What the seller and the operator see
 
@@ -345,6 +347,7 @@ The host and the foundation name each other's rows by plain ids, read through po
 10. A listing above its zone shows at most T − 1 more than D once its writes have settled.
 11. An import problem's units are off every account's figure until it imports, and come back exactly once.
 12. After a restore, nothing is sent before the operator signs off.
+13. An account in decrease-only mode never sends a figure above B; a sale on one account still lowers the others.
 
 ## Constraints
 

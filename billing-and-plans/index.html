@@ -1,0 +1,818 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ADR-012: Billing and plans</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono&display=swap">
+<style>
+:root {
+  --bg: #f6f6f8; --surface: #ffffff; --sunken: #ededf1; --text: #16161a; --muted: #5c5c66; --border: #e0e0e6;
+  --accent: #4338ca; --accent-soft: #eef0ff; --edge: #8a8a96; --tint: #f0f0f4;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #111114; --surface: #1a1a1f; --sunken: #23232a; --text: #ececf1; --muted: #a2a2ad; --border: #2d2d35;
+  --accent: #a5b4fc; --accent-soft: #23264a; --edge: #74747f; --tint: #202027; color-scheme: dark; } }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 var(--sans); }
+main { max-width: 860px; margin: 0 auto; padding: 48px max(20px, env(safe-area-inset-left)) 80px; }
+header.site { max-width: 860px; margin: 0 auto; padding: 20px max(20px, env(safe-area-inset-left)) 0; font-size: 14px; }
+header.site a { color: var(--muted); text-decoration: none; }
+header.site a:hover { color: var(--accent); }
+h1, h2, h3 { line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(28px, 4vw, 38px); letter-spacing: -0.02em; margin: 0 0 20px; }
+h2 { font-size: 23px; margin: 48px 0 12px; padding-top: 20px; border-top: 1px solid var(--border); }
+h3 { font-size: 18px; margin: 32px 0 8px; }
+p, li { max-width: 72ch; }
+a { color: var(--accent); }
+code { font-family: var(--mono); font-size: 0.86em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 16px 0; background: var(--surface); }
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+.table-wrap table { margin: 0; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+th { background: var(--sunken); font-weight: 600; font-size: 13px; color: var(--muted); }
+tr:last-child td { border-bottom: none; }
+ul, ol { padding-left: 22px; }
+li + li { margin-top: 4px; }
+figure { margin: 20px 0; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; }
+svg.diagram { display: block; width: 100%; min-width: 640px; height: auto; font-family: var(--sans); }
+svg .ink { fill: var(--text); } svg .quiet { fill: var(--muted); }
+svg .edge { stroke: var(--edge); } svg .edge-fill { fill: var(--edge); }
+svg .accent { stroke: var(--accent); } svg .accent-fill { fill: var(--accent); }
+svg .box { fill: none; stroke: var(--edge); stroke-width: 1.25; }
+svg .box-main { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+svg .band { fill: var(--tint); stroke: var(--edge); stroke-width: 1.25; }
+.cards { list-style: none; padding: 0; display: grid; gap: 12px; }
+.cards a { display: block; padding: 18px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; text-decoration: none; color: var(--text); }
+.cards a:hover, .cards a:focus-visible { border-color: var(--accent); outline: none; }
+.cards.sub { margin: 12px 0 0 24px; padding-left: 16px; border-left: 2px solid var(--border); }
+.cards b { display: block; font-size: 17px; } .cards span { color: var(--muted); font-size: 14px; }
+.order li { margin-top: 10px; } .order span { color: var(--muted); font-size: 14px; }
+footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header class="site"><a href="../">← Vervoro artifacts</a></header>
+<main>
+<h1>ADR-012: Billing and plans</h1>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Status</strong></td>
+<td>Proposed</td>
+</tr>
+<tr>
+<td><strong>Date</strong></td>
+<td>18 October 2026</td>
+</tr>
+<tr>
+<td><strong>Scope</strong></td>
+<td>How Vervoro charges sellers: what a plan holds and limits, what happens at a limit, the trial, a company&#39;s states from sign-up to erasure, what each role may do in each, stopping sends when a company closes, reopening a closed company, the payment provider, cards and Direct Debit, plan changes, failed payments, Vervoro&#39;s own invoices and VAT, counting orders, cancellation, export and refunds, and who may manage billing. Not how sellers invoice their own buyers (ADR-011)</td>
+</tr>
+<tr>
+<td><strong>Builds on</strong></td>
+<td><a href="../system-architecture/">ADR-000: System architecture</a>, <a href="../database-architecture/">ADR-001: Multi-tenant database architecture</a>, <a href="../data-retention/">ADR-002: Data retention and archiving</a>, <a href="../channel-connectors/">ADR-004: Channel connectors</a>, <a href="../inventory-sync/">ADR-008: Inventory sync</a>, <a href="../buyer-data/">ADR-009: Buyer data and privacy</a>, <a href="../users-and-access/">ADR-010: Users, roles and sign-in</a></td>
+</tr>
+</tbody></table></div>
+<h2>Context</h2>
+<p>Vervoro charges each seller&#39;s company a subscription. Earlier records already decide parts of how:</p>
+<ul>
+<li><strong>ADR-000:</strong> a module is available to a company only when its plan includes it. Stopping stock sends on a live connection always asks first: leave the figures as they are, or send zero.</li>
+<li><strong>ADR-001:</strong> the control database holds each company&#39;s plan (trial or paid), status and subscription, the usage rollups and the alerts. A trial is a state, not a place: a trial company lives in a normal cell with capped shares of background work and marketplace allowances, and paying changes its plan with nothing moving. What happens when a trial lapses or a paying company closes, and when its data is erased, is left to this record. Trials last 14 to 28 days. One generated company-slice operation exports, moves and erases a company, and erasure releases the company&#39;s marketplace seller ids.</li>
+<li><strong>ADR-002:</strong> accounting records are kept for the statutory period, 6 years from the end of the financial year.</li>
+<li><strong>ADR-004:</strong> some marketplace allowances belong to Vervoro&#39;s whole application, and trial companies get a capped, lower-priority share of them, except stock decreases on a live connection. An account&#39;s mode is shadow, live, paused or disconnected.</li>
+<li><strong>ADR-008:</strong> every stop asks one question, leave the figure or send 0, and a restore or a reconnect returns an account to shadow.</li>
+<li><strong>ADR-009:</strong> Vervoro is the controller of its own account data, billing included. When a connection ends, the buyer data of its orders goes within 30 days.</li>
+<li><strong>ADR-010:</strong> six fixed roles (Owner, Admin, Manager, Warehouse, Accountant, Staff). Only the Owner manages the plan and billing and closes the company. What each role may still do when a trial ends unpaid or a payment fails is left to this record.</li>
+</ul>
+<p>This record ties those pieces into one billing design. The design has to meet these requirements:</p>
+<ul>
+<li><strong>Billing must never oversell a seller.</strong> A company that stops paying still has listings that buyers can order from. Whatever billing stops must leave the seller&#39;s figures safe, or be stopped in a way the seller chose.</li>
+<li><strong>One operator.</strong> Retries, reminders, state changes and erasure run by themselves. No billing step waits for a person at a particular hour.</li>
+<li><strong>Sellers are UK businesses</strong> that expect a proper VAT invoice and often pay suppliers by Direct Debit. A bill that changes without warning loses their trust.</li>
+<li><strong>Vervoro never holds card data,</strong> so the payment pages are the provider&#39;s, not Vervoro&#39;s.</li>
+<li><strong>Small at launch.</strong> 5 to 10 trial sellers, about 100 in the first year. Machinery for a scale or an abuse that does not exist yet is left out until it does.</li>
+<li><strong>The repository is public,</strong> so this record describes the plan structure and never a price.</li>
+</ul>
+<h2>Decision</h2>
+<ol>
+<li><strong>A plan is a row in the control database:</strong> the modules it includes, a monthly ceiling on orders dispatched from the seller&#39;s own warehouses, a support level, and the provider&#39;s price ids. Prices live only at the payment provider.</li>
+<li><strong>Users, marketplace accounts and warehouses are unlimited on every plan.</strong> A limit there would push a seller to keep a channel&#39;s stock outside Vervoro, or to share logins.</li>
+<li><strong>The order ceiling is soft.</strong> It is measured on the average of the last three complete months. Crossing it warns, then moves the plan up at the next renewal with at least 30 days&#39; notice. Nothing is charged as overage, and nothing is ever blocked by it.</li>
+<li><strong>A plan may refuse only something new:</strong> switching on a module the plan does not include. Nothing that moves orders or stock is ever refused for a billing reason.</li>
+<li><strong>The trial lasts 21 days,</strong> needs no payment details, and grants the modules of the tier the company is trying. One trial per company. The operator can extend one, with a recorded reason.</li>
+<li><strong>Going live needs a payment method, a stop choice and a stock contact.</strong> Before a connection first goes live, in a trial or on a plan, the Owner adds a payment method, answers &quot;if Vervoro ever has to stop sending, leave the figures or send zero?&quot;, and names who should hear about stock if billing goes wrong. Shadow mode sends nothing, so it needs none of them.</li>
+<li><strong>A company&#39;s state is computed from a few dates in the control database,</strong> never stored: trial, active, restricted or closed. An erased company is only a tombstone. The provider&#39;s events set the dates; its own statuses are inputs, not the state.</li>
+<li><strong>The stock path runs in trial, active and restricted:</strong> orders are imported, reserved, held, picked, packed and dispatched, stock is received and counted, and figures go to live connections. Restricted makes everything else read-only.</li>
+<li><strong>A failed payment restricts the company after 14 days and closes it after 30.</strong> A trial that ends with no payment method is restricted at once and closed 14 days later. A payment still processing delays restriction, never closing.</li>
+<li><strong>Closing makes every live connection decrease-only until erasure,</strong> after carrying out its stop choice. &quot;Send zero&quot; first sends zero and waits for every zero to be confirmed. &quot;Leave the figures&quot;, and a connection with no answer, starts from the figures as they are. From then on, orders keep coming in and reserving, figures only fall, and nothing is raised. At erasure every connection is disconnected and its figures stay where they are. Vervoro never sends zero unasked.</li>
+<li><strong>A closed company keeps an export for 30 days, then it is erased</strong> with the company-slice operation. Paying before erasure reopens it with its data whole. Its connections come back in shadow and go live again on the usual listing check, after the goods received while it was closed are recorded.</li>
+<li><strong>Stripe is the payment provider,</strong> with cards and Bacs Direct Debit. A payment method is entered only on Stripe&#39;s hosted pages, so Vervoro qualifies for the shortest PCI DSS self-assessment, SAQ A.</li>
+<li><strong>Upgrades apply at once and are charged for the rest of the period. Downgrades apply at the end of the period.</strong> Plan changes and cancellations go through Vervoro&#39;s own screens, because they may end a module or stop sends.</li>
+<li><strong>Stripe retries failed payments for 14 days and sends the payment emails.</strong> Vervoro sends only the three notices that carry the stop choice, to the owners, the billing contact and the stock contact.</li>
+<li><strong>Vervoro&#39;s invoices are Stripe&#39;s invoices,</strong> in one sequence for the whole account, never edited once issued, corrected only by credit notes, and kept for 6 years after the end of Vervoro&#39;s financial year.</li>
+<li><strong>UK businesses only at launch, charged UK VAT.</strong> Sign-up declares that the company is a business. Selling to businesses outside the UK, under the reverse charge, is switched on later after Vervoro&#39;s accountant confirms it.</li>
+<li><strong>No charge is based on usage.</strong> The order count for the ceiling is a nightly query over dispatch records.</li>
+<li><strong>Cancelling ends the subscription at the end of the paid period.</strong> Part periods are not refunded. Refunds and credits are only for Vervoro&#39;s mistakes.</li>
+<li><strong>Only the Owner manages billing,</strong> as ADR-010 says. Owners, Admins and Accountants can read Vervoro&#39;s invoices. Each role keeps its own work on the stock path while a company is restricted.</li>
+<li><strong>The payment provider has a simulator,</strong> like every other outside service. Every call and event is checked against a recorded reply from the provider&#39;s test mode before launch.</li>
+</ol>
+<h2>Company states</h2>
+<figure><svg class="diagram" viewBox="0 0 760 300" role="img" aria-label="A company moves from trial to active when it pays, or to restricted when the trial ends without a payment method; an active company with a payment failed for 14 days is restricted, and closed at day 30; paying in restricted returns it to active; a cancellation closes it at the end of the paid period; the stock path runs in trial, active and restricted; a closed company carries out each connection's stop choice, sending zero or lowering figures only, and is erased 30 days later" xmlns="http://www.w3.org/2000/svg" font-size="13">
+  <defs>
+    <marker id="bil-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="edge-fill"/></marker>
+  </defs>
+  <text x="24" y="24" font-size="15" font-weight="600" class="ink">Company states, computed from dates</text>
+
+  <rect x="14" y="36" width="476" height="128" rx="8" class="band"/>
+  <text x="478" y="157" text-anchor="end" font-size="11.5" class="quiet">The stock path runs in all three</text>
+
+  <g class="edge" fill="none" stroke-width="1.25">
+    <path d="M83 70V56H413V70" marker-end="url(#bil-arrow)"/>
+    <path d="M138 100H190" marker-end="url(#bil-arrow)"/>
+    <path d="M300 92H354" marker-end="url(#bil-arrow)"/>
+    <path d="M413 130V142H265V130" marker-end="url(#bil-arrow)"/>
+    <path d="M472 100H530" marker-end="url(#bil-arrow)"/>
+    <path d="M225 130V196H570V130" marker-end="url(#bil-arrow)"/>
+    <path d="M640 130V214" marker-end="url(#bil-arrow)"/>
+  </g>
+  <text x="248" y="51" text-anchor="middle" font-size="10.5" class="quiet">trial ends with no payment method</text>
+  <text x="164" y="94" text-anchor="middle" font-size="10.5" class="quiet">pays</text>
+  <text x="327" y="86" text-anchor="middle" font-size="10.5" class="quiet">day 14</text>
+  <text x="340" y="139" text-anchor="middle" font-size="10.5" class="quiet">pays</text>
+  <text x="501" y="94" text-anchor="middle" font-size="10.5" class="quiet">day 30</text>
+  <text x="400" y="210" text-anchor="middle" font-size="10.5" class="quiet">cancelled: at the end of the paid period</text>
+  <text x="652" y="176" font-size="10.5" class="quiet">30 days</text>
+
+  <rect x="28" y="70" width="110" height="60" rx="6" class="box"/>
+  <text x="83" y="96" text-anchor="middle" font-weight="600" class="ink">Trial</text>
+  <text x="83" y="113" text-anchor="middle" font-size="10.5" class="quiet">21 days</text>
+
+  <rect x="190" y="70" width="110" height="60" rx="6" class="box-main"/>
+  <text x="245" y="92" text-anchor="middle" font-weight="600" class="ink">Active</text>
+  <text x="245" y="108" text-anchor="middle" font-size="10.5" class="quiet">paid; banner while</text>
+  <text x="245" y="121" text-anchor="middle" font-size="10.5" class="quiet">a payment fails</text>
+
+  <rect x="354" y="70" width="118" height="60" rx="6" class="box"/>
+  <text x="413" y="96" text-anchor="middle" font-weight="600" class="ink">Restricted</text>
+  <text x="413" y="113" text-anchor="middle" font-size="10.5" class="quiet">the rest read-only</text>
+
+  <rect x="530" y="70" width="216" height="60" rx="6" class="box"/>
+  <text x="638" y="90" text-anchor="middle" font-weight="600" class="ink">Closed</text>
+  <text x="638" y="106" text-anchor="middle" font-size="10.5" class="quiet">send zero if chosen, then</text>
+  <text x="638" y="120" text-anchor="middle" font-size="10.5" class="quiet">figures only fall; export</text>
+
+  <rect x="585" y="214" width="110" height="50" rx="6" class="box"/>
+  <text x="640" y="236" text-anchor="middle" font-weight="600" class="ink">Erased</text>
+  <text x="640" y="252" text-anchor="middle" font-size="10.5" class="quiet">connections end</text>
+
+  <text x="24" y="240" font-size="11.5" class="quiet">The stop choice is asked when a connection goes live.</text>
+  <text x="24" y="257" font-size="11.5" class="quiet">Paying before erasure reopens a closed company, its</text>
+  <text x="24" y="274" font-size="11.5" class="quiet">connections back in shadow. Processing never restricts.</text>
+</svg>
+</figure>
+
+<p><strong>The state is computed, not stored.</strong> Control keeps, per company: when the trial ends, whether it has ever paid, when its oldest unpaid invoice first failed, whether a payment is processing, when its cancellation takes effect, and when it closed. One function of those dates and the current time returns the state, and composition (ADR-000) reads it like the plan. There is no job that moves a company from state to state, so none can be missed or run twice. Jobs run only where something must happen on a date: carrying out the stop choices at closing, and erasure.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>State</th>
+<th>When</th>
+<th>What runs</th>
+<th>How it leaves</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Trial</strong></td>
+<td>From sign-up until the trial ends</td>
+<td>Everything the trial grants. A connection can go live once decision 6 is met</td>
+<td>Trial ends with a payment method: <strong>active</strong>, and the first charge is made. Without one: <strong>restricted</strong></td>
+</tr>
+<tr>
+<td><strong>Active</strong></td>
+<td>On a paid subscription. With an unpaid invoice, a banner and the provider&#39;s emails, but nothing else changes</td>
+<td>Everything the plan includes</td>
+<td>14 days after a payment first failed, unless one is processing: <strong>restricted</strong>. The cancellation takes effect: <strong>closed</strong></td>
+</tr>
+<tr>
+<td><strong>Restricted</strong></td>
+<td>From day 14 after a payment first failed, or from the end of a trial with no payment method</td>
+<td>The stock path, billing pages and the export. Everything else is read-only</td>
+<td>The invoice is paid: <strong>active</strong> at once. Day 30 after the payment first failed, or 14 days after the trial ended: <strong>closed</strong></td>
+</tr>
+<tr>
+<td><strong>Closed</strong></td>
+<td>From the closing date</td>
+<td>Every live connection decrease-only (below): orders still import and reserve in the background. Sign-in, billing pages and the export. Every screen is read-only</td>
+<td>Payment: <strong>active</strong>, reopened (below). 30 days after closing, with no payment processing: <strong>erased</strong></td>
+</tr>
+</tbody></table></div>
+<ul>
+<li><strong>A first charge that fails at the end of a trial</strong> follows the same days as any failed payment, counted from the trial&#39;s end. The company is active, with the banner, and its connections stay as they are.</li>
+<li><strong>A payment that is processing,</strong> such as a first Bacs Direct Debit that takes up to 7 business days to confirm, holds off restriction. It never holds off closing, because day 30 leaves time for any Bacs retry to settle, and a payment that succeeds after closing reopens the company anyway.</li>
+<li><strong>Erasure waits</strong> while any payment is processing, so a late success can still reopen the company.</li>
+<li><strong>Restricted, in detail.</strong> Read-only: catalogue edits and linking, new connections and going live, purchasing, settings, imports, and the modules that are neither warehouse nor stock. Still allowed: everything on the stock path; inviting a Warehouse or Staff member, so a seller can still take on a picker; removing a person and ending sessions, which is security. The table below says what each role may do. A restricted company gets the capped, lower-priority share of shared marketplace allowances that ADR-001 gives trials, with the same exception for stock decreases on a live connection.</li>
+<li><strong>Nothing moves between states.</strong> A company stays in its cell in every state, from sign-up to erasure (ADR-001). A state only changes what composition makes available and what the egress gate sends.</li>
+<li><strong>The operator can pause the closing date,</strong> once per company, by up to 14 days, with a reason the owners see. It is for a payment that cannot settle in time through no fault of the seller, such as a provider outage or a disputed charge near day 30.</li>
+</ul>
+<h3>What each role may do</h3>
+<p>The six roles are ADR-010&#39;s. Trial and active change nothing in ADR-010&#39;s table. Restricted and closed narrow it:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Restricted</th>
+<th>Closed</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Owner</strong></td>
+<td>Pay, change the payment method, cancel; every action on the stock path; change a connection&#39;s stop choice; invite a Warehouse or Staff member; remove a person; export</td>
+<td>Pay, change the payment method; switch a decrease-only connection to &quot;send zero&quot;; export; remove a person</td>
+</tr>
+<tr>
+<td><strong>Admin</strong></td>
+<td>Every action on the stock path; change a connection&#39;s stop choice; invite a Warehouse or Staff member; remove a person below Admin; export</td>
+<td>Switch a decrease-only connection to &quot;send zero&quot;; export; remove a person below Admin</td>
+</tr>
+<tr>
+<td><strong>Manager</strong></td>
+<td>Every action on the stock path ADR-010 gives a Manager (holds, cancellations, counts, adjustments, approvals); change a connection&#39;s stop choice</td>
+<td>Switch a decrease-only connection to &quot;send zero&quot;; read</td>
+</tr>
+<tr>
+<td><strong>Warehouse</strong></td>
+<td>Floor work, unchanged</td>
+<td>Read</td>
+</tr>
+<tr>
+<td><strong>Accountant</strong></td>
+<td>Read, reports, export without buyer data, Vervoro&#39;s invoices</td>
+<td>Read, export without buyer data, Vervoro&#39;s invoices</td>
+</tr>
+<tr>
+<td><strong>Staff</strong></td>
+<td>Read</td>
+<td>Read</td>
+</tr>
+</tbody></table></div>
+<p>&quot;Every action on the stock path&quot; is ADR-010&#39;s rows for stock and orders. Everything else in ADR-010&#39;s table is refused while restricted or closed, with the reason &quot;billing&quot; and the date it began.</p>
+<h2>Stopping sends when a company closes</h2>
+<p>A closed company must stop sending in the end, because once it is erased its data, credentials and data key are gone and Vervoro can send nothing more (ADR-001). ADR-000 says stopping sends asks first. This record keeps that rule, asks the question early, and fills the gap between closing and erasure.</p>
+<ul>
+<li><strong>The question is asked at going live.</strong> The answer is stored per connection and can be changed at any time in its settings. The notices say what the stored answer is, so in most cases the seller has answered long before money is owed.</li>
+<li><strong>Nothing changes until the closing date.</strong> Until then the stock path still runs.</li>
+<li><strong>On the closing date every live connection becomes decrease-only,</strong> a mode of its own beside shadow, live, paused and disconnected (ADR-004, ADR-008). &quot;Send zero&quot; first sends zero to every linked listing and waits for each to be confirmed, as ADR-008 requires before a mode changes. &quot;Leave the figures&quot; starts from the figures as they are.</li>
+<li><strong>Decrease-only, until erasure.</strong> Order notices and the completeness read go on, orders are imported and reserve stock, and a figure may fall but is never raised, whatever raised the computed figure (a receipt, a return, a cancellation). A sale on one marketplace still lowers the others. Stock received in the warehouse is not sent, because nobody is working in Vervoro any more. An Owner, Admin or Manager can still switch a decrease-only connection to &quot;send zero&quot;.</li>
+<li><strong>At erasure</strong> every connection is disconnected: its notice subscriptions are removed and its credentials forgotten (ADR-004). Every figure stays at its last value, which is never higher than at closing. A zero still unconfirmed at erasure alerts the operator and is named in the seller&#39;s last email.</li>
+<li><strong>Orders the seller ships by hand while closed</strong> come back from the marketplace as shipped outside Vervoro, which deducts their reserved stock (ADR-007). The stock record stays right through the closed weeks, apart from goods received.</li>
+<li><strong>No answer</strong> cannot happen for a connection that went live under decision 6. As a defence only, a connection with no stored answer is treated as &quot;leave the figures&quot;.</li>
+<li><strong>Vervoro never sends zero unasked.</strong> Zero hides every listing of a seller who may only have missed an email. Decrease-only cannot oversell from a figure Vervoro sent, and it costs only the decreases, which ADR-001 and ADR-004 already put first.</li>
+<li><strong>Imported orders after closing</strong> stay in the company&#39;s data, appear in its export, and are erased with it. Their buyer data goes at erasure, 30 days after the closing date, within the 30 days ADR-009 allows from the end of sending.</li>
+</ul>
+<h2>Reopening a closed company</h2>
+<p>A closed company can pay at any time before it is erased. Its data is whole, because nothing is deleted before erasure, so reopening is a payment and a return to shadow, not a restore.</p>
+<ol>
+<li><strong>Payment.</strong> The Owner pays on the billing page. A company whose subscription was left unpaid pays its open invoice, and the subscription carries on from there. A company that cancelled, or a trial that never paid, starts a new subscription through Checkout. There is no second trial.</li>
+<li><strong>Active at once.</strong> Paying changes the dates in control, so composition makes the plan available on the next request. Nothing moves (ADR-001). The erasure date is cancelled.</li>
+<li><strong>Every connection returns to shadow,</strong> from decrease-only, as after a reconnect (ADR-008): what each marketplace shows is unknown until it is read, and nothing is sent until the account goes live again. Connections are still approved, because nothing is disconnected before erasure, so no one has to approve Vervoro on a marketplace again.</li>
+<li><strong>The closed weeks are shown.</strong> A screen lists, per connection, what was sent while closed (zeros, decreases) and the orders imported, with those shipped by hand. It also says what Vervoro could not see: goods received, and listings the seller edited by hand on the marketplace.</li>
+<li><strong>Record what arrived.</strong> Goods received while closed were never recorded. The seller receives or counts them (ADR-006) before going live, or the first figures would be too low. Too low is safe, but costs sales.</li>
+<li><strong>Going live again</strong> follows ADR-008&#39;s listing check for a later account: a complete order read, every listing read, a listing showing more than Vervoro&#39;s figure is never accepted as explained, and raises wait for the order read. An Owner or Admin confirms it per account, as for any go-live (ADR-010).</li>
+</ol>
+<ul>
+<li><strong>Restricted is simpler.</strong> A restricted company that pays is active at once, with its connections still live: the stock path never stopped, so there is nothing to catch up.</li>
+<li><strong>Closing again</strong> follows the same days. The operator&#39;s pause of a closing date stays once per company, however often it closes.</li>
+<li><strong>After erasure</strong> there is nothing to reopen. The seller signs up again as a new company, without a trial, and connects its marketplace accounts afresh: erasure released their seller ids (ADR-001).</li>
+</ul>
+<h2>Notices</h2>
+<p>Stripe sends the payment emails it already sends: the trial is ending, a payment failed, a card is about to expire, and the notices that Bacs rules require. Vervoro sends three notices of its own, because only Vervoro knows the stop choices.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>When</th>
+<th>What it says</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Entering restricted</td>
+<td>What still runs; the closing date; each live connection&#39;s stored stop choice (or that it has none, and what happens then); how to pay</td>
+</tr>
+<tr>
+<td>7 days before closing</td>
+<td>The same, with the choices still open</td>
+</tr>
+<tr>
+<td>Closing</td>
+<td>What each connection&#39;s choice did, and that no listing will rise again, so stock received must be put on the marketplaces by hand; a file with the last figure sent to each listing, in a form the seller can upload to the marketplace by hand; the export link; the erasure date; how to reopen before then</td>
+</tr>
+</tbody></table></div>
+<ul>
+<li><strong>Who gets them:</strong> every owner, the billing contact and the stock contact, by email, with a banner for owners and admins in the app. Dates are always named, never only a number of days.</li>
+<li><strong>A notice that bounces</strong> is an event. The banner then goes to every user, and the operator is alerted once. It is an alert, not a task with a deadline.</li>
+</ul>
+<h2>Plans</h2>
+<p>A plan is a row in the control database. That row is the only place that says what a plan gives.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>A plan holds</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Id and name</td>
+<td>What composition and the screens refer to</td>
+</tr>
+<tr>
+<td>Modules</td>
+<td>What composition makes available (ADR-000). The foundation and the connectors are in every plan</td>
+</tr>
+<tr>
+<td>Order ceiling</td>
+<td>Orders dispatched from the seller&#39;s own warehouses in a month, averaged over three months</td>
+</tr>
+<tr>
+<td>Support level</td>
+<td>The reply target and channels</td>
+</tr>
+<tr>
+<td>Provider price ids</td>
+<td>One per billing interval. The amounts are set at the provider, never in the row or the code</td>
+</tr>
+</tbody></table></div>
+<ul>
+<li><strong>Three tiers and add-ons.</strong> Each tier includes the modules of the one below it. The top tier differs from the middle one only by a higher order ceiling and a faster support level. An add-on is one module sold on its own, and may need a minimum tier.</li>
+<li><strong>Monthly or yearly,</strong> in pounds sterling.</li>
+<li><strong>Changing a plan&#39;s row.</strong> A change that adds something applies to everyone at once. A change that takes something away applies to a paying company at its next renewal, after 30 days&#39; notice.</li>
+<li><strong>Contract plans</strong> (a dedicated database under ADR-001, or anything not in the catalogue) are agreed by the operator and invoiced by hand at the provider, with payment terms. At launch volumes a flag and a billing path for them are not worth building.</li>
+<li><strong>Composition reads the plan</strong> from control, cached like every other control read, together with the company&#39;s add-ons, its trial grant and its state. A module the plan lacks is unavailable, with the reason &quot;not in your plan&quot;, and the screen offers the plan that has it.</li>
+</ul>
+<p><strong>Why users and connections are unlimited.</strong> A limit on marketplace accounts would leave some channel outside Vervoro. That channel&#39;s sales would reserve nothing, and the seller&#39;s other channels would oversell. A limit on users would make staff share a login, and ADR-009 needs every view of buyer data logged against one person who signs in with a second factor. What grows Vervoro&#39;s cost with a seller is orders, so orders are what the tiers measure. Shared marketplace allowances are already capped and watched by ADR-004.</p>
+<h2>The order ceiling</h2>
+<ul>
+<li><strong>What counts:</strong> an order dispatched from one of the seller&#39;s own warehouses, once, in the month of its first dispatch, however many parcels it needed. Manual and business orders count like marketplace orders.</li>
+<li><strong>What never counts:</strong> orders a marketplace ships from its own stock, orders cancelled before dispatch, replacements, and returns.</li>
+<li><strong>Counting</strong> is one query a night per cell: distinct orders with a first own-warehouse dispatch in the month, per company, read from the dispatch records the foundation already keeps. The cell&#39;s sweeper writes the full month-to-date count into control&#39;s usage rollups as an upsert, so a rerun writes the same number and nothing can count twice. Nothing is added to the dispatch transaction. Restores and moves carry the dispatch records, so the count follows the company. Control keeps the monthly rollups, so archiving (ADR-002) does not touch them.</li>
+<li><strong>The measure</strong> is the average of the last three complete calendar months, in the company&#39;s time zone. One busy month alone never moves a plan.</li>
+<li><strong>At 80 % and 100 % of the ceiling,</strong> on the month-to-date count, the owners are told in the app. Nothing else changes.</li>
+<li><strong>When the three-month average passes the ceiling</strong> at a month&#39;s end, the owners are told that the plan will move up a tier at the next renewal, and the date, at least 30 days ahead. If the average falls back under before then, the move is called off.</li>
+<li><strong>Above the top tier&#39;s ceiling</strong> the operator is alerted, to agree a contract plan. Nothing stops.</li>
+<li><strong>The trial has no ceiling.</strong> Its share of shared allowances is already capped (ADR-001).</li>
+</ul>
+<h2>The trial</h2>
+<ul>
+<li><strong>21 days from sign-up,</strong> within ADR-001&#39;s range. The operator can extend a trial once, with a reason, for a seller whose catalogue takes longer to link.</li>
+<li><strong>What it grants:</strong> the modules of the tier the company is trying, the middle tier unless it chose another. It lives in a normal cell, with the capped shares of background work and shared allowances that ADR-001 sets.</li>
+<li><strong>No payment details to start.</strong> Shadow mode sends nothing, so a trial costs little and risks nothing. Payment details are asked for when a connection is about to go live (decision 6), or at any time before the trial ends.</li>
+<li><strong>Adding a payment method chooses a plan.</strong> The subscription starts with the trial&#39;s end date, and the first invoice is charged at the end without a further step. Stripe&#39;s trial-ending email says so beforehand.</li>
+<li><strong>One trial per company.</strong> The control database&#39;s external directory already holds one marketplace account in one company only. When a new company connects an account that was connected before, the operator is alerted. No trace of an erased company is kept to police trials; at launch volumes the operator sees abuse.</li>
+<li><strong>Demo companies</strong> have no subscription.</li>
+</ul>
+<h2>Payment</h2>
+<p><strong>Stripe Billing,</strong> with cards and Bacs Direct Debit.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Need</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>A payment method</td>
+<td>Stripe Checkout, as a full page Vervoro redirects to. Bacs mandates can only be collected there, and Stripe sends the mandate confirmation and advance notices that Bacs rules require</td>
+</tr>
+<tr>
+<td>Changing the method and the billing details; reading invoices</td>
+<td>Stripe&#39;s customer portal, reached from Vervoro&#39;s billing page. Its plan switching and cancelling are turned off</td>
+</tr>
+<tr>
+<td>Plan changes and cancellation</td>
+<td>Vervoro&#39;s own billing screen, which calls Stripe, because a change may end a module or stop sends</td>
+</tr>
+<tr>
+<td>Charging</td>
+<td>Subscriptions, charged automatically. Contract plans by invoice with payment terms</td>
+</tr>
+</tbody></table></div>
+<p><strong>Why both cards and Direct Debit.</strong> UK businesses commonly pay software by Direct Debit, and a mandate does not expire the way a card does. A card is instant and suits a seller who wants to start today. Stripe takes both in one subscription and one invoice sequence.</p>
+<p><strong>What Bacs changes.</strong> A payment is confirmed about 4 business days after it is submitted, or up to 7 with a new mandate. A bank may report a failure after Stripe showed success; it then arrives as a dispute. A Bacs dispute can be raised at any time, cannot be contested, and is final. So:</p>
+<ul>
+<li><strong>&quot;Processing&quot; is not &quot;failed&quot;.</strong> It holds off restriction, as above.</li>
+<li><strong>A lost dispute, card or Bacs,</strong> makes the amount owed again. Vervoro issues a new invoice for it, and the failed-payment days start. After erasure there is no one to charge, so it is written off, and the operator is alerted.</li>
+<li><strong>Mandate events</strong> (cancelled by the seller&#39;s bank, a changed account) are read from Stripe&#39;s events. A cancelled mandate with no other method asks the owner for a new one before the next charge.</li>
+</ul>
+<p><strong>Card data never touches Vervoro.</strong> Card numbers are entered only on Stripe&#39;s pages, reached by redirect. Vervoro stores only what Stripe returns: ids, the card&#39;s brand, its last four digits and its expiry. With every payment page outsourced by redirect, Vervoro is eligible for SAQ A. The SAQ A criterion about scripts on the merchant&#39;s page covers only payment forms embedded in it, and Vervoro has none. Bank details for Direct Debit are not card data, and they too stay with Stripe.</p>
+<p><strong>Calls to Stripe follow the egress pattern.</strong> The intent (create a subscription, change a plan) is recorded in control with an idempotency key, and the call is made after commit with that key, so a retry never charges twice. Stripe keeps a key for at least 24 hours, longer than any retry here.</p>
+<h3>Events from Stripe</h3>
+<p>Stripe&#39;s events are handled like marketplace notices (ADR-004):</p>
+<ol>
+<li><strong>Verify before any database read.</strong> The <code>Stripe-Signature</code> header is checked with the endpoint&#39;s secret, within Stripe&#39;s default 5-minute tolerance. A request that fails is refused.</li>
+<li><strong>Queue a minimal message:</strong> the event id, its type and the object&#39;s id. Then answer at once with a 2xx, as Stripe asks.</li>
+<li><strong>The consumer</strong> records the event id in control, so a second delivery does nothing. It then <strong>fetches the object&#39;s current state</strong> from Stripe and sets the company&#39;s dates from it, because Stripe does not deliver events in order.</li>
+<li><strong>Before any date-driven step,</strong> the job that carries out the stop choices and the erasure job re-read the company&#39;s subscription and invoices from Stripe. A lost &quot;payment succeeded&quot; event can then never close or erase a company that paid.</li>
+<li><strong>Stripe retries an unanswered event for up to three days.</strong> A failed queue delivery goes to the dead-letter queue, which alerts the operator (ADR-000).</li>
+</ol>
+<h3>Plan changes</h3>
+<ul>
+<li><strong>Upgrade</strong> (a higher tier, an add-on, monthly to yearly): applies at once. The rest of the period is charged at once, credited for the unused part of what was already billed.</li>
+<li><strong>Downgrade</strong> (a lower tier, removing an add-on): applies at the end of the period. A module it ends follows the module-ending rule below.</li>
+<li><strong>No plan change while an invoice is unpaid.</strong> Paying it comes first, so no credit is given for time that was never paid.</li>
+<li><strong>A module that ends</strong> becomes read-only on the day it ends. Its data stays visible and exportable until the company is erased, and taking the module back restores everything. If ending it would stop sends to a live connection, the connection&#39;s stop choice is shown and confirmed first.</li>
+</ul>
+<h3>Failed payments</h3>
+<ul>
+<li><strong>Retries:</strong> cards by Stripe&#39;s Smart Retries, set to a 14-day window. Bacs payments that fail for lack of funds are retried by Stripe up to twice, within 30 days of the first try.</li>
+<li><strong>Days 0 to 14:</strong> the company is active, with a banner and Stripe&#39;s emails.</li>
+<li><strong>Day 14:</strong> restricted, unless a payment is processing. Stripe&#39;s subscription is left unpaid, not cancelled, so its open invoice can still be paid and the subscription carries on.</li>
+<li><strong>Day 30:</strong> closed.</li>
+<li><strong>Paying the open invoice</strong> at any point before erasure makes the company active again.</li>
+</ul>
+<h2>Vervoro&#39;s invoices and VAT</h2>
+<p><strong>Invoices.</strong> Stripe issues every invoice and credit note in Vervoro&#39;s name.</p>
+<ul>
+<li><strong>Numbering:</strong> one sequence for the whole Stripe account, with one prefix, as UK and EU rules expect. A number is never reset or reused.</li>
+<li><strong>Content:</strong> each invoice carries what a UK VAT invoice must show: its number, the tax point and the issue date, Vervoro&#39;s name, address and VAT number, the company&#39;s name and address (and VAT number where it has one), what was supplied, the VAT rate and the amounts.</li>
+<li><strong>Issued at once</strong> when Stripe finalises it, well within the 30 days HMRC allows.</li>
+<li><strong>Never edited after it is issued.</strong> A mistake is corrected with a credit note and, where needed, a new invoice.</li>
+</ul>
+<p><strong>VAT on Vervoro&#39;s charges.</strong> Vervoro is a UK business selling software to businesses.</p>
+<ul>
+<li><strong>At launch, UK businesses only,</strong> charged UK VAT at the standard rate, with or without a VAT number of their own. Sign-up asks the company to declare that it is a business, and the customer terms are for businesses only.</li>
+<li><strong>Businesses outside the UK, when switched on:</strong> no UK VAT, because a service to a business is supplied where the customer belongs, and the customer accounts for VAT under the reverse charge. The invoice says &quot;reverse charge&quot; and shows the customer&#39;s VAT number. The evidence is that VAT number, checked against the EU&#39;s register (VIES) for EU customers, or the customer&#39;s registration elsewhere. Checkout is refused until the number is verified, because Stripe&#39;s tax calculation would apply the reverse charge to any number of the right shape. This is built when the setting is switched on, after Vervoro&#39;s accountant confirms the setup.</li>
+<li><strong>Consumers are not accepted.</strong></li>
+</ul>
+<p><strong>Keeping the records.</strong> Vervoro&#39;s billing records (invoices, credit notes, payments, VAT evidence) are kept for 6 years after the end of Vervoro&#39;s financial year in which they were made, as ADR-002 sets for accounting records.</p>
+<ul>
+<li><strong>Where:</strong> in Stripe, and in Vervoro&#39;s accounting software, which holds a copy of each invoice and the digital VAT records. A yearly check confirms the two agree.</li>
+<li><strong>They outlive the company.</strong> Erasing a company (ADR-001) removes its cell data. Its tombstone in control keeps the company id, Stripe&#39;s customer id and the invoice numbers. The billing contact&#39;s name and address stay only on the invoices, which the law requires Vervoro to keep.</li>
+<li><strong>Stripe is not a buyer-data sub-processor.</strong> It handles no buyer data, so it is not on ADR-009&#39;s list. Vervoro&#39;s privacy notice names it for the seller&#39;s own account data.</li>
+</ul>
+<h2>Cancellation, export and refunds</h2>
+<ul>
+<li><strong>Cancelling</strong> is the owner&#39;s step on Vervoro&#39;s billing screen. It shows each live connection&#39;s stop choice for confirmation, then ends the subscription at the end of the paid period. Until then the company is active, and the cancellation can be taken back.</li>
+<li><strong>Export</strong> is available in every state until erasure: the company export of ADR-001 and ADR-009, with buyer data only for orders that still hold it, made only by an owner or admin.</li>
+<li><strong>Erasure</strong> runs 30 days after closing, with ADR-001&#39;s slice operation, and its erase ledger proves it. A seller may ask for it sooner. It then runs after a confirmation, and once every connection&#39;s stop choice has been carried out.</li>
+<li><strong>Refunds.</strong> Part periods are not refunded on cancellation or downgrade. A charge made by Vervoro&#39;s mistake (a double charge, a wrong plan) is refunded or credited by credit note. A Bacs refund is made only after the original payment has settled, and the seller is told first, so that their bank does not also pay them back under the Direct Debit guarantee.</li>
+</ul>
+<h2>Who may manage billing</h2>
+<p>These rows join ADR-010&#39;s table of who may do what, with its six roles:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Owner</th>
+<th>Admin</th>
+<th>Manager</th>
+<th>Warehouse</th>
+<th>Accountant</th>
+<th>Staff</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Choose, change or cancel the plan; add or change the payment method; change billing details; pay an open invoice</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Set a connection&#39;s stop choice when it goes live; name the stock contact</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Change a connection&#39;s stored stop choice</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>See the plan, the state, the order count and the next charge</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Read and download Vervoro&#39;s invoices and credit notes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+</tbody></table></div>
+<p>Changing a stop choice follows ADR-010&#39;s row for stopping sends (Owner, Admin, Manager). Setting it at going live follows its row for going live (Owner, Admin). Every billing action is written to <code>audit_log</code> with the person and the time, and the plan, payment and cancel steps need ADR-010&#39;s fresh check. The operator&#39;s two levers, extending a trial and pausing a closing date, each need a recorded reason that the company&#39;s owners see. Credits are made at Stripe, as a credit note.</p>
+<h2>How this is proven</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Where</th>
+<th>Proves</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>State function</td>
+<td>CI</td>
+<td>A table of dates in, a state out, for every row of the state table, including a processing payment at day 14 and at day 30</td>
+</tr>
+<tr>
+<td>Stock path by state</td>
+<td>CI</td>
+<td>In trial, active and restricted, orders import, reserve and dispatch, and figures go to live connections. In restricted, every other write is refused with the reason, except a warehouse invite and removing a user</td>
+</tr>
+<tr>
+<td>Closing</td>
+<td>CI, simulators</td>
+<td>&quot;Send zero&quot; sends and confirms zeros, then goes decrease-only; &quot;leave&quot; and no answer go decrease-only; in decrease-only a sale lowers figures and a receipt, a return or a cancellation raises none; at erasure every connection is disconnected; no code path sends zero without a stored choice</td>
+</tr>
+<tr>
+<td>Reopening</td>
+<td>CI, simulators</td>
+<td>Paying while closed makes the company active, cancels its erasure, and returns every connection to shadow with nothing sent until it goes live again on the listing check; no marketplace approval is needed again</td>
+</tr>
+<tr>
+<td>Roles by state</td>
+<td>CI</td>
+<td>In restricted and closed, each role can do exactly what the roles table allows, and every other action is refused with the reason</td>
+</tr>
+<tr>
+<td>Before a dated step</td>
+<td>CI</td>
+<td>A dropped &quot;payment succeeded&quot; event never closes or erases a company that paid</td>
+</tr>
+<tr>
+<td>Events</td>
+<td>CI</td>
+<td>A duplicated, late or out-of-order event leaves control matching Stripe; a bad signature is refused before any read</td>
+</tr>
+<tr>
+<td>Order count</td>
+<td>CI, real Postgres</td>
+<td>Repeated dispatches, second parcels and reruns count an order once</td>
+</tr>
+<tr>
+<td>Idempotent calls</td>
+<td>CI</td>
+<td>A retried plan change with the same key charges once</td>
+</tr>
+<tr>
+<td>Card data</td>
+<td>Build check</td>
+<td>No page of Vervoro takes a card number; payment pages are reached by redirect only</td>
+</tr>
+<tr>
+<td>Recorded replies</td>
+<td>Before launch</td>
+<td>Every Stripe call and event the design uses is checked against Stripe&#39;s test mode, and the simulator is fixed where it differs</td>
+</tr>
+</tbody></table></div>
+<h2>Constraints</h2>
+<p>Checked against official sources on 18 October 2026.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Constraint</th>
+<th>What it means here</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Bacs Direct Debit</td>
+<td>UK bank accounts, sterling; recurring payments with Billing; confirmed in about 4 business days, up to 7 with a new mandate; mandates collected only through Checkout; Stripe sends the required notices; disputes have no time limit, cannot be contested and are final; refunds within 180 days; new accounts start with transaction and weekly limits, and Bacs needs Stripe&#39;s approval</td>
+<td><a href="https://docs.stripe.com/payments/payment-methods/bacs-debit">Bacs Direct Debit</a></td>
+</tr>
+<tr>
+<td>Retries</td>
+<td>Smart Retries choose times within a set window (8 tries in 2 weeks recommended); Bacs retries for lack of funds, up to 2 within 30 days; after the last try a subscription can be cancelled, left unpaid or left past due</td>
+<td><a href="https://docs.stripe.com/billing/revenue-recovery/smart-retries">Automate payment retries</a></td>
+</tr>
+<tr>
+<td>Proration</td>
+<td>Proration items are created by default; <code>always_invoice</code> charges at once; <code>none</code> turns it off per request; flexible billing mode credits what was last billed</td>
+<td><a href="https://docs.stripe.com/billing/subscriptions/prorations">Prorations</a></td>
+</tr>
+<tr>
+<td>Trials without a payment method</td>
+<td>Allowed; at the trial&#39;s end a subscription with no method can be cancelled, paused or invoiced; an event and emails before the end</td>
+<td><a href="https://docs.stripe.com/billing/subscriptions/trials/free-trials">Free trials</a></td>
+</tr>
+<tr>
+<td>Events</td>
+<td>Signed in <code>Stripe-Signature</code>, 5-minute default tolerance; answer 2xx before any slow work; duplicates happen; order is not guaranteed; retried for up to three days</td>
+<td><a href="https://docs.stripe.com/webhooks">Webhooks</a></td>
+</tr>
+<tr>
+<td>Idempotent requests</td>
+<td>Every POST takes an <code>Idempotency-Key</code>; keys may be pruned after 24 hours</td>
+<td><a href="https://docs.stripe.com/api/idempotent_requests">Idempotent requests</a></td>
+</tr>
+<tr>
+<td>Customer portal</td>
+<td>Plan switching off by default; cancelling on by default, so it is turned off</td>
+<td><a href="https://docs.stripe.com/customer-management/configure-portal">Configure the portal</a></td>
+</tr>
+<tr>
+<td>Invoice numbers</td>
+<td>Account-level sequential numbering, the usual requirement in the UK and EU</td>
+<td><a href="https://docs.stripe.com/invoicing/customize">Customize invoices</a></td>
+</tr>
+<tr>
+<td>VAT numbers</td>
+<td>EU numbers checked against VIES, UK numbers against HMRC; Stripe&#39;s tax calculation applies the reverse charge on a well-formed number whatever the check says</td>
+<td><a href="https://docs.stripe.com/billing/customer/tax-ids">Customer tax IDs</a></td>
+</tr>
+<tr>
+<td>PCI DSS SAQ A</td>
+<td>A merchant whose customers are redirected to the provider&#39;s payment page is outside the script criterion, which covers embedded payment forms only</td>
+<td><a href="https://www.pcisecuritystandards.org/faqs/1588">PCI SSC FAQ 1588</a></td>
+</tr>
+<tr>
+<td>B2B place of supply</td>
+<td>Services to a business are supplied where the customer belongs; an EU customer&#39;s VAT number is the best evidence that it is in business</td>
+<td><a href="https://www.gov.uk/guidance/vat-place-of-supply-of-services-notice-741a">VAT Notice 741A, section 6</a></td>
+</tr>
+<tr>
+<td>VAT invoices</td>
+<td>A sequential number that uniquely identifies the document, the tax point, the supplier&#39;s VAT number and the rest; normally issued within 30 days of the tax point</td>
+<td><a href="https://www.gov.uk/guidance/vat-guide-notice-700">VAT Notice 700, section 16</a></td>
+</tr>
+<tr>
+<td>VAT records</td>
+<td>Kept for at least 6 years; the VAT account kept digitally</td>
+<td><a href="https://www.gov.uk/guidance/record-keeping-for-vat-notice-70021">VAT Notice 700/21, sections 2.4 and 7</a></td>
+</tr>
+<tr>
+<td>Reverse charge in the EU</td>
+<td>The customer is liable for VAT on these services; the invoice must say &quot;reverse charge&quot;</td>
+<td><a href="https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32006L0112">VAT Directive 2006/112/EC, articles 196 and 226</a></td>
+</tr>
+</tbody></table></div>
+<h2>Changes to earlier records</h2>
+<p>This record amends five published records, in the same publication.</p>
+<ul>
+<li><strong>ADR-000, &quot;Talking to marketplaces&quot;:</strong> after &quot;Stopping sends on a live connection always asks first: leave the figures as they are, or send zero.&quot; add: &quot;The question is first asked when the connection goes live, and the answer is kept. When a company closes for non-payment, its answer is carried out, and the connection then only lowers its figures until the company is erased (<a href="../billing-and-plans/">ADR-012</a>).&quot;</li>
+<li><strong>ADR-001, &quot;Trials&quot;:</strong> &quot;decided with billing and plans&quot; becomes &quot;decided in <a href="../billing-and-plans/">ADR-012</a>: it is erased 30 days after the company closes&quot;.</li>
+<li><strong>ADR-004, &quot;Shadow and live at the egress gate&quot;:</strong> after &quot;Stopping a live account always asks first: leave the figures as they are, or send zero and wait until every zero is confirmed.&quot; add: &quot;The answer is first asked when the account goes live, and kept. A company that closes for non-payment carries it out on its closing date, and its accounts are then decrease-only until the company is erased, when they are disconnected (<a href="../billing-and-plans/">ADR-012</a>).&quot;</li>
+<li><strong>ADR-004, &quot;Switching a marketplace on and off&quot;, the Account row:</strong> &quot;shadow, live, paused or disconnected&quot; becomes &quot;shadow, live, paused, decrease-only (a closed company, <a href="../billing-and-plans/">ADR-012</a>) or disconnected&quot;.</li>
+<li><strong>ADR-008, &quot;Inventory sync&quot;:</strong><ul>
+<li>Decision 9 adds: &quot;A company that closes for non-payment carries out each account&#39;s answer on its closing date, and its accounts are then decrease-only until it is erased (<a href="../billing-and-plans/">ADR-012</a>).&quot;</li>
+<li>&quot;Listing modes and stopping&quot; adds: &quot;<strong>Decrease-only</strong> is an account mode for a company closed under ADR-012, from its closing date until its erasure. Orders still import and reserve, and D is worked out as usual, but a figure is sent only when it is lower than B. A higher D is never sent, whatever raised it: a receipt, a return, a cancellation or a policy change. Rows of the sending table that would send a higher D send nothing.&quot;</li>
+<li>&quot;Recovery&quot; adds a row: &quot;<strong>A closed company reopens</strong> (ADR-012) | Every account returns to shadow and every B is unknown. Goods received while it was closed are recorded first; each account goes live again on the listing check, like a later account.&quot;</li>
+<li>&quot;Rules, each with a test&quot; adds: &quot;13. An account in decrease-only mode never sends a figure above B; a sale on one account still lowers the others.&quot;</li>
+</ul>
+</li>
+<li><strong>ADR-010, &quot;What later records decide&quot;:</strong> the bullet for this record becomes &quot;<strong>Billing and plans (<a href="../billing-and-plans/">ADR-012</a>):</strong> decided there: what each role may do while a company is restricted or closed, and the billing rows of the table of who may do what.&quot;</li>
+</ul>
+<h2>Consequences</h2>
+<p><strong>What this gives us</strong></p>
+<ul>
+<li>No billing rule can oversell a seller. The stock path runs until closing, and after closing a figure only falls, until the data is gone.</li>
+<li>A seller who closes and comes back within 30 days loses nothing: same data, same approvals, back in shadow, live again after one listing check.</li>
+<li>Most sellers answer the stop question when they go live, long before any payment fails.</li>
+<li>A seller&#39;s bill changes only at a renewal they were warned about, never by overage.</li>
+<li>The operator does nothing on a schedule. State is a function of dates, Stripe runs the retries and the payment emails, and the dated steps re-read Stripe first.</li>
+<li>No card data reaches Vervoro, which keeps PCI DSS to its shortest form.</li>
+<li>Plans are rows, so a new tier or add-on is a row and a price at the provider, not a code change.</li>
+</ul>
+<p><strong>What it costs</strong></p>
+<ul>
+<li>A closed company still imports orders and sends decreases for 30 days without paying. It is a small cost, on the capped share.</li>
+<li>At erasure the figures are left where they are. A seller who ignored every notice and keeps trading by hand can still oversell after that; the last notice gives them the file of figures to take over.</li>
+<li>Bacs disputes can arrive at any time and cannot be contested, so a paid invoice is never quite final.</li>
+<li>Unlimited users and connections mean a large seller pays by orders only; the top tier and contract plans carry that.</li>
+<li>Vervoro depends on one payment provider for charging, invoices and its emails. Changing provider later means moving every mandate.</li>
+<li>Sellers outside the UK wait for the accountant&#39;s check.</li>
+</ul>
+<h2>Alternatives considered</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Why not</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Charge overage per order above the ceiling</td>
+<td>An unpredictable bill for a small business, and the count would have to be invoice-grade, with disputes to answer</td>
+</tr>
+<tr>
+<td>Stop importing orders at the ceiling</td>
+<td>Orders the marketplace already sold would reserve nothing, and other channels would oversell</td>
+</tr>
+<tr>
+<td>Limit marketplace accounts or users per plan, refusing only new ones</td>
+<td>A channel left outside Vervoro oversells the others; a user limit invites shared logins that break per-person logging</td>
+</tr>
+<tr>
+<td>One busy month moves the plan, or the latest month when it is far over</td>
+<td>Punishes a seasonal peak; the operator already sees a fast-growing seller</td>
+</tr>
+<tr>
+<td>Card details at sign-up</td>
+<td>Asks for money before Vervoro has sent anything; going live is when cost and risk begin</td>
+</tr>
+<tr>
+<td>Disconnect at closing and leave the figures</td>
+<td>The figures freeze while the seller may keep selling; decrease-only until erasure removes that risk for 30 days at little cost</td>
+</tr>
+<tr>
+<td>Send zero when nobody answers</td>
+<td>Hides every listing of a seller who may only have missed an email</td>
+</tr>
+<tr>
+<td>Keep syncing in full until the company answers</td>
+<td>It may never answer; the data could never be erased</td>
+</tr>
+<tr>
+<td>A third stop choice: one last figure capped at what is available</td>
+<td>Decrease-only does the same job without changing the two-choice rule</td>
+</tr>
+<tr>
+<td>A stored state with jobs that move it</td>
+<td>A missed or doubled job leaves a company in the wrong state; dates and one function cannot drift</td>
+</tr>
+<tr>
+<td>A daily reconciliation with Stripe</td>
+<td>Re-reading Stripe before each dated step protects the same moments with no extra job</td>
+</tr>
+<tr>
+<td>A usage table written in the dispatch transaction</td>
+<td>Adds a write to the stock path for a soft limit; a nightly query over dispatch records gives the same count</td>
+</tr>
+<tr>
+<td>Versioned plan rows</td>
+<td>At launch volumes, a 30-day notice for anything taken away does the same job</td>
+</tr>
+<tr>
+<td>A trial extension that switches on by itself after the catalogue import</td>
+<td>One more rule, notice and test; the operator extends the few trials that need it</td>
+</tr>
+<tr>
+<td>A keyed hash of every trial&#39;s marketplace accounts, kept after erasure</td>
+<td>Keeps a trace of an erased company; at launch volumes the operator sees abuse</td>
+</tr>
+<tr>
+<td>Longer closing for companies that have paid before</td>
+<td>Restricted keeps the stock path running and closing only lowers figures, so 30 days hurts no one</td>
+</tr>
+<tr>
+<td>A paid pause for seasonal sellers</td>
+<td>A new state and a price for a need not yet seen; a later record can add it</td>
+</tr>
+<tr>
+<td>A merchant of record that sells in its own name and handles VAT</td>
+<td>Does not take Bacs Direct Debit, and the seller&#39;s invoice would come from another company</td>
+</tr>
+<tr>
+<td>A Direct Debit-only provider</td>
+<td>No cards, so a second provider and a second invoice sequence for sellers who want to start at once</td>
+</tr>
+<tr>
+<td>Payment fields embedded in Vervoro&#39;s pages</td>
+<td>Brings scripts on Vervoro&#39;s page into PCI scope; Checkout by redirect keeps it out</td>
+</tr>
+<tr>
+<td>Let the provider&#39;s portal change plans and cancel</td>
+<td>Would end modules and stop sends without the stop choice</td>
+</tr>
+<tr>
+<td>Vervoro numbering and rendering its own invoices</td>
+<td>A second sequence to keep gapless and a document to keep compliant; the provider does both</td>
+</tr>
+</tbody></table></div>
+<h2>What later records decide</h2>
+<ul>
+<li><strong>ADR-011: Invoicing and VAT</strong> (in draft): the seller&#39;s own invoices to their buyers, which this record does not cover.</li>
+<li><strong>Prices, tier names and which modules sit in which tier:</strong> the owner&#39;s, set in the plan rows and at the provider, and never published here.</li>
+<li><strong>Contract plans</strong> (a later record): dedicated databases, residency outside the EU and their terms.</li>
+<li><strong>Selling outside the UK:</strong> switching it on after the accountant&#39;s check, and whether Vervoro then needs any registration outside the UK.</li>
+</ul>
+
+<footer>Vervoro</footer>
+</main>
+</body>
+</html>

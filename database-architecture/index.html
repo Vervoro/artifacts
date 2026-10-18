@@ -333,7 +333,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>A trial cell when trials outgrow their share.</strong> If trial companies use more than about 25% of a cell&#39;s compute for a week, the system recommends a cell for trials only. New trials then start there, and a trial that pays is moved to a paid cell by the slice operation, with the same fencing, <code>moved_out</code> source row and checks as any move.</li>
 <li><strong>Trials cannot crowd out paying companies.</strong> Trials together get a capped share of the cell&#39;s sweeper slots and bulk jobs, and a capped, lower-priority share of any marketplace allowance limited for the whole application, except stock decreases on an active connection, which always go first. Sign-up is gated against abuse.</li>
 <li><strong>Same safety as production.</strong> A trial company may already sell on real marketplaces from its numbers, so it has the same backups, alerts and switch-off rules as everyone else. Demo companies live in a cell like any other company.</li>
-<li><strong>When a trial lapses</strong> without paying, or a paying company closes, what is kept, for how long, and when the data is erased is decided with billing and plans. Until it is erased, the data stays in its cell.</li>
+<li><strong>When a trial lapses</strong> without paying, or a paying company closes, what is kept, for how long, and when the data is erased is decided in <a href="../billing-and-plans/">ADR-012</a>: it is erased 30 days after the company closes. Until it is erased, the data stays in its cell.</li>
 </ul>
 <h2>Platform constraints</h2>
 <p>Checked against Neon&#39;s and Cloudflare&#39;s documentation on 18 October 2026.</p>

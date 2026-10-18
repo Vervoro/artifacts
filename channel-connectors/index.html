@@ -419,7 +419,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ul>
 <p>A connector that passes the suite works with the host. A new connector starts from the suite.</p>
 <p><strong>Sandboxes check the simulators, not the code.</strong> eBay and Amazon both offer a sandbox. They are slow, limited and not deterministic, so tests never call them. Before launch, every call the launch connectors make is made once against the sandbox or the real marketplace, the reply is recorded, and the simulator is fixed wherever it differs. Each simulator&#39;s documentation lists where it is simpler than the real service.</p>
-<p><strong>Shadow and live at the egress gate.</strong> Every account starts in <strong>shadow</strong>: orders come in, listings are read, stock is reserved inside Vervoro, and the gate records each figure it would have sent without sending it. The shadow check compares what Vervoro would send with what the marketplace shows, listing by listing. The seller goes <strong>live</strong> once every difference is explained and acknowledged. Stopping a live account always asks first: leave the figures as they are, or send zero and wait until every zero is confirmed. Reconnecting after a disconnect starts a new shadow period.</p>
+<p><strong>Shadow and live at the egress gate.</strong> Every account starts in <strong>shadow</strong>: orders come in, listings are read, stock is reserved inside Vervoro, and the gate records each figure it would have sent without sending it. The shadow check compares what Vervoro would send with what the marketplace shows, listing by listing. The seller goes <strong>live</strong> once every difference is explained and acknowledged. Stopping a live account always asks first: leave the figures as they are, or send zero and wait until every zero is confirmed. The answer is first asked when the account goes live, and kept. A company that closes for non-payment carries it out on its closing date, and its accounts are then decrease-only until the company is erased, when they are disconnected (<a href="../billing-and-plans/">ADR-012</a>). Reconnecting after a disconnect starts a new shadow period.</p>
 <h2>Switching a marketplace on and off</h2>
 <p><strong>Adding or removing a marketplace never touches the core.</strong> A marketplace is one module that contributes one connector definition. The host, the gate, the server and the screens name no marketplace. Notice addresses are generic (the marketplace&#39;s key is part of the address), and a key that no module contributes is refused from the module registry alone. Removing the module removes the marketplace; its accounts must be stopped first.</p>
 <p><strong>Three levels of on and off.</strong></p>
@@ -444,7 +444,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td><strong>Account</strong></td>
 <td>The seller</td>
-<td>The account&#39;s mode: shadow, live, paused or disconnected. Disconnected also forgets the credentials</td>
+<td>The account&#39;s mode: shadow, live, paused, decrease-only (a closed company, <a href="../billing-and-plans/">ADR-012</a>) or disconnected. Disconnected also forgets the credentials</td>
 </tr>
 </tbody></table></div>
 <p>A connector that is off costs nothing. Its accounts have no work due, so the sweeper never visits them (ADR-001).</p>
