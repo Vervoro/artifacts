@@ -143,7 +143,7 @@ A company with no connected marketplace is a trial with little in it, and the pe
 
 **After every recovery,** the person and the company's Owners and Admins are told by email, every session of that login ends, and the recovery is logged in both audit trails.
 
-**Lockouts.** Ten wrong passwords, codes or recovery codes in a row lock password sign-in for 30 minutes and tell the person by email. A passkey still signs in during the lock. A bot check protects sign-up and password reset.
+**Lockouts.** Ten wrong passwords, codes or recovery codes in a row lock password sign-in for 30 minutes and tell the person by email. A passkey still signs in during the lock. Failed sign-ins from one network address slow down with each failure, whichever logins they try, so one source cannot guess passwords across many accounts. A bot check protects sign-up and password reset.
 
 ## Roles
 
