@@ -252,7 +252,7 @@ Amazon's schedule is the strictest of the three marketplaces, so it is the sched
 | Control | What Vervoro does | How often |
 | --- | --- | --- |
 | Multi-factor sign-in | Required for every user of every company, every operator and every developer account | Always |
-| Passwords | Where a password is used: at least 12 characters with mixed character types, none of the user's name, the last 10 not reused, changed at least once a year; locked after 10 failed attempts. Passkeys are offered | Always |
+| Passwords | Where a password is used: at least 12 characters with mixed character types, none of the user's name, the last 10 not reused, changed at least once a year; locked after 10 failed attempts. Passkeys are the default (ADR-010) | Always |
 | One person, one account | No shared or generic accounts | Always |
 | Security logs | Sign-ins, access grants, buyer-data views, exports, key use and admin actions, collected centrally, protected from change, with no buyer data in them | Kept at least 12 months; alerts reviewed continuously, the rest every two weeks |
 | Vulnerability scans | Every system that touches seller or buyer data | At least every 30 days, and the code before each release |

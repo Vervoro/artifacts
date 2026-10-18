@@ -82,7 +82,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Revision</strong></td>
-<td>18 October 2026, after a debate on how sign-in is built: Vervoro builds it itself, on the runtime&#39;s own primitives and one pinned library, with no identity provider and no auth framework; sign-in runs in a Worker of its own that alone holds the sign-in keys; a reset re-activates a person only in the company that reset them; recovery codes for every Owner, Admin and Accountant; a bot check before any password is hashed. See <a href="#how-sign-in-is-built">How sign-in is built</a></td>
+<td>18 October 2026, after a debate on how sign-in is built: Vervoro builds it itself, on the runtime&#39;s own primitives and one pinned library, with no identity provider and no auth framework; sign-in runs in a Worker of its own that alone holds the sign-in keys; a reset re-activates a person only in the company that reset them; recovery codes for every Owner, Admin and Accountant; a bot check before any password is hashed. See <a href="#how-sign-in-is-built">How sign-in is built</a>. Simplified the same day for launch scale: passkeys are the default at sign-up and a seller&#39;s session lasts 24 hours; three incident commands and the sign-in key&#39;s rotation are built, each rehearsed once; the email-hash key&#39;s rotation, per-method switches, canary logins and a timing measurement are deferred; the launch checks are a scrypt benchmark and a smoke test of the sign-in cryptography</td>
 </tr>
 <tr>
 <td><strong>Builds on</strong></td>
@@ -111,11 +111,11 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ol>
 <li><strong>Three kinds of people sign in:</strong> the seller&#39;s users, Vervoro&#39;s operators and Vervoro&#39;s developers. Buyers and suppliers never sign in. Background work is a system actor, never a person.</li>
 <li><strong>One login per person, any number of companies.</strong> The login, its sign-in methods and its sessions live in the control database. Each company&#39;s own users table holds the person&#39;s email address, name, role, warehouse scope and status in that company. That table decides what they may do there.</li>
-<li><strong>Two ways to sign in, both multi-factor:</strong> a password with a code from an authenticator app, or a passkey. A passkey verifies the person on their device (a fingerprint, a face or the device&#39;s PIN), so it counts as both factors on its own. Every person must have one of the two; anyone may have both.</li>
+<li><strong>Two ways to sign in, both multi-factor:</strong> a password with a code from an authenticator app, or a passkey. A passkey verifies the person on their device (a fingerprint, a face or the device&#39;s PIN), so it counts as both factors on its own. Every person must have one of the two; anyone may have both. <strong>A passkey is the default:</strong> sign-up and every invitation set one up first, and a password with an authenticator app is the fallback for a device that cannot hold or reach a passkey. Amazon&#39;s password rules, the yearly change included, apply only to logins that use a password.</li>
 <li><strong>Passwords follow Amazon&#39;s rules,</strong> as ADR-009 decided: at least 12 characters with mixed character types, none of the person&#39;s name, at least a day old before a change, changed at least once a year, and the last 10 not reused. They are also checked against a list of common and breached passwords.</li>
 <li><strong>Nothing else signs anyone in:</strong> no codes by text message or email, no email sign-in links, no Google or Microsoft sign-in at launch.</li>
 <li><strong>One person, one phone, one account.</strong> Every person signs in on their own device. There are no shared accounts and no shared warehouse phones.</li>
-<li><strong>Sessions follow the shift.</strong> A session lasts at most 12 hours, then the person signs in again. The app has no idle lock of its own; the phone&#39;s or laptop&#39;s own screen lock covers idle time. Account changes, exports with buyer data and connecting a marketplace need a full sign-in check within the last 5 minutes.</li>
+<li><strong>One sign-in a day.</strong> A seller&#39;s session lasts at most 24 hours, then the person signs in again; with a passkey that is one fingerprint. An operator&#39;s session lasts at most 12 hours. The app has no idle lock of its own; the phone&#39;s or laptop&#39;s own screen lock covers idle time. Account changes, exports with buyer data and connecting a marketplace need a full sign-in check within the last 5 minutes.</li>
 <li><strong>Six fixed roles:</strong> Owner, Admin, Manager, Warehouse, Accountant and Staff. One role per person per company, plus an optional warehouse scope. There are no custom roles at launch.</li>
 <li><strong>Permissions are named actions.</strong> Each module declares its actions, and one table grants them to roles. The server checks every request against the person&#39;s role, scope and status in that company, read in the same transaction as the work.</li>
 <li><strong>Nobody changes their own access.</strong> Owners manage everyone; Admins manage everyone below Admin. The last Owner cannot leave until there is another.</li>
@@ -271,7 +271,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>User verification is required:</strong> the device checks a fingerprint, a face or its own PIN. With it, one gesture is two factors: the device that holds the key, and the person who unlocks it. A response without the user-verified flag is refused.</li>
 <li><strong>Synced passkeys are accepted.</strong> A person who loses a phone keeps their passkey on the new one.</li>
 <li><strong>A laptop without a passkey</strong> can use the person&#39;s phone through the browser&#39;s cross-device sign-in (a QR code and Bluetooth), or the password and app code.</li>
-<li><strong>Offered, not forced.</strong> A person who accepts an invitation on a phone that can hold a passkey is offered one first. After a password sign-in on such a phone, the app offers one. On a phone with a passkey, signing in needs no email address: the phone offers the person&#39;s passkey for Vervoro. Warehouse staff gain the most: a fingerprint unlocks the app with gloves off, instead of typing a 12-character password.</li>
+<li><strong>The default, not forced.</strong> Sign-up and every invitation start with creating a passkey; &quot;use a password instead&quot; is a smaller link below it, for a device that cannot hold or reach one. After a password sign-in on a phone that can hold a passkey, the app offers one. On a phone with a passkey, signing in needs no email address: the phone offers the person&#39;s passkey for Vervoro. Warehouse staff gain the most: a fingerprint unlocks the app with gloves off, instead of typing a 12-character password.</li>
 </ul>
 <h3 id="everyones-security-page">Everyone&#39;s security page</h3>
 <p>Each person sees their sign-in methods and recent sign-ins, and can remove a lost passkey. Adding or removing a method, changing the password, and using a recovery code are told to the person by email.</p>
@@ -315,7 +315,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </thead>
 <tbody><tr>
 <td><strong>Longest session</strong></td>
-<td>12 hours, then a full sign-in</td>
+<td>24 hours, then a full sign-in</td>
 <td>12 hours, then a full sign-in</td>
 </tr>
 <tr>
@@ -334,7 +334,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Every request reads the session,</strong> so revoking it takes effect on the next request. ADR-001&#39;s restore step (&quot;revoke its sessions&quot;) and ADR-009&#39;s incident containment use the same revocation.</li>
 <li><strong>A role change applies to the next request,</strong> because the role is read in the request&#39;s own transaction.</li>
 <li><strong>No idle lock in the app.</strong> Idle time is covered by the device&#39;s own screen lock. Amazon&#39;s device rules (a 15-minute screen lock, managed devices) bind Vervoro&#39;s own laptops, which follow them; they are not rules for the seller&#39;s phones.</li>
-<li><strong>The end of a shift.</strong> Before the 12 hours run out, the app asks for a full sign-in, which starts a new 12-hour session; the old one is never extended. With a passkey this happens in place. A password sign-in takes the person to the sign-in page and back to the same screen, and scans already on the open screen survive the round trip.</li>
+<li><strong>The end of a session.</strong> Before a session runs out, the app asks for a full sign-in, which starts a new session; the old one is never extended. A seller&#39;s 24 hours are NIST&#39;s limit for this level of sign-in, so a person signs in once a day. With a passkey this happens in place. A password sign-in takes the person to the sign-in page and back to the same screen, and scans already on the open screen survive the round trip.</li>
 <li><strong>Account changes need a fresh check:</strong> inviting, removing or changing anyone&#39;s role or scope; resetting anyone&#39;s sign-in; changing one&#39;s own sign-in methods; connecting, disconnecting, going live on or switching off a marketplace account; an export with buyer data; switching on buyer data for an operator grant; closing the company or changing an Owner. Picking, packing, printing and counting never ask. Only the sign-in Worker records a full sign-in check, and it checks the time again itself before it carries out any account change, so the app cannot claim one.</li>
 </ul>
 <h2 id="account-recovery">Account recovery</h2>
@@ -439,16 +439,16 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>It never reaches a cell and never sends email.</strong> It hands the app the event and, for a reset or a recovery, the link; the app sends the mail to the address in the company&#39;s users table. The names the &quot;no part of your name&quot; rule needs come with the call.</li>
 <li><strong>It is built and shipped on its own terms.</strong> It has its own package list and frozen lockfile with the passkey library as its only dependency, installs with package scripts switched off, builds in its own CI job before anything of the app is installed, and deploys with a token that can deploy only it. Each Worker deploys on its own, only when its own code changes, so everyday app releases never touch the sign-in Worker. Its calls only ever add, never change, so an older app always works with a newer sign-in Worker: when both change, the sign-in Worker goes first, and a test of the calls runs whenever either side changes them.</li>
 </ul>
-<p><strong>A risk accepted.</strong> A poisoned app still receives the session cookie, so it could act as any person who is signed in, with that person&#39;s rights, until their session ends: 12 hours at most. It cannot add a sign-in method or reset anyone, because those need a fresh check that only the sign-in Worker records, and the reset code never reaches the app. Signing everyone out ends it.</p>
+<p><strong>A risk accepted.</strong> A poisoned app still receives the session cookie, so it could act as any person who is signed in, with that person&#39;s rights, until their session ends: 24 hours at most. It cannot add a sign-in method or reset anyone, because those need a fresh check that only the sign-in Worker records, and the reset code never reaches the app. Signing everyone out ends it.</p>
 <h3 id="keys">Keys</h3>
 <ul>
 <li><strong>The email-hash key</strong> (ADR-001) and <strong>the sign-in key</strong> are versioned secrets of the sign-in Worker only.</li>
 <li><strong>Rotating the sign-in key</strong> seals every value again under the new version, in a resumable job, with no sign-in interrupted.</li>
 <li><strong>Rotating the email-hash key</strong> reads each person&#39;s address from a company where they are a member and stores the new hash. A login whose address has been cleared from every company is waiting for deletion (within 30 days), so the old key version stays readable until the last such login is gone.</li>
-<li>Both rotations are built and rehearsed before launch, because neither can be written during an incident.</li>
+<li><strong>Only the sign-in key&#39;s rotation is built before launch,</strong> and it is rehearsed once, because it is what a compromised sign-in Worker needs at once. The email-hash key&#39;s rotation is written down as the procedure above and built later: a leaked email-hash key lets someone test whether a known address has an account, and reveals no password, code or buyer data.</li>
 </ul>
 <h3 id="in-an-incident">In an incident</h3>
-<p>The operator has these commands, built and rehearsed before launch, each written to the platform security log:</p>
+<p>The operator has these commands at launch, each written to the platform security log. Each is built before launch and rehearsed once on a staging copy:</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -465,30 +465,21 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Every password login must set a new password at its next sign-in</td>
 </tr>
 <tr>
-<td>Rotate a key</td>
-<td>The email-hash key or the sign-in key, as above</td>
-</tr>
-<tr>
-<td>Switch off one way in</td>
-<td>Password sign-in, resets, recovery or passkeys, one at a time; the others keep working while a fix is made</td>
-</tr>
-<tr>
 <td>Freeze sign-in</td>
 <td>No new sessions anywhere; live sessions continue unless also ended</td>
 </tr>
 <tr>
-<td>Read a login&#39;s history</td>
-<td>The security log for one login, for a seller&#39;s question or an investigation</td>
+<td>Rotate the sign-in key</td>
+<td>Seals every value again under a new version, as above</td>
 </tr>
 </tbody></table></div>
-<p><strong>A poisoned package</strong> in the app: sign everyone out, rotate the app&#39;s own secrets and the cells&#39; credentials, and follow ADR-009&#39;s incident steps. In the sign-in Worker: also rotate both sign-in keys, force a password change, and ask every person who uses an authenticator app to set it up again. Passkeys stay, because Vervoro holds only their public keys.</p>
-<p><strong>Canary logins.</strong> Each cell&#39;s synthetic company (ADR-009) has a synthetic login. Any sign-in attempt on it alerts through the existing alerts.</p>
+<p>A login&#39;s history is read from the platform security log by a query, until a screen for it is worth building.</p>
+<p><strong>A poisoned package</strong> in the app: sign everyone out, rotate the app&#39;s own secrets and the cells&#39; credentials, and follow ADR-009&#39;s incident steps. In the sign-in Worker: also rotate the sign-in key, rotate the email-hash key by its written procedure, force a password change, and ask every person who uses an authenticator app to set it up again. Passkeys stay, because Vervoro holds only their public keys.</p>
 <p><strong>Leaving.</strong> Everything stored is in standard forms: scrypt hashes, RFC 6238 secrets and WebAuthn public keys, unsealed with the sign-in key for export. Moving to another system later needs no password reset.</p>
 <h3 id="checked-before-launch">Checked before launch</h3>
 <ul>
-<li>The scrypt setting&#39;s time and memory on a deployed Worker, written into this record, and the number of hashes run at once set from them.</li>
-<li>The runtime&#39;s HMAC with SHA-1, which authenticator codes need, on a deployed Worker. If it fails, one audited hashing library is the fallback.</li>
-<li>Sign-in timing: known and unknown addresses must not be told apart.</li>
+<li><strong>Benchmark the chosen scrypt setting on a deployed Worker:</strong> p50 and p95 time and memory, for one hash and for two or three at once. The p95 must stay well under one second, as OWASP advises (<a href="https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html">password storage</a>), and within the Worker&#39;s memory. The results go into this record, and the number of hashes run at once is set from them.</li>
+<li><strong>Smoke-test the sign-in cryptography on the deployed runtime:</strong> scrypt, HMAC with SHA-1 for authenticator codes, AES-GCM sealing and the passkey library each run once. Their correctness is proved in CI by the RFC&#39;s vectors and the test responses. If HMAC with SHA-1 fails, one audited hashing library is the fallback.</li>
 <li>An outside penetration test of sign-in, recovery, resets and return paths, with a retest of any finding agreed before launch.</li>
 </ul>
 <h2 id="roles">Roles</h2>
@@ -1086,7 +1077,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>Nobody is an Owner or Admin by default except the person who signs a company up.</li>
 </ul>
 <h2 id="invitations-sign-up-and-removal">Invitations, sign-up and removal</h2>
-<p><strong>Sign-up.</strong> A person enters their email address and passes a bot check. A link valid for 24 hours proves the address. They set a password and an authenticator app, or create a passkey, save their recovery codes, name their company, and become its Owner. The company starts as a trial in the newest open shared cell (ADR-001). Sign-up writes the company and the member row in that cell, with an outbox note, then the login and membership in control; a failed second write is repaired from the outbox. An address whose hash is already a login does not make a second login: the person signs in, and the new company becomes another membership.</p>
+<p><strong>Sign-up.</strong> A person enters their email address and passes a bot check. A link valid for 24 hours proves the address. They create a passkey, or set a password and an authenticator app if their device cannot hold one, save their recovery codes, name their company, and become its Owner. The company starts as a trial in the newest open shared cell (ADR-001). Sign-up writes the company and the member row in that cell, with an outbox note, then the login and membership in control; a failed second write is repaired from the outbox. An address whose hash is already a login does not make a second login: the person signs in, and the new company becomes another membership.</p>
 <p><strong>Invitations.</strong> An Owner, or an Admin for roles below Admin, invites by the person&#39;s own email address, with a role and, where it applies, a warehouse scope.</p>
 <ul>
 <li>The link is single-use, valid for 7 days, and works only for the address it names. Accepting it proves the address.</li>
@@ -1227,7 +1218,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td>Session length</td>
 <td>CI</td>
-<td>After 12 hours a full sign-in is needed</td>
+<td>After 24 hours a seller needs a full sign-in, and an operator after 12</td>
 </tr>
 <tr>
 <td>Who manages whom</td>
@@ -1262,7 +1253,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td>One answer</td>
 <td>CI</td>
-<td>A wrong password and a wrong code give the same error; known and unknown addresses take the same time within a set margin</td>
+<td>A wrong password and a wrong code give the same error; an unknown address runs a full hash against a stand-in record</td>
 </tr>
 <tr>
 <td>Return paths</td>
@@ -1280,14 +1271,14 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>An account change from the app with a fresh check the sign-in Worker did not record is refused</td>
 </tr>
 <tr>
-<td>End of a shift</td>
+<td>End of a session</td>
 <td>Before launch, on a slow low-cost Android phone</td>
-<td>A half-packed order survives the sign-in at the end of a shift, with its scans on screen</td>
+<td>A half-packed order survives the sign-in when a session ends, with its scans on screen</td>
 </tr>
 <tr>
 <td>Incident commands</td>
-<td>Before launch, then every six months</td>
-<td>Each command in the incident table works on a staging copy, timed</td>
+<td>Before launch, once</td>
+<td>Each command in the incident table works on a staging copy</td>
 </tr>
 <tr>
 <td>Real devices</td>
@@ -1471,7 +1462,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="https://better-auth.com/docs/concepts/database">Database</a>, <a href="https://better-auth.com/docs/plugins/passkey">Passkey</a>, <a href="https://better-auth.com/docs/plugins/2fa">Two-factor</a></td>
 </tr>
 </tbody></table></div>
-<p><strong>Where Vervoro departs from a source, and why.</strong> Amazon&#39;s password rules (mixed character types, a yearly change) are what NIST now advises against. Amazon&#39;s policy binds Vervoro and NIST&#39;s guidance does not, so passwords follow Amazon, and Vervoro adds NIST&#39;s blocklist, length and password-manager advice, which Amazon&#39;s rules allow. Passkeys need no password rule at all, which is why the app offers them. NIST also advises an idle limit of an hour; Vervoro leaves idle time to the device&#39;s own screen lock, because no rule that binds it asks for more and a lock inside the app would mean typing a password again after every break.</p>
+<p><strong>Where Vervoro departs from a source, and why.</strong> Amazon&#39;s password rules (mixed character types, a yearly change) are what NIST now advises against. Amazon&#39;s policy binds Vervoro and NIST&#39;s guidance does not, so passwords follow Amazon, and Vervoro adds NIST&#39;s blocklist, length and password-manager advice, which Amazon&#39;s rules allow. Passkeys need no password rule at all, which is why they are the default. NIST also advises an idle limit of an hour; Vervoro leaves idle time to the device&#39;s own screen lock, because no rule that binds it asks for more and a lock inside the app would mean typing a password again after every break.</p>
 <h2 id="consequences">Consequences</h2>
 <p><strong>What this gives us</strong></p>
 <ul>
@@ -1487,7 +1478,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ul>
 <li>Passwords bring resets, a yearly change, lockouts and phishing risk back; the authenticator app and the offer of passkeys reduce them.</li>
 <li>Every worker needs a phone of their own that runs the app and an authenticator app or a passkey.</li>
-<li>Typing a 12-character password on a phone with gloves is slow; it is needed once a shift, and not at all with a passkey.</li>
+<li>Typing a 12-character password on a phone with gloves is slow; it is needed once a day, and not at all with a passkey, which is the default.</li>
 <li>Every request reads its session in the control database, a small indexed read added to each request.</li>
 <li>Recovering a company&#39;s last Owner takes three days and needs a connected marketplace account.</li>
 <li>Fixed roles will not fit every company; some will want, for example, a packer who can hold an order.</li>
@@ -1648,6 +1639,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Lockout counted per device,</strong> if the security log shows the same login locked again and again (an accountant who signs in with a password is the likely case).</li>
 <li><strong>An end date on a membership</strong> for agency and seasonal staff, removed by the sweeper; until then, removal by an Owner or Admin meets ADR-009&#39;s 24 hours.</li>
 <li><strong>A small in-house passkey verifier</strong> in place of the library, if the pinned tree becomes a risk.</li>
+<li><strong>Deferred from launch, built when sellers or an incident show the need:</strong> the email-hash key&#39;s rotation job (its procedure is written above); switching off one way in at a time; a screen for a login&#39;s history; a synthetic login in each cell&#39;s canary company that alerts on any attempt; a measured timing check that known and unknown addresses cannot be told apart (the stand-in hash is built at launch).</li>
 </ul>
 
 <footer>Vervoro</footer>
