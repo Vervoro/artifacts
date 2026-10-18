@@ -35,7 +35,7 @@ The design has to meet these requirements:
 4. **Passwords follow Amazon's rules,** as ADR-009 decided: at least 12 characters with mixed character types, none of the person's name, at least a day old before a change, changed at least once a year, and the last 10 not reused. They are also checked against a list of common and breached passwords.
 5. **Nothing else signs anyone in:** no codes by text message or email, no email sign-in links, no Google or Microsoft sign-in at launch.
 6. **One person, one phone, one account.** Every person signs in on their own device. There are no shared accounts and no shared warehouse phones.
-7. **Sessions follow the shift.** A session lasts at most 12 hours. After 15 minutes idle the app locks and clears buyer data from the screen; a password or a passkey unlocks it. Account changes, exports with buyer data and connecting a marketplace need a full sign-in check within the last 5 minutes.
+7. **Sessions follow the shift.** A session lasts at most 12 hours. After 1 hour idle the app locks and clears buyer data from the screen; a password or a passkey unlocks it. Account changes, exports with buyer data and connecting a marketplace need a full sign-in check within the last 5 minutes.
 8. **Six fixed roles:** Owner, Admin, Manager, Warehouse, Accountant and Staff. One role per person per company, plus an optional warehouse scope and an optional end date. There are no custom roles at launch.
 9. **Permissions are named actions.** Each module declares its actions, and one table grants them to roles. The server checks every request against the person's role, scope and status in that company, read in the same transaction as the work.
 10. **Nobody changes their own access.** Owners manage everyone; Admins manage everyone below Admin. The last Owner cannot leave until there is another.
@@ -112,14 +112,14 @@ Each person sees their sign-in methods, their passkeys with the device each was 
 | | Seller's user | Operator console |
 | --- | --- | --- |
 | **Longest session** | 12 hours, then a full sign-in | 12 hours, then a full sign-in |
-| **Idle** | After 15 minutes the app locks and clears buyer data from the screen; the password or a passkey unlocks it. After 1 hour idle, a full sign-in | After 15 minutes, a full sign-in |
+| **Idle** | After 1 hour the app locks and clears buyer data from the screen; the password or a passkey unlocks it | After 15 minutes, a full sign-in |
 | **Account changes** | A full sign-in check (password and code, or a passkey) within the last 5 minutes | The same |
 | **Ends at once on** | Sign-out, removal, a role change, a reset, a recovery, the end date, an incident | Sign-out, an incident |
 
 - **The session is a server-side row** in the control database: a random id of at least 128 bits, the login, when it began and was last used, and its end time. The browser holds only the id, in a cookie marked `__Host-`, `Secure`, `HttpOnly` and `SameSite=Strict`. No session, role or buyer data is kept in the browser's storage (ADR-009).
 - **Every request reads the session,** so revoking it takes effect on the next request. ADR-001's restore step ("revoke its sessions") and ADR-009's incident containment use the same revocation.
 - **A role change applies to the next request,** because the role is read in the request's own transaction.
-- **The idle lock** is the app's own screen lock. Vervoro cannot manage the phones people own, so the app locks itself after 15 minutes, as Amazon's policy asks of devices, and shows nothing of a buyer until it is unlocked.
+- **The idle lock** is the app's own screen lock. A phone left on a packing bench should not keep showing a buyer's address, so the app locks itself after 1 hour idle, the longest NIST allows before the person must prove who they are again, and shows nothing of a buyer until it is unlocked. Amazon's device rules (15-minute screen lock, managed devices) bind Vervoro's own laptops, where the operator console ends after 15 minutes idle; they are not rules for the seller's phones.
 - **Account changes need a fresh check:** inviting, removing or changing anyone's role, scope or end date; resetting anyone's sign-in; changing one's own sign-in methods; connecting, disconnecting, going live on or switching off a marketplace account; an export with buyer data; switching on buyer data for an operator grant; closing the company or changing an Owner. Picking, packing, printing and counting never ask.
 
 ## Account recovery
@@ -328,7 +328,7 @@ If a later record adds integration access, it starts from these rules: created o
 | Second factor | CI | A password alone never signs in; a code is accepted once; a passkey response without user verification, for another site, or with a replayed challenge is refused |
 | Lockouts | CI | Ten failures lock the login for 30 minutes; a passkey still signs in during the lock |
 | Fresh check | CI | Each listed account change is refused without a full check in the last 5 minutes |
-| Idle lock | CI | After 15 minutes idle the app shows no buyer data until it is unlocked; after 12 hours a full sign-in is needed |
+| Idle lock | CI | After 1 hour idle the app shows no buyer data until it is unlocked; after 12 hours a full sign-in is needed |
 | Who manages whom | CI | Nobody changes their own role; an Admin cannot invite, change, reset or remove an Owner or an Admin; the last Owner cannot leave |
 | Operator grants | CI, real Postgres, runtime role | Without a live grant, an operator request reaches no company; with one, it reaches exactly that company, is read-only, writes an audit entry per request, and decrypts buyer fields only when the seller allowed it; ending the grant stops the next request |
 | Recovery | CI | Each path in the recovery table needs every step it names, tells the people it names, and ends every old session |
@@ -347,9 +347,11 @@ Checked against the official sources on 18 October 2026.
 | Amazon: lockout and reviews | Lockout after no more than 10 consecutive failures; authentication monitored; access reviewed quarterly | [Data Protection Policy, 1.2.2](https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US) |
 | Amazon: removal | Access removed within 24 hours of termination or role change | [Data Protection Policy, 1.2.3](https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US) |
 | Amazon: least privilege | Denied by default, granted on a need-to-know basis | [Data Protection Policy, 1.3](https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US) |
-| Amazon: devices | Screen lock after at most 15 minutes idle on devices that access the data; personal or unmanaged devices restricted unless managed | [Data Protection Policy, 1.1.2](https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US) |
+| Amazon: Vervoro's own devices | The solution provider's devices that access the data lock after at most 15 minutes idle; its personnel's personal or unmanaged devices are restricted unless managed. These are controls on Vervoro's own endpoints, not on the seller's | [Data Protection Policy, 1.1.2](https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US) |
 | Amazon: logs | Access attempts logged, protected from tampering, kept at least 12 months | [Data Protection Policy, 2.6.1](https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US) |
 | Amazon: second factors | Approved second factors include TOTP, hardware tokens and biometric authentication | [Key security control guidance](https://developer-docs.amazon/sp-api/docs/guidance-to-address-key-security-controls-in-sp-api-integration) |
+| Amazon: approval names the seller | The redirect after a seller approves carries `selling_partner_id`, the selling partner who approved | [Website authorization workflow](https://developer-docs.amazon/sp-api/docs/website-authorization-workflow) |
+| Shopify: approval names the shop | The redirect after a merchant approves carries `shop`, signed with `hmac` | [Authorization code grant](https://shopify.dev/docs/apps/build/authentication-authorization/access-tokens/authorization-code-grant) |
 | Shopify: level 2 | Limit staff access to protected customer data; strong passwords for staff accounts; an access log | [Protected customer data](https://shopify.dev/docs/apps/launch/protected-customer-data) |
 | NIST: passwords | A blocklist; at least 15 characters alone or 8 within multi-factor; allow 64 characters, password managers and paste; no composition rules and no forced periodic change | [SP 800-63B rev. 4, 3.1.1.2](https://pages.nist.gov/800-63-4/sp800-63b.html) |
 | NIST: phishing resistance | At least one phishing-resistant option at AAL2; WebAuthn qualifies; typed codes do not | [SP 800-63B rev. 4, 2.2.2 and 3.2.5](https://pages.nist.gov/800-63-4/sp800-63b.html) |
@@ -375,8 +377,8 @@ Checked against the official sources on 18 October 2026.
 **What it costs**
 
 - Passwords bring resets, a yearly change, lockouts and phishing risk back; the authenticator app and the offer of passkeys reduce them.
-- Every worker needs a phone of their own that runs the app and an authenticator app or a passkey. Buyer addresses show on phones the seller does not manage.
-- Typing a 12-character password on a phone with gloves is slow; workers without a passkey type it after every 15 minutes idle.
+- Every worker needs a phone of their own that runs the app and an authenticator app or a passkey.
+- Typing a 12-character password on a phone with gloves is slow; workers without a passkey type it after every hour idle.
 - Every request reads its session in the control database, a small indexed read added to each request.
 - Recovering a company's last Owner takes three days and needs a connected marketplace account.
 - Fixed roles will not fit every company; some will want, for example, a packer who can hold an order.
