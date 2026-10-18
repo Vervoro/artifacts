@@ -69,7 +69,7 @@ Every change to stock is written as entries in `stock_ledger`, a tenant table (A
 
 | Field | Meaning |
 | --- | --- |
-| `sequence`, `line` | A gapless number per company, taken under the company's lock, and the line within that change. Together they give a total order of every change |
+| `sequence`, `line` | A gapless number per company, taken from the company's stock counter row, whose row lock is the company's lock (ADR-001), and the line within that change. Together they give a total order of every change |
 | `occurred_at` | Database time when the change was made |
 | `product_id`, `batch_id`, `spot_id` | The balance it changes |
 | `kind` | The reason, from the table below |

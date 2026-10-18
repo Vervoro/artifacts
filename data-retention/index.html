@@ -110,10 +110,10 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ol>
 <li><strong>Pick the month</strong> that has just passed 24 months.</li>
 <li><strong>Checkpoint the stock ledger</strong> (below) for every company in the cell.</li>
-<li><strong>Export the month&#39;s partition</strong> per company to object storage as compressed files: one file per table per company per month. Each file is encrypted with that company&#39;s data key.</li>
+<li><strong>Export the month</strong> per company to object storage as compressed files, reading through the parent table, never the partition (ADR-001): one file per table per company per month. Each file is encrypted with that company&#39;s data key.</li>
 <li><strong>Verify:</strong> row counts and checksums of the files match the partition, per company and table.</li>
 <li><strong>Record the month</strong> in an archive catalogue: company, table, month, object key, row count, checksum.</li>
-<li><strong>Detach and drop the partition.</strong> Detaching is instant and rewrites no rows.</li>
+<li><strong>Detach and drop the partition.</strong> Detaching is instant and rewrites no rows. The monthly migration run does it, as the database owner, only after every company&#39;s files are verified (ADR-001).</li>
 </ol>
 <p>A month is archived for the whole cell at once, because partitions are shared by every company in it. A run that stops part way resumes from the archive catalogue; a partition is dropped only after every company&#39;s files are verified.</p>
 <h2>Stock ledger checkpoints</h2>

@@ -37,10 +37,10 @@ The large append-only tables are already partitioned by month with `company_id` 
 
 1. **Pick the month** that has just passed 24 months.
 2. **Checkpoint the stock ledger** (below) for every company in the cell.
-3. **Export the month's partition** per company to object storage as compressed files: one file per table per company per month. Each file is encrypted with that company's data key.
+3. **Export the month** per company to object storage as compressed files, reading through the parent table, never the partition (ADR-001): one file per table per company per month. Each file is encrypted with that company's data key.
 4. **Verify:** row counts and checksums of the files match the partition, per company and table.
 5. **Record the month** in an archive catalogue: company, table, month, object key, row count, checksum.
-6. **Detach and drop the partition.** Detaching is instant and rewrites no rows.
+6. **Detach and drop the partition.** Detaching is instant and rewrites no rows. The monthly migration run does it, as the database owner, only after every company's files are verified (ADR-001).
 
 A month is archived for the whole cell at once, because partitions are shared by every company in it. A run that stops part way resumes from the archive catalogue; a partition is dropped only after every company's files are verified.
 

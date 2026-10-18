@@ -295,7 +295,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>with buyer fields still masked, unless the reason names a buyer-data need (for example, the seller asked to fix an address);</li>
 <li>recorded in the company&#39;s audit log, so the seller sees it, and in a platform security log kept 12 months that holds no buyer data.</li>
 </ul>
-<p><strong>Developers</strong> have no access to production data. The database owner role is used only by migrations, the slice operation and the archiver (ADR-001). A person using it in an emergency records the reason first, and it alerts the owner. Even then, buyer fields are ciphertext.</p>
+<p><strong>Developers</strong> have no access to production data. The database owner role is used only by the CI migration job; the slice operation and the archiver run as the lifecycle role, which cannot bypass row-level security (ADR-001). A person using the owner role in an emergency does so through that job, records the reason first, and it alerts the owner. Even then, buyer fields are ciphertext.</p>
 <p><strong>Leavers and changes.</strong> A person&#39;s access to the platform ends within 24 hours of leaving or changing role, and access is reviewed every quarter.</p>
 <h2>Retention and anonymisation</h2>
 <p><strong>The rule:</strong> buyer data is anonymised 30 days after delivery, as Amazon&#39;s Data Protection Policy requires, and the same rule applies to every marketplace and website.</p>
@@ -421,9 +421,9 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h3>One buyer&#39;s erasure, end to end</h3>
 <ol>
 <li><strong>The live cell.</strong> The named orders are anonymised in one transaction, label files deleted, and the privacy request marked done.</li>
-<li><strong>The erasure log.</strong> The company&#39;s completed erasures (order ids and times only) are also written to a per-company file in object storage, outside the database and its backups.</li>
+<li><strong>The erasure register.</strong> The company&#39;s completed erasures (order ids and times only) are also written to the erasure register in the control database and to an append-only file in object storage, both outside the cell and its backups (ADR-001).</li>
 <li><strong>Backups.</strong> The cell&#39;s point-in-time history (7 days) and nightly snapshots (30 days) still hold the old values, encrypted field by field. They are beyond use: nobody reads a backup except to restore, and they expire on schedule. Erasure is complete in backups 30 days after it was made.</li>
-<li><strong>A restore re-applies erasures.</strong> Restoring one company, or a whole cell, re-applies every erasure in the erasure log made after the restore time, and runs the anonymisation sweep, before the company or the cell is opened to anyone.</li>
+<li><strong>A restore re-applies erasures.</strong> Restoring one company, or a whole cell, re-applies every erasure in the erasure register made after the restore time, and runs the anonymisation sweep, before the company or the cell is opened to anyone.</li>
 <li><strong>The archive.</strong> Orders reach the archive after 24 months (ADR-002), long after anonymisation, so archived orders hold no buyer data. Only retained invoices do, and they stay for their statutory period.</li>
 <li><strong>Closing the company.</strong> Erasing the company destroys its data key (ADR-001), which makes every remaining copy unreadable.</li>
 </ol>
@@ -569,7 +569,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Simulators and tests</strong> use synthetic buyers only: names from a generator, <code>example.com</code> and <code>.test</code> emails, UK drama phone numbers (07700 900000 to 900999), and the non-geographic postcode <code>ZZ99 9ZZ</code>. For example, &quot;Testa Buyer, 1 Example Street, Testville, ZZ99 9ZZ&quot;.</li>
 <li><strong>A build check</strong> scans fixtures, recordings and seed data, and refuses an email, phone number or postcode outside those ranges.</li>
 <li><strong>Recordings of real marketplace replies,</strong> used to correct the simulators (ADR-000), are made against sandboxes and the team&#39;s own test seller accounts. Buyer fields are replaced with synthetic ones before a recording is saved.</li>
-<li><strong>A production branch</strong> made for a restore holds real data. It is reached only by the owner role, and it is deleted within 24 hours.</li>
+<li><strong>A production branch</strong> made for a restore holds real data. It is reached only through the lifecycle tool, never by the runtime role, and it is deleted within 24 hours (ADR-001).</li>
 <li><strong>Staging</strong> runs on simulators and synthetic companies only.</li>
 </ul>
 <h2>Per marketplace</h2>

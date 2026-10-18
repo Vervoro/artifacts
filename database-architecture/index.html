@@ -72,18 +72,22 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>17 October 2026</td>
+<td>17 October 2026, revised 18 October 2026</td>
 </tr>
 <tr>
 <td><strong>Scope</strong></td>
 <td>How Vervoro stores, isolates, routes and moves each company&#39;s data</td>
+</tr>
+<tr>
+<td><strong>Revision</strong></td>
+<td>18 October 2026, after a design review: trials live in a normal cell (no trial database); every transaction checks that its database holds the company; the erasure register moves to control; checks run in production as well as CI; company operations run in batches under their own role</td>
 </tr>
 </tbody></table></div>
 <h2>Context</h2>
 <p>Vervoro is an operations system for marketplace sellers: stock, orders and listings synced with Amazon, eBay, Shopify and other channels. Every customer is a company, and one company must never see another company&#39;s data. The design has to meet these requirements:</p>
 <ul>
 <li><strong>Isolation is the top risk.</strong> Cross-company exposure is the worst failure the product can have, so it must be prevented by the database and by the build, not by developer care.</li>
-<li><strong>Growth:</strong> about 100 companies in the first year, 500 to 1,000 within three years. A typical company has 100 to 5,000 SKUs, 100 to 2,000 orders a day and 1 to 5 connected marketplaces.</li>
+<li><strong>Growth:</strong> 5 to 10 companies at launch, about 100 in the first year, 500 to 1,000 within three years. A typical company has 100 to 5,000 SKUs, 100 to 2,000 orders a day and 1 to 5 connected marketplaces.</li>
 <li><strong>One operator</strong> runs the platform, so the number of moving parts must not grow with the number of companies.</li>
 <li><strong>Enterprise customers</strong> may need a database of their own, and later a region of their own.</li>
 <li><strong>Free trials</strong> (14 to 28 days) must never affect paying customers, and a trial that pays must become a normal customer without starting over.</li>
@@ -92,86 +96,101 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ul>
 <h2>Decision</h2>
 <ol>
-<li><strong>A control database</strong> holds only who the companies are and where they live. It stores no business data.</li>
-<li><strong>Customer databases (&quot;cells&quot;)</strong> hold the business data of many companies in <strong>shared tables</strong>. Every row carries <code>company_id</code>, and Postgres enforces <strong>forced row-level security</strong> on every table.</li>
-<li><strong>A dedicated database</strong> for an enterprise customer is a cell with the same schema holding one company.</li>
-<li><strong>A trial database</strong> on its own compute holds every company from sign-up until it pays. A paying company is moved into a paid cell.</li>
-<li><strong>Every company-level operation</strong> (export, move, restore, erase, placement) is one generated operation over the rows where <code>company_id</code> matches.</li>
-<li><strong>Guard rails in the runtime and in CI</strong> make a cross-company read or write impossible to write by accident.</li>
+<li><strong>A control database</strong> on its own compute holds only who the companies are, where they live, and which erasures must survive a restore. It stores no business data.</li>
+<li><strong>Customer databases (&quot;cells&quot;)</strong> hold the business data of up to 200 companies each in <strong>shared tables</strong>. Every row carries <code>company_id</code>, and Postgres enforces <strong>forced row-level security</strong> on every table and every partition.</li>
+<li><strong>Every transaction proves where it is.</strong> Its first statement sets the company and raises unless this database holds that company and it is open, so a wrong route fails loudly instead of reading nothing.</li>
+<li><strong>A dedicated database</strong> for an enterprise customer is its own Neon project: a cell with the same schema holding one company.</li>
+<li><strong>A trial is a state, not a place.</strong> A trial company lives in a normal cell with capped shares of background work and marketplace allowances. Paying changes its plan; nothing moves. A trial cell is added only if trials outgrow their share.</li>
+<li><strong>Every company-level operation</strong> (export, move, restore, erase, placement) is one generated operation over the rows where <code>company_id</code> matches, run in batches by its own role, never by the owner.</li>
+<li><strong>Guard rails in the runtime, in CI and in production</strong> make a cross-company read or write impossible to write by accident, and catch configuration that drifts after deploy.</li>
 <li><strong>One sweeper per database</strong> finds due work with one query and runs the due companies side by side, waking at the next due time. Events go through an outbox in the same transaction as the change.</li>
 </ol>
 <h2>Architecture</h2>
-<figure><svg class="diagram" viewBox="0 0 760 444" role="img" aria-label="Every request reaches one database; trials run on their own compute" xmlns="http://www.w3.org/2000/svg" font-size="13">
+<figure><svg class="diagram" viewBox="0 0 760 444" role="img" aria-label="Every request reaches one database, and that database checks it holds the company" xmlns="http://www.w3.org/2000/svg" font-size="13">
   <defs>
     <marker id="arch-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="edge-fill"/></marker>
     <marker id="arch-arrow-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="accent-fill"/></marker>
   </defs>
-  <text x="24" y="30" font-size="15" font-weight="600" class="ink">Every request reaches one database; trials run on their own compute</text>
+  <text x="24" y="30" font-size="15" font-weight="600" class="ink">Every request reaches one database, and that database checks it holds the company</text>
   <g class="edge" fill="none" stroke-width="1.25">
     <path d="M380 112V150" marker-end="url(#arch-arrow)"/>
     <path d="M380 206V228"/>
-    <path d="M114 228H674"/>
+    <path d="M114 228H542"/>
     <path d="M114 228V250" marker-end="url(#arch-arrow)"/>
     <path d="M278 228V250" marker-end="url(#arch-arrow)"/>
     <path d="M410 228V250" marker-end="url(#arch-arrow)"/>
     <path d="M542 228V250" marker-end="url(#arch-arrow)"/>
-    <path d="M674 228V250" marker-end="url(#arch-arrow)"/>
   </g>
-  <path d="M674 338V358H278V342" class="accent" fill="none" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arch-arrow-accent)"/>
-  <text x="476" y="376" text-anchor="middle" font-size="11.5" class="ink">a trial that pays moves to a paid cell</text>
+  <path d="M278 338V358H542V342" class="accent" fill="none" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arch-arrow-accent)"/>
+  <text x="410" y="376" text-anchor="middle" font-size="11.5" class="ink">a move copies the slice, then marks the source moved_out</text>
 
   <rect x="230" y="56" width="300" height="56" rx="8" class="box"/>
   <text x="380" y="80" text-anchor="middle" font-weight="600" class="ink">Worker: API, sweepers, webhooks</text>
-  <text x="380" y="98" text-anchor="middle" font-size="11.5" class="quiet">sets app.company_id first in every transaction</text>
+  <text x="380" y="98" text-anchor="middle" font-size="11.5" class="quiet">first statement: app.enter_company(id)</text>
 
   <rect x="230" y="150" width="300" height="56" rx="8" class="box-main"/>
   <text x="380" y="174" text-anchor="middle" font-weight="600" class="ink">forCompany(id)</text>
-  <text x="380" y="192" text-anchor="middle" font-size="11.5" class="ink">registry lookup, cached; throws on a wrong company</text>
+  <text x="380" y="192" text-anchor="middle" font-size="11.5" class="ink">registry lookup, cached; wrong cell = error</text>
 
   <rect x="24" y="250" width="180" height="136" rx="8" class="box"/>
   <text x="114" y="274" text-anchor="middle" font-weight="600" class="ink">Control database</text>
   <g font-size="11.5" class="quiet">
-    <text x="40" y="294">company + DB registry</text>
-    <text x="40" y="310">login directory, HMAC</text>
-    <text x="40" y="326">operators, plans</text>
-    <text x="40" y="342">quotas, usage, alerts</text>
-    <text x="40" y="358">migration ledger</text>
+    <text x="40" y="294">own compute</text>
+    <text x="40" y="310">company + DB registry</text>
+    <text x="40" y="326">logins (HMAC), plans</text>
+    <text x="40" y="342">erasure register</text>
+    <text x="40" y="358">quotas, alerts, migrations</text>
     <text x="40" y="374">no business data</text>
   </g>
 
   <rect x="220" y="250" width="116" height="88" rx="8" class="box"/>
-  <text x="278" y="274" text-anchor="middle" font-size="12" font-weight="600" class="ink">Customer DB A</text>
-  <g font-size="11.5" text-anchor="middle" class="quiet"><text x="278" y="294">shared tables</text><text x="278" y="310">RLS on</text><text x="278" y="326">paid companies</text></g>
+  <text x="278" y="274" text-anchor="middle" font-size="12" font-weight="600" class="ink">Cell A</text>
+  <g font-size="11.5" text-anchor="middle" class="quiet"><text x="278" y="294">shared tables</text><text x="278" y="310">forced RLS</text><text x="278" y="326">up to 200 cos</text></g>
 
   <rect x="352" y="250" width="116" height="88" rx="8" class="box"/>
-  <text x="410" y="274" text-anchor="middle" font-size="12" font-weight="600" class="ink">Customer DB B</text>
-  <g font-size="11.5" text-anchor="middle" class="quiet"><text x="410" y="294">same schema</text><text x="410" y="310">via db:add</text><text x="410" y="326">when A is full</text></g>
+  <text x="410" y="274" text-anchor="middle" font-size="12" font-weight="600" class="ink">Cell B (newest)</text>
+  <g font-size="11.5" text-anchor="middle" class="quiet"><text x="410" y="294">new + trial cos</text><text x="410" y="310">canary company</text><text x="410" y="326">migrated first</text></g>
 
   <rect x="484" y="250" width="116" height="88" rx="8" class="box"/>
   <text x="542" y="274" text-anchor="middle" font-size="12" font-weight="600" class="ink">Dedicated DB</text>
   <g font-size="11.5" text-anchor="middle" class="quiet"><text x="542" y="294">same schema</text><text x="542" y="310">one company</text><text x="542" y="326">RLS still on</text></g>
 
-  <rect x="616" y="250" width="116" height="88" rx="8" class="box"/>
-  <text x="674" y="274" text-anchor="middle" font-size="12" font-weight="600" class="ink">Trial DB</text>
-  <g font-size="11.5" text-anchor="middle" class="quiet"><text x="674" y="294">own compute</text><text x="674" y="310">trials + demo</text><text x="674" y="326">same schema</text></g>
+  <rect x="616" y="250" width="116" height="88" rx="8" class="box" stroke-dasharray="4 3"/>
+  <text x="674" y="274" text-anchor="middle" font-size="12" font-weight="600" class="ink">Look-back branch</text>
+  <g font-size="11.5" text-anchor="middle" class="quiet"><text x="674" y="294">for a restore</text><text x="674" y="310">runtime refused</text><text x="674" y="326">gone in 24 h</text></g>
 
   <rect x="220" y="392" width="512" height="32" rx="8" class="band"/>
-  <text x="476" y="412" text-anchor="middle" font-size="11.5" class="ink">one slice operation copies, moves or erases a company by company_id</text>
+  <text x="476" y="412" text-anchor="middle" font-size="11.5" class="ink">one slice operation, in batches, as the lifecycle role: copy, move, restore or erase one company</text>
   <text x="122" y="222" font-size="11.5" class="quiet">where is this company?</text>
 </svg>
 </figure>
 
-<p>Every request names one company. The router looks up which database holds that company and opens a transaction there that is fixed to that one company. The control database only knows where each company lives. Every business row sits in a cell, in tables shared by many companies and fenced by <code>company_id</code> and row-level security.</p>
+<p>Every request names one company. The router looks up which database holds that company and opens a transaction there; the transaction&#39;s first statement fixes it to that one company and checks that the company lives in this database. The control database only knows where each company lives. Every business row sits in a cell, in tables shared by many companies and fenced by <code>company_id</code> and row-level security.</p>
 <h2>Tenancy inside a cell</h2>
 <p>Every business table exists once per cell and carries <code>company_id</code>. Postgres itself refuses any row of another company, and the keys make a cross-company reference impossible even with security switched off.</p>
 <ol>
-<li><strong>Keys.</strong> <code>company_id</code> (uuid) is the first column of every primary key, unique key, foreign key and index. Foreign keys are composite, <code>(company_id, x)</code>, so a row cannot point at another company&#39;s row. Every table also has <code>company_id → tenant(id) ON DELETE CASCADE</code>.</li>
-<li><strong>Row-level security, forced.</strong> Every table has <code>ENABLE</code> and <code>FORCE ROW LEVEL SECURITY</code> and one policy with both <code>USING</code> and <code>WITH CHECK</code>: <code>company_id = app.company()</code>.</li>
-<li><strong>Fail loud.</strong> <code>app.company()</code> returns <code>nullif(current_setting(&#39;app.company_id&#39;, true), &#39;&#39;)::uuid</code> and raises an error when it is null. An unset company is an error, never zero rows: a silent empty stock read could push 0 to a marketplace and delist a seller. The <code>company_id</code> column default reads the same function, so an insert without a company also errors.</li>
-<li><strong>Function label.</strong> <code>app.company()</code> is <code>STABLE</code> and <code>PARALLEL SAFE</code>, never <code>SECURITY DEFINER</code>. Postgres then evaluates it once per statement and uses the <code>company_id</code> index.</li>
-<li><strong>Roles.</strong> An owner role runs migrations. The runtime role is not the owner and has <code>NOBYPASSRLS</code>. No runtime role has <code>BYPASSRLS</code>, operator and background code included.</li>
-<li><strong>Append-only tables.</strong> A table declared append-only (today the stock ledger, order holds and the outbox) has <code>UPDATE</code>, <code>DELETE</code> and <code>TRUNCATE</code> revoked from the runtime role when its migration runs, so no bug or raw query can rewrite history. Only the owner role removes such rows, and only in two places: the generated slice operation (erase, restore, move) and the archiver detaching and dropping a month&#39;s partitions (<a href="../data-retention/">ADR-002</a>). Erase needs no runtime grant: the cascade from the tenant row runs with the table owner&#39;s rights.</li>
-<li><strong>Setting the company.</strong> The data layer sends <code>set_config(&#39;app.company_id&#39;, $1, true)</code> as the first statement of every transaction and refuses autocommit for company work. The setting lasts only for that transaction, which keeps it safe behind a transaction-mode pooler.</li>
+<li><p><strong>Keys.</strong> <code>company_id</code> (uuid) is the first column of every primary key, unique key, foreign key and index. Foreign keys are composite, <code>(company_id, x)</code>, so a row cannot point at another company&#39;s row. Every table also has <code>company_id → tenant(id) ON DELETE CASCADE</code>. Postgres runs key checks outside row-level security, so these keys are the wall that holds even where policies do not apply.</p>
+</li>
+<li><p><strong>Row-level security, forced.</strong> Every table has <code>ENABLE</code> and <code>FORCE ROW LEVEL SECURITY</code> and one policy with both <code>USING</code> and <code>WITH CHECK</code>: <code>company_id = app.company()</code>.</p>
+</li>
+<li><p><strong>Fail loud.</strong> <code>app.company()</code> returns <code>nullif(current_setting(&#39;app.company_id&#39;, true), &#39;&#39;)::uuid</code> and raises an error when it is null. An unset company is an error, never zero rows: a silent empty stock read could push 0 to a marketplace and delist a seller. The <code>company_id</code> column default reads the same function, so an insert without a company also errors.</p>
+</li>
+<li><p><strong>Function label.</strong> <code>app.company()</code> is <code>STABLE</code> and <code>PARALLEL SAFE</code>, never <code>SECURITY DEFINER</code>. Postgres then evaluates it once per statement and uses the <code>company_id</code> index.</p>
+</li>
+<li><p><strong>Roles.</strong> Three roles:</p>
+<ul>
+<li><strong>Owner</strong> is the role Neon creates with each project. Neon makes it a member of <code>neon_superuser</code>, so it can bypass row-level security. It owns the tables, runs migrations and partition changes, and creates the other roles in SQL. Its credential exists only in the CI migration job; an emergency use goes through that job, records the reason first and alerts the operator (<a href="../buyer-data/">ADR-009</a>).</li>
+<li><strong>Runtime</strong> serves requests and runs the sweeper. It is created in SQL, has <code>NOBYPASSRLS</code> and owns nothing.</li>
+<li><strong>Lifecycle</strong> runs the slice operation (export, move, restore, erase) and the archiver&#39;s row work. It is created in SQL, has <code>NOBYPASSRLS</code>, holds no DDL rights, and is the only role allowed to delete rows from append-only tables. Its credential lives only in the operations job that runs those tasks, outside the Worker that serves requests.</li>
+</ul>
+<p>No other role may log in. Any role created in the Neon console, CLI or API would join <code>neon_superuser</code>, so no other role is ever created there.</p>
+</li>
+<li><p><strong>Append-only tables.</strong> A table declared append-only (today the stock ledger, order holds and the outbox) has <code>UPDATE</code>, <code>DELETE</code> and <code>TRUNCATE</code> revoked from the runtime role when its migration runs, so no bug or raw query can rewrite history. Rows leave only through the slice operation (erase, restore, move), as the lifecycle role, and through whole months detached by the monthly migration run once the archiver has verified them (<a href="../data-retention/">ADR-002</a>).</p>
+</li>
+<li><p><strong>Entering a company.</strong> The data layer&#39;s first statement in every transaction is <code>select app.enter_company($1)</code>. It sets <code>app.company_id</code> for this transaction only (<code>set_config(…, true)</code>), and raises unless this database&#39;s <code>tenant</code> row for that company exists in a state this role may enter: <code>open</code> for the runtime role; <code>open</code>, <code>moving_out</code>, <code>restoring</code> or <code>lookback</code> for the lifecycle role. The <code>tenant</code> table&#39;s own policy is <code>id = app.company()</code>, and the row is read through row-level security like any other: the check needs no special rights and costs no extra round trip. The data layer refuses autocommit for company work. The setting lasts only for that transaction, which keeps it safe behind a transaction-mode pooler.</p>
+</li>
+<li><p><strong>Tenant states.</strong> The <code>tenant</code> row in each cell is the single authority on whether a company is open there: <code>open</code>, <code>moving_out</code>, <code>moved_out</code>, <code>restoring</code> or <code>lookback</code>. A move or restore changes the source row first, so a stale route to the old cell raises instead of reading an empty company. Nobody enters a <code>moved_out</code> company.</p>
+</li>
 </ol>
 <h2>Declaring tables</h2>
 <p>Modules never write <code>CREATE TABLE</code>. They declare tables through <code>tenantTable()</code>, and the data layer generates everything tenancy needs.</p>
@@ -188,33 +207,54 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>The data layer</td>
-<td><code>company_id</code> and its default, composite primary, unique and foreign keys, the cascade to <code>tenant</code>, <code>ENABLE</code> + <code>FORCE</code> RLS and the policy, grants (with the append-only revoke where declared), the table&#39;s entry in the company-slice manifest, anonymisation hooks</td>
+<td><code>company_id</code> and its default, composite primary, unique and foreign keys, the cascade to <code>tenant</code>, <code>ENABLE</code> + <code>FORCE</code> RLS and the policy (on the table and every partition), grants (with the append-only revoke where declared), the table&#39;s entry in the company-slice manifest, anonymisation hooks</td>
 </tr>
 </tbody></table></div>
 <ul>
 <li><strong>Field tags</strong> drive buyer anonymisation, a buyer&#39;s right to be forgotten, AI masking and export redaction from one declaration.</li>
 <li><strong>Upserts</strong> go through a <code>conflict(&#39;id&#39;)</code> helper that emits <code>ON CONFLICT (company_id, id)</code>.</li>
 <li><strong>IDs</strong> are uuidv7. There are no <code>serial</code> or identity columns, so nothing is numbered across companies and an ID never says which database a company lives in.</li>
-<li><strong>Human numbers and ordering</strong> (PO-0001, an outbox sequence) come from a counter table keyed <code>(company_id, name)</code>, taken in the writer&#39;s transaction. Counters travel with the company when it moves.</li>
+<li><strong>Human numbers and ordering</strong> (PO-0001, an outbox sequence, the stock ledger&#39;s gapless sequence) come from a counter table keyed <code>(company_id, name)</code>, taken in the writer&#39;s transaction. A stock command&#39;s first statement updates the company&#39;s stock counter row and returns the next number: that row lock is the company&#39;s lock (<a href="../stock-ledger/">ADR-006</a>), so one mechanism gives both the lock and the gapless number. Counters travel with the company when it moves.</li>
 <li><strong>Marketplace cursors and watermarks</strong> are keyed <code>(company_id, account)</code>; idempotency keys are unique per <code>(company_id, key)</code>.</li>
-<li><strong>Logs:</strong> one table per retention class, partitioned by month so retention is a partition drop: <code>audit_log</code> (security and access, kept at least a year for live companies) and <code>event_log</code> (module activity, 90 days). Direct access to partitions is revoked, because a query naming a partition skips the parent&#39;s policy.</li>
+<li><strong>Logs:</strong> one table per retention class, partitioned by month so retention is a partition drop: <code>audit_log</code> (security and access, kept at least a year for live companies) and <code>event_log</code> (module activity, 90 days).</li>
+<li><strong>Partitions.</strong> A partition named directly in a query ignores its parent&#39;s policies and grants, because a partitioned table follows Postgres&#39;s inheritance rules (<a href="https://www.postgresql.org/docs/17/ddl-inherit.html">inheritance</a>, <a href="https://www.postgresql.org/docs/17/ddl-partitioning.html">partitioning</a>). So every partition gets its own <code>ENABLE</code>, <code>FORCE</code> and policy, and no grant to any runtime or lifecycle role; no default privileges grant the runtime role anything. The slice operation and export read and delete through the parent; only the monthly migration run names a partition, to create it or to detach a month.</li>
 <li><strong>Operational state</strong> (rate buckets, leases, nonces, staging) lives in per-cell tables keyed by <code>company_id</code>, like everything else.</li>
 <li><strong>Secrets:</strong> one table, <code>secrets(company_id, purpose)</code>.</li>
 </ul>
 <h2>Guard rails</h2>
-<p>Only the data layer may say which company a transaction belongs to, and four checks make sure nothing else can.</p>
+<p>Only the data layer may say which company a transaction belongs to, and these checks make sure nothing else can.</p>
 <ul>
-<li><strong>Statement filter (runtime).</strong> The data layer refuses any module statement containing <code>set</code>, <code>reset</code>, <code>set_config</code> or the name <code>app.company_id</code>. Module-defined functions and <code>DO</code> blocks are not allowed, since they would get round the filter. Postgres cannot revoke <code>set_config</code> on a custom setting, so this has to be application code.</li>
-<li><strong>Catalogue lint (CI).</strong> Fails the build if any cell table (the non-tenant tables <code>due</code> and <code>buyer_ref</code> excepted) lacks <code>company_id NOT NULL</code> leading its primary key, forced RLS, both policy clauses or composite foreign keys. It also fails on raw <code>CREATE TABLE</code>, <code>serial</code> or identity columns, <code>SECURITY DEFINER</code>, views without <code>security_invoker</code>, materialized views, direct grants on partitions, <code>TRUNCATE</code> grants, <code>ON CONFLICT</code> without <code>company_id</code>, session-level <code>SET</code>, a runtime role with <code>BYPASSRLS</code>, a runtime role holding <code>UPDATE</code>, <code>DELETE</code> or <code>TRUNCATE</code> on an append-only table, and <code>app.company()</code> not labelled <code>STABLE</code>.</li>
-<li><strong>Request guard.</strong> Authentication puts the signed-in company in request context; <code>forCompany(id)</code> throws when <code>id</code> differs. Operator and background code opt in explicitly, and opting in never bypasses RLS: every company read or write still runs in a transaction fixed to exactly one company.</li>
-<li><strong>How background jobs find work.</strong> Through one non-tenant table per cell, <code>due(company_id, kind, next_due_at)</code>, holding ids and timestamps only. The cell&#39;s sweeper reads it with one indexed query, then opens one transaction per due company (<a href="#background-work-and-events">Background work and events</a>). A second non-tenant table, <code>buyer_ref(hash, company_id, order_id)</code>, holds only keyed hashes of eBay buyers&#39; user ids, so an eBay account deletion notice is matched with one indexed query per cell (<a href="../buyer-data/">ADR-009</a>). Its rows go when the order&#39;s buyer data does.</li>
+<li><strong>Statement filter (runtime).</strong> The data layer refuses any module statement containing <code>set</code>, <code>reset</code>, <code>set_config</code> or the name <code>app.company_id</code>, or naming <code>pg_stats</code> or <code>pg_statistic</code> (their most-common-value statistics show other companies&#39; values). Module-defined functions and <code>DO</code> blocks are not allowed, since they would get round the filter. Postgres cannot revoke <code>set_config</code> on a custom setting, so this has to be application code.</li>
+<li><strong>Row check (runtime).</strong> Every row-returning read of a tenant table carries <code>company_id</code>, and the data layer compares it with the transaction&#39;s company. A mismatch is a P0: it raises, pages the operator and closes the cell&#39;s egress. Sums and counts are scoped by row-level security and need no column.</li>
+<li><strong>Request guard.</strong> Authentication puts the signed-in company in request context; <code>forCompany(id)</code> throws when <code>id</code> differs. Operator and background code opt in explicitly, and opting in never bypasses RLS: every company read or write still runs in a transaction fixed to exactly one company. An operator acting as a company does so through an explicit, audited grant.</li>
+<li><strong>Caches.</strong> Hyperdrive&#39;s query cache is off (<a href="#platform-constraints">Platform constraints</a>). Any other cache (key-value storage, the Cache API, module-level state) is reached only through a key builder that takes the company id, and logs carry ids, never field values.</li>
+<li><strong>How background jobs find work.</strong> Two tables per cell hold ids, hashes and timestamps only: <code>due(company_id, kind, next_due_at)</code>, which the cell&#39;s sweeper reads with one indexed query, and <code>buyer_ref(company_id, hash, order_id)</code>, which holds keyed hashes of eBay buyers&#39; user ids so an eBay account deletion notice is matched with one indexed query per cell (<a href="../buyer-data/">ADR-009</a>); its rows go when the order&#39;s buyer data does. Both are tenant tables like any other: a command writes and reads only its own company&#39;s rows. Only the two cross-company reads (which companies have work due, which companies hold this buyer hash) look past one company. They go through two allow-listed <code>SECURITY DEFINER</code> functions, owned by a role that cannot log in, with a pinned <code>search_path</code>, returning company ids and times only. That role&#39;s only rights are a read policy of its own on these two tables. Every other definer function is refused.</li>
+<li><strong>Catalogue lint (CI).</strong> Fails the build if any cell table or any partition lacks <code>company_id NOT NULL</code> leading its primary key, forced RLS, both policy clauses or composite foreign keys. The named exceptions are the <code>tenant</code> table, keyed by its own <code>id</code>, and the two read policies of the definer functions&#39; owner. It also fails on raw <code>CREATE TABLE</code>, <code>serial</code> or identity columns, <code>SECURITY DEFINER</code> outside the allow-list, views without <code>security_invoker</code>, materialized views, grants on partitions, default privileges for the runtime role, <code>TRUNCATE</code> grants, <code>ON CONFLICT</code> without <code>company_id</code>, session-level <code>SET</code>, a runtime or lifecycle role with <code>BYPASSRLS</code>, a runtime role holding <code>UPDATE</code>, <code>DELETE</code> or <code>TRUNCATE</code> on an append-only table, and <code>app.company()</code> not labelled <code>STABLE</code>.</li>
+<li><strong>Change control.</strong> A change to the isolation code (the table declaration helper, <code>enter_company</code>, the policies, the lint and the allow-list) needs a person&#39;s approval in CI before it merges.</li>
+</ul>
+<h2>Production checks</h2>
+<p>CI proves the schema it builds. These prove the databases actually running, because a role made in a console, a partition made after deploy or a configuration edited by hand are invisible to CI.</p>
+<ul>
+<li><p><strong>Audit at every deploy and every night</strong>, over every database and every branch in the Neon project and every Hyperdrive configuration in the Cloudflare account:</p>
+<ul>
+<li>the only login roles are the owner, the runtime role and the lifecycle role; only the owner has <code>BYPASSRLS</code> or belongs to <code>neon_superuser</code>, and no runtime or lifecycle role owns a table;</li>
+<li>the owner of the two definer functions cannot log in, is not in <code>neon_superuser</code>, and can only read <code>due</code> and <code>buyer_ref</code>;</li>
+<li>every Hyperdrive configuration has caching off;</li>
+<li>the catalogue lint passes on the live catalogue, and the next two months&#39; partitions exist;</li>
+<li>scheduled snapshots are kept 30 days, and no manual snapshot exists;</li>
+<li>every branch was made by the lifecycle tool and is younger than its limit.</li>
+</ul>
+<p>A failure pages the operator and closes egress for the affected database.</p>
+</li>
+<li><p><strong>A canary company in every database.</strong> A second synthetic company must see none of its rows: a few tables every 10 minutes, every table nightly and after each deploy and each new partition. A transaction with no company set must raise. The egress gate scans every outbound payload for the canary&#39;s marker strings. A failure pages the operator and closes the cell&#39;s egress.</p>
+</li>
 </ul>
 <h2>Background work and events</h2>
-<p>Every database (each shared cell, the trial database, each dedicated database) has <strong>one sweeper</strong>: a Durable Object named after the database and created on demand from its registry row. Adding a database brings its sweeper with it, and the trial database&#39;s sweeper never runs a paying company&#39;s work.</p>
+<p>Every database (each shared cell, each dedicated database) has <strong>one sweeper</strong>: a Durable Object named after the database and created on demand from its registry row. Adding a database brings its sweeper with it.</p>
 <ul>
 <li><strong>It finds work; it does not visit everyone.</strong> One indexed query on <code>due</code> returns the companies with something due now. Each runs in its own transaction fixed to that company, side by side, up to a fixed limit set so the cell&#39;s pooled connections keep room for requests. A company with nothing due costs nothing.</li>
+<li><strong>Fair shares.</strong> One company runs at most about 8 background or bulk jobs at a time, and trial companies together get a capped share of the cell&#39;s sweeper slots and bulk jobs, so one company&#39;s import cannot take the cell&#39;s connections.</li>
 <li><strong>It wakes at the next due time,</strong> not on a fixed minute. After a run it sets its alarm for the earliest <code>next_due_at</code>, or sets none when nothing is due. A request that changes something nudges it within seconds, and an hourly scheduled trigger is the safety net for a lost alarm.</li>
-<li><strong>A sweeper that outgrows its time</strong> splits by a hash of the company id.</li>
 <li><strong>Moving a company</strong> moves its <code>due</code> rows with the rest of its slice, so the target database&#39;s sweeper picks it up and the source&#39;s forgets it.</li>
 </ul>
 <p><strong>Events: outbox note, deliver now, handler, receipt.</strong></p>
@@ -227,79 +267,100 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p>The outbox, not a queue, is the source of truth. A message put on a queue cannot be part of the database transaction, so a queue would still need the sweeper behind it. The inbound queue carries only marketplace webhooks, which must be answered before anything is written.</p>
 <p><strong>Writes that cross databases</strong> use the same pattern. Sign-up writes the company in its cell together with an outbox note (&quot;control still needs this login&quot;), then writes control. If the second write fails, the sweeper retries the note until it succeeds; the write is idempotent, so a repeat is harmless.</p>
 <h2>Control database and routing</h2>
-<p>The control database is its own database, so a cell credential can never read the login directory.</p>
+<p>The control database is its own database on its own compute. A cell credential can never read the login directory, and restoring a cell&#39;s branch can never rewind control.</p>
 <p><strong>What control holds, and nothing else:</strong></p>
 <ul>
-<li>the company registry: plan, status, subscription, tombstones</li>
-<li>the database registry: <code>database(id, region, kind shared|dedicated|trial, state open|closed|draining, cap)</code>, with <code>company.database_id</code></li>
+<li>the company registry: plan (trial or paid), status, subscription, tombstones</li>
+<li>the database registry: <code>database(id, region, kind shared|dedicated, state open|closed|draining, cap)</code>, with <code>company.database_id</code></li>
 <li>the login directory and the external directory (marketplace seller id → company)</li>
+<li>the <strong>erasure register</strong>: every buyer erasure and every company tombstone, by id and time only</li>
+<li>each company&#39;s sync epoch, raised on every restore (<a href="../inventory-sync/">ADR-008</a>)</li>
 <li>operator accounts and grants, platform settings, the migration ledger per database</li>
 <li>shared marketplace call quotas, usage rollups, alerts</li>
 </ul>
 <p><strong>Emails in control</strong> are stored only as HMAC(normalised email), keyed by a secret held outside Postgres. The address itself lives only in the company&#39;s own users table, so a leak of control is not a leak of customer data.</p>
-<p><strong>Routing.</strong> <code>forCompany(id)</code> looks the company&#39;s database up in the registry (cached) and uses that database&#39;s connection pool. A new company goes to the open trial database; a paying company to the open shared cell with the most room, or to a dedicated database. Adding a database is one command (<code>db:add</code>) that creates it, sets up roles, migrates and registers it. The system recommends a new database; the operator decides.</p>
+<p><strong>The erasure register</strong> is also written, entry by entry, to an append-only log in object storage, so even a restore of control cannot lose an erasure.</p>
+<p><strong>Routing.</strong> <code>forCompany(id)</code> looks the company&#39;s database up in the registry (cached) and uses that database&#39;s connection pool. A stale cache cannot do harm: the old database&#39;s tenant row is no longer <code>open</code>, so <code>enter_company</code> raises and the router reloads. A new company, trial or paid, goes to the newest open shared cell; an enterprise to a dedicated database. Adding a database is one command (<code>db:add</code>) that creates it, sets up its roles in SQL, migrates and registers it, with Hyperdrive caching disabled. The system recommends a new database; the operator decides.</p>
 <p><strong>Writes that cross databases</strong> (sign-up, adding a user, closing a company) write the company side first, then control, are idempotent, and are repaired from an outbox if the second write fails (see <a href="#background-work-and-events">Background work and events</a>). No transaction spans two databases.</p>
 <h2>Company lifecycle</h2>
 <p>One operation, generated from the catalogue, does every company-level job: copy or delete every row where <code>company_id = X</code>, in foreign-key order. Export, move, restore, dedicated placement and erase all use it, and CI runs it on every build: copy company A from database 1 to database 2, compare row counts and checksums per table, delete A, then confirm every table counts 0 for A.</p>
-<p><strong>Erase.</strong> Delete the tenant row; the cascade removes the rest. Erase is done when all four hold, recorded in an erase ledger:</p>
+<p><strong>How it runs.</strong> In the operations job, as the lifecycle role, over a direct connection to the database (not through Hyperdrive, whose statements stop at 60 seconds), in committed batches of short transactions while the company is fenced in control. One long transaction would hold back vacuum for every company in the cell. It reads from a branch or a read replica where it can, and through parent tables only. When it loads a slice, it refuses a company that has a tombstone, and it does not finish until it has replayed every entry in the erasure register for that company.</p>
+<p><strong>Erase.</strong> Fence the company, delete its rows in batches and then the tenant row, purge its files and any soft-deleted or versioned copies in object storage, and release its marketplace seller ids in control so the seller can connect again later. Erase is done when all three hold, recorded in the erasure register:</p>
 <ol>
-<li>the transaction committed</li>
+<li>the deletes committed</li>
 <li>a generated count over every table is 0 for the company</li>
 <li>the company&#39;s data key is destroyed</li>
-<li><code>VACUUM</code> ran on the touched tables within 24 hours</li>
 </ol>
-<p>The cascade also deletes the company&#39;s <code>audit_log</code>, so the one-year retention applies to live companies only.</p>
-<p><strong>Backups.</strong> 7 days of point-in-time recovery plus nightly encrypted snapshots kept 30 days. Erasure is complete in backups at day 30.</p>
-<p><strong>Encryption.</strong> Credentials and buyer contact fields (name, address, phone, email, notes) are encrypted under a per-company data key in <code>secrets(company_id, purpose)</code>, wrapped by a key-encryption key held as a platform secret. <code>company_id</code> is bound in as associated data, so a row read under the wrong company fails to decrypt. Exact-match blind indexes exist only for email and phone. The wrapped keys stay in the database: making erasure instant in backups would need a second, never-backed-up key store whose loss makes data unreadable for good, which is not worth it while backups expire after 30 days.</p>
-<p><strong>Restore one company:</strong></p>
+<p>The delete also removes the company&#39;s <code>audit_log</code>, so the one-year retention applies to live companies only.</p>
+<p><strong>Backups.</strong> 7 days of point-in-time recovery plus scheduled snapshots kept 30 days. No manual snapshots, because they never expire. Erasure is complete in backups at day 30. The customer terms state that, and the restore times the drills measure.</p>
+<p><strong>Encryption.</strong> Credentials and buyer contact fields (name, address, phone, notes) are encrypted under a per-company data key in <code>secrets(company_id, purpose)</code>, wrapped by a key-encryption key held as a platform secret. <code>company_id</code> is bound in as associated data, so a row read under the wrong company fails to decrypt. Exact-match blind indexes exist only for the phone number. The wrapped keys stay in the database: making erasure instant in backups would need a second, never-backed-up key store whose loss makes every company&#39;s data unreadable for good, and rotating the key-encryption key cannot end erasure sooner than the backups it protects expire.</p>
+<p><strong>Restore one company.</strong> Most mistakes are partial, such as one bad bulk edit, so a restore starts by looking back:</p>
+<p>Every branch the lifecycle tool makes, for a look-back, a rewind or a drill, has every tenant row marked <code>lookback</code> before anything else connects to it, so the runtime role can never serve from it, and it is deleted within 24 hours.</p>
 <ol>
-<li>Pause the company&#39;s outbound marketplace calls and revoke its sessions.</li>
-<li>Branch the database at the restore time.</li>
-<li>Replace the live slice with the branch&#39;s slice in one transaction.</li>
-<li>Re-apply every erasure in the company&#39;s erasure log made after the restore time, and run the anonymisation sweep, before the company opens (<a href="../buyer-data/">ADR-009</a>).</li>
+<li><strong>Look back.</strong> The lifecycle tool branches the cell at the restore time. The operator, on the seller&#39;s request, reads the company&#39;s old records through the tool in read-only transactions, and what is needed is copied back as normal commands on the live cell.</li>
+<li><strong>Full rewind,</strong> only for corruption:<ol>
+<li>Fence the company: pause its outbound marketplace calls, revoke its sessions, set its tenant row to <code>restoring</code>.</li>
+<li>Branch the database at the restore time (marked <code>lookback</code>).</li>
+<li>Replace the live slice with the branch&#39;s slice, in batches.</li>
+<li>Replay the erasure register for the company and run the anonymisation rule (<a href="../buyer-data/">ADR-009</a>) before anything else reads it.</li>
 <li>Rebuild the company&#39;s directory rows in control; set counters to at least their live values, so numbers already sent to suppliers are not reused.</li>
 <li>Mark restored outbound sends <code>unknown</code>, never resend them; bring every marketplace account back in shadow mode. Raise the company&#39;s sync epoch, kept in the control database, which every stock write&#39;s idempotency key carries (<a href="../inventory-sync/">ADR-008</a>).</li>
-<li>Re-read the marketplaces and reconcile; the operator signs off the differences before any stock push resumes, because pushing restored stock straight away would oversell.</li>
+<li>Re-import the marketplace orders placed since the restore time through the once-only import, then re-read the marketplaces and reconcile.</li>
+<li>The seller confirms the differences on the reconcile screen before any stock push resumes, because pushing restored stock straight away would oversell. The account stays in shadow mode until then, and the operator is alerted when a difference is large, but no person is needed at any particular hour.</li>
 <li>Files in object storage have no point-in-time copy: keep versioning or a 30-day soft delete, and never overwrite a file key.</li>
 </ol>
-<p><strong>Move a company</strong> to another database: pause its sync, copy the slice, compare checksums, switch the registry row, delete the source slice. Logical replication is kept for very large companies later.</p>
+</li>
+</ol>
+<p><strong>Restore a whole cell,</strong> after a disaster: restore the branch with every company set to <code>restoring</code>, then, before any company opens:</p>
+<ol>
+<li>delete every company tombstoned after the restore time, and replay the erasure register and the anonymisation rule for the rest;</li>
+<li>set to <code>moved_out</code> every company the registry now places in another database, and copy back from its source cell any company that moved in after the restore time;</li>
+<li>treat every company as a full rewind from step 5: counters, outbound sends marked <code>unknown</code>, accounts in shadow mode, orders re-imported, and the seller&#39;s confirmation before any stock push.</li>
+</ol>
+<p><strong>Move a company</strong> to another database: fence it (<code>moving_out</code>), copy the slice in batches, compare checksums, switch the registry row, set the source tenant row to <code>moved_out</code>, then delete the source slice.</p>
+<p><strong>Export</strong> is a bundle: a manifest with per-table row counts and hashes, machine-readable files that the slice operation can load again, and readable CSV files. It is bound to the company id, refused if loaded under another company, and logged as a view of buyer data.</p>
+<p><strong>Drills.</strong> Weekly, a random real company, and monthly each cell&#39;s largest company, are restored unattended into a temporary branch, timed per gigabyte; the drill checks that the runtime role is refused on that branch and that the neighbours&#39; checksums are unchanged, keeps only timings and checksums, and deletes the branch. Nightly, the canary company is moved between two databases and back, timed and checksummed. Control has a restore drill of its own.</p>
 <h2>Dedicated databases and residency</h2>
-<p>A dedicated database is a database row with <code>kind = dedicated</code> and a cap of 1: the same schema, RLS still on, the same code path, placed by the same slice operation.</p>
+<p>Any enterprise that requires it gets a Neon project of its own: its own compute, its own restore history and backups, and its own region if it asks. In the registry it is a database row with <code>kind = dedicated</code> and a cap of 1: the same schema, RLS still on, the same code path, placed by the same slice operation. Each one uses one Hyperdrive configuration.</p>
 <ul>
-<li><strong>Inside the UK and EU,</strong> the database alone is enough, as long as Workers stay placed in the EU and Hyperdrive caching stays off.</li>
+<li><strong>Inside the UK and EU,</strong> the database alone is enough: every database is in Neon&#39;s EU region, the Worker is placed next to it, and Durable Objects and object storage use Cloudflare&#39;s EU jurisdiction, as long as Hyperdrive caching stays off.</li>
 <li><strong>Outside the EU,</strong> a dedicated database needs a whole cell: its own Worker placement, Hyperdrive configuration, object-storage bucket, Durable Object jurisdiction, logs and backup location.</li>
 </ul>
-<h2>Trial database</h2>
-<p>Every new company starts in a trial database on its own compute, so trials can never slow down or reach paying customers. When a company pays, the slice operation moves it into a paid cell.</p>
+<h2>Trials</h2>
+<p>A trial company lives in a normal shared cell, the newest open one, from sign-up. Paying changes its plan in control at once, and nothing moves.</p>
 <ul>
-<li><strong>Its own compute, not just its own database.</strong> Databases on one Neon compute share its CPU, memory and connections, so a burst of trial imports would still slow paying customers. The trial database gets its own Neon compute and its own Hyperdrive configuration. It runs the same schema, RLS and code path as every other cell.</li>
-<li><strong>What lives there:</strong> every company from sign-up until it pays, including the read-only weeks after an unpaid trial ends until it is cancelled and erased, plus demo companies.</li>
-<li><strong>Same safety as production.</strong> A trial company may already sell on real marketplaces from its numbers, so the trial database keeps the same backups, alerts and switch-off rules. It is only smaller: 0.25–2 CU autoscaling to start.</li>
-<li><strong>Shared marketplace allowances.</strong> Where a marketplace limits calls for the whole application, trial companies get a capped share and a lower priority than paying companies, except stock decreases on an active connection, which always go first.</li>
+<li><strong>No trial database at launch.</strong> A separate trial database would make every conversion a move: a pause, a copy and a route switch on a company that may already be selling on real marketplaces. It would also be a compute running all the time for a handful of trials.</li>
+<li><strong>A trial cell when trials outgrow their share.</strong> If trial companies use more than about 25% of a cell&#39;s compute for a week, the system recommends a cell for trials only. New trials then start there, and a trial that pays is moved to a paid cell by the slice operation, with the same fencing, <code>moved_out</code> source row and checks as any move.</li>
+<li><strong>Trials cannot crowd out paying companies.</strong> Trials together get a capped share of the cell&#39;s sweeper slots and bulk jobs, and a capped, lower-priority share of any marketplace allowance limited for the whole application, except stock decreases on an active connection, which always go first. Sign-up is gated against abuse.</li>
+<li><strong>Same safety as production.</strong> A trial company may already sell on real marketplaces from its numbers, so it has the same backups, alerts and switch-off rules as everyone else. Demo companies live in a cell like any other company.</li>
+<li><strong>When a trial lapses</strong> without paying, or a paying company closes, what is kept, for how long, and when the data is erased is decided with billing and plans. Until it is erased, the data stays in its cell.</li>
 </ul>
-<p><strong>Moving to paid</strong></p>
-<ol>
-<li>Payment succeeds: the plan changes at once in control, so paid features are available immediately. No data has to move for that.</li>
-<li>The physical move is scheduled for the company&#39;s quietest hour within 24 hours: pause its sync, copy the slice to the paid cell with the most room (or a dedicated database), compare checksums, switch the registry row, delete the trial copy.</li>
-<li>A trial holds only a few weeks of data, so the pause lasts a minute or two. Marketplace notices wait in the queue and are imported right after.</li>
-</ol>
 <h2>Platform constraints</h2>
-<p>Checked against Neon&#39;s and Cloudflare&#39;s documentation on 17 October 2026.</p>
+<p>Checked against Neon&#39;s and Cloudflare&#39;s documentation on 18 October 2026.</p>
 <p><strong>Neon</strong></p>
 <ul>
-<li>A branch holds several databases on one compute, which share its <code>max_connections</code> (839 for a 0.25–2 CU autoscaling compute) (<a href="https://neon.com/docs/reference/compatibility">compatibility</a>).</li>
-<li>Point-in-time restore covers 7 days on the Launch plan and 30 days on Scale (<a href="https://neon.com/docs/introduction/plans">plans</a>); scheduled snapshots are kept up to 35 days (<a href="https://neon.com/docs/guides/backup-restore">backup and restore</a>). Restoring one company is a branch at the restore time plus the slice copy.</li>
-<li>Roles created in the Neon console, CLI or API join <code>neon_superuser</code>, which has <code>BYPASSRLS</code> (<a href="https://neon.com/docs/manage/roles">roles</a>). <strong>The runtime role is created in SQL by the owner, never in the console</strong>, and the lint checks it.</li>
+<li>All databases on one branch share its compute and its <code>max_connections</code> (839 for a 0.25–2 CU autoscaling compute) (<a href="https://neon.com/docs/reference/compatibility">compatibility</a>). So control has a compute of its own.</li>
+<li>Point-in-time restore covers up to 7 days on the Launch plan and up to 30 days on Scale (<a href="https://neon.com/docs/introduction/plans">plans</a>). Restore works on a whole branch, never one database or one company (<a href="https://neon.com/docs/guides/backup-restore">backup and restore</a>): restoring one company is a branch at the restore time plus the slice copy.</li>
+<li>Scheduled snapshots are kept up to 35 days; manual snapshots never expire unless given an expiry (<a href="https://neon.com/docs/guides/backup-restore">backup and restore</a>). Vervoro keeps scheduled snapshots 30 days and makes no manual ones.</li>
+<li>Roles created in the Neon console, CLI or API join <code>neon_superuser</code>, which has <code>BYPASSRLS</code>; roles created with <code>CREATE ROLE</code> in SQL get only what is granted (<a href="https://neon.com/docs/manage/roles">roles</a>). <strong>Every role is created in SQL</strong>, and the production audit checks it.</li>
 <li>Scale to zero is off for production databases, so no request waits for a cold start.</li>
 <li>Hyperdrive connects to Neon&#39;s direct endpoint, not Neon&#39;s own pooler, so two poolers are never stacked.</li>
 </ul>
 <p><strong>Hyperdrive</strong></p>
 <ul>
-<li>25 configurations per paid account, more by request (<a href="https://developers.cloudflare.com/hyperdrive/platform/limits/">limits</a>). Each database takes one; staging lives in a separate Cloudflare account.</li>
-<li>About 100 origin connections per configuration, so each cell has at most ~100 database connections.</li>
+<li>25 configurations per paid account, more by request; not every limit can be raised (<a href="https://developers.cloudflare.com/hyperdrive/platform/limits/">limits</a>). A configuration is one connection string: one database and one user. Each database takes one; staging lives in a separate Cloudflare account.</li>
+<li>About 100 origin connections per configuration on a paid plan, so each cell has at most ~100 pooled database connections. A statement stops after 60 seconds.</li>
 <li>Pooling is in transaction mode: a <code>SET</code> inside <code>BEGIN</code>/<code>COMMIT</code> takes effect, and the connection is reset when it returns to the pool (<a href="https://developers.cloudflare.com/hyperdrive/concepts/how-hyperdrive-works/">how Hyperdrive works</a>). This is what the transaction-local company setting relies on.</li>
-<li><strong>Query caching is off on every configuration.</strong> Hyperdrive caches read-only queries by their text and cannot see the company setting, so a cached result could be served to another company (<a href="https://developers.cloudflare.com/hyperdrive/concepts/query-caching/">query caching</a>). <code>db:add</code> creates every configuration with caching disabled, and a deploy check refuses one with caching on.</li>
+<li><strong>Query caching is on by default and is off on every configuration.</strong> Hyperdrive caches read-only query results and cannot see the company setting, so a cached result could be served to another company (<a href="https://developers.cloudflare.com/hyperdrive/concepts/query-caching/">query caching</a>). <code>db:add</code> creates every configuration with caching disabled, and the production audit refuses any configuration in the account with caching on.</li>
 <li>Transactions stay short: each holds one pooled connection until it ends, so no marketplace call runs inside a transaction.</li>
+</ul>
+<h2>Operations</h2>
+<ul>
+<li><strong>Timeouts.</strong> The runtime role has a <code>statement_timeout</code> and an <code>idle_in_transaction_session_timeout</code>, so one slow query or one forgotten transaction cannot hold a cell. Every migration sets a <code>lock_timeout</code> and retries, so a migration waiting for a lock on a shared table does not queue every seller behind it.</li>
+<li><strong>Migrations run as a ring.</strong> They run first on the newest cell, which holds the trials and the canary, then on the others, and finish everywhere before the new code goes live.</li>
+<li><strong>Partitions.</strong> A monthly scheduled run of the CI migration job creates partitions three months ahead, so a failed run waits for the next one without anyone acting at an hour. It detaches and drops a month only after the archiver has written and verified that month&#39;s per-company files (<a href="../data-retention/">ADR-002</a>).</li>
+<li><strong>Hot rows.</strong> The <code>due</code> table and the counter table are updated by almost every command; both get a lower fillfactor and their own autovacuum thresholds.</li>
+<li><strong>Alerts</strong> on transaction-id age, long-running transactions and leftover replication slots.</li>
 </ul>
 <h2>When to add a database</h2>
 <p>The system recommends a new cell when any one of these holds for 7 days; the operator decides.</p>
@@ -313,8 +374,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </thead>
 <tbody><tr>
 <td>Companies in the cell</td>
-<td>500 (about 300 for companies at 1,000 orders a day)</td>
-<td>Limits how many companies one outage or bad migration reaches</td>
+<td>200</td>
+<td>Limits how many companies one outage, bad migration or misconfiguration reaches: at 1,000 companies, about 5 shared cells</td>
 </tr>
 <tr>
 <td>Hyperdrive pool</td>
@@ -327,19 +388,19 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>No headroom left for a burst</td>
 </tr>
 <tr>
-<td>Speed</td>
-<td>p95 of reserving stock or importing an order over 100 ms at peak</td>
-<td>Users feel it; marketplace sync depends on it</td>
+<td>Restore time</td>
+<td>The drill&#39;s measured restore of the cell&#39;s largest company takes over 15 minutes, or the cell holds over 500 GB</td>
+<td>Keeps the per-company recovery promise; a branch restore does not grow with size, a slice copy does. A company that alone breaks it is offered a dedicated database</td>
 </tr>
 <tr>
-<td>Restore time</td>
-<td>Restoring the whole cell from a snapshot takes over 1 hour</td>
-<td>Keeps the recovery promise</td>
+<td>Trials</td>
+<td>Trial companies use over 25% of a cell&#39;s compute</td>
+<td>Trials start crowding out paying companies; add a cell for trials only (<a href="#trials">Trials</a>)</td>
 </tr>
 <tr>
 <td>Hyperdrive configurations</td>
-<td>20 of 25 used</td>
-<td>Ask Cloudflare before adding more</td>
+<td>15 of 25 used</td>
+<td>Ask Cloudflare for more before they are needed</td>
 </tr>
 </tbody></table></div>
 <p>Large append-only tables (orders, the stock ledger, outbound sends) are partitioned by month, with <code>company_id</code> leading every index. How long data stays in a cell, and when older months move to an archive, is <a href="../data-retention/">ADR-002: Data retention and archiving</a>.</p>
@@ -359,9 +420,14 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>As company A, every read, insert, update and delete of B&#39;s rows is refused; an unset company raises an error</td>
 </tr>
 <tr>
+<td>Suite can fail</td>
+<td>CI, scratch database</td>
+<td>With one <code>FORCE</code> and one composite foreign key removed, the isolation suite and the fuzz fail</td>
+</tr>
+<tr>
 <td>Append-only</td>
 <td>CI, real Postgres, runtime role</td>
-<td>An update, delete or truncate of a stock ledger row is refused; the slice operation and the archiver, as the owner, still remove a company&#39;s rows</td>
+<td>An update, delete or truncate of a stock ledger row is refused; the slice operation, as the lifecycle role, still removes a company&#39;s rows</td>
 </tr>
 <tr>
 <td>Two-company fuzz</td>
@@ -370,13 +436,13 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Catalogue lint</td>
-<td>CI</td>
-<td>Every guard-rail rule holds for every table, including seeded bad tables that must fail</td>
+<td>CI and production</td>
+<td>Every guard-rail rule holds for every table and partition, including seeded bad tables that must fail</td>
 </tr>
 <tr>
 <td>Two databases</td>
 <td>CI, two real Postgres</td>
-<td>A company in database B is unreachable through database A&#39;s handle; the request guard throws on a mismatched id</td>
+<td>Entering a company in a database that does not hold it raises an error, not zero rows; the request guard throws on a mismatched id; the runtime role cannot enter a <code>moved_out</code>, <code>restoring</code> or <code>lookback</code> company, and the lifecycle role cannot enter a <code>moved_out</code> one</td>
 </tr>
 <tr>
 <td>Pooler soak</td>
@@ -389,13 +455,28 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>The same soak through Hyperdrive itself</td>
 </tr>
 <tr>
+<td>Roles</td>
+<td>CI and production</td>
+<td>The Worker binds only the runtime role; no role but the owner has <code>BYPASSRLS</code> or <code>neon_superuser</code>; only the operations job holds the lifecycle credential</td>
+</tr>
+<tr>
 <td>Slice round trip</td>
 <td>CI</td>
-<td>Copy, compare checksums, erase, count 0</td>
+<td>Copy, compare checksums, erase, count 0; a tombstoned company&#39;s slice is refused; the erasure register is replayed</td>
+</tr>
+<tr>
+<td>Canary</td>
+<td>Production</td>
+<td>Another company sees none of the canary&#39;s rows; outbound payloads never carry its markers</td>
+</tr>
+<tr>
+<td>Restore drill</td>
+<td>Production, weekly and monthly</td>
+<td>A real company restores unattended into a branch the runtime role cannot enter, neighbours unchanged, time per gigabyte recorded</td>
 </tr>
 <tr>
 <td>RLS cost</td>
-<td>Benchmark on hot paths</td>
+<td>Benchmark before launch</td>
 <td>The policy adds an acceptable cost to stock reservation, order import and marketplace sync</td>
 </tr>
 </tbody></table></div>
@@ -403,17 +484,20 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p><strong>What this gives us</strong></p>
 <ul>
 <li>The database structure exists once per cell, not once per company: about 1,900 database objects per cell, however many companies it holds. A schema per company would be about 1,780 objects for each company, 1.78 million at 1,000 companies.</li>
-<li>One migration per database, one backup per database, one background query per database.</li>
-<li>Dedicated databases, trial isolation and moves all reuse one schema and one slice operation.</li>
-<li>Isolation is enforced by Postgres and checked by CI on every build.</li>
+<li>One migration per database, one backup per database, one background query per database: about 7 databases to run at 1,000 companies (5 shared cells, control, and any dedicated ones).</li>
+<li>A wrong route, a stale cache or a stray branch raises an error instead of returning empty stock.</li>
+<li>Trials and paying companies share one path, so paying never moves data.</li>
+<li>Dedicated databases and moves reuse one schema and one slice operation.</li>
+<li>Isolation is enforced by Postgres, checked by CI on every build, and re-checked in production every night.</li>
 </ul>
 <p><strong>What it costs</strong></p>
 <ul>
 <li>Every table and every query carries <code>company_id</code>; the declaration helper and the lint carry that cost so modules do not.</li>
-<li>A mistake in a policy would expose rows rather than fail, which is why the lint, the fail-loud setting and the isolation tests are part of the design, not extras.</li>
-<li>Erasing or moving a company is a generated multi-table operation instead of dropping one schema.</li>
+<li>A mistake in a policy would expose rows rather than fail, which is why the lint, the fail-loud setting, the row check, the canary and the isolation tests are part of the design, not extras.</li>
+<li>Erasing, restoring or moving a company is a generated multi-table operation run in batches, instead of dropping one schema or restoring one database. A full restore of one company takes minutes, measured by the drill, not seconds.</li>
 <li>Sellers can find a buyer only by exact phone number, not by part of a name or address, because buyer fields are encrypted.</li>
-<li>Erasure is complete in backups 30 days after a company closes.</li>
+<li>Erasure is complete in backups 30 days after it is made.</li>
+<li>Every company in a cell shares its compute and its ~100 connections, so one company&#39;s burst is bounded by fair shares and the cell cap, not by hardware of its own.</li>
 </ul>
 <h2>Alternatives considered</h2>
 <div class="table-wrap"><table>
@@ -425,22 +509,38 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </thead>
 <tbody><tr>
 <td>Schema per company</td>
-<td>About 1,780 database objects per company; dumps lock every table (73,000 at 500 companies), migrations and housekeeping grow with the number of companies</td>
+<td>About 1,780 database objects per company; dumps lock every table (73,000 at 500 companies), migrations and housekeeping grow with the number of companies, and a wrong <code>search_path</code> reads another company silently</td>
+</tr>
+<tr>
+<td>A Neon project per company (Neon&#39;s own recommendation for multi-tenant products)</td>
+<td>It would give each company a restore in seconds, erasure from backups in 7 days, a blast radius of one company and no move code. But one Hyperdrive configuration serves one database and user, and an account has 25, so companies would connect without Hyperdrive; each company needs its own always-on compute, so cost and migrations grow with every company, many times the cost of shared cells at 1,000 companies; and one platform credential still reaches every project. Kept for an enterprise that asks, as a dedicated database</td>
 </tr>
 <tr>
 <td>A Postgres role per company</td>
 <td>Adds no isolation over the company setting: the runtime login would have to be able to switch into every company&#39;s role. Roles are server-wide, every table&#39;s permission list grows with each company, and a move must recreate the role in the new cell</td>
 </tr>
 <tr>
-<td>Database per company</td>
-<td>Thousands of databases for one operator to run and pay for</td>
+<td>A trial database on its own compute from launch</td>
+<td>Every conversion becomes a move of a company that may already be selling, and a fixed compute runs for a handful of trials. Fair shares in a normal cell keep trials from crowding out paying companies; a trial cell is added when trials pass 25% of a cell&#39;s compute</td>
 </tr>
 <tr>
-<td>Control data inside the first cell</td>
-<td>A cell credential could read the login directory, and the cross-database write path would first run in production</td>
+<td>Control data inside the first cell, or on its compute</td>
+<td>A cell credential could read the login directory, and restoring the first cell&#39;s branch would rewind control and its erasure register</td>
 </tr>
 <tr>
-<td>Silent zero rows for an unset company</td>
+<td>An erasure log inside each company&#39;s rows</td>
+<td>The restore that must replay it would rewind it</td>
+</tr>
+<tr>
+<td>Slice operations as the owner</td>
+<td>The most destructive operations would run with row-level security off and the owner&#39;s credential in a running service</td>
+</tr>
+<tr>
+<td>Per-company backup files and key rotation instead of snapshots</td>
+<td>A separate key store whose loss loses every company&#39;s data, and machinery one operator must keep working; rotation cannot end erasure before the backups expire</td>
+</tr>
+<tr>
+<td>Silent zero rows for an unset company, or for a company in another database</td>
 <td>Hides bugs; an empty stock read can push 0 and delist a seller</td>
 </tr>
 <tr>
@@ -449,7 +549,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Logical replication to move companies</td>
-<td>Copies no schema changes or sequences, and a forgotten replication slot fills the disk; kept for very large companies later</td>
+<td>Copies no schema changes or sequences, and a forgotten replication slot fills the disk</td>
 </tr>
 </tbody></table></div>
 
