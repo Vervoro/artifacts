@@ -88,6 +88,7 @@ ${body}
 `;
 
 const docs: { dir: string; title: string; blurb: string; parent?: string }[] = [
+  { dir: "rulebook", title: "Engineering rulebook", blurb: "The 42 rules every change must keep, each a one-line summary of a decision a record makes, with a link to it. The record wins on any difference. Load it with every coding task." },
   { dir: "guide", title: "Architecture map and glossary", blurb: "How the records fit together, one word per concept, and what each status (Proposed, Accepted, Implemented, Superseded, Deprecated) means. Every record is Proposed today." },
   { dir: "system-architecture", title: "ADR-000: System architecture", blurb: "A modular monolith of modules with typed ports, one core that owns stock and orders, an outbox, one egress gate, connector plugins and simulators. Proposed, 17 October 2026." },
   { dir: "database-architecture", title: "ADR-001: Multi-tenant database architecture", blurb: "Control database, shared-table customer databases with forced row-level security, a wrong-database check on every transaction, dedicated databases, trials as a state. Proposed 17 October 2026, revised 18 October 2026." },

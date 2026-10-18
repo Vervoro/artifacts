@@ -34,7 +34,7 @@ ADR-000  System architecture: modules, the foundation, outbox, egress gate, simu
     └── ADR-012  Billing and plans (Vervoro charging the seller)
 ```
 
-The order to build them in is on the [index](../).
+The order to build them in is on the [index](../). The rules every change must keep are in the [engineering rulebook](../rulebook/).
 
 ## Status of a record
 
