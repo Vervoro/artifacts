@@ -349,13 +349,14 @@ A hold pauses an order. It does not release it.
 | Unexpected status change | Office | A status move the expected-moves table does not list | The operator or a manager checks it |
 | Possible duplicate | Office | A Shopify order made by a marketplace app may be a sale already imported directly | A manager confirms it is a separate sale, or marks it a mirror |
 | Who ships these? | Office | The first seller-shipped order from an Amazon marketplace the account was not set up for | The seller answers for that marketplace (see the Amazon section) |
-| Address check, payment check, customer request, other | Office | A manager holds an order by hand, with a note | A manager, admin or owner |
+| Payment check, customer request, other | Office | A manager holds an order by hand, with a note | A manager, admin or owner |
+| Address check | Office before picking; floor once picking starts | A manager holds any order by hand; anyone in the warehouse may hold an order they are picking or packing | Before picking, a manager, admin or owner; from picking on, anyone in the warehouse, or a manager |
 | Stock check | Floor | A person holds an order by hand | Anyone in the warehouse |
 | Address changed after label | Floor | The delivery address changed after a label was bought | A person checks or replaces the label |
 | Order changed: check the parcel | Floor | The marketplace changed a picked or packed order (lines, quantities, address, a new hold) | A person checks the parcel against the order; the put-back task says what to return |
 | Label to void | Floor | The order changed or was cancelled after its label was bought | The label is voided, confirmed by scanning it |
 
-**Floor holds never widen who sees buyer data.** "Address changed after label" arises only once a label exists, when the warehouse already sees the address (ADR-009); a check of an address before then is an office hold.
+**Floor holds never widen who sees buyer data.** The warehouse places or clears an address hold only on an order it is picking or packing, when it already sees the address to prepare the parcel and label (ADR-009). Before picking starts, an address check is an office hold.
 
 **Decide-by and escalation.** Every hold shows the time by which someone must decide: the order's leave-by time, or the marketplace's own deadline when it is sooner (the end of eBay's answer window, below). Two hours before it, the people who may clear that hold are alerted; when it passes, the owner is told as well. No hold expires on its own.
 

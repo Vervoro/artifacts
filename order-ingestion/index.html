@@ -919,10 +919,16 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>The seller answers for that marketplace (see the Amazon section)</td>
 </tr>
 <tr>
-<td>Address check, payment check, customer request, other</td>
+<td>Payment check, customer request, other</td>
 <td>Office</td>
 <td>A manager holds an order by hand, with a note</td>
 <td>A manager, admin or owner</td>
+</tr>
+<tr>
+<td>Address check</td>
+<td>Office before picking; floor once picking starts</td>
+<td>A manager holds any order by hand; anyone in the warehouse may hold an order they are picking or packing</td>
+<td>Before picking, a manager, admin or owner; from picking on, anyone in the warehouse, or a manager</td>
 </tr>
 <tr>
 <td>Stock check</td>
@@ -949,7 +955,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>The label is voided, confirmed by scanning it</td>
 </tr>
 </tbody></table></div>
-<p><strong>Floor holds never widen who sees buyer data.</strong> &quot;Address changed after label&quot; arises only once a label exists, when the warehouse already sees the address (ADR-009); a check of an address before then is an office hold.</p>
+<p><strong>Floor holds never widen who sees buyer data.</strong> The warehouse places or clears an address hold only on an order it is picking or packing, when it already sees the address to prepare the parcel and label (ADR-009). Before picking starts, an address check is an office hold.</p>
 <p><strong>Decide-by and escalation.</strong> Every hold shows the time by which someone must decide: the order&#39;s leave-by time, or the marketplace&#39;s own deadline when it is sooner (the end of eBay&#39;s answer window, below). Two hours before it, the people who may clear that hold are alerted; when it passes, the owner is told as well. No hold expires on its own.</p>
 <p><strong>Orders waiting on the marketplace are fetched again.</strong> An order that has had a marketplace hold for more than 24 hours is fetched once a day, so a change whose notice was lost still arrives.</p>
 <p><strong>Worked example.</strong> A Shopify order for 3 jars of jam arrives at 14:00 with payment <code>PENDING</code> (a bank transfer). It reserves 3 jars and is held &quot;payment pending&quot; (marketplace). At 16:30 Shopify&#39;s risk check recommends investigating; &quot;fraud check&quot; (office) is added. The next morning the payment arrives: &quot;payment pending&quot; clears, but the order is still held. A manager checks the order, releases &quot;fraud check&quot; with the reason &quot;buyer confirmed by phone&quot;, and the order joins the picking list. A later fetch with the same recommendation does not hold it again.</p>
