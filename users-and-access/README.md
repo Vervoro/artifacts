@@ -196,21 +196,22 @@ The permission matrix. A module declares each action in its manifest (ADR-000), 
 | Create, edit, import products | Yes | Yes | Yes | No | No | No | [ADR-003](../product-model/) |
 | See costs, landed cost and margins | Yes | Yes | Yes | No | Yes | No | This record |
 | **Stock** | | | | | | | |
-| Receive, move between spots, repack, count | Yes | Yes | Yes | Yes | No | No | [ADR-006](../stock-ledger/) |
-| Record a receipt without a purchase order (waits for a manager) | Yes | Yes | Yes | Yes | No | No | [ADR-006](../stock-ledger/) |
-| Approve a count; confirm reserved units are gone | Yes | Yes | Yes | No | No | No | [ADR-006](../stock-ledger/) |
+| Receive, move between spots, repack between a pack and its singles, count | Yes | Yes | Yes | Yes | No | No | [ADR-006](../stock-ledger/) |
+| Record a receipt without a purchase order (received quarantined, waits for a manager) | Yes | Yes | Yes | Yes | No | No | [ADR-006](../stock-ledger/) |
+| Approve a count; confirm reserved units are gone (orders packed outside Vervoro) | Yes | Yes | Yes | No | No | No | [ADR-006](../stock-ledger/) |
 | Adjust, write off (reason required) | Yes | Yes | Yes | No | No | No | [ADR-006](../stock-ledger/) |
-| Accept a short-dated receipt, or one without a purchase order | Yes | Yes | Yes | No | No | No | [ADR-006](../stock-ledger/) |
-| Inspect a return: restock or keep as damaged; mark damaged or quarantined | Yes | Yes | Yes | Yes | No | No | [ADR-006](../stock-ledger/) |
-| Inspect a return: write off; restore damaged units | Yes | Yes | Yes | No | No | No | [ADR-006](../stock-ledger/) |
+| Accept or refuse a quarantined receipt (short-dated, or without a purchase order) | Yes | Yes | Yes | No | No | No | [ADR-006](../stock-ledger/) |
+| Assemble a product from several others; send an expired best-before batch on a manual order | Yes | Yes | Yes | No | No | No | [ADR-006](../stock-ledger/) |
+| Inspect a return: restock or keep as damaged; mark damaged or quarantined; "not found" at a pick | Yes | Yes | Yes | Yes | No | No | [ADR-006](../stock-ledger/) |
+| Inspect a return: write off, or restock a use-by unit; restore damaged units | Yes | Yes | Yes | No | No | No | [ADR-006](../stock-ledger/) |
 | Block or unblock a lot | Yes | Yes | Yes | No | No | No | [ADR-006](../stock-ledger/) |
 | **Orders** | | | | | | | |
 | Read orders (buyer data as in the table above) | Yes | Yes | Yes | Yes | Yes | Yes | [ADR-009](../buyer-data/) |
-| Pick, pack, print labels, confirm a shipment | Yes | Yes | Yes | Yes | No | No | [ADR-006](../stock-ledger/), [ADR-007](../order-ingestion/) |
+| Pick, pack (and take another eligible batch, recorded), print labels, confirm a shipment | Yes | Yes | Yes | Yes | No | No | [ADR-006](../stock-ledger/), [ADR-007](../order-ingestion/) |
 | Hold or release an order | Yes | Yes | Yes | No | No | No | [ADR-007](../order-ingestion/) |
 | Cancel, or answer a buyer's cancellation request | Yes | Yes | Yes | No | No | No | [ADR-007](../order-ingestion/) |
 | Create, confirm, edit or cancel a manual order | Yes | Yes | Yes | No | No | No | [ADR-007](../order-ingestion/) |
-| Choose another batch, resolve a line again, attach a line | Yes | Yes | Yes | No | No | No | [ADR-006](../stock-ledger/), [ADR-007](../order-ingestion/) |
+| Pin a batch for a line, resolve a line again, attach a line | Yes | Yes | Yes | No | No | No | [ADR-006](../stock-ledger/), [ADR-007](../order-ingestion/) |
 | Reverse a shipment reported outside Vervoro | Yes | Yes | Yes | No | No | No | [ADR-006](../stock-ledger/), [ADR-007](../order-ingestion/) |
 | **Invoicing** | | | | | | | |
 | Issue an invoice; confirm a credit note | Yes | Yes | Yes | No | No | No | [ADR-011](../invoicing-and-vat/) |

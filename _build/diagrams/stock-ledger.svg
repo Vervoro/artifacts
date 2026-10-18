@@ -37,7 +37,7 @@
   <text x="385" y="150" text-anchor="middle" font-size="10.5" class="quiet">release</text>
   <rect x="420" y="90" width="140" height="64" rx="8" class="box"/>
   <text x="490" y="116" text-anchor="middle" font-weight="600" class="ink">Reserved</text>
-  <text x="490" y="134" text-anchor="middle" font-size="11" class="quiet">names batch and spot</text>
+  <text x="490" y="134" text-anchor="middle" font-size="11" class="quiet">names its batch</text>
 
   <text x="282" y="188" font-size="10.5" class="quiet">down: sell-by date, damage, lot block</text>
   <text x="282" y="203" font-size="10.5" class="quiet">up: inspected saleable, unblocked</text>

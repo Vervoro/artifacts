@@ -46,7 +46,7 @@ The design has to meet these requirements:
 14. **Shipped outside Vervoro is a flag on each line,** with the quantity and the marketplace's time. It deducts what the line held, once. A manager can reverse it.
 15. **Manual orders are orders.** A manager enters them in Vervoro, and they follow the same statuses, holds, reservations and dispatch, without a marketplace.
 16. **Buyer data comes only from the fetched order** and only for orders the seller ships. Only the fields ADR-009 allows are written, and nothing is written for an order already anonymised.
-17. **Dispatch is handed a queue, not a list of orders:** open orders with no hold and something reserved, each with one ship-by time, a pick list naming batches and spots, and the packing details ADR-009 lets the warehouse see.
+17. **Dispatch is handed a queue, not a list of orders:** open orders with no hold and something reserved, each with one ship-by time, a pick list naming batches and the spots to take them from, and the packing details ADR-009 lets the warehouse see.
 18. **An Amazon order from a marketplace the account does not serve is not imported** (ADR-004.2). Its notice warns the seller once per marketplace when the seller ships it.
 
 ## How an order comes in
@@ -167,8 +167,8 @@ Every order has one status. Seller-shipped and manual orders can use all of them
 | --- | --- | --- | --- |
 | **Pending** | The marketplace has the order, but it may not ship yet: payment not complete, a pre-order, a scheduled order | Yes, with a hold | Not on the picking list |
 | **Open** | Ready to ship | Yes | On the picking list if no hold and something is reserved |
-| **Picking** | A picker has started it | Yes | Being picked. Picking moves no stock (ADR-006) |
-| **Packed** | Every unit to ship is scanned into a parcel | Yes | Waiting for the shipment to be confirmed |
+| **Picking** | A picker has started it | Yes | Being picked. Picking moves no stock; its pick task says which spots the units come from, and counts allow for them (ADR-006) |
+| **Packed** | Every unit to ship is scanned or tapped into a parcel; packing records each unit's batch and moves it, still reserved, to the packing spot (ADR-006) | Yes | Waiting for the shipment to be confirmed |
 | **Part shipped** | Some units have left, by Vervoro or outside it; the rest are still to ship | What remains | The rest is on the picking list again |
 | **Shipped** | Every unit is shipped or cancelled, and at least one shipped | Nothing | Final |
 | **Cancelled** | Every unit is cancelled, none shipped | Nothing | Final |
@@ -181,7 +181,7 @@ Every order has one status. Seller-shipped and manual orders can use all of them
 | Pending, open, picking, packed | Cancelled | The marketplace confirms the whole order cancelled, or a manager cancels a manual order |
 | Open | Picking | A picker starts it. Refused while it has a hold or reserves nothing |
 | Picking | Packed | Packing has scanned every unit it ships now |
-| Picking, packed | Open | A person puts it back. The warehouse is told to return the units to their spots |
+| Picking, packed | Open | A person puts it back. The warehouse is told to return the units to their spots; packed units move back from the packing spot (ADR-006) |
 | Open, picking, packed | Part shipped | A shipment of part of the order is confirmed, or the marketplace says part shipped outside Vervoro |
 | Pending, open, picking, packed, part shipped | Shipped | The last units are shipped or the rest cancelled |
 
@@ -252,7 +252,7 @@ ADR-006 owns how units are chosen and held. This record decides when, in what or
 2. Look up the order's key. Compare change times; stop if the fetch is not newer.
 3. Write or update the order and its lines.
 4. Resolve each new line with the link valid at the time of purchase (ADR-005), or leave it waiting.
-5. Reserve what each line needs, release what a smaller quantity or a cancellation frees, and record shortages.
+5. Work out each line's target (what it still needs, less what it holds), reserve or release only the difference, and record shortages. A cancellation and an edit in one fetch never release twice.
 6. Set or clear the automatic holds.
 7. Write buyer data, and the anonymisation due time when one is known (ADR-009).
 8. Write new desired figures for affected listings, and the outbox event. Commit.
@@ -358,7 +358,8 @@ Shopify cancellations stay in Shopify because cancelling there is also a refund 
 ### A confirmed cancellation
 
 - **Before dispatch:** releases exactly what each cancelled line held, in the import's transaction (ADR-006). The line's `cancelled` rises. If every unit is cancelled, the order is cancelled.
-- **Already picked:** the units are still on hand in their spots. The release makes them sellable, and the warehouse is told to put them back.
+- **Already picked:** the units are still on hand in their spots by the books. The release makes them sellable, and the warehouse is told to put them back.
+- **Already packed:** the units are in the packing spot. The release makes them sellable there, and the warehouse is told to put them away.
 - **Part shipped:** releases what is still reserved. If nothing is left to ship, the order is shipped.
 - **After dispatch:** recorded as cancelled after dispatch; no stock moves. If the parcel comes back, it is a return (ADR-006).
 
@@ -491,7 +492,7 @@ Shipping itself (labels, carriers, rates, tracking and delivery) is a later reco
 | Shopify | The fulfilment order's `fulfillBy`; when Shopify sets none, the time of purchase plus the account's handling time, set by the seller |
 | Manual | The date the manager sets |
 
-**The pick list** names, for each line still to ship: the product, its image, the quantity in base units and in box sizes where one fits (ADR-003), and each reservation's batch, spot, lot and best-before date (ADR-006). For a bundle, each component. The pick list always shows the current reservations; packing checks every scan against them (ADR-006).
+**The pick list** names, for each line still to ship: the product, its image, the quantity in base units and in box sizes where one fits (ADR-003), and each reservation's batch, lot and date, with the spot its pick task takes it from (ADR-006). For a bundle, each component. The pick list always shows the current reservations. Packing records the batch of every unit: implied when the spot holds one eligible batch, otherwise tapped from the date or lot on the unit; another eligible batch may be taken, and is recorded (ADR-006).
 
 **Packing details** are the line titles as the marketplace gave them, the gift message, the order note, and the recipient and address, shown to warehouse users only from picking until shipped, and for label reprints for 24 hours after (ADR-009).
 

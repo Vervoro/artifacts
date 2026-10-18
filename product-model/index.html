@@ -236,6 +236,12 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Default from the company setting (on for food sellers). See &quot;Best-before and lot numbers&quot;</td>
 </tr>
 <tr>
+<td><code>date_kind</code></td>
+<td>enum</td>
+<td>When <code>tracks_best_before</code></td>
+<td><code>best_before</code> (default) or <code>use_by</code>. See &quot;Best-before and lot numbers&quot;</td>
+</tr>
+<tr>
 <td><code>tracks_lot</code></td>
 <td>boolean</td>
 <td>Yes</td>
@@ -250,8 +256,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td><code>min_days_to_sell</code></td>
 <td>integer</td>
-<td>No</td>
-<td>0–3,650. Stock with fewer days left is held back from sale. Blank means sellable until the best-before date</td>
+<td>No; required for <code>use_by</code></td>
+<td>0–3,650. Stock with fewer days left is held back from sale. Blank means sellable until the best-before date. For <code>use_by</code>, at least 1 plus the company&#39;s delivery days</td>
 </tr>
 <tr>
 <td><code>weight_g</code></td>
@@ -452,7 +458,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ul>
 <li><strong>One content product.</strong> <code>pack_of</code> points at a simple product; <code>units_per_pack</code> says how many. A pack of packs is not allowed: a case of four six-packs is a box size, not a product.</li>
 <li><strong>Stock is separate.</strong> Selling a six-pack uses six-pack stock, never singles. Ten six-packs on the shelf are ten packs, not sixty singles, until someone opens them.</li>
-<li><strong>Repacking moves stock between the two.</strong> A repack job takes a number of packs and produces <code>units_per_pack</code> times as many singles (opening packs), or the reverse (making packs). It writes both ledger entries in one transaction, so the total number of base units never changes. The new stock keeps the batch, best-before date and landed cost per unit of the stock it came from.</li>
+<li><strong>Repacking moves stock between the two.</strong> A repack job takes a number of packs and produces <code>units_per_pack</code> times as many singles (opening packs), or the reverse (making packs). It takes one number, the packs opened or made, and works out the other side from <code>units_per_pack</code>, so the total number of base units never changes; both ledger entries are written in one transaction. The new stock keeps the batch, best-before date and landed cost per unit of the stock it came from.</li>
+<li><strong>Assembly is a manager&#39;s job.</strong> A product built from several others and sealed in advance (a gift set sent to Amazon&#39;s warehouse, which Amazon requires as one labelled unit) is a simple product of its own. A manager&#39;s assembly job states every input and the output quantity, and the output batch records every input lot (ADR-006).</li>
 <li><strong>When to use a pack, and when not.</strong> If the seller ships six singles loose in one parcel, that is a listing with six units per sale, not a pack. A pack exists only when a sealed pack physically sits on the shelf.</li>
 </ul>
 <h3>Bundle</h3>
@@ -461,13 +468,13 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Components.</strong> Each component is a product and a whole-number quantity, 1–1,000. A bundle has 1 to 20 components, and at least 2 units in total. A &quot;bundle&quot; of three of the same product with nothing else is refused, with a pointer to the right tool: a listing with three units per sale.</li>
 <li><strong>One level deep.</strong> A component must be simple or a pack, never another bundle. This keeps the sellable figure one step from real stock and makes a cycle impossible.</li>
 <li><strong>Sellable is worked out, never stored.</strong> For each component, divide its sellable by the quantity the bundle needs and round down; the bundle&#39;s sellable is the smallest result. If bundle A is 1 × B plus 2 × C, and 10 B and 20 C are sellable, A can sell min(10 ÷ 1, 20 ÷ 2) = 10 times.</li>
-<li><strong>A sale reserves the components.</strong> An order for one bundle reserves one honey and two jam, against their batches, in the same transaction. Dispatch deducts the components.</li>
+<li><strong>A sale reserves the components, in whole sets.</strong> An order for one bundle reserves one honey and two jam, against their batches, in the same transaction. A line reserves and ships only whole sets; what the components cannot cover is missing on every component alike (ADR-006). Dispatch deducts the components.</li>
 <li><strong>Components still sell on their own.</strong> B and C keep their own listings. Selling A uses B and C stock, and selling B on its own lowers what A can sell. In the example, selling 4 B on their own leaves A able to sell 6.</li>
 <li><strong>One stock serves every use.</strong> Honey sold on its own and honey sold in the bundle draw on the same stock. When a component&#39;s sellable changes, every bundle that uses it gets a new sellable, and every listing linked to those bundles is told.</li>
 <li><strong>Changing a bundle&#39;s components</strong> applies to orders received afterwards. An open order keeps the components it was reserved with, recorded on the order line, so editing a bundle never strands or doubles a reservation.</li>
 <li><strong>Cost and weight.</strong> A bundle&#39;s standard cost is the sum of its components&#39; standard costs, worked out when read. Its weight and dimensions are entered for the packed bundle, because the gift box adds both.</li>
 <li><strong>No bundle stock, ever.</strong> A ledger entry against a bundle is refused.</li>
-<li><strong>Best-before and lots come from the components.</strong> Picking a bundle picks each component&#39;s earliest best-before batch, and the order line records each component&#39;s lot.</li>
+<li><strong>Best-before and lots come from the components.</strong> Each component reserves its earliest qualifying batch, and the order line records the lot of each component that left.</li>
 </ul>
 <h3>Changing a product&#39;s kind</h3>
 <p>A product&#39;s kind can be changed only before first use. After that, stock history, listings and orders depend on it, so the seller creates a new product and retires the old one.</p>
@@ -676,14 +683,15 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </tbody></table></div>
 <h2>Best-before and lot numbers</h2>
-<p>For food, cosmetics and supplements, the best-before date and the lot number are what keep a buyer safe. Two switches on the product decide what the warehouse must record. A company setting gives new products their default, so a food seller has both on from the start.</p>
+<p>For food, cosmetics and supplements, the date and the lot number are what keep a buyer safe. Two switches on the product decide what the warehouse must record, and <code>date_kind</code> says whether the date is a best-before or a use-by date. Selling food past its use-by date is an offence; food past its best-before date may still be sold if it is of good quality. A company setting gives new products their default, so a food seller has both on from the start.</p>
 <p><strong><code>tracks_best_before</code> on:</strong></p>
 <ul>
 <li>No stock enters without a best-before date: receiving, a stock count that finds new stock, and a return each ask for it.</li>
-<li>The earliest best-before goes first when stock is reserved and picked. A manager can override it, and the override is recorded.</li>
+<li>The earliest best-before goes first when stock is reserved, among batches that meet the demand&#39;s shelf-life need (ADR-006). The person packing may take another batch that is in date and not blocked; the choice is recorded, and later dates are reported to a manager. A manager may pin a batch.</li>
 <li>Expired stock is never sellable and never allocated.</li>
 <li><code>min_days_to_sell</code> holds stock back earlier: with 30, stock with fewer than 30 days left is no longer sellable, so a buyer never receives a jar that expires on arrival. It stays on hand to be written off, sold off by hand or returned to the supplier.</li>
 <li><code>min_days_on_receipt</code> protects the seller from short-dated deliveries: stock arriving with fewer days left needs a manager to accept it.</li>
+<li><strong>A use-by date is a hard stop.</strong> <code>min_days_to_sell</code> is required and at least 1 plus the company&#39;s delivery days, so a parcel reaches the buyer in date. A use-by batch is never reserved, packed or dispatched on or after its date, with no override, and a returned use-by unit is not restocked without a manager&#39;s reason.</li>
 </ul>
 <p><strong><code>tracks_lot</code> on:</strong></p>
 <ul>

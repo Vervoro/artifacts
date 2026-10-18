@@ -25,7 +25,7 @@ The design has to meet these requirements:
 1. **A modular monolith.** One codebase and one deployable per environment. Every feature is a module inside it, not a separate service.
 2. **Every capability is a module** that declares itself in one manifest, owns its own tables, and talks to other modules only through their contract: typed ports and typed events.
 3. **One core, the foundation,** is always on and is the only code that changes stock, order status and the stock figure each listing should show.
-4. **Stock is an append-only ledger.** Every physical change is a permanent entry; balances always equal the sum of the entries, and the database refuses stock below zero.
+4. **Stock is an append-only ledger.** Every physical change is a permanent entry; the database applies each entry to its balance, so balances always equal the sum of the entries and nothing else can write them, and it refuses stock below zero.
 5. **Expected failures are typed `Result` values,** never exceptions and never silent catches.
 6. **Events are written with the change,** in an outbox in the same transaction, delivered right after commit (or later by the sweeper), and handled once through a receipt per handler.
 7. **Nothing reaches a marketplace or a supplier except through one egress gate.** Every such effect is recorded with an idempotency key, sent after commit, rate-limited per account, and only sent when the account is live. Every connection starts in shadow mode, where nothing is sent.
@@ -88,6 +88,7 @@ The foundation is always on and cannot be switched off. It holds the catalogue, 
 - **One writer per company.** The first statement of every stock command takes the company's lock, held until commit. The transaction is short: about eight round trips for an order, counted by a test.
 - **The database is the hard stop.** Checks refuse a balance below zero, a negative reservation, or more reserved than is on hand. A wrong plan fails the transaction instead of inventing stock.
 - **Append only.** Ledger entries are never updated or deleted. Each carries a quantity, batch, spot, reason, person and source, and a gapless sequence number per company gives a total order of every change.
+- **Only the entry changes a balance.** A trigger applies each ledger entry to its balance and reservation; the running system has no other way to write them.
 - **Proved every night.** A nightly check compares every balance with the sum of its entries and alerts on any difference. Archiving old entries keeps this true through checkpoints (ADR-002).
 - **One order per marketplace order.** Importing again updates the order, never duplicates it, and an older state is ignored.
 

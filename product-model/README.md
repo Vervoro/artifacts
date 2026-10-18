@@ -75,9 +75,10 @@ All tables are declared through `tenantTable()` (ADR-001), so every row also car
 | `family_id` | uuid → `product_family` | No | See "Sizes and colours" |
 | `option_1`, `option_2`, `option_3` | text | In a family | This product's value for each of the family's options, such as `42` and `Black`. Up to 50 characters each |
 | `tracks_best_before` | boolean | Yes | Default from the company setting (on for food sellers). See "Best-before and lot numbers" |
+| `date_kind` | enum | When `tracks_best_before` | `best_before` (default) or `use_by`. See "Best-before and lot numbers" |
 | `tracks_lot` | boolean | Yes | Default from the company setting. See "Best-before and lot numbers" |
 | `min_days_on_receipt` | integer | No | 1–3,650. Stock arriving with fewer days to its best-before needs a manager to accept it |
-| `min_days_to_sell` | integer | No | 0–3,650. Stock with fewer days left is held back from sale. Blank means sellable until the best-before date |
+| `min_days_to_sell` | integer | No; required for `use_by` | 0–3,650. Stock with fewer days left is held back from sale. Blank means sellable until the best-before date. For `use_by`, at least 1 plus the company's delivery days |
 | `weight_g` | integer | No | Gross weight of one unit in grams, 1–1,000,000 |
 | `length_mm`, `width_mm`, `height_mm` | integer | No | Packed size of one unit in millimetres, 1–10,000. All three or none |
 | `hs_code` | text | No | Customs commodity code: 6, 8 or 10 digits, stored without dots or spaces |
@@ -159,7 +160,8 @@ A pack is a physical product that holds a fixed number of one simple product: a 
 
 - **One content product.** `pack_of` points at a simple product; `units_per_pack` says how many. A pack of packs is not allowed: a case of four six-packs is a box size, not a product.
 - **Stock is separate.** Selling a six-pack uses six-pack stock, never singles. Ten six-packs on the shelf are ten packs, not sixty singles, until someone opens them.
-- **Repacking moves stock between the two.** A repack job takes a number of packs and produces `units_per_pack` times as many singles (opening packs), or the reverse (making packs). It writes both ledger entries in one transaction, so the total number of base units never changes. The new stock keeps the batch, best-before date and landed cost per unit of the stock it came from.
+- **Repacking moves stock between the two.** A repack job takes a number of packs and produces `units_per_pack` times as many singles (opening packs), or the reverse (making packs). It takes one number, the packs opened or made, and works out the other side from `units_per_pack`, so the total number of base units never changes; both ledger entries are written in one transaction. The new stock keeps the batch, best-before date and landed cost per unit of the stock it came from.
+- **Assembly is a manager's job.** A product built from several others and sealed in advance (a gift set sent to Amazon's warehouse, which Amazon requires as one labelled unit) is a simple product of its own. A manager's assembly job states every input and the output quantity, and the output batch records every input lot (ADR-006).
 - **When to use a pack, and when not.** If the seller ships six singles loose in one parcel, that is a listing with six units per sale, not a pack. A pack exists only when a sealed pack physically sits on the shelf.
 
 ### Bundle
@@ -169,13 +171,13 @@ A bundle (also called a kit or set) is several products sold as one item: a gift
 - **Components.** Each component is a product and a whole-number quantity, 1–1,000. A bundle has 1 to 20 components, and at least 2 units in total. A "bundle" of three of the same product with nothing else is refused, with a pointer to the right tool: a listing with three units per sale.
 - **One level deep.** A component must be simple or a pack, never another bundle. This keeps the sellable figure one step from real stock and makes a cycle impossible.
 - **Sellable is worked out, never stored.** For each component, divide its sellable by the quantity the bundle needs and round down; the bundle's sellable is the smallest result. If bundle A is 1 × B plus 2 × C, and 10 B and 20 C are sellable, A can sell min(10 ÷ 1, 20 ÷ 2) = 10 times.
-- **A sale reserves the components.** An order for one bundle reserves one honey and two jam, against their batches, in the same transaction. Dispatch deducts the components.
+- **A sale reserves the components, in whole sets.** An order for one bundle reserves one honey and two jam, against their batches, in the same transaction. A line reserves and ships only whole sets; what the components cannot cover is missing on every component alike (ADR-006). Dispatch deducts the components.
 - **Components still sell on their own.** B and C keep their own listings. Selling A uses B and C stock, and selling B on its own lowers what A can sell. In the example, selling 4 B on their own leaves A able to sell 6.
 - **One stock serves every use.** Honey sold on its own and honey sold in the bundle draw on the same stock. When a component's sellable changes, every bundle that uses it gets a new sellable, and every listing linked to those bundles is told.
 - **Changing a bundle's components** applies to orders received afterwards. An open order keeps the components it was reserved with, recorded on the order line, so editing a bundle never strands or doubles a reservation.
 - **Cost and weight.** A bundle's standard cost is the sum of its components' standard costs, worked out when read. Its weight and dimensions are entered for the packed bundle, because the gift box adds both.
 - **No bundle stock, ever.** A ledger entry against a bundle is refused.
-- **Best-before and lots come from the components.** Picking a bundle picks each component's earliest best-before batch, and the order line records each component's lot.
+- **Best-before and lots come from the components.** Each component reserves its earliest qualifying batch, and the order line records the lot of each component that left.
 
 ### Changing a product's kind
 
@@ -292,15 +294,16 @@ Example of the rate table:
 
 ## Best-before and lot numbers
 
-For food, cosmetics and supplements, the best-before date and the lot number are what keep a buyer safe. Two switches on the product decide what the warehouse must record. A company setting gives new products their default, so a food seller has both on from the start.
+For food, cosmetics and supplements, the date and the lot number are what keep a buyer safe. Two switches on the product decide what the warehouse must record, and `date_kind` says whether the date is a best-before or a use-by date. Selling food past its use-by date is an offence; food past its best-before date may still be sold if it is of good quality. A company setting gives new products their default, so a food seller has both on from the start.
 
 **`tracks_best_before` on:**
 
 - No stock enters without a best-before date: receiving, a stock count that finds new stock, and a return each ask for it.
-- The earliest best-before goes first when stock is reserved and picked. A manager can override it, and the override is recorded.
+- The earliest best-before goes first when stock is reserved, among batches that meet the demand's shelf-life need (ADR-006). The person packing may take another batch that is in date and not blocked; the choice is recorded, and later dates are reported to a manager. A manager may pin a batch.
 - Expired stock is never sellable and never allocated.
 - `min_days_to_sell` holds stock back earlier: with 30, stock with fewer than 30 days left is no longer sellable, so a buyer never receives a jar that expires on arrival. It stays on hand to be written off, sold off by hand or returned to the supplier.
 - `min_days_on_receipt` protects the seller from short-dated deliveries: stock arriving with fewer days left needs a manager to accept it.
+- **A use-by date is a hard stop.** `min_days_to_sell` is required and at least 1 plus the company's delivery days, so a parcel reaches the buyer in date. A use-by batch is never reserved, packed or dispatched on or after its date, with no override, and a returned use-by unit is not restocked without a manager's reason.
 
 **`tracks_lot` on:**
 

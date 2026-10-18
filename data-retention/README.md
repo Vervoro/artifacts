@@ -48,7 +48,7 @@ A month is archived for the whole cell at once, because partitions are shared by
 
 Every stock balance must equal the sum of its ledger entries, and a nightly check proves it. Old entries cannot simply leave.
 
-- Before a ledger month is archived, the archiver writes one **opening-balance entry** per company, product, batch and spot, dated the first day of the next month, equal to the sum of all entries up to then.
+- Before a ledger month is archived, the archiver writes one **opening-balance entry** per company, product, batch and spot, and per batch in each warehouse, dated the first day of the next month, equal to the sum of all entries up to then. It also carries each open reservation's totals, so reservations are still proved from the checkpoint (ADR-006).
 - The nightly check then sums from the latest checkpoint, and still proves balances equal entries.
 - The archived entries stay available for traceability (where a batch went) through the archive.
 

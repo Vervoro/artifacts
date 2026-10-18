@@ -626,7 +626,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td></td>
 </tr>
 <tr>
-<td>Receive, move between spots, repack, count</td>
+<td>Receive, move between spots, repack between a pack and its singles, count</td>
 <td>Yes</td>
 <td>Yes</td>
 <td>Yes</td>
@@ -636,7 +636,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="../stock-ledger/">ADR-006</a></td>
 </tr>
 <tr>
-<td>Record a receipt without a purchase order (waits for a manager)</td>
+<td>Record a receipt without a purchase order (received quarantined, waits for a manager)</td>
 <td>Yes</td>
 <td>Yes</td>
 <td>Yes</td>
@@ -646,7 +646,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="../stock-ledger/">ADR-006</a></td>
 </tr>
 <tr>
-<td>Approve a count; confirm reserved units are gone</td>
+<td>Approve a count; confirm reserved units are gone (orders packed outside Vervoro)</td>
 <td>Yes</td>
 <td>Yes</td>
 <td>Yes</td>
@@ -666,7 +666,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="../stock-ledger/">ADR-006</a></td>
 </tr>
 <tr>
-<td>Accept a short-dated receipt, or one without a purchase order</td>
+<td>Accept or refuse a quarantined receipt (short-dated, or without a purchase order)</td>
 <td>Yes</td>
 <td>Yes</td>
 <td>Yes</td>
@@ -676,7 +676,17 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="../stock-ledger/">ADR-006</a></td>
 </tr>
 <tr>
-<td>Inspect a return: restock or keep as damaged; mark damaged or quarantined</td>
+<td>Assemble a product from several others; send an expired best-before batch on a manual order</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td><a href="../stock-ledger/">ADR-006</a></td>
+</tr>
+<tr>
+<td>Inspect a return: restock or keep as damaged; mark damaged or quarantined; &quot;not found&quot; at a pick</td>
 <td>Yes</td>
 <td>Yes</td>
 <td>Yes</td>
@@ -686,7 +696,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="../stock-ledger/">ADR-006</a></td>
 </tr>
 <tr>
-<td>Inspect a return: write off; restore damaged units</td>
+<td>Inspect a return: write off, or restock a use-by unit; restore damaged units</td>
 <td>Yes</td>
 <td>Yes</td>
 <td>Yes</td>
@@ -726,7 +736,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="../buyer-data/">ADR-009</a></td>
 </tr>
 <tr>
-<td>Pick, pack, print labels, confirm a shipment</td>
+<td>Pick, pack (and take another eligible batch, recorded), print labels, confirm a shipment</td>
 <td>Yes</td>
 <td>Yes</td>
 <td>Yes</td>
@@ -766,7 +776,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="../order-ingestion/">ADR-007</a></td>
 </tr>
 <tr>
-<td>Choose another batch, resolve a line again, attach a line</td>
+<td>Pin a batch for a line, resolve a line again, attach a line</td>
 <td>Yes</td>
 <td>Yes</td>
 <td>Yes</td>
