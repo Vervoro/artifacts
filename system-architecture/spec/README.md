@@ -32,7 +32,7 @@ Extension points (several providers of one port, chosen per key, such as connect
 | Provides and uses | The ports it offers and the ports it calls. A call to a port it did not declare is refused at runtime |
 | Contributes | Providers for an extension point, such as one marketplace connector |
 | Publishes and handles | The events it writes and the events it reacts to |
-| Permissions | Named actions a role can be granted ([ADR-010](../../users-and-access/)) |
+| Permissions | Named actions a role can be granted ([ADR-010 SPEC 4](../../users-and-access/spec/#4-who-may-do-what)) |
 | Routes | Its server routes, each with the permission and warehouse scope it needs |
 | Slots | Its screens and menu entries |
 | Migrations | Ordered, forward-only changes to its own tables |
@@ -163,7 +163,7 @@ An **egress effect** is a call that changes something on a marketplace or at a s
 
 <!-- DIAGRAM -->
 
-1. **The app Worker,** one per environment, serves the built client as static files, the API and every webhook. **The sign-in Worker** is the only other one: it serves the sign-in pages, answers the app's "is this session live?", and reaches only the control database, through its own Hyperdrive configuration ([ADR-010](../../users-and-access/#the-sign-in-worker)). Deployed code uses web-standard APIs and platform bindings only.
+1. **The app Worker,** one per environment, serves the built client as static files, the API and every webhook. **The sign-in Worker** is the only other one: it serves the sign-in pages, answers the app's "is this session live?", and reaches only the control database, through its own Hyperdrive configuration ([ADR-013 SPEC 6](../../sign-in/spec/#6-the-sign-in-worker)). Deployed code uses web-standard APIs and platform bindings only.
 2. **Background work** runs on one sweeper per database, a Durable Object driven by its alarm, that runs only companies with work due ([ADR-001 SPEC 9](../../database-architecture/spec/#9-background-work-and-the-outbox)).
 3. **Webhooks** go through one inbound queue with retries and a dead-letter queue.
 4. **Live updates** come from one Durable Object per company that holds its open screens' connections, so a screen updates when a background job changes what it shows. They carry ids and statuses, never buyer data ([ADR-009](../../buyer-data/)).
@@ -181,7 +181,7 @@ An **egress effect** is a call that changes something on a marketplace or at a s
 1. Deploying is one command. Migrations run first, on control and every cell in the ring of [ADR-001 SPEC 12](../../database-architecture/spec/#12-operations), and finish before new code goes live.
 2. Migrations only add, so the previous code version runs on the new schema, and a rollback is switching back to it. A migration is never rolled back.
 3. A database below the version the code needs is an error that alerts, never a state the code handles.
-4. Each Worker deploys on its own, only when its code changes; when both change, the sign-in Worker goes first ([ADR-010](../../users-and-access/#the-sign-in-worker)).
+4. Each Worker deploys on its own, only when its code changes; when both change, the sign-in Worker goes first ([ADR-013 SPEC 6](../../sign-in/spec/#6-the-sign-in-worker)).
 
 Procedure: [Deploy and roll back](../../runbooks/deploy-and-roll-back/).
 

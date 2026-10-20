@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Runbook: Open an operator grant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono&display=swap">
+<style>
+:root {
+  --bg: #f6f6f8; --surface: #ffffff; --sunken: #ededf1; --text: #16161a; --muted: #5c5c66; --border: #e0e0e6;
+  --accent: #4338ca; --accent-soft: #eef0ff; --edge: #8a8a96; --tint: #f0f0f4;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #111114; --surface: #1a1a1f; --sunken: #23232a; --text: #ececf1; --muted: #a2a2ad; --border: #2d2d35;
+  --accent: #a5b4fc; --accent-soft: #23264a; --edge: #74747f; --tint: #202027; color-scheme: dark; } }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 var(--sans); }
+main { max-width: 860px; margin: 0 auto; padding: 48px max(20px, env(safe-area-inset-left)) 80px; }
+header.site { max-width: 860px; margin: 0 auto; padding: 20px max(20px, env(safe-area-inset-left)) 0; font-size: 14px; }
+header.site a { color: var(--muted); text-decoration: none; }
+header.site a:hover { color: var(--accent); }
+h1, h2, h3 { line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(28px, 4vw, 38px); letter-spacing: -0.02em; margin: 0 0 20px; }
+h2 { font-size: 23px; margin: 48px 0 12px; padding-top: 20px; border-top: 1px solid var(--border); }
+h3 { font-size: 18px; margin: 32px 0 8px; }
+p, li { max-width: 72ch; }
+a { color: var(--accent); }
+code { font-family: var(--mono); font-size: 0.86em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--sunken); padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 13.5px; line-height: 1.5; }
+pre code { background: none; padding: 0; overflow-wrap: normal; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 16px 0; background: var(--surface); }
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+.table-wrap table { margin: 0; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+th { background: var(--sunken); font-weight: 600; font-size: 13px; color: var(--muted); }
+tr:last-child td { border-bottom: none; }
+ul, ol { padding-left: 22px; }
+li + li { margin-top: 4px; }
+figure { margin: 20px 0; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; }
+svg.diagram { display: block; width: 100%; min-width: 640px; height: auto; font-family: var(--sans); }
+svg .ink { fill: var(--text); } svg .quiet { fill: var(--muted); }
+svg .edge { stroke: var(--edge); } svg .edge-fill { fill: var(--edge); }
+svg .accent { stroke: var(--accent); } svg .accent-fill { fill: var(--accent); }
+svg .box { fill: none; stroke: var(--edge); stroke-width: 1.25; }
+svg .box-main { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+svg .band { fill: var(--tint); stroke: var(--edge); stroke-width: 1.25; }
+.cards { list-style: none; padding: 0; display: grid; gap: 12px; }
+.cards a { display: block; padding: 18px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; text-decoration: none; color: var(--text); }
+.cards a:hover, .cards a:focus-visible { border-color: var(--accent); outline: none; }
+.cards.sub { margin: 12px 0 0 24px; padding-left: 16px; border-left: 2px solid var(--border); }
+.parts { margin: 6px 0 0 20px; font-size: 14px; color: var(--muted); } .cards .parts a { display: inline; padding: 0; background: none; border: none; border-radius: 0; color: var(--accent); font-weight: 600; text-decoration: none; } .cards .parts a:hover { text-decoration: underline; }
+.cards b { display: block; font-size: 17px; } .cards span { color: var(--muted); font-size: 14px; }
+.order li { margin-top: 10px; } .order span { color: var(--muted); font-size: 14px; }
+footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header class="site"><a href="../../">← Vervoro artifacts</a> / <a href="../">Runbooks</a></header>
+<main>
+<h1 id="runbook-open-an-operator-grant">Runbook: Open an operator grant</h1>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Built</strong></td>
+<td>At launch</td>
+</tr>
+<tr>
+<td><strong>Record</strong></td>
+<td><a href="../../users-and-access/">ADR-010</a>, rules in <a href="../../users-and-access/spec/#7-operator-access-to-a-company">SPEC 7</a></td>
+</tr>
+<tr>
+<td><strong>Who runs it</strong></td>
+<td>The operator, to look at a company&#39;s screens when helping a seller, or to read old records in a restore branch at the seller&#39;s request</td>
+</tr>
+<tr>
+<td><strong>Role or credential</strong></td>
+<td>The operator console, signed in with a passkey on a managed laptop (<a href="../../sign-in/spec/#9-operators">ADR-013 SPEC 9</a>). The runtime role, under row-level security</td>
+</tr>
+</tbody></table></div>
+<p>A repair (rebuilding a balance, re-importing an order, an export, move or restore) needs no grant: run it as its recorded command, which writes its own audit entry.</p>
+<h2 id="steps">Steps</h2>
+<ol>
+<li>Open the grant for one company, with a written reason and an end time no more than 8 hours away.</li>
+<li>Leave buyer data off. Only the seller&#39;s Owner or Admin can switch it on for this grant, for example when they asked you to check an address.</li>
+<li>Look. The grant is read-only: change nothing, and never act in a seller&#39;s user&#39;s name.</li>
+<li>End the grant when done, before its end time if you can.</li>
+</ol>
+<h2 id="verify">Verify</h2>
+<ul>
+<li>The company&#39;s &quot;Vervoro access&quot; view shows the grant with its reason and end time, and every screen opened.</li>
+<li>Every Owner and Admin got the notice in the app and by email.</li>
+<li>The platform security log holds the grant, and Vervoro&#39;s owner was alerted.</li>
+</ul>
+<h2 id="if-it-stops-halfway">If it stops halfway</h2>
+<p>Access needs both the audit entry and the grant row in control. If only the audit entry was written, the outbox writes the grant row; nothing is reachable until it does. If the console shows an error, do not open a second grant: end the first, then open again.</p>
+
+<footer>Vervoro</footer>
+</main>
+</body>
+</html>

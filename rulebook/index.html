@@ -115,9 +115,9 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ol>
 <h2 id="6-people-and-buyer-data">6. People and buyer data</h2>
 <ol start="35">
-<li><strong>Every request is checked on the server</strong> against the person&#39;s role, warehouse scope and status in that company, read in the same transaction as the work. <a href="../users-and-access/#decision">ADR-010</a></li>
-<li><strong>Operators have no standing access.</strong> They use a grant with a reason and an end time, which the seller sees and can end. <a href="../users-and-access/#decision">ADR-010</a></li>
-<li><strong>Sign-in lives only in the sign-in Worker.</strong> Only it holds the sign-in keys, writes the login tables and shows a password field. The app asks it whether a session is live and never records a fresh check itself. Its pages and calls are a closed list. <a href="../users-and-access/#the-sign-in-worker">ADR-010</a></li>
+<li><strong>Every request is checked on the server</strong> against the person&#39;s role, warehouse scope and status in that company, read in the same transaction as the work. <a href="../users-and-access/spec/#5-rules-for-every-action">ADR-010 SPEC 5</a></li>
+<li><strong>Operators have no standing access.</strong> They use a grant with a reason and an end time, which the seller sees and can end. <a href="../users-and-access/spec/#7-operator-access-to-a-company">ADR-010 SPEC 7</a></li>
+<li><strong>Sign-in lives only in the sign-in Worker.</strong> Only it holds the sign-in keys, writes the login tables and shows a password field. The app asks it whether a session is live and never records a fresh check itself. Its pages and calls are a closed list. <a href="../sign-in/spec/#6-the-sign-in-worker">ADR-013 SPEC 6</a></li>
 <li><strong>Buyer data comes only from the fetched order,</strong> only the fields ADR-009 allows, encrypted per field under the company&#39;s key. It never goes to control, queues, logs, URLs, caches, emails, client storage or the AI provider. <a href="../buyer-data/#decision">ADR-009</a></li>
 <li><strong>Every view of buyer data is logged.</strong> It is anonymised 30 days after delivery. <a href="../buyer-data/#decision">ADR-009</a></li>
 <li><strong>No real buyer data outside production.</strong> Tests, fixtures and demos use synthetic buyers. <a href="../buyer-data/#decision">ADR-009</a></li>

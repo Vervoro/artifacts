@@ -141,7 +141,7 @@ What is never kept:
 
 **Every view is logged.** Opening an order with buyer data, the packing screen, printing or reprinting a label, a buyer search and an export each write one entry to `audit_log`: the user, the order, the fields shown, the screen and the time. Lists show no buyer data, so they write nothing. The seller sees the entries in their audit log. `audit_log` is kept at least a year (ADR-001).
 
-**The operator** has no standing access to any company. To help a seller, the operator opens an access grant, which the seller is told about at once and can end ([ADR-010](../users-and-access/)):
+**The operator** has no standing access to any company. To help a seller, the operator opens an access grant, which the seller is told about at once and can end ([ADR-010](../users-and-access/spec/#7-operator-access-to-a-company)):
 
 - for one company, with a written reason, for at most 8 hours;
 - with buyer fields still masked, unless the reason names a buyer-data need (for example, the seller asked to fix an address);
@@ -252,7 +252,7 @@ Amazon's schedule is the strictest of the three marketplaces, so it is the sched
 | Control | What Vervoro does | How often |
 | --- | --- | --- |
 | Multi-factor sign-in | Required for every user of every company, every operator and every developer account | Always |
-| Passwords | Where a password is used: at least 12 characters with mixed character types, none of the user's name, the last 10 not reused, changed at least once a year; locked after 10 failed attempts. Passkeys are the default (ADR-010) | Always |
+| Passwords | Where a password is used: at least 12 characters with mixed character types, none of the user's name, the last 10 not reused, changed at least once a year; locked after 10 failed attempts. Passkeys are the default ([ADR-013](../sign-in/)) | Always |
 | One person, one account | No shared or generic accounts | Always |
 | Security logs | Sign-ins, access grants, buyer-data views, exports, key use and admin actions, collected centrally, protected from change, with no buyer data in them | Kept at least 12 months; alerts reviewed continuously, the rest every two weeks |
 | Vulnerability scans | Every system that touches seller or buyer data | At least every 30 days, and the code before each release |

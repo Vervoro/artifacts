@@ -1,0 +1,57 @@
+<svg class="diagram" viewBox="0 0 900 400" role="img" aria-label="A person, or an operator on a managed laptop, signs in on the sign-in Worker's own pages with a passkey, or a password and an authenticator app code. The sign-in Worker holds the email-hash key and the sign-in key, has its own lockfile, CI job and deploy token, and alone reads and writes the login tables in the control database, through its own Hyperdrive connection in the EU with caching off. Every other request goes to the app Worker, which asks the sign-in Worker over a service binding, through a closed list of calls, whether the session is live, and never sees a password, a hash or an authenticator secret. The app Worker reads memberships and operator grants in control with the runtime role and sends every email. Dashed: later parts of the sign-in Worker, the email-hash key's rotation job, per-method switches and a login-history screen." xmlns="http://www.w3.org/2000/svg" font-size="13">
+  <defs>
+    <marker id="si-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="edge-fill"/></marker>
+  </defs>
+  <text x="24" y="26" font-size="15" font-weight="600" class="ink">The sign-in Worker is the only door to the login tables</text>
+
+  <g class="edge" fill="none" stroke-width="1.25">
+    <path d="M174 192H204V110H234" marker-end="url(#si-arrow)"/>
+    <path d="M174 222H204V305H234" marker-end="url(#si-arrow)"/>
+    <path d="M364 250V212" marker-end="url(#si-arrow)"/>
+    <path d="M494 110H594" marker-end="url(#si-arrow)"/>
+    <path d="M494 305H594" marker-end="url(#si-arrow)"/>
+  </g>
+  <text x="198" y="150" text-anchor="end" font-size="10" class="quiet">sign in</text>
+  <text x="198" y="272" text-anchor="end" font-size="10" class="quiet">every other request</text>
+  <text x="372" y="235" font-size="10" class="quiet">service binding, a closed list of calls</text>
+  <text x="502" y="100" font-size="10" class="quiet">own Hyperdrive,</text>
+  <text x="502" y="128" font-size="10" class="quiet">EU, no caching</text>
+  <text x="502" y="295" font-size="10" class="quiet">runtime role</text>
+
+  <rect x="24" y="170" width="150" height="72" rx="6" class="box"/>
+  <text x="99" y="194" text-anchor="middle" font-weight="600" class="ink">Person</text>
+  <text x="99" y="212" text-anchor="middle" font-size="10.5" class="quiet">own phone or laptop;</text>
+  <text x="99" y="227" text-anchor="middle" font-size="10.5" class="quiet">operator: managed laptop</text>
+
+  <rect x="234" y="50" width="260" height="162" rx="8" class="band"/>
+  <text x="364" y="72" text-anchor="middle" font-weight="600" class="ink">Sign-in Worker</text>
+  <text x="364" y="93" text-anchor="middle" font-size="11" class="quiet">its own pages: passkey, or password + code</text>
+  <text x="364" y="109" text-anchor="middle" font-size="11" class="quiet">bot check before any password hash</text>
+  <text x="364" y="125" text-anchor="middle" font-size="11" class="quiet">holds the email-hash and sign-in keys</text>
+  <text x="364" y="141" text-anchor="middle" font-size="11" class="quiet">own lockfile, CI job and deploy token</text>
+  <rect x="250" y="152" width="228" height="48" rx="6" class="box" stroke-dasharray="4 3"/>
+  <text x="364" y="172" text-anchor="middle" font-size="10.5" class="quiet">Later: email-hash key rotation job,</text>
+  <text x="364" y="188" text-anchor="middle" font-size="10.5" class="quiet">per-method switches, history screen</text>
+
+  <rect x="234" y="250" width="260" height="110" rx="8" class="band"/>
+  <text x="364" y="272" text-anchor="middle" font-weight="600" class="ink">App Worker</text>
+  <text x="364" y="293" text-anchor="middle" font-size="11" class="quiet">asks: session live? revoke, reset,</text>
+  <text x="364" y="309" text-anchor="middle" font-size="11" class="quiet">un-pause, incident commands</text>
+  <text x="364" y="329" text-anchor="middle" font-size="11" class="quiet">never sees a password, a hash</text>
+  <text x="364" y="345" text-anchor="middle" font-size="11" class="quiet">or a code secret; sends every email</text>
+
+  <rect x="594" y="50" width="282" height="310" rx="8" class="band"/>
+  <text x="735" y="72" text-anchor="middle" font-weight="600" class="ink">Control database</text>
+
+  <rect x="610" y="86" width="250" height="74" rx="6" class="box"/>
+  <text x="735" y="108" text-anchor="middle" font-weight="600" class="ink">Login tables</text>
+  <text x="735" y="126" text-anchor="middle" font-size="10.5" class="quiet">logins, methods, recovery codes, sessions</text>
+  <text x="735" y="142" text-anchor="middle" font-size="10.5" class="quiet">sign-in role only; values sealed</text>
+
+  <rect x="610" y="270" width="250" height="74" rx="6" class="box"/>
+  <text x="735" y="292" text-anchor="middle" font-weight="600" class="ink">Access data</text>
+  <text x="735" y="310" text-anchor="middle" font-size="10.5" class="quiet">memberships, operator grants,</text>
+  <text x="735" y="326" text-anchor="middle" font-size="10.5" class="quiet">the platform security log</text>
+
+  <text x="24" y="388" font-size="11" class="quiet">The app's role has no right on the login tables. Which person may do what in a company is ADR-010's.</text>
+</svg>

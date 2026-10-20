@@ -13,7 +13,8 @@ ADR-000  System architecture: modules, the foundation, outbox, egress gate, simu
 │   └── ADR-009  Buyer data and privacy
 │
 ├── People and access
-│   └── ADR-010  Users, roles and sign-in
+│   ├── ADR-010  Users, roles and access
+│   └── ADR-013  Sign-in: passkeys, sessions, recovery, the sign-in Worker
 │
 ├── Products and stock
 │   ├── ADR-003  Product model: SKU, packs, bundles, VAT class
@@ -69,8 +70,8 @@ One word per concept. Where two words appear in the records, the table says whet
 | Term | Meaning |
 | --- | --- |
 | **Company** | One customer of Vervoro: a seller's business. "Tenant" in ADR-001 means the same thing; the **tenant row** is a cell's own record of a company and its state there. Vervoro has no separate "organisation" |
-| **Login** | One person's way in: email, sign-in methods and sessions, held in the control database (ADR-010) |
-| **Sign-in Worker** | The only Worker besides the app: it serves the sign-in pages, alone holds the sign-in keys and writes the login tables, and tells the app whether a session is live. The app never sees a typed password (ADR-010) |
+| **Login** | One person's way in: email, sign-in methods and sessions, held in the control database (ADR-013) |
+| **Sign-in Worker** | The only Worker besides the app: it serves the sign-in pages, alone holds the sign-in keys and writes the login tables, and tells the app whether a session is live. The app never sees a typed password (ADR-013) |
 | **Membership** | A login's place in one company, with one role and an optional warehouse scope. One person can be a member of several companies |
 | **Role** | One of six: Owner, Admin, Manager, Warehouse, Accountant, Staff (ADR-010) |
 | **Operator** | A person running the Vervoro platform, not a member of any company. Acts on a company only through an audited, time-limited grant |

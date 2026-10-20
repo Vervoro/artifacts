@@ -5,7 +5,7 @@
 | **Status** | Proposed |
 | **Date** | 18 October 2026 |
 | **Scope** | How Vervoro charges sellers: what a plan holds and limits, what happens at a limit, the trial, a company's states from sign-up to erasure, what each role may do in each, stopping sends when a company closes, reopening a closed company, the payment provider, cards and Direct Debit, plan changes, failed payments, Vervoro's own invoices and VAT, counting orders, cancellation, export and refunds, and who may manage billing. Not how sellers invoice their own buyers (ADR-011) |
-| **Builds on** | [ADR-000: System architecture](../system-architecture/), [ADR-001: Multi-tenant database architecture](../database-architecture/), [ADR-002: Data retention and archiving](../data-retention/), [ADR-004: Channel connectors](../channel-connectors/), [ADR-008: Inventory sync](../inventory-sync/), [ADR-009: Buyer data and privacy](../buyer-data/), [ADR-010: Users, roles and sign-in](../users-and-access/) |
+| **Builds on** | [ADR-000: System architecture](../system-architecture/), [ADR-001: Multi-tenant database architecture](../database-architecture/), [ADR-002: Data retention and archiving](../data-retention/), [ADR-004: Channel connectors](../channel-connectors/), [ADR-008: Inventory sync](../inventory-sync/), [ADR-009: Buyer data and privacy](../buyer-data/), [ADR-010: Users, roles and access](../users-and-access/) |
 
 ## Context
 

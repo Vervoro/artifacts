@@ -278,7 +278,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>SQL</td>
 <td>Yes</td>
 <td>No</td>
-<td>Alone reads and writes logins, sign-in methods, recovery codes and sessions (<a href="../../users-and-access/#the-sign-in-worker">ADR-010</a>). Owns nothing</td>
+<td>Alone reads and writes logins, sign-in methods, recovery codes and sessions (<a href="../../sign-in/spec/#6-the-sign-in-worker">ADR-013 SPEC 6</a>). Owns nothing</td>
 <td>The sign-in Worker, through its own Hyperdrive configuration</td>
 </tr>
 <tr>
@@ -401,7 +401,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td>Request guard</td>
 <td>Data layer</td>
-<td>Sign-in puts the signed-in company in request context. <code>forCompany(id)</code> throws when <code>id</code> differs. Operator and background code opt in explicitly; an operator does so only under a live grant (<a href="../../users-and-access/">ADR-010</a>). Opting in never bypasses row-level security</td>
+<td>Sign-in puts the signed-in company in request context. <code>forCompany(id)</code> throws when <code>id</code> differs. Operator and background code opt in explicitly; an operator does so only under a live grant (<a href="../../users-and-access/spec/#7-operator-access-to-a-company">ADR-010 SPEC 7</a>). Opting in never bypasses row-level security</td>
 <td>Throw</td>
 </tr>
 <tr>
@@ -473,7 +473,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Login directory</td>
-<td>Logins, sign-in methods, recovery codes, sessions (<a href="../../users-and-access/">ADR-010</a>); only the sign-in role touches these</td>
+<td>Logins, sign-in methods, recovery codes, sessions (<a href="../../sign-in/spec/#1-the-login">ADR-013 SPEC 1</a>); only the sign-in role touches these</td>
 </tr>
 <tr>
 <td>Memberships and operator data</td>
@@ -523,7 +523,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ol>
 <li><strong>Pick the database.</strong> A trial or paid company goes to the newest <code>open</code> shared cell. A new enterprise company goes straight to its dedicated database. An existing company that becomes enterprise is moved there by the slice operation.</li>
 <li><strong>One cell transaction:</strong> <code>app.open_tenant(id)</code>, the company&#39;s own rows and its member row, and an outbox note for control.</li>
-<li><strong>Write control:</strong> the registry row with its <code>database_id</code>, and the membership (<a href="../../users-and-access/">ADR-010</a>).</li>
+<li><strong>Write control:</strong> the registry row with its <code>database_id</code>, and the membership (<a href="../../users-and-access/spec/#6-invitations-sign-up-and-removal">ADR-010 SPEC 6</a>).</li>
 <li>The company is reachable once control routes to it.</li>
 </ol>
 <p>Sign-up never runs a migration and never registers a database.</p>

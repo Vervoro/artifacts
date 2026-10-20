@@ -12,7 +12,7 @@
 1. Start the deploy from a green main: every test has passed on real Postgres.
 2. Migrations run on control, then the newest cell, then the other cells ([ADR-001 SPEC 12](../../database-architecture/spec/#12-operations)). Each waits for its locks with a timeout and retries.
 3. The pipeline reads each database's migration ledger and records in control the version each reached. It stops if any database is below the version the new code needs.
-4. If the sign-in Worker changed, it deploys first ([ADR-010](../../users-and-access/#the-sign-in-worker)).
+4. If the sign-in Worker changed, it deploys first ([ADR-013 SPEC 6](../../sign-in/spec/#6-the-sign-in-worker)).
 5. If the app Worker changed, its new version goes live.
 
 ## Verify

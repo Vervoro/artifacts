@@ -55,9 +55,9 @@ Load this page with any task. Load the linked record before changing the area it
 
 ## 6. People and buyer data
 
-35. **Every request is checked on the server** against the person's role, warehouse scope and status in that company, read in the same transaction as the work. [ADR-010](../users-and-access/#decision)
-36. **Operators have no standing access.** They use a grant with a reason and an end time, which the seller sees and can end. [ADR-010](../users-and-access/#decision)
-37. **Sign-in lives only in the sign-in Worker.** Only it holds the sign-in keys, writes the login tables and shows a password field. The app asks it whether a session is live and never records a fresh check itself. Its pages and calls are a closed list. [ADR-010](../users-and-access/#the-sign-in-worker)
+35. **Every request is checked on the server** against the person's role, warehouse scope and status in that company, read in the same transaction as the work. [ADR-010 SPEC 5](../users-and-access/spec/#5-rules-for-every-action)
+36. **Operators have no standing access.** They use a grant with a reason and an end time, which the seller sees and can end. [ADR-010 SPEC 7](../users-and-access/spec/#7-operator-access-to-a-company)
+37. **Sign-in lives only in the sign-in Worker.** Only it holds the sign-in keys, writes the login tables and shows a password field. The app asks it whether a session is live and never records a fresh check itself. Its pages and calls are a closed list. [ADR-013 SPEC 6](../sign-in/spec/#6-the-sign-in-worker)
 38. **Buyer data comes only from the fetched order,** only the fields ADR-009 allows, encrypted per field under the company's key. It never goes to control, queues, logs, URLs, caches, emails, client storage or the AI provider. [ADR-009](../buyer-data/#decision)
 39. **Every view of buyer data is logged.** It is anonymised 30 days after delivery. [ADR-009](../buyer-data/#decision)
 40. **No real buyer data outside production.** Tests, fixtures and demos use synthetic buyers. [ADR-009](../buyer-data/#decision)

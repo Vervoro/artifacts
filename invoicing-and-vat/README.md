@@ -5,7 +5,7 @@
 | **Status** | Proposed |
 | **Date** | 18 October 2026 |
 | **Scope** | The invoices and credit notes a seller issues to buyers for marketplace and manual orders, and the VAT on every sale: when a document is needed and who issues it, what it holds, numbering, rates and how VAT is worked out, mixed baskets and delivery, refunds, figures that differ from a marketplace's, delivery and retention of documents, sales outside the UK, and the export to accounting software. Not how Vervoro bills its own sellers |
-| **Builds on** | [ADR-001: Multi-tenant database architecture](../database-architecture/), [ADR-002: Data retention and archiving](../data-retention/), [ADR-003: Product model](../product-model/), [ADR-004: Channel connectors](../channel-connectors/) with [ADR-004.1](../ebay-connector/), [ADR-004.2](../amazon-seller-connector/) and [ADR-004.3](../shopify-connector/), [ADR-006: Stock ledger and reservations](../stock-ledger/), [ADR-007: Order ingestion](../order-ingestion/), [ADR-009: Buyer data and privacy](../buyer-data/), [ADR-010: Users, roles and sign-in](../users-and-access/) |
+| **Builds on** | [ADR-001: Multi-tenant database architecture](../database-architecture/), [ADR-002: Data retention and archiving](../data-retention/), [ADR-003: Product model](../product-model/), [ADR-004: Channel connectors](../channel-connectors/) with [ADR-004.1](../ebay-connector/), [ADR-004.2](../amazon-seller-connector/) and [ADR-004.3](../shopify-connector/), [ADR-006: Stock ledger and reservations](../stock-ledger/), [ADR-007: Order ingestion](../order-ingestion/), [ADR-009: Buyer data and privacy](../buyer-data/), [ADR-010: Users, roles and access](../users-and-access/) |
 
 ## Context
 
@@ -334,7 +334,7 @@ Counters are ADR-001's, and the export evidence is fields on the VAT record of a
 
 These follow from this record and are proposed with it:
 
-- **ADR-010: Users, roles and sign-in.** The five rows in "Who may do what" join its table of who may do what, under a new heading "Invoicing", decided in this record. Its later-records entry for ADR-011 then points here.
+- **ADR-010: Users, roles and access.** The five rows in "Who may do what" join its table of who may do what, under a new heading "Invoicing", decided in this record. Its later-records entry for ADR-011 then points here.
 - **ADR-007: Order ingestion.** The order also holds its delivery charge, as the buyer paid it, and any order-level discount. Each line also holds its discount, who funded it (the seller or the marketplace), and the marketplace's tax figure with whether the marketplace collects it. `unit_price` is stated as what the buyer paid, with VAT included when the marketplace includes it. The "Customers and invoicing (a later record)" bullet points here.
 - **ADR-009: Buyer data and privacy.** Three changes. First, "Billing addresses and payment details" are never kept, except the customer's address printed on an issued full invoice. Second, orders delivered outside the UK keep their carrier, tracking number, dispatch date and the carrier's delivery event (date and country) for the statutory period, as export evidence. Third, the fields table gains that row.
 - **ADR-001: Multi-tenant database architecture.** Restoring one company gains a step: re-register issued documents found in object storage that are newer than the restore point, and set their counters past them.

@@ -26,3 +26,24 @@ Rules: [ADR-001 SPEC](../database-architecture/spec/).
 | [Restore a whole cell](restore-a-whole-cell/) | A cell is lost |
 | [Drills](drills/) | Weekly, monthly and nightly, unattended |
 | [Use the owner role](use-the-owner-role/) | An emergency that no other role can fix |
+
+## ADR-010: Users, roles and access
+
+Rules: [ADR-010 SPEC](../users-and-access/spec/).
+
+| Procedure | When |
+| --- | --- |
+| [Open an operator grant](open-an-operator-grant/) | The operator needs to see a company's screens to help, or to read its old records at the seller's request |
+
+## ADR-013: Sign-in
+
+Rules: [ADR-013 SPEC](../sign-in/spec/).
+
+| Procedure | When |
+| --- | --- |
+| [Sign-in incident commands](sign-in-incident-commands/) | Sessions, passwords or sign-in itself must be stopped in an incident |
+| [Rotate the sign-in key](rotate-the-sign-in-key/) | The sign-in Worker may be compromised, or the yearly rotation is due |
+| [Rotate the email-hash key](rotate-the-email-hash-key/) | The email-hash key may have leaked (*Later* as a job) |
+| [Contain a poisoned package](contain-a-poisoned-package/) | A dependency of the app or the sign-in Worker is found compromised |
+| [Recover a company's last Owner](recover-a-last-owner/) | A company's last Owner has lost every way in |
+| [Recover an operator's access](recover-an-operator/) | An operator or Vervoro's owner has lost their passkeys |

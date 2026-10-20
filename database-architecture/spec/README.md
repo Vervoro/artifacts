@@ -70,7 +70,7 @@ A move or restore changes the source row first, so a stale route to the old data
 | **Owner** | Every database | Neon, with the project | Yes | Yes (Neon makes it a member of `neon_superuser`) | Owns every table. Migrations, partitions, creating the other roles | The CI migration job only |
 | **Runtime** | Every database | SQL | Yes, as itself | No (`NOBYPASSRLS`) | `SELECT, INSERT, UPDATE, DELETE` on tenant tables, minus the append-only revoke. `SELECT` on `tenant`. No right on control's login tables. Owns nothing | The app Worker, through Hyperdrive |
 | **Lifecycle** | Every database | SQL | Yes | No | Reads and deletes through parent tables for the slice operation, including append-only tables. Enters the states in [section 1](#tenant-states). No DDL. Owns nothing | The operations job only, never a serving Worker |
-| **Sign-in** | Control only | SQL | Yes | No | Alone reads and writes logins, sign-in methods, recovery codes and sessions ([ADR-010](../../users-and-access/#the-sign-in-worker)). Owns nothing | The sign-in Worker, through its own Hyperdrive configuration |
+| **Sign-in** | Control only | SQL | Yes | No | Alone reads and writes logins, sign-in methods, recovery codes and sessions ([ADR-013 SPEC 6](../../sign-in/spec/#6-the-sign-in-worker)). Owns nothing | The sign-in Worker, through its own Hyperdrive configuration |
 | **Definer owner** | Every cell | SQL | No | No | Owns the three allow-listed functions. Its own read policy on `due` and `buyer_ref`; insert on `tenant` | Nobody |
 
 Rules:
@@ -125,7 +125,7 @@ Modules never write `CREATE TABLE`. They declare tables through `tenantTable()`,
 | --- | --- | --- | --- |
 | Query builder | Data layer | See the list below | Type error at build time; the lint fails the build; at run time the query check refuses the query |
 | Commit check | Data layer | Before every commit, read `current_setting('app.company_id', true)` and `current_user`, and compare them with the company and role the transaction entered (owner ruling, 20 October 2026). No result reaches the client, and no egress intent is sent, until the transaction commits | Raise, roll back, page the operator, close the database's egress |
-| Request guard | Data layer | Sign-in puts the signed-in company in request context. `forCompany(id)` throws when `id` differs. Operator and background code opt in explicitly; an operator does so only under a live grant ([ADR-010](../../users-and-access/)). Opting in never bypasses row-level security | Throw |
+| Request guard | Data layer | Sign-in puts the signed-in company in request context. `forCompany(id)` throws when `id` differs. Operator and background code opt in explicitly; an operator does so only under a live grant ([ADR-010 SPEC 7](../../users-and-access/spec/#7-operator-access-to-a-company)). Opting in never bypasses row-level security | Throw |
 | Caches | Data layer | Hyperdrive query caching is off. Any other cache is reached only through one key builder that takes the company id. Logs carry ids, never field values | Lint error |
 | Catalogue lint | CI and production | [Section 6.1](#61-catalogue-lint) | Fail the build, or page and close egress |
 | Change control | Source control | A change to the isolation code (the table helper, the functions in section 4, the policies, the query builder and its function allow-list, the commit check, the lint and the cross-company allow-list) needs a person's approval before it merges | Merge blocked |
@@ -175,7 +175,7 @@ Control is its own database on its own compute. A cell credential can never read
 | --- | --- |
 | Company registry | Plan (trial or paid), status, subscription, tombstones, `database_id` |
 | Database registry | `database(id, region, kind shared or dedicated, state open, closed or draining, cap)` |
-| Login directory | Logins, sign-in methods, recovery codes, sessions ([ADR-010](../../users-and-access/)); only the sign-in role touches these |
+| Login directory | Logins, sign-in methods, recovery codes, sessions ([ADR-013 SPEC 1](../../sign-in/spec/#1-the-login)); only the sign-in role touches these |
 | Memberships and operator data | Memberships, operator accounts and grants. Written by the runtime role |
 | External directory | Marketplace seller id → company |
 | Erasure register | Every buyer erasure and company tombstone, by id and time only. Also written, entry by entry, to an append-only log in object storage, so a restore of control cannot lose an erasure |
@@ -210,7 +210,7 @@ Runs at sign-up, or when the operator creates an enterprise company.
 
 1. **Pick the database.** A trial or paid company goes to the newest `open` shared cell. A new enterprise company goes straight to its dedicated database. An existing company that becomes enterprise is moved there by the slice operation.
 2. **One cell transaction:** `app.open_tenant(id)`, the company's own rows and its member row, and an outbox note for control.
-3. **Write control:** the registry row with its `database_id`, and the membership ([ADR-010](../../users-and-access/)).
+3. **Write control:** the registry row with its `database_id`, and the membership ([ADR-010 SPEC 6](../../users-and-access/spec/#6-invitations-sign-up-and-removal)).
 4. The company is reachable once control routes to it.
 
 Sign-up never runs a migration and never registers a database.

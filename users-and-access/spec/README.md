@@ -1,0 +1,249 @@
+# ADR-010 SPEC: Users, roles and access
+
+| | |
+| --- | --- |
+| **Decision** | [ADR-010: Users, roles and access](../) |
+| **Procedures** | [RUNBOOK](../../runbooks/#adr-010-users-roles-and-access) |
+| **Date** | 21 October 2026 |
+| **For** | The developer and coding agents building it, and the person reviewing their work |
+
+The rules to build ADR-010 from. The record decides; this page says exactly how. Where this page and the ADR disagree, the ADR wins and this page is fixed. How a person signs in is [ADR-013](../../sign-in/spec/). The words used are defined in the [map and glossary](../../guide/).
+
+## 0. At launch and later
+
+Everything below is built at launch except these parts, which keep their rules here and are built only when their trigger arrives.
+
+| Later part | Trigger | Rules |
+| --- | --- | --- |
+| An end date on a membership, removed by the sweeper | Agency or seasonal staff need it; until then an Owner or Admin removes them, inside ADR-009's 24 hours | [6](#6-invitations-sign-up-and-removal) |
+| Integration access for sellers (tokens, outbound notices or connected apps) | A record of its own | [9](#9-integration-access) |
+| Single sign-on and custom roles | Enough sellers ask; each needs a record | — |
+
+## 1. The people
+
+| Who | Signs in to | Holds |
+| --- | --- | --- |
+| **Seller's users** | The app, on their own phone or laptop, in one or more companies | One role per company |
+| **Operators** | The operator console only, never the app ([ADR-013 SPEC 9](../../sign-in/spec/#9-operators)) | Platform work, and grants to look inside a company. No standing access |
+| **Developers** | Source control and the build pipeline only | No production data ([ADR-009](../../buyer-data/)). Deploys run under the pipeline's identity; the sign-in Worker has a deploy identity of its own |
+| **System actors** | Nothing | The sweeper, the queue consumer and the egress gate act for a company under a named system actor, recorded on every entry they write |
+
+Buyers and suppliers sign in to nothing. Every login belongs to one person, identified by their own email address; generic logins ("packing desk") do not exist. The customer terms forbid sharing, and the audit log makes it visible: one name packing at two benches at once.
+
+## 2. Logins and member rows
+
+1. **The login** is in control and belongs to [ADR-013](../../sign-in/spec/#1-the-login): it holds no name and no clear email address.
+2. **The membership** (login, company) is in control, written by the app's runtime role.
+3. **The member row** is in the company's own users table, in its cell: email address, name, role, warehouse scope, status (`invited`, `active`, `removed`) and when each changed. It alone decides what the person may do in that company, and it is exported, restored and erased with the company.
+4. **Switching company** is a menu. The session belongs to the login, and every request names its company, so two tabs can work in two companies. Switching asks for no new sign-in; account changes still ask for a fresh check ([ADR-013 SPEC 3](../../sign-in/spec/#3-sessions)).
+5. **Email to a person** reads their address from any company where they are active. Recovery and invitation mail goes to the address the person types, once its hash matches.
+6. **Changing email** changes the address in every company where the person is a member, then asks the sign-in Worker to change the hash in control, retried from the outbox ([ADR-001 SPEC 7](../../database-architecture/spec/#7-control-database-and-routing)). Both the old and the new address are told.
+
+## 3. Roles and warehouse scope
+
+| Role | For | In short |
+| --- | --- | --- |
+| **Owner** | Whoever owns the business | Everything, including the plan and billing, closing the company, and making or removing Owners |
+| **Admin** | The office lead | Everything except the plan and billing, closing the company, and Owners and Admins. Manages people below Admin, connects marketplaces |
+| **Manager** | The operations lead | Day-to-day work and the approvals that need a manager ([ADR-006](../../stock-ledger/), [ADR-007](../../order-ingestion/)). No people, roles, connections or billing |
+| **Warehouse** | Pickers, packers, goods-in | Floor work. Sees a buyer's address only while packing and shipping its order. No costs, margins or exports |
+| **Accountant** | A bookkeeper, inside or outside | Reads what a report or an invoice needs, costs and the audit log included. Exports without buyer data. Changes nothing |
+| **Staff** | Anyone who looks things up | Reads products, stock and orders, without buyer data or costs. Changes nothing |
+
+**Warehouse scope:**
+
+1. Only a Manager, Warehouse or Staff member can be scoped. Owners, Admins and Accountants never are.
+2. Outside their warehouses, stock, batches, movements, receiving, counts, returns, orders and shipments do not exist for that person, and reports cover only their warehouses. The catalogue and the connection settings are not scoped.
+3. The core modules' read and command ports take the person's scope with every call and enforce it. Row-level security stays company-only ([ADR-001](../../database-architecture/)).
+
+**Buyer data** by role is [ADR-009's](../../buyer-data/#who-can-see-it): the matrix below follows it.
+
+## 4. Who may do what
+
+A module declares each action in its manifest ([ADR-000 SPEC 1](../../system-architecture/spec/#1-modules-and-the-manifest)); this table grants it. Where another record decided an action's roles, the last column names it.
+
+| Action | Owner | Admin | Manager | Warehouse | Accountant | Staff | Decided in |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| **Company and people** | | | | | | | |
+| Plan, billing, close the company | Yes | No | No | No | No | No | ADR-010 |
+| Make, remove or transfer an Owner; manage Admins | Yes | No | No | No | No | No | ADR-010 |
+| Invite, remove, change role or scope | Yes | Below Admin | No | No | No | No | ADR-010 |
+| Reset a person's sign-in | Yes | Below Admin | No | No | No | No | ADR-010 |
+| Switch on buyer data for an operator grant; end a grant | Yes | Yes | No | No | No | No | ADR-010 |
+| Read the company's audit log | Yes | Yes | No | No | Yes | No | ADR-010 |
+| Handle a buyer's privacy request | Yes | Yes | No | No | No | No | [ADR-009](../../buyer-data/) |
+| **Marketplaces and listings** | | | | | | | |
+| Connect or disconnect an account; switch a connector on or off | Yes | Yes | No | No | No | No | ADR-010; [ADR-004](../../channel-connectors/) |
+| Go live on an account | Yes | Yes | No | No | No | No | ADR-010 |
+| Stop sends on a live account (with its stop choice) | Yes | Yes | Yes | No | No | No | ADR-010; [ADR-000](../../system-architecture/) |
+| Link and unlink listings; answer shared-stock listings | Yes | Yes | Yes | No | No | No | [ADR-005](../../catalogue-sync/) |
+| Change the low-stock policy settings | Yes | Yes | Yes | No | No | No | [ADR-008](../../inventory-sync/) |
+| **Products** | | | | | | | |
+| Read products and stock | Yes | Yes | Yes | Yes | Yes | Yes | ADR-010 |
+| Create, edit, import products | Yes | Yes | Yes | No | No | No | [ADR-003](../../product-model/) |
+| See costs, landed cost and margins | Yes | Yes | Yes | No | Yes | No | ADR-010 |
+| **Stock** | | | | | | | |
+| Receive, move between spots, repack between a pack and its singles, count | Yes | Yes | Yes | Yes | No | No | [ADR-006](../../stock-ledger/) |
+| Record a receipt without a purchase order (quarantined, waits for a manager) | Yes | Yes | Yes | Yes | No | No | [ADR-006](../../stock-ledger/) |
+| Approve a count; confirm reserved units are gone (packed outside Vervoro) | Yes | Yes | Yes | No | No | No | [ADR-006](../../stock-ledger/) |
+| Adjust, write off (reason required) | Yes | Yes | Yes | No | No | No | [ADR-006](../../stock-ledger/) |
+| Accept or refuse a quarantined receipt | Yes | Yes | Yes | No | No | No | [ADR-006](../../stock-ledger/) |
+| Assemble a product from others; send an expired best-before batch on a manual order | Yes | Yes | Yes | No | No | No | [ADR-006](../../stock-ledger/) |
+| Inspect a return: restock or keep as damaged; mark damaged or quarantined; "not found" at a pick | Yes | Yes | Yes | Yes | No | No | [ADR-006](../../stock-ledger/) |
+| Inspect a return: write off, or restock a use-by unit; restore damaged units | Yes | Yes | Yes | No | No | No | [ADR-006](../../stock-ledger/) |
+| Block or unblock a lot | Yes | Yes | Yes | No | No | No | [ADR-006](../../stock-ledger/) |
+| **Orders** | | | | | | | |
+| Read orders (buyer data as ADR-009 decides) | Yes | Yes | Yes | Yes | Yes | Yes | [ADR-009](../../buyer-data/) |
+| Pick, pack (and take another eligible batch, recorded), print labels, confirm a shipment | Yes | Yes | Yes | Yes | No | No | [ADR-006](../../stock-ledger/), [ADR-007](../../order-ingestion/) |
+| Place or clear a floor hold (including an address check on an order being picked or packed) | Yes | Yes | Yes | Yes | No | No | [ADR-007](../../order-ingestion/) |
+| Place or clear an office hold; release an Amazon buyer's cancellation request to ship anyway | Yes | Yes | Yes | No | No | No | [ADR-007](../../order-ingestion/) |
+| Create, confirm, edit or cancel a phone or email order (a warehouse user confirms with a payment reference, or it is held for a manager; their copies of earlier orders carry no buyer details) | Yes | Yes | Yes | Yes | No | No | [ADR-007](../../order-ingestion/) |
+| Confirm a manual order without payment (account terms), or release its payment hold | Yes | Yes | Yes | No | No | No | [ADR-007](../../order-ingestion/) |
+| Make a counter sale (paid and collected at once) | Yes | Yes | Yes | Yes | No | No | [ADR-007](../../order-ingestion/) |
+| Attach an order line to a product (its listing stays unlinked) | Yes | Yes | Yes | Yes | No | No | [ADR-007](../../order-ingestion/) |
+| Pin a batch for a line, resolve a line again | Yes | Yes | Yes | No | No | No | [ADR-006](../../stock-ledger/), [ADR-007](../../order-ingestion/) |
+| Reverse a shipment reported outside Vervoro | Yes | Yes | Yes | No | No | No | [ADR-006](../../stock-ledger/), [ADR-007](../../order-ingestion/) |
+| **Invoicing** | | | | | | | |
+| Issue an invoice; confirm a credit note | Yes | Yes | Yes | No | No | No | [ADR-011](../../invoicing-and-vat/) |
+| Issue on Vervoro's figure despite a VAT flag (reason required) | Yes | Yes | No | No | No | No | [ADR-011](../../invoicing-and-vat/) |
+| Read and download issued documents | Yes | Yes | While the order holds buyer data | No | Yes | No | [ADR-011](../../invoicing-and-vat/) |
+| Change the invoicing settings | Yes | Yes | No | No | No | No | [ADR-011](../../invoicing-and-vat/) |
+| Make the accounting export | Yes | Yes | Yes | No | Yes | No | [ADR-011](../../invoicing-and-vat/) |
+| **Billing** | | | | | | | |
+| Choose, change or cancel the plan; the payment method and billing details; pay an open invoice | Yes | No | No | No | No | No | [ADR-012](../../billing-and-plans/) |
+| Set a connection's stop choice when it goes live; name the stock contact | Yes | Yes | No | No | No | No | [ADR-012](../../billing-and-plans/) |
+| Change a connection's stored stop choice | Yes | Yes | Yes | No | No | No | [ADR-012](../../billing-and-plans/) |
+| See the plan, the state, the order count and the next charge | Yes | Yes | No | No | No | No | [ADR-012](../../billing-and-plans/) |
+| Read and download Vervoro's invoices and credit notes | Yes | Yes | No | No | Yes | No | [ADR-012](../../billing-and-plans/) |
+| **Reports and exports** | | | | | | | |
+| Reports | Yes | Yes | Yes | No | Yes | No | ADR-010 |
+| Export with buyer data | Yes | Yes | No | No | No | No | [ADR-009](../../buyer-data/) |
+| Export without buyer data | Yes | Yes | Yes | No | Yes | No | ADR-010 |
+
+While a company is restricted or closed, [ADR-012](../../billing-and-plans/#what-each-role-may-do) narrows this table. A later module adds its rows here when its record is written, in the same six roles.
+
+## 5. Rules for every action
+
+1. **The server decides.** The client mounts only what the person may use, but every request is checked again on the server, in the transaction that does the work. The member row is that transaction's first read.
+2. **A grant needs every condition:** the module is on for the company, the role holds the action, the scope covers the warehouse, and the person is `active`.
+3. **Every refusal carries its reason** ("needs a manager", "outside your warehouses"), so the screen can show it.
+4. **A role or scope change applies to the next request,** because it is read in the request's own transaction.
+5. **Account changes need a fresh check** ([ADR-013 SPEC 3](../../sign-in/spec/#3-sessions)): inviting, removing or changing anyone's role or scope; resetting anyone's sign-in; connecting, disconnecting, going live on or switching off a marketplace account; an export with buyer data; switching on buyer data for an operator grant; closing the company or changing an Owner; the billing steps ADR-012 names. Picking, packing, printing and counting never ask.
+
+**Who manages whom:**
+
+1. Owners manage everyone. Only an Owner makes, removes, resets or demotes an Owner or an Admin.
+2. Nobody changes their own role or scope, or resets their own sign-in through someone else's powers.
+3. The last Owner cannot be removed or demoted, and cannot leave, until another person is Owner.
+4. Nobody is an Owner or Admin by default except the person who signs a company up.
+
+## 6. Invitations, sign-up and removal
+
+**Sign-up:**
+
+1. The person enters their email address and passes the bot check; a link valid for 24 hours proves the address.
+2. The sign-in Worker creates the login with its first sign-in method and recovery codes ([ADR-013 SPEC 2](../../sign-in/spec/#2-sign-in-methods)). The login exists before the company does.
+3. The person names their company. One cell transaction in the newest open shared cell opens the company as a trial and writes its member row (Owner) and an outbox note; then control gets the registry row and the membership ([ADR-001 SPEC 8](../../database-architecture/spec/#adding-a-company)). A failed control write is repaired from the outbox.
+4. An address whose hash is already a login makes no second login: the person signs in, and the new company becomes another membership.
+
+**Invitations:**
+
+1. An Owner, or an Admin for roles below Admin, invites by the person's own email address, with a role and, where it applies, a scope.
+2. The link is single-use, valid for 7 days, and works only for the address it names. Accepting proves the address.
+3. A new person sets up sign-in on their own device; a person with a login signs in, and the company joins their memberships.
+4. An invitation can be withdrawn until accepted. Acceptance, expiry and withdrawal are logged.
+
+**Trials and paying.** Paying changes the plan and nothing moves, so nobody signs in again ([ADR-001](../../database-architecture/)). If a company moves cell, its member rows move with it; logins, memberships and sessions stay in control.
+
+**Removing a person** (an Owner, or an Admin for roles below Admin, with a fresh check):
+
+1. The member row becomes `removed` and its email address is cleared; the name stays, because the ledger, the audit log and every record they made name them.
+2. Their sessions in that company end.
+3. Their membership in control is removed, through the outbox if that write fails.
+4. A login left with no membership, by removal or by the company's erasure, is deleted after 30 days with its sign-in methods; the security log keeps only its id.
+
+All of it happens within minutes, inside ADR-009's 24 hours.
+
+## 7. Operator access to a company
+
+**Repairs need no grant.** They are recorded commands that run as system actors and show no company data: rebuilding a balance from the ledger ([ADR-006](../../stock-ledger/)), re-importing an order, and [ADR-001's](../../database-architecture/spec/#10-company-lifecycle) export, move and restore by the lifecycle tool. Each writes an `audit_log` entry naming the operator and the reason. Erasure is never an operator command; it runs on the seller's privacy request ([ADR-009](../../buyer-data/)).
+
+**A grant is for looking**, at a company's screens or, at the seller's request, at old records in a restore branch ([ADR-001's look-back](../../runbooks/restore-a-company-look-back/)):
+
+1. One company, a written reason, at most 8 hours ([ADR-009](../../buyer-data/)).
+2. Read-only: the operator sees the screens as a viewer and changes nothing. They never sign in as, or act in the name of, a seller's user, and never change a role, a person, a sign-in method, a connection or stock.
+3. Every Owner and Admin is told at once, in the app and by email, with the reason and the end time; any of them can end it.
+4. Buyer fields stay encrypted unless an Owner or Admin switches them on for that grant. The decrypting code refuses an operator actor whose grant does not name buyer data.
+
+**How a grant fits row-level security:**
+
+1. Opening a grant writes its `audit_log` entry first, then the grant row in control; access needs both. A failed second write is repaired from the outbox.
+2. Each operator request is checked against a live grant in control (company, end time), then opens the company's transaction as usual. The request guard accepts the company only because a grant names it ([ADR-001 SPEC 6](../../database-architecture/spec/#6-guard-rails)). The runtime role keeps `NOBYPASSRLS`.
+3. The data layer sets the actor (operator, grant) for the transaction, as it sets the company; every entry written carries the grant.
+4. Every operator request writes one `audit_log` entry: the grant, the screen and the time, never the data shown.
+
+**The seller sees every grant and repair** in a "Vervoro access" view of their audit log: who, the reason, buyer data or not, start and end, every screen opened. Every grant also goes to the platform security log, alerts Vervoro's owner, and is in ADR-009's quarterly access review. The database's own roles are no way around a grant ([ADR-001 SPEC 3](../../database-architecture/spec/#3-roles)).
+
+## 8. Audit
+
+| | Company `audit_log` | Platform security log |
+| --- | --- | --- |
+| **Where** | The company's cell, a tenant table | Control |
+| **Records** | Invitations; role, scope and status changes; resets and recoveries; every view of buyer data; exports; connections connected, gone live, stopped or disconnected; operator grants with every request under them; operator repairs; privacy requests; billing actions | Every sign-in attempt and its result; methods added or removed; password changes; recovery codes used; recoveries; resets, paused and un-paused memberships, bursts of resets; sessions revoked; sign-in frozen; lockouts; bot-check failures; operator sign-ins; grants opened and ended; use of the database owner role |
+| **Each entry** | Time, actor (person, operator with grant, or system actor), action, the ids it named, result | Time, login or operator id, event, network address and device kind, result |
+| **Never holds** | Buyer data (a view records which fields were shown, not their values) | Buyer data, email addresses, names, passwords or codes |
+| **Read by** | Owner, Admin, Accountant | The operator; each person sees their own sign-ins |
+| **Kept** | At least a year in the cell, then 6 years in the archive ([ADR-002](../../data-retention/)); erased with the company | 12 months ([ADR-009](../../buyer-data/)) |
+| **Protected** | Append-only: the runtime role cannot update, delete or truncate it ([ADR-001 SPEC 5](../../database-architecture/spec/#5-declaring-tables)) | The same |
+
+ADR-009's alerts read these trails: every grant, every use of the owner role, a burst of failed sign-ins, a last-Owner recovery, and a person viewing far more buyers than their packing explains.
+
+## 9. Integration access
+
+*Later.* No API tokens at launch: a token skips multi-factor sign-in, Amazon asks a documented owner and access rules for every service credential, and a token reaching buyer data would put addresses where Vervoro cannot log them. A later record starts from these rules: created only by an Owner with a fresh check; named and scoped to actions; short-lived and revocable; shown once; listed with when it was last used; never with buyer data.
+
+## 10. Platform constraints
+
+Checked against the official sources on 18 October 2026. Re-check before launch.
+
+| Constraint | Figure | Source |
+| --- | --- | --- |
+| Amazon: accounts | A unique identifier per user; no generic, shared or default accounts; a documented process to request, approve, provision, review and revoke access | [Data Protection Policy, 1.2.1](https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US) |
+| Amazon: reviews | Access reviewed quarterly | [Data Protection Policy, 1.2.2](https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US) |
+| Amazon: removal | Access removed within 24 hours of termination or role change | [Data Protection Policy, 1.2.3](https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US) |
+| Amazon: least privilege | Denied by default, granted on a need-to-know basis | [Data Protection Policy, 1.3](https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US) |
+| Amazon: logs | Access attempts logged, protected from tampering, kept at least 12 months | [Data Protection Policy, 2.6.1](https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US) |
+| Shopify: level 2 | Staff access to protected customer data limited; an access log | [Protected customer data](https://shopify.dev/docs/apps/launch/protected-customer-data) |
+
+## 11. Tests that prove each rule
+
+Database tests run on real Postgres under the runtime role ([ADR-000 SPEC 15](../../system-architecture/spec/#15-testing-and-verification)).
+
+| Test | Proves |
+| --- | --- |
+| Permission matrix | Each action is allowed or refused on the server for each role exactly as section 4 says; a declared action missing from the table fails the build |
+| Warehouse scope | A scoped person never reads or changes stock, orders or reports outside their warehouses, through any port |
+| Removal and revocation | After removal, a role change or a revoked session, the very next request is refused |
+| Who manages whom | Nobody changes their own role; an Admin cannot invite, change, reset or remove an Owner or an Admin; the last Owner cannot leave |
+| Fresh check | Each account change in section 5 is refused without a fresh check |
+| Sign-up and invitation | Sign-up writes login, then cell, then control, and a failed control write is repaired; an invitation works once, for its address, within 7 days |
+| Operator grants | Without a live grant an operator request reaches no company; with one it reaches exactly that company, read-only, writes an entry per request, and decrypts buyer fields only when allowed; ending the grant stops the next request |
+| Audit content | No audit or security entry holds a buyer field value, an email address, a password, a code or a session id |
+
+## How to check it was built right
+
+For someone reviewing code an AI wrote. Each line says where to look and which test proves it.
+
+- [ ] **Matrix:** every action a manifest declares is a row of section 4; the build check fails on a missing row; the matrix test has one case per action and role.
+- [ ] **One check path:** every route goes through one resolver that reads the member row first in the work's transaction; no route checks a role by hand (search for role names outside the resolver).
+- [ ] **Reasons:** every refusal returns a reason code the screen shows; none is a bare 403.
+- [ ] **Scope:** every read and command port of the core modules takes the scope argument; the scope test covers each port; row-level security policies mention only the company.
+- [ ] **Self-change:** the role-change, scope-change and reset commands refuse the actor's own login; the last-Owner guard runs in the same transaction as the change.
+- [ ] **Fresh check:** each account-change command asks the sign-in Worker for the fresh check; none trusts a flag from the client.
+- [ ] **Sign-up order:** the login is created by the sign-in Worker before the cell transaction; control writes go through the outbox repair path.
+- [ ] **Removal:** removing clears the email address, ends the sessions in that company and removes the membership; the revocation test is green.
+- [ ] **Grants:** operator code reaches a company only through the request guard with a live grant; the actor (operator, grant) is set on the transaction; no operator route writes business data.
+- [ ] **Buyer fields:** the decrypting code checks the grant's buyer-data flag for an operator actor.
+- [ ] **Seller notice:** opening a grant notifies every Owner and Admin and writes the audit entry before the control row.
+- [ ] **Audit:** `audit_log` and the security log are append-only for the runtime role (database catalogue); the audit-content test is green.
+- [ ] **No tokens:** no route accepts a bearer token or an API key from a seller.
