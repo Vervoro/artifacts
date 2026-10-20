@@ -96,9 +96,11 @@ type Doc = { dir: string; title: string; blurb: string; parent?: string; partOf?
 const docs: Doc[] = [
   { dir: "rulebook", title: "Engineering rulebook", blurb: "The 43 rules every change must keep, each a one-line summary of a decision a record makes, with a link to it. The record wins on any difference. Load it with every coding task." },
   { dir: "guide", title: "Architecture map and glossary", blurb: "How the records fit together, one word per concept, and what each status (Proposed, Accepted, Implemented, Superseded, Deprecated) means. Every record is Proposed today." },
-  { dir: "system-architecture", title: "ADR-000: System architecture", blurb: "A modular monolith of modules with typed ports, one core that owns stock and orders, an outbox, one egress gate, connector plugins and simulators. Proposed, 17 October 2026." },
+  { dir: "system-architecture", title: "ADR-000: System architecture", blurb: "A modular monolith: six core modules each the only writer of its data, modules that call toward the core and hear back by events, an outbox, one egress gate, connector plugins and simulators. Proposed 17 October 2026; split into ADR, SPEC and RUNBOOK 20 October 2026.", links: [{ label: "SPEC", href: "system-architecture/spec/" }, { label: "RUNBOOK", href: "runbooks/#adr-000-system-architecture" }] },
+  { dir: "system-architecture/spec", partOf: "system-architecture", title: "ADR-000 SPEC: System architecture", blurb: "The rules to build ADR-000 from, the tests that prove them, and a checklist for reviewing the code." },
   { dir: "runbooks", title: "Runbooks", blurb: "The operator's procedures, one page each with numbered steps: who runs it, with which role, how to verify it, and what to do if it stops halfway." },
   ...[
+    ["deploy-and-roll-back", "Deploy and roll back"],
     ["add-a-cell", "Add a cell"],
     ["add-a-dedicated-database", "Add a dedicated database"],
     ["move-a-company", "Move a company"],
@@ -156,6 +158,8 @@ for (const d of docs) {
   let html = await marked.parse(md, { gfm: true });
   const svg = join(import.meta.dir, "diagrams", `${d.dir}.svg`);
   if (html.includes("<!-- DIAGRAM -->")) html = html.replace("<!-- DIAGRAM -->", `<figure>${readFileSync(svg, "utf8")}</figure>`);
+  // A page with more than one diagram names the others: `<!-- DIAGRAM:calls -->` reads `diagrams/<dir>/calls.svg`.
+  html = html.replace(/<!-- DIAGRAM:([a-z0-9-]+) -->/g, (_, name: string) => `<figure>${readFileSync(join(import.meta.dir, "diagrams", d.dir, `${name}.svg`), "utf8")}</figure>`);
   html = html.replace(/<table>/g, '<div class="table-wrap"><table>').replace(/<\/table>/g, "</table></div>");
   const up = "../".repeat(d.dir.split("/").length);
   const owner = d.partOf ? docs.find((o) => o.dir === d.partOf) : undefined;

@@ -63,6 +63,20 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <main>
 <h1 id="runbooks">Runbooks</h1>
 <p>The operator&#39;s procedures, one page each, with numbered steps. Each page says who runs it, which role or credential it uses, how to verify it, and what to do if it stops halfway. A runbook carries out a record; it decides nothing. Where a runbook and its record disagree, the record wins.</p>
+<h2 id="adr-000-system-architecture">ADR-000: System architecture</h2>
+<p>Rules: <a href="../system-architecture/spec/">ADR-000 SPEC</a>.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Procedure</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="deploy-and-roll-back/">Deploy and roll back</a></td>
+<td>New code or migrations go out, or a release must be undone</td>
+</tr>
+</tbody></table></div>
 <h2 id="adr-001-multi-tenant-database-architecture">ADR-001: Multi-tenant database architecture</h2>
 <p>Rules: <a href="../database-architecture/spec/">ADR-001 SPEC</a>.</p>
 <div class="table-wrap"><table>

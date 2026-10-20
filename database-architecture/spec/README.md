@@ -282,10 +282,10 @@ Launch kinds, taken from the records:
 | --- | --- | --- |
 | Outbox delivery | Kernel | A note has no receipt for one of its handlers |
 | Control repair | Kernel | A cross-database note's control write has not landed |
-| Egress send and read-back | Channels host ([ADR-004](../../channel-connectors/)) | A recorded send is due, or a send passed its deadline unconfirmed |
-| Backup order read | Order ingestion ([ADR-007](../../order-ingestion/)) | An account's scheduled read is due |
-| Listing safety read | Catalogue ([ADR-005](../../catalogue-sync/)) | An account's daily read is due |
-| Nightly stock check | Foundation ([ADR-006](../../stock-ledger/)) | Once a night |
+| Egress send and read-back | Channels ([ADR-004](../../channel-connectors/)) | A recorded send is due, or a send passed its deadline unconfirmed |
+| Backup order read | Channels, importing into Orders ([ADR-007](../../order-ingestion/)) | An account's scheduled read is due |
+| Listing safety read | Channels, handing over to Listings ([ADR-005](../../catalogue-sync/)) | An account's daily read is due |
+| Nightly stock check | Inventory ([ADR-006](../../stock-ledger/)) | Once a night |
 | Buyer anonymisation | Buyer data ([ADR-009](../../buyer-data/)) | 30 days after delivery |
 | Erasure after closing | Billing ([ADR-012](../../billing-and-plans/)) | 30 days after the company closes |
 
@@ -308,7 +308,7 @@ Platform settings in control, changed without a deploy (owner ruling, 20 October
 4. **Leftovers.** The sweeper delivers any note still missing a receipt.
 5. The outbox, not a queue, is the source of truth. The inbound queue carries only marketplace webhooks, which must be answered before anything is written.
 
-**Egress effects** are calls that change something on a marketplace or at a supplier: figures, dispatch, confirmations, messages. They go through the egress gate ([ADR-000](../../system-architecture/#talking-to-marketplaces)). Notice subscriptions made by a connector's connect and disconnect hooks are set-up calls, not egress effects: they run in shadow mode too, through the host's HTTP and rate budgets ([ADR-004](../../channel-connectors/)).
+**Egress effects** are calls that change something on a marketplace or at a supplier: figures, dispatch, confirmations, messages. They go through the egress gate ([ADR-000 SPEC 7](../../system-architecture/spec/#7-the-egress-gate)). Notice subscriptions made by a connector's connect and disconnect hooks are set-up calls, not egress effects: they run in shadow mode too, through the host's HTTP and rate budgets ([ADR-004](../../channel-connectors/)).
 
 ## 10. Company lifecycle
 
@@ -394,7 +394,7 @@ CI proves the schema it builds. These prove the databases running, because a con
 ## 12. Operations
 
 1. **Timeouts.** Every migration sets a `lock_timeout` and retries, so a migration waiting for a lock on a shared table does not queue every seller behind it.
-2. **Migrations run as a ring:** first on control, then the newest cell (which holds the trials and the canary), then the others. They finish everywhere before new code goes live ([ADR-000](../../system-architecture/#runtime)).
+2. **Migrations run as a ring:** first on control, then the newest cell (which holds the trials and the canary), then the others. They finish everywhere before new code goes live ([ADR-000 SPEC 11](../../system-architecture/spec/#11-deploying)).
 3. **Migrations only add.** A migration already merged is never edited.
 4. **One-time reset before launch** (owner ruling, 20 October 2026). Before launch, every module's migrations were squashed into one new first migration. This was allowed once, only because no production database existed. Development databases from before the reset are recreated, and the data layer refuses to start on a database that still holds objects from before it. From then on rule 3 has no exception.
 5. **Migration ledger.** Each database's own ledger, committed with each migration, is the authority on what it has applied. Control keeps, per database, the version the last deploy reached; the deploy writes it after reading each database's ledger.

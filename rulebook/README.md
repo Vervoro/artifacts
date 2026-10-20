@@ -20,12 +20,12 @@ Load this page with any task. Load the linked record before changing the area it
 9. **A company's database is found through routing, never configured.** `forCompany(id)` reads `company.database_id` from control. Adding a company needs no new database and no deploy; adding a cell does. [ADR-001](../database-architecture/spec/#8-adding-companies-and-databases)
 10. **No transaction spans two databases.** A write that touches a cell and control writes the company side first, with an outbox note, then control, and is safe to repeat. [ADR-001](../database-architecture/spec/#7-control-database-and-routing)
 11. **Company-level operations use the one slice operation,** under the lifecycle role, in batches: export, move, restore, dedicated placement and erase. [ADR-001](../database-architecture/spec/#10-company-lifecycle)
-12. **Migrations only add, and run on every database before new code goes live.** A migration already merged is never edited. [ADR-000](../system-architecture/#runtime), [ADR-001](../database-architecture/spec/#12-operations)
+12. **Migrations only add, and run on every database before new code goes live.** A migration already merged is never edited. [ADR-000](../system-architecture/spec/#11-deploying), [ADR-001](../database-architecture/spec/#12-operations)
 
 ## 3. Modules and the foundation
 
 13. **One deployable; every feature is a module.** A module owns its tables and talks to other modules only through their typed ports and events. [ADR-000](../system-architecture/#decision)
-14. **Only the foundation changes stock, order status, or the figure a listing should show.** Order import, reservations and the ledger, and the figures for listings are separate responsibilities inside it, and share one transaction where they must. Other modules call its command ports. [ADR-000](../system-architecture/#decision)
+14. **Only Inventory changes stock, only Orders changes order status, and only Stock sync works out the figure a listing should show.** The foundation is six always-on core modules, each the only writer of its own data; Listings alone changes links. They share one transaction where they must. Stock sync works out a listing's figure from each committed stock change, through the outbox, and never replaces a newer figure with an older one. Other modules call their ports, and calls always point toward the core. [ADR-000](../system-architecture/#decision), [SPEC 4](../system-architecture/spec/#4-the-foundation-and-the-launch-modules)
 15. **Expected failures are typed `Result` values.** No silent catches. [ADR-000](../system-architecture/#decision)
 16. **Events are written with the change.** An outbox note goes in the same transaction, is delivered after commit, and is handled once, with a receipt per handler. [ADR-001](../database-architecture/spec/#9-background-work-and-the-outbox)
 
@@ -40,8 +40,8 @@ Load this page with any task. Load the linked record before changing the area it
 
 ## 5. Marketplaces
 
-23. **Nothing reaches a marketplace or a supplier except through the egress gate.** Every outbound effect is recorded in the transaction with an idempotency key and sent only after commit. [ADR-000](../system-architecture/#talking-to-marketplaces)
-24. **Nothing leaves Vervoro during a database transaction.** No marketplace or other outside call runs inside one, so transactions stay short. [ADR-000](../system-architecture/#talking-to-marketplaces), [ADR-001](../database-architecture/spec/#13-platform-constraints), [ADR-006](../stock-ledger/#concurrency-and-repeats)
+23. **Nothing reaches a marketplace or a supplier except through the egress gate.** Every outbound effect is recorded in the transaction with an idempotency key and sent only after commit. [ADR-000](../system-architecture/spec/#7-the-egress-gate)
+24. **Nothing leaves Vervoro during a database transaction.** No marketplace or other outside call runs inside one, so transactions stay short. [ADR-000](../system-architecture/spec/#10-runtime), [ADR-001](../database-architecture/spec/#13-platform-constraints), [ADR-006](../stock-ledger/#concurrency-and-repeats)
 25. **A connector only translates.** It has no network access, credentials, clock or database. The host owns credentials, HTTP, retries, rate limits and shared allowances. Core code knows marketplace concepts such as listings, links and FBA, but not marketplace protocols. [ADR-004](../channel-connectors/#decision)
 26. **Orders come in by notice.** A notice is a hint: the order is fetched and imported. The scheduled read is only the backup, and only a complete read moves the order watermark. [ADR-004](../channel-connectors/#decision), [ADR-007](../order-ingestion/#decision)
 27. **Each marketplace order is imported once,** keyed by account and marketplace order id. A fetch older than the stored one changes nothing. An order that cannot be imported becomes a problem row; it is never dropped. [ADR-007](../order-ingestion/#decision)
@@ -64,8 +64,8 @@ Load this page with any task. Load the linked record before changing the area it
 
 ## 7. Money and countries
 
-41. **Money always carries its currency,** and amounts in different currencies are never added. [ADR-000](../system-architecture/#decision), [ADR-003](../product-model/#product-fields)
-42. **Country rules live only where the country matters:** VAT and invoices, Vervoro's billing, food law, and each marketplace's site. A product has a VAT class, and every line stores the country, class and rate it used. [ADR-000](../system-architecture/#decision), [ADR-011](../invoicing-and-vat/#decision)
+41. **Money always carries its currency,** and amounts in different currencies are never added. [ADR-000](../system-architecture/spec/#14-money-and-countries), [ADR-003](../product-model/#product-fields)
+42. **Country rules live only where the country matters:** VAT and invoices, Vervoro's billing, food law, and each marketplace's site. A product has a VAT class, and every line stores the country, class and rate it used. [ADR-000](../system-architecture/spec/#14-money-and-countries), [ADR-011](../invoicing-and-vat/#decision)
 43. **Nothing that moves orders or stock is ever refused for a billing reason.** [ADR-012](../billing-and-plans/#decision)
 
 ## Changing a rule

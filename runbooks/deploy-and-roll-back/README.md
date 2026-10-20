@@ -1,0 +1,30 @@
+# Runbook: Deploy and roll back
+
+| | |
+| --- | --- |
+| **Built** | At launch |
+| **Record** | [ADR-000](../../system-architecture/), rules in [SPEC 11](../../system-architecture/spec/#11-deploying) |
+| **Who runs it** | The operator starts it; the deploy pipeline carries it out |
+| **Role or credential** | The CI migration job, as the owner, for step 2 ([ADR-001 SPEC 3](../../database-architecture/spec/#3-roles)). Each Worker's own deploy token for steps 4 and 5 |
+
+## Steps
+
+1. Start the deploy from a green main: every test has passed on both databases.
+2. Migrations run on control, then the newest cell, then the other cells ([ADR-001 SPEC 12](../../database-architecture/spec/#12-operations)). Each waits for its locks with a timeout and retries.
+3. The pipeline reads each database's migration ledger and records in control the version each reached. It stops if any database is below the version the new code needs.
+4. If the sign-in Worker changed, it deploys first ([ADR-010](../../users-and-access/#the-sign-in-worker)).
+5. If the app Worker changed, its new version goes live.
+
+## Verify
+
+- Control shows every database at the version the code needs.
+- The new version serves requests, and no migration or version alert has fired.
+
+## Roll back
+
+Switch the Worker back to its previous version. Never roll back a migration: migrations only add, so the previous version runs on the new schema. If the sign-in Worker was deployed too, roll back the app Worker first.
+
+## If it stops halfway
+
+- **During step 2 or 3:** the old code is still serving, and it runs on any database that has already migrated. A failed migration alerts. Fix the cause and start again from step 1; migrations a database has already applied are skipped.
+- **During step 4 or 5:** the previous version of that Worker stays live. Start again from step 4.

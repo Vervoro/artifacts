@@ -2,6 +2,14 @@
 
 The operator's procedures, one page each, with numbered steps. Each page says who runs it, which role or credential it uses, how to verify it, and what to do if it stops halfway. A runbook carries out a record; it decides nothing. Where a runbook and its record disagree, the record wins.
 
+## ADR-000: System architecture
+
+Rules: [ADR-000 SPEC](../system-architecture/spec/).
+
+| Procedure | When |
+| --- | --- |
+| [Deploy and roll back](deploy-and-roll-back/) | New code or migrations go out, or a release must be undone |
+
 ## ADR-001: Multi-tenant database architecture
 
 Rules: [ADR-001 SPEC](../database-architecture/spec/).

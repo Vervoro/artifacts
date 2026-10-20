@@ -46,7 +46,7 @@ Each record is split into up to three documents, so that a person can review the
 | **SPEC** | The developer and coding agents, to build from | Numbered rule sets, tables and state lists, platform constraints with sources, the tests that prove each rule, and a checklist for reviewing the code |
 | **RUNBOOK** | The operator, to carry out | One page per procedure under [runbooks](../runbooks/): who runs it, with which role, numbered steps, how to verify, what to do if it stops halfway |
 
-The ADR decides, the SPEC says exactly how, and a runbook carries it out. When they disagree, the ADR wins. [ADR-001](../database-architecture/) is the first record in this form; the others follow one at a time. The rules every change must keep are in the [engineering rulebook](../rulebook/).
+The ADR decides, the SPEC says exactly how, and a runbook carries it out. When they disagree, the ADR wins. [ADR-001](../database-architecture/) and [ADR-000](../system-architecture/) are in this form; the others follow one at a time. The rules every change must keep are in the [engineering rulebook](../rulebook/).
 
 ## Status of a record
 
@@ -85,7 +85,10 @@ One word per concept. Where two words appear in the records, the table says whet
 | Term | Meaning |
 | --- | --- |
 | **Module** | A feature inside the one deployable. It owns its tables and talks to others only through typed ports and events (ADR-000) |
-| **Foundation** | The one core module that changes stock, order status and the figure each listing should show. Order import, reservations and the ledger, and figures for listings are separate responsibilities inside it, sharing one transaction where they must |
+| **Library** | A package of shared code with no tables, manifest, state or business rule, such as the kernel. Any module may import one (ADR-000) |
+| **Foundation** | The always-on core: Products, Listings, Inventory, Orders, Buyer data and Access, each the only writer of its own data. Inventory alone changes stock; Orders alone changes order status. They share one transaction where they must (ADR-000) |
+| **Always-on module** | A module outside the core that is never switched off, such as Fulfilment. It calls the foundation; the foundation never calls it (ADR-000) |
+| **Switchable module** | A module a company's plan and settings turn on or off. It calls the foundation; the foundation never calls it (ADR-000) |
 | **Outbox** | Notes written in the same transaction as a change, delivered after commit, each handled once |
 | **Egress gate** | The one door to marketplaces and suppliers. Records every outbound effect with an idempotency key and sends it only after commit |
 | **Sweeper** | One background worker per database. Finds due work through the `due` table. `due` and `buyer_ref` are the only tables read across companies, and only through two allow-listed functions that return ids and times (ADR-001) |
@@ -99,7 +102,7 @@ One word per concept. Where two words appear in the records, the table says whet
 | **Account mode** | Shadow (reads happen, writes are only recorded), live, paused, decrease-only (a closed company, ADR-012) or disconnected |
 | **Listing** | What a marketplace sells, keyed by the marketplace's own id, never by SKU (ADR-005) |
 | **Link** | A versioned tie from a listing to a product, with units per sale. An order uses the link that was valid when the buyer bought |
-| **Figure** | The number a listing should show, worked out by the foundation ("D" in ADR-008). The desired state |
+| **Figure** | The number a listing should show, worked out by Stock sync after each stock change ("D" in ADR-008). The desired state |
 | **Believed figure** | What the marketplace is believed to show ("B" in ADR-008). A number, or unknown |
 | **Unknown** | An outbound write with no clear answer, a timeout included. It is read back before anything else is sent to that listing, never retried blind |
 | **Order watermark** | The point up to which a complete read of a marketplace's orders has been done. A raise waits for it |

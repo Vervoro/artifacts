@@ -1,0 +1,214 @@
+<svg class="diagram" viewBox="0 0 890 810" role="img" aria-label="Who calls whom for each event: a channel connected, a listing linked, an order arriving, stock received, an order shipped, a cancellation and a return" xmlns="http://www.w3.org/2000/svg" font-size="13">
+  <defs>
+    <marker id="call-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="edge-fill"/></marker>
+  </defs>
+  <text x="16" y="28" font-size="15" font-weight="600" class="ink">Who calls whom, event by event</text>
+  <g class="edge" fill="none" stroke-width="1.25"><path d="M16 50H44" marker-end="url(#call-arrow)"/><path d="M228 50H256" stroke-dasharray="5 4" marker-end="url(#call-arrow)"/><path d="M400 50H428" stroke-dasharray="1.5 3" marker-end="url(#call-arrow)"/></g>
+  <text x="52" y="54" font-size="11.5" class="quiet">port call, inside the transaction</text>
+  <text x="264" y="54" font-size="11.5" class="quiet">event, after commit</text>
+  <text x="436" y="54" font-size="11.5" class="quiet">outside call, never in a transaction</text>
+  <rect x="660" y="42" width="22" height="14" rx="3" class="box-main"/><text x="688" y="54" font-size="11.5" class="quiet">core module</text>
+  <rect x="770" y="42" width="22" height="14" rx="3" class="box" stroke-dasharray="4 3"/><text x="798" y="54" font-size="11.5" class="quiet">outside</text>
+  <text x="16" y="86" font-size="12.5" font-weight="600" class="ink">A channel is connected</text>
+  <rect x="16" y="100" width="126" height="52" rx="8" class="box" stroke-dasharray="5 4"/>
+  <text x="79" y="122" text-anchor="middle" font-weight="600" class="ink">Seller</text>
+  <text x="79" y="140" text-anchor="middle" font-size="11.5" class="quiet">approves Vervoro</text>
+
+  <rect x="162" y="100" width="126" height="52" rx="8" class="box"/>
+  <text x="225" y="122" text-anchor="middle" font-weight="600" class="ink">Channels</text>
+  <text x="225" y="140" text-anchor="middle" font-size="11.5" class="quiet">keys, subscriptions</text>
+
+  <rect x="308" y="100" width="126" height="52" rx="8" class="box" stroke-dasharray="5 4"/>
+  <text x="371" y="122" text-anchor="middle" font-weight="600" class="ink">Marketplace</text>
+  <text x="371" y="140" text-anchor="middle" font-size="11.5" class="quiet">catalogue read</text>
+
+  <rect x="454" y="100" width="126" height="52" rx="8" class="box"/>
+  <text x="517" y="122" text-anchor="middle" font-weight="600" class="ink">Channels</text>
+  <text x="517" y="140" text-anchor="middle" font-size="11.5" class="quiet">hands listings over</text>
+
+  <rect x="600" y="100" width="126" height="52" rx="8" class="box-main"/>
+  <text x="663" y="122" text-anchor="middle" font-weight="600" class="ink">Listings</text>
+  <text x="663" y="140" text-anchor="middle" font-size="11.5" class="quiet">stores, suggests</text>
+
+  <g class="edge" fill="none" stroke-width="1.25">
+    <path d="M144 126H160" stroke-dasharray="1.5 3" marker-end="url(#call-arrow)"/>
+    <path d="M290 126H306" stroke-dasharray="1.5 3" marker-end="url(#call-arrow)"/>
+    <path d="M436 126H452" stroke-dasharray="1.5 3" marker-end="url(#call-arrow)"/>
+    <path d="M582 126H598" marker-end="url(#call-arrow)"/>
+  </g>
+  <text x="16" y="190" font-size="12.5" font-weight="600" class="ink">A listing is linked</text>
+  <rect x="16" y="204" width="126" height="52" rx="8" class="box" stroke-dasharray="5 4"/>
+  <text x="79" y="226" text-anchor="middle" font-weight="600" class="ink">Person</text>
+  <text x="79" y="244" text-anchor="middle" font-size="11.5" class="quiet">taps link</text>
+
+  <rect x="162" y="204" width="126" height="52" rx="8" class="box-main"/>
+  <text x="225" y="226" text-anchor="middle" font-weight="600" class="ink">Listings</text>
+  <text x="225" y="244" text-anchor="middle" font-size="11.5" class="quiet">writes the link</text>
+
+  <rect x="308" y="204" width="126" height="52" rx="8" class="box"/>
+  <text x="371" y="226" text-anchor="middle" font-weight="600" class="ink">Stock sync</text>
+  <text x="371" y="244" text-anchor="middle" font-size="11.5" class="quiet">works out the figure</text>
+
+  <rect x="454" y="204" width="126" height="52" rx="8" class="box"/>
+  <text x="517" y="226" text-anchor="middle" font-weight="600" class="ink">Channels</text>
+  <text x="517" y="244" text-anchor="middle" font-size="11.5" class="quiet">gate sends</text>
+
+  <rect x="600" y="204" width="126" height="52" rx="8" class="box" stroke-dasharray="5 4"/>
+  <text x="663" y="226" text-anchor="middle" font-weight="600" class="ink">Marketplace</text>
+  <text x="663" y="244" text-anchor="middle" font-size="11.5" class="quiet">new quantity</text>
+
+  <g class="edge" fill="none" stroke-width="1.25">
+    <path d="M144 230H160" marker-end="url(#call-arrow)"/>
+    <path d="M290 230H306" stroke-dasharray="5 4" marker-end="url(#call-arrow)"/>
+    <path d="M436 230H452" marker-end="url(#call-arrow)"/>
+    <path d="M582 230H598" stroke-dasharray="1.5 3" marker-end="url(#call-arrow)"/>
+  </g>
+  <text x="16" y="294" font-size="12.5" font-weight="600" class="ink">An order arrives</text>
+  <rect x="302" y="302" width="284" height="64" rx="10" class="band"/>
+  <text x="444" y="379" text-anchor="middle" font-size="11" class="quiet">one transaction</text>
+  <rect x="16" y="308" width="126" height="52" rx="8" class="box" stroke-dasharray="5 4"/>
+  <text x="79" y="330" text-anchor="middle" font-weight="600" class="ink">Marketplace</text>
+  <text x="79" y="348" text-anchor="middle" font-size="11.5" class="quiet">notice</text>
+
+  <rect x="162" y="308" width="126" height="52" rx="8" class="box"/>
+  <text x="225" y="330" text-anchor="middle" font-weight="600" class="ink">Channels</text>
+  <text x="225" y="348" text-anchor="middle" font-size="11.5" class="quiet">verify, queue, fetch</text>
+
+  <rect x="308" y="308" width="126" height="52" rx="8" class="box-main"/>
+  <text x="371" y="330" text-anchor="middle" font-weight="600" class="ink">Orders</text>
+  <text x="371" y="348" text-anchor="middle" font-size="11.5" class="quiet">import, buyer</text>
+
+  <rect x="454" y="308" width="126" height="52" rx="8" class="box-main"/>
+  <text x="517" y="330" text-anchor="middle" font-weight="600" class="ink">Inventory</text>
+  <text x="517" y="348" text-anchor="middle" font-size="11.5" class="quiet">reserve</text>
+
+  <rect x="600" y="308" width="126" height="52" rx="8" class="box"/>
+  <text x="663" y="330" text-anchor="middle" font-weight="600" class="ink">Stock sync</text>
+  <text x="663" y="348" text-anchor="middle" font-size="11.5" class="quiet">lower figures</text>
+
+  <rect x="746" y="308" width="126" height="52" rx="8" class="box"/>
+  <text x="809" y="330" text-anchor="middle" font-weight="600" class="ink">Channels</text>
+  <text x="809" y="348" text-anchor="middle" font-size="11.5" class="quiet">gate sends</text>
+
+  <g class="edge" fill="none" stroke-width="1.25">
+    <path d="M144 334H160" stroke-dasharray="1.5 3" marker-end="url(#call-arrow)"/>
+    <path d="M290 334H306" marker-end="url(#call-arrow)"/>
+    <path d="M436 334H452" marker-end="url(#call-arrow)"/>
+    <path d="M582 334H598" stroke-dasharray="5 4" marker-end="url(#call-arrow)"/>
+    <path d="M728 334H744" marker-end="url(#call-arrow)"/>
+  </g>
+  <text x="16" y="398" font-size="12.5" font-weight="600" class="ink">Stock is received</text>
+  <rect x="16" y="412" width="126" height="52" rx="8" class="box" stroke-dasharray="5 4"/>
+  <text x="79" y="434" text-anchor="middle" font-weight="600" class="ink">Person</text>
+  <text x="79" y="452" text-anchor="middle" font-size="11.5" class="quiet">scans delivery</text>
+
+  <rect x="162" y="412" width="126" height="52" rx="8" class="box-main"/>
+  <text x="225" y="434" text-anchor="middle" font-weight="600" class="ink">Inventory</text>
+  <text x="225" y="452" text-anchor="middle" font-size="11.5" class="quiet">receipt</text>
+
+  <rect x="308" y="412" width="126" height="52" rx="8" class="box"/>
+  <text x="371" y="434" text-anchor="middle" font-weight="600" class="ink">Stock sync</text>
+  <text x="371" y="452" text-anchor="middle" font-size="11.5" class="quiet">raise, orders read</text>
+
+  <rect x="454" y="412" width="126" height="52" rx="8" class="box"/>
+  <text x="517" y="434" text-anchor="middle" font-weight="600" class="ink">Channels</text>
+  <text x="517" y="452" text-anchor="middle" font-size="11.5" class="quiet">gate sends</text>
+
+  <g class="edge" fill="none" stroke-width="1.25">
+    <path d="M144 438H160" marker-end="url(#call-arrow)"/>
+    <path d="M290 438H306" stroke-dasharray="5 4" marker-end="url(#call-arrow)"/>
+    <path d="M436 438H452" marker-end="url(#call-arrow)"/>
+  </g>
+  <text x="16" y="502" font-size="12.5" font-weight="600" class="ink">An order is shipped</text>
+  <rect x="156" y="510" width="430" height="64" rx="10" class="band"/>
+  <text x="371" y="587" text-anchor="middle" font-size="11" class="quiet">one transaction</text>
+  <rect x="16" y="516" width="126" height="52" rx="8" class="box" stroke-dasharray="5 4"/>
+  <text x="79" y="538" text-anchor="middle" font-weight="600" class="ink">Packer</text>
+  <text x="79" y="556" text-anchor="middle" font-size="11.5" class="quiet">packs, scans</text>
+
+  <rect x="162" y="516" width="126" height="52" rx="8" class="box"/>
+  <text x="225" y="538" text-anchor="middle" font-weight="600" class="ink">Fulfilment</text>
+  <text x="225" y="556" text-anchor="middle" font-size="11.5" class="quiet">shipment</text>
+
+  <rect x="308" y="516" width="126" height="52" rx="8" class="box-main"/>
+  <text x="371" y="538" text-anchor="middle" font-weight="600" class="ink">Orders</text>
+  <text x="371" y="556" text-anchor="middle" font-size="11.5" class="quiet">status shipped</text>
+
+  <rect x="454" y="516" width="126" height="52" rx="8" class="box-main"/>
+  <text x="517" y="538" text-anchor="middle" font-weight="600" class="ink">Inventory</text>
+  <text x="517" y="556" text-anchor="middle" font-size="11.5" class="quiet">deduct dispatched</text>
+
+  <rect x="600" y="516" width="126" height="52" rx="8" class="box"/>
+  <text x="663" y="538" text-anchor="middle" font-weight="600" class="ink">Channels</text>
+  <text x="663" y="556" text-anchor="middle" font-size="11.5" class="quiet">dispatch notice</text>
+
+  <g class="edge" fill="none" stroke-width="1.25">
+    <path d="M144 542H160" marker-end="url(#call-arrow)"/>
+    <path d="M290 542H306" marker-end="url(#call-arrow)"/>
+    <path d="M436 542H452" marker-end="url(#call-arrow)"/>
+    <path d="M582 542H598" stroke-dasharray="5 4" marker-end="url(#call-arrow)"/>
+  </g>
+  <text x="16" y="606" font-size="12.5" font-weight="600" class="ink">A buyer cancels</text>
+  <rect x="302" y="614" width="284" height="64" rx="10" class="band"/>
+  <text x="444" y="691" text-anchor="middle" font-size="11" class="quiet">one transaction</text>
+  <rect x="16" y="620" width="126" height="52" rx="8" class="box" stroke-dasharray="5 4"/>
+  <text x="79" y="642" text-anchor="middle" font-weight="600" class="ink">Marketplace</text>
+  <text x="79" y="660" text-anchor="middle" font-size="11.5" class="quiet">notice</text>
+
+  <rect x="162" y="620" width="126" height="52" rx="8" class="box"/>
+  <text x="225" y="642" text-anchor="middle" font-weight="600" class="ink">Channels</text>
+  <text x="225" y="660" text-anchor="middle" font-size="11.5" class="quiet">verify, queue, fetch</text>
+
+  <rect x="308" y="620" width="126" height="52" rx="8" class="box-main"/>
+  <text x="371" y="642" text-anchor="middle" font-weight="600" class="ink">Orders</text>
+  <text x="371" y="660" text-anchor="middle" font-size="11.5" class="quiet">cancelled</text>
+
+  <rect x="454" y="620" width="126" height="52" rx="8" class="box-main"/>
+  <text x="517" y="642" text-anchor="middle" font-weight="600" class="ink">Inventory</text>
+  <text x="517" y="660" text-anchor="middle" font-size="11.5" class="quiet">release</text>
+
+  <rect x="600" y="620" width="126" height="52" rx="8" class="box"/>
+  <text x="663" y="642" text-anchor="middle" font-weight="600" class="ink">Stock sync</text>
+  <text x="663" y="660" text-anchor="middle" font-size="11.5" class="quiet">raise figures</text>
+
+  <rect x="746" y="620" width="126" height="52" rx="8" class="box"/>
+  <text x="809" y="642" text-anchor="middle" font-weight="600" class="ink">Channels</text>
+  <text x="809" y="660" text-anchor="middle" font-size="11.5" class="quiet">gate sends</text>
+
+  <g class="edge" fill="none" stroke-width="1.25">
+    <path d="M144 646H160" stroke-dasharray="1.5 3" marker-end="url(#call-arrow)"/>
+    <path d="M290 646H306" marker-end="url(#call-arrow)"/>
+    <path d="M436 646H452" marker-end="url(#call-arrow)"/>
+    <path d="M582 646H598" stroke-dasharray="5 4" marker-end="url(#call-arrow)"/>
+    <path d="M728 646H744" marker-end="url(#call-arrow)"/>
+  </g>
+  <text x="16" y="710" font-size="12.5" font-weight="600" class="ink">A return comes back</text>
+  <rect x="156" y="718" width="284" height="64" rx="10" class="band"/>
+  <text x="298" y="795" text-anchor="middle" font-size="11" class="quiet">one transaction</text>
+  <rect x="16" y="724" width="126" height="52" rx="8" class="box" stroke-dasharray="5 4"/>
+  <text x="79" y="746" text-anchor="middle" font-weight="600" class="ink">Packer</text>
+  <text x="79" y="764" text-anchor="middle" font-size="11.5" class="quiet">receives parcel</text>
+
+  <rect x="162" y="724" width="126" height="52" rx="8" class="box"/>
+  <text x="225" y="746" text-anchor="middle" font-weight="600" class="ink">Fulfilment</text>
+  <text x="225" y="764" text-anchor="middle" font-size="11.5" class="quiet">inspects</text>
+
+  <rect x="308" y="724" width="126" height="52" rx="8" class="box-main"/>
+  <text x="371" y="746" text-anchor="middle" font-weight="600" class="ink">Inventory</text>
+  <text x="371" y="764" text-anchor="middle" font-size="11.5" class="quiet">held, restocked</text>
+
+  <rect x="454" y="724" width="126" height="52" rx="8" class="box"/>
+  <text x="517" y="746" text-anchor="middle" font-weight="600" class="ink">Stock sync</text>
+  <text x="517" y="764" text-anchor="middle" font-size="11.5" class="quiet">raise figures</text>
+
+  <rect x="600" y="724" width="126" height="52" rx="8" class="box"/>
+  <text x="663" y="746" text-anchor="middle" font-weight="600" class="ink">Channels</text>
+  <text x="663" y="764" text-anchor="middle" font-size="11.5" class="quiet">gate sends</text>
+
+  <g class="edge" fill="none" stroke-width="1.25">
+    <path d="M144 750H160" marker-end="url(#call-arrow)"/>
+    <path d="M290 750H306" marker-end="url(#call-arrow)"/>
+    <path d="M436 750H452" stroke-dasharray="5 4" marker-end="url(#call-arrow)"/>
+    <path d="M582 750H598" marker-end="url(#call-arrow)"/>
+  </g>
+</svg>
