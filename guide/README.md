@@ -34,7 +34,19 @@ ADR-000  System architecture: modules, the foundation, outbox, egress gate, simu
     └── ADR-012  Billing and plans (Vervoro charging the seller)
 ```
 
-The order to build them in is on the [index](../). The rules every change must keep are in the [engineering rulebook](../rulebook/).
+The order to build them in is on the [index](../).
+
+## How the records are organised
+
+Each record is split into up to three documents, so that a person can review the decision in a few minutes:
+
+| Document | For | Holds |
+| --- | --- | --- |
+| **ADR** | The owner and the developer, to approve | Context, at most 10 decisions in plain words, consequences, alternatives rejected, open items. About 900 words; no SQL or worked examples |
+| **SPEC** | The developer and coding agents, to build from | Numbered rule sets, tables and state lists, platform constraints with sources, the tests that prove each rule, and a checklist for reviewing the code |
+| **RUNBOOK** | The operator, to carry out | One page per procedure under [runbooks](../runbooks/): who runs it, with which role, numbered steps, how to verify, what to do if it stops halfway |
+
+The ADR decides, the SPEC says exactly how, and a runbook carries it out. When they disagree, the ADR wins. [ADR-001](../database-architecture/) is the first record in this form; the others follow one at a time. The rules every change must keep are in the [engineering rulebook](../rulebook/).
 
 ## Status of a record
 

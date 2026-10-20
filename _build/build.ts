@@ -1,7 +1,7 @@
 // Builds the GitHub Pages site: each document's README.md becomes index.html beside it, plus a root index.
 
 import { readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { marked } from "marked";
 
 // Give every heading the id GitHub would give it, so in-page links such as #platform-constraints work on the site.
@@ -62,12 +62,14 @@ svg .band { fill: var(--tint); stroke: var(--edge); stroke-width: 1.25; }
 .cards a { display: block; padding: 18px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; text-decoration: none; color: var(--text); }
 .cards a:hover, .cards a:focus-visible { border-color: var(--accent); outline: none; }
 .cards.sub { margin: 12px 0 0 24px; padding-left: 16px; border-left: 2px solid var(--border); }
+.parts { margin: 6px 0 0 20px; font-size: 14px; color: var(--muted); } .cards .parts a { display: inline; padding: 0; background: none; border: none; border-radius: 0; color: var(--accent); font-weight: 600; text-decoration: none; } .cards .parts a:hover { text-decoration: underline; }
 .cards b { display: block; font-size: 17px; } .cards span { color: var(--muted); font-size: 14px; }
 .order li { margin-top: 10px; } .order span { color: var(--muted); font-size: 14px; }
 footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 `;
 
-const page = (title: string, body: string, home: boolean) => `<!doctype html>
+// `back` is the header's trail of links, from the page up to the home page; empty on the home page.
+const page = (title: string, body: string, back: string) => `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -78,7 +80,7 @@ const page = (title: string, body: string, home: boolean) => `<!doctype html>
 <style>${css}</style>
 </head>
 <body>
-${home ? "" : '<header class="site"><a href="../">← Vervoro artifacts</a></header>'}
+${back ? `<header class="site">${back}</header>` : ""}
 <main>
 ${body}
 <footer>Vervoro</footer>
@@ -87,11 +89,29 @@ ${body}
 </html>
 `;
 
-const docs: { dir: string; title: string; blurb: string; parent?: string }[] = [
+// `parent` nests a record under another on the home page (ADR-004.1 under ADR-004). `partOf` marks a page that belongs
+// to a record, such as its SPEC or a runbook: it gets no card, and its header links back to the record. `links` are
+// extra links shown under a record's card.
+type Doc = { dir: string; title: string; blurb: string; parent?: string; partOf?: string; links?: { label: string; href: string }[] };
+const docs: Doc[] = [
   { dir: "rulebook", title: "Engineering rulebook", blurb: "The 43 rules every change must keep, each a one-line summary of a decision a record makes, with a link to it. The record wins on any difference. Load it with every coding task." },
   { dir: "guide", title: "Architecture map and glossary", blurb: "How the records fit together, one word per concept, and what each status (Proposed, Accepted, Implemented, Superseded, Deprecated) means. Every record is Proposed today." },
   { dir: "system-architecture", title: "ADR-000: System architecture", blurb: "A modular monolith of modules with typed ports, one core that owns stock and orders, an outbox, one egress gate, connector plugins and simulators. Proposed, 17 October 2026." },
-  { dir: "database-architecture", title: "ADR-001: Multi-tenant database architecture", blurb: "Control database, shared-table customer databases with forced row-level security, a wrong-database check on every transaction, dedicated databases, trials as a state. Proposed 17 October 2026, revised 18 October 2026." },
+  { dir: "runbooks", title: "Runbooks", blurb: "The operator's procedures, one page each with numbered steps: who runs it, with which role, how to verify it, and what to do if it stops halfway." },
+  ...[
+    ["add-a-cell", "Add a cell"],
+    ["add-a-dedicated-database", "Add a dedicated database"],
+    ["move-a-company", "Move a company"],
+    ["export-a-company", "Export a company"],
+    ["erase-a-company", "Erase a company"],
+    ["restore-a-company-look-back", "Restore a company, look back"],
+    ["restore-a-company-full-rewind", "Restore a company, full rewind"],
+    ["restore-a-whole-cell", "Restore a whole cell"],
+    ["drills", "Drills"],
+    ["use-the-owner-role", "Use the owner role"],
+  ].map(([dir, title]) => ({ dir: `runbooks/${dir}`, partOf: "runbooks", title: `Runbook: ${title}`, blurb: "" })),
+  { dir: "database-architecture", title: "ADR-001: Multi-tenant database architecture", blurb: "Control database, shared-table customer databases with forced row-level security, a wrong-database check on every transaction, dedicated databases, trials as a state. Proposed 17 October 2026, revised 18 October 2026; split into ADR, SPEC and RUNBOOK 20 October 2026.", links: [{ label: "SPEC", href: "database-architecture/spec/" }, { label: "RUNBOOK", href: "runbooks/#adr-001-multi-tenant-database-architecture" }] },
+  { dir: "database-architecture/spec", partOf: "database-architecture", title: "ADR-001 SPEC: Multi-tenant database architecture", blurb: "The rules to build ADR-001 from, the tests that prove them, and a checklist for reviewing the code." },
   { dir: "data-retention", title: "ADR-002: Data retention and archiving", blurb: "24 months of history in each cell, older months archived per company in object storage, statutory retention, then deletion. Proposed, 17 October 2026." },
   { dir: "product-model", title: "ADR-003: Product model", blurb: "SKU identity, barcodes, simple products, packs with their own stock, bundles built from components, box sizes, size and colour families, VAT classes, best-before and lot tracking, listing links including FBA and Vendor, and how products are created. Proposed, 17 October 2026." },
   { dir: "channel-connectors", title: "ADR-004: Channel connectors", blurb: "Each marketplace is a translator behind a small contract (read orders, read listings, write stock, read back); the host owns credentials, HTTP, rate limits and shared daily allowances; orders arrive by notice; simulators, shadow mode, and failures kept per account. Proposed, 17 October 2026." },
@@ -137,16 +157,20 @@ for (const d of docs) {
   const svg = join(import.meta.dir, "diagrams", `${d.dir}.svg`);
   if (html.includes("<!-- DIAGRAM -->")) html = html.replace("<!-- DIAGRAM -->", `<figure>${readFileSync(svg, "utf8")}</figure>`);
   html = html.replace(/<table>/g, '<div class="table-wrap"><table>').replace(/<\/table>/g, "</table></div>");
-  writeFileSync(join(site, d.dir, "index.html"), page(d.title, html, false));
+  const up = "../".repeat(d.dir.split("/").length);
+  const owner = d.partOf ? docs.find((o) => o.dir === d.partOf) : undefined;
+  const back = `<a href="${up}">← Vervoro artifacts</a>${owner ? ` / <a href="${relative(d.dir, owner.dir)}/">${owner.title}</a>` : ""}`;
+  writeFileSync(join(site, d.dir, "index.html"), page(d.title, html, back));
 }
 
 const index = `<h1>Vervoro artifacts</h1>
 <p>Architecture decisions and plans. Every record is <b>Proposed</b> until the developer has reviewed it and the owner has signed it off; see the <a href="guide/">architecture map and glossary</a> for what each status means.</p>
 <ul class="cards">
 ${docs
-  .filter((d) => !d.parent)
+  .filter((d) => !d.parent && !d.partOf)
   .map((d) => {
-    const card = (c: (typeof docs)[number]) => `<a href="${c.dir}/"><b>${c.title}</b><span>${c.blurb}</span></a>`;
+    const parts = (c: Doc) => (c.links ? `<p class="parts">${c.links.map((l) => `<a href="${l.href}">${l.label}</a>`).join(" · ")}</p>` : "");
+    const card = (c: Doc) => `<a href="${c.dir}/"><b>${c.title}</b><span>${c.blurb}</span></a>${parts(c)}`;
     const kids = docs.filter((c) => c.parent === d.dir);
     const sub = kids.length ? `\n    <ul class="cards sub">\n${kids.map((c) => `      <li>${card(c)}</li>`).join("\n")}\n    </ul>\n  ` : "";
     return `  <li>${card(d)}${sub}</li>`;
@@ -154,10 +178,10 @@ ${docs
   .join("\n")}
 </ul>
 ${orderHtml}`;
-writeFileSync(join(site, "index.html"), page("Vervoro artifacts", index, true));
+writeFileSync(join(site, "index.html"), page("Vervoro artifacts", index, ""));
 writeFileSync(join(site, ".nojekyll"), "");
 writeFileSync(
   join(site, "README.md"),
-  `# Vervoro artifacts\n\nArchitecture decisions and plans, published with GitHub Pages.\n\n${docs.map((d) => `${d.parent ? "  " : ""}- [${d.title}](${d.dir}/README.md)`).join("\n")}\n\n${orderMd}`,
+  `# Vervoro artifacts\n\nArchitecture decisions and plans, published with GitHub Pages.\n\n${docs.map((d) => `${d.parent || d.partOf ? "  " : ""}- [${d.title}](${d.dir}/README.md)`).join("\n")}\n\n${orderMd}`,
 );
 console.log("built");

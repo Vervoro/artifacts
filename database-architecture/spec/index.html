@@ -1,0 +1,1146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ADR-001 SPEC: Multi-tenant database architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono&display=swap">
+<style>
+:root {
+  --bg: #f6f6f8; --surface: #ffffff; --sunken: #ededf1; --text: #16161a; --muted: #5c5c66; --border: #e0e0e6;
+  --accent: #4338ca; --accent-soft: #eef0ff; --edge: #8a8a96; --tint: #f0f0f4;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #111114; --surface: #1a1a1f; --sunken: #23232a; --text: #ececf1; --muted: #a2a2ad; --border: #2d2d35;
+  --accent: #a5b4fc; --accent-soft: #23264a; --edge: #74747f; --tint: #202027; color-scheme: dark; } }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 var(--sans); }
+main { max-width: 860px; margin: 0 auto; padding: 48px max(20px, env(safe-area-inset-left)) 80px; }
+header.site { max-width: 860px; margin: 0 auto; padding: 20px max(20px, env(safe-area-inset-left)) 0; font-size: 14px; }
+header.site a { color: var(--muted); text-decoration: none; }
+header.site a:hover { color: var(--accent); }
+h1, h2, h3 { line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(28px, 4vw, 38px); letter-spacing: -0.02em; margin: 0 0 20px; }
+h2 { font-size: 23px; margin: 48px 0 12px; padding-top: 20px; border-top: 1px solid var(--border); }
+h3 { font-size: 18px; margin: 32px 0 8px; }
+p, li { max-width: 72ch; }
+a { color: var(--accent); }
+code { font-family: var(--mono); font-size: 0.86em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--sunken); padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 13.5px; line-height: 1.5; }
+pre code { background: none; padding: 0; overflow-wrap: normal; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 16px 0; background: var(--surface); }
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+.table-wrap table { margin: 0; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+th { background: var(--sunken); font-weight: 600; font-size: 13px; color: var(--muted); }
+tr:last-child td { border-bottom: none; }
+ul, ol { padding-left: 22px; }
+li + li { margin-top: 4px; }
+figure { margin: 20px 0; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; }
+svg.diagram { display: block; width: 100%; min-width: 640px; height: auto; font-family: var(--sans); }
+svg .ink { fill: var(--text); } svg .quiet { fill: var(--muted); }
+svg .edge { stroke: var(--edge); } svg .edge-fill { fill: var(--edge); }
+svg .accent { stroke: var(--accent); } svg .accent-fill { fill: var(--accent); }
+svg .box { fill: none; stroke: var(--edge); stroke-width: 1.25; }
+svg .box-main { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+svg .band { fill: var(--tint); stroke: var(--edge); stroke-width: 1.25; }
+.cards { list-style: none; padding: 0; display: grid; gap: 12px; }
+.cards a { display: block; padding: 18px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; text-decoration: none; color: var(--text); }
+.cards a:hover, .cards a:focus-visible { border-color: var(--accent); outline: none; }
+.cards.sub { margin: 12px 0 0 24px; padding-left: 16px; border-left: 2px solid var(--border); }
+.parts { margin: 6px 0 0 20px; font-size: 14px; color: var(--muted); } .cards .parts a { display: inline; padding: 0; background: none; border: none; border-radius: 0; color: var(--accent); font-weight: 600; text-decoration: none; } .cards .parts a:hover { text-decoration: underline; }
+.cards b { display: block; font-size: 17px; } .cards span { color: var(--muted); font-size: 14px; }
+.order li { margin-top: 10px; } .order span { color: var(--muted); font-size: 14px; }
+footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header class="site"><a href="../../">← Vervoro artifacts</a> / <a href="../">ADR-001: Multi-tenant database architecture</a></header>
+<main>
+<h1 id="adr-001-spec-multi-tenant-database-architecture">ADR-001 SPEC: Multi-tenant database architecture</h1>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Decision</strong></td>
+<td><a href="../">ADR-001: Multi-tenant database architecture</a></td>
+</tr>
+<tr>
+<td><strong>Procedures</strong></td>
+<td><a href="../../runbooks/#adr-001-multi-tenant-database-architecture">RUNBOOK</a></td>
+</tr>
+<tr>
+<td><strong>Date</strong></td>
+<td>20 October 2026</td>
+</tr>
+<tr>
+<td><strong>For</strong></td>
+<td>The developer and coding agents building it, and the person reviewing their work</td>
+</tr>
+</tbody></table></div>
+<p>The rules to build ADR-001 from. Each section is a rule set, a table or a list of states. The record decides; this page says exactly how. Where this page and the ADR disagree, the ADR wins and this page is fixed. The words used are defined in the <a href="../../guide/">map and glossary</a>.</p>
+<h2 id="0-at-launch-and-later">0. At launch and later</h2>
+<p>At launch there are two databases: control and cell A. Cell A holds every company, trials and the canary included. Everything below is built at launch except the parts in this table, which keep their rules here and are built only when their trigger arrives (owner ruling, 20 October 2026).</p>
+<p>Two things are built at launch even with one cell, because they make a later cell cheap: every request reads its company&#39;s database from control (<a href="#7-control-database-and-routing">section 7</a>), and <code>enter_company</code> raises in a database that does not hold the company (<a href="#1-tenancy-inside-a-cell">section 1</a>).</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Later part</th>
+<th>Trigger</th>
+<th>Rules</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>A second cell: the <code>cell:add</code> tool with its checked opening, closing a cell at its cap, and the &quot;when to add&quot; signals</td>
+<td>Cell A reaches 160 companies, or another signal in <a href="#when-to-add-a-database">section 8</a> holds</td>
+<td><a href="#adding-a-cell">8</a></td>
+</tr>
+<tr>
+<td>Moving a company, and the nightly canary move</td>
+<td>A second cell exists</td>
+<td><a href="#move">10</a>, <a href="#drills">drills</a></td>
+</tr>
+<tr>
+<td>Dedicated cells, and residency outside the EU</td>
+<td>The first enterprise contract that needs one</td>
+<td><a href="#adding-a-dedicated-database">8</a></td>
+</tr>
+<tr>
+<td>The trial share of sweeper slots and app-wide allowances, then a cell for trials only</td>
+<td>Trials use over 25% of cell A&#39;s compute for 7 days</td>
+<td><a href="#trials">8</a>, <a href="#fair-shares">9</a></td>
+</tr>
+<tr>
+<td>Canary checks every 10 minutes, and the egress scan for canary markers</td>
+<td>A second cell exists</td>
+<td><a href="#11-production-checks">11</a></td>
+</tr>
+<tr>
+<td>Weekly restore drills (monthly at launch)</td>
+<td>50 companies</td>
+<td><a href="#drills">10</a></td>
+</tr>
+<tr>
+<td>Automated full rewind and whole-cell restore (by the runbook, by hand, at launch)</td>
+<td>The first drill or incident that shows the hand procedure is too slow</td>
+<td><a href="#restore">10</a></td>
+</tr>
+</tbody></table></div>
+<h2 id="1-tenancy-inside-a-cell">1. Tenancy inside a cell</h2>
+<ol>
+<li>Every business table exists once per cell and carries <code>company_id uuid NOT NULL</code>.</li>
+<li>Every table has <code>ENABLE</code> and <code>FORCE ROW LEVEL SECURITY</code> and one policy with both <code>USING</code> and <code>WITH CHECK</code>: <code>company_id = app.company()</code>. The same holds for every partition.</li>
+<li><code>app.company()</code> returns the transaction&#39;s company and <strong>raises</strong> when none is set. An unset company is an error, never zero rows: a silent empty stock read could push 0 to a marketplace and delist a seller.</li>
+<li>The <code>company_id</code> column default is <code>app.company()</code>, so an insert without a company also raises.</li>
+<li>The data layer&#39;s first statement in every transaction is <code>select app.enter_company($1)</code> (<a href="#4-functions">section 4</a>). The data layer refuses autocommit for company work.</li>
+<li>The company setting lasts only for its transaction (<code>set_config(…, true)</code>). That keeps it safe behind a transaction-mode pooler.</li>
+<li>A transaction holds <strong>exactly one company</strong>. A request may batch all its reads for its one company into one read-only transaction. It never enters a second company, and it never reads control through the cell&#39;s transaction. Background and operator work open one transaction per company.</li>
+</ol>
+<h3 id="tenant-states">Tenant states</h3>
+<p>Each cell has a <code>tenant</code> table, keyed by its own <code>id</code>, with policy <code>id = app.company()</code>. Its row is the single authority on whether a company is open in that database.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>State</th>
+<th>Meaning</th>
+<th>Runtime may enter</th>
+<th>Lifecycle may enter</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>open</code></td>
+<td>Served from this database</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code>moving_out</code></td>
+<td>Being copied to another database</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code>moved_out</code></td>
+<td>Lives elsewhere now; source rows about to be deleted</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td><code>restoring</code></td>
+<td>A full rewind is replacing its rows</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code>lookback</code></td>
+<td>Every row in a branch made for a look-back, rewind or drill</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+</tbody></table></div>
+<p>A move or restore changes the source row first, so a stale route to the old database raises instead of reading an empty company. Every other role, the owner included, is refused by <code>enter_company</code>.</p>
+<h2 id="2-keys-and-identifiers">2. Keys and identifiers</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>company_id</code> leads every key</td>
+<td>The first column of every primary key, unique key, foreign key and index</td>
+</tr>
+<tr>
+<td>Composite foreign keys</td>
+<td><code>(company_id, x)</code> references <code>(company_id, x)</code>, so a row cannot point at another company&#39;s row. Postgres runs key checks outside row-level security, so these keys hold even where policies do not</td>
+</tr>
+<tr>
+<td>Cascade to <code>tenant</code></td>
+<td>Every table has <code>company_id → tenant(id) ON DELETE CASCADE</code>. Deleting the tenant row is the last step of an erase (<a href="#10-company-lifecycle">section 10</a>); the cascade guarantees nothing is left</td>
+</tr>
+<tr>
+<td>IDs</td>
+<td>uuidv7. No <code>serial</code> or identity columns, so nothing is numbered across companies and no id reveals a company&#39;s database</td>
+</tr>
+<tr>
+<td>Human numbers and ordering</td>
+<td>PO numbers, outbox sequence, the stock ledger&#39;s gapless sequence: from a counter table keyed <code>(company_id, name)</code>, taken in the writer&#39;s transaction. Counters travel with the company</td>
+</tr>
+<tr>
+<td>The company&#39;s lock</td>
+<td>A stock command&#39;s first statement after entering updates the company&#39;s stock counter row. That row lock is the company&#39;s lock, and the same update returns the next ledger number (<a href="../../stock-ledger/">ADR-006</a>)</td>
+</tr>
+<tr>
+<td>Upserts</td>
+<td>Only through <code>conflict(&#39;id&#39;)</code>, which emits <code>ON CONFLICT (company_id, id)</code></td>
+</tr>
+<tr>
+<td>Marketplace cursors and watermarks</td>
+<td>Keyed <code>(company_id, account)</code></td>
+</tr>
+<tr>
+<td>Idempotency keys</td>
+<td>Unique per <code>(company_id, key)</code></td>
+</tr>
+</tbody></table></div>
+<h2 id="3-roles">3. Roles</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Where</th>
+<th>Created by</th>
+<th>Can log in</th>
+<th>Bypasses RLS</th>
+<th>Rights</th>
+<th>Credential held by</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Owner</strong></td>
+<td>Every database</td>
+<td>Neon, with the project</td>
+<td>Yes</td>
+<td>Yes (Neon makes it a member of <code>neon_superuser</code>)</td>
+<td>Owns every table. Migrations, partitions, creating the other roles</td>
+<td>The CI migration job only</td>
+</tr>
+<tr>
+<td><strong>Runtime</strong></td>
+<td>Every database</td>
+<td>SQL</td>
+<td>Yes, as itself</td>
+<td>No (<code>NOBYPASSRLS</code>)</td>
+<td><code>SELECT, INSERT, UPDATE, DELETE</code> on tenant tables, minus the append-only revoke. <code>SELECT</code> on <code>tenant</code>. No right on control&#39;s login tables. Owns nothing</td>
+<td>The app Worker, through Hyperdrive</td>
+</tr>
+<tr>
+<td><strong>Lifecycle</strong></td>
+<td>Every database</td>
+<td>SQL</td>
+<td>Yes</td>
+<td>No</td>
+<td>Reads and deletes through parent tables for the slice operation, including append-only tables. Enters the states in <a href="#tenant-states">section 1</a>. No DDL. Owns nothing</td>
+<td>The operations job only, never a serving Worker</td>
+</tr>
+<tr>
+<td><strong>Sign-in</strong></td>
+<td>Control only</td>
+<td>SQL</td>
+<td>Yes</td>
+<td>No</td>
+<td>Alone reads and writes logins, sign-in methods, recovery codes and sessions (<a href="../../users-and-access/#the-sign-in-worker">ADR-010</a>). Owns nothing</td>
+<td>The sign-in Worker, through its own Hyperdrive configuration</td>
+</tr>
+<tr>
+<td><strong>Definer owner</strong></td>
+<td>Every cell</td>
+<td>SQL</td>
+<td>No</td>
+<td>No</td>
+<td>Owns the three allow-listed functions. Its own read policy on <code>due</code> and <code>buyer_ref</code>; insert on <code>tenant</code></td>
+<td>Nobody</td>
+</tr>
+</tbody></table></div>
+<p>Rules:</p>
+<ol>
+<li>No other role may log in. A role created in the Neon console, CLI or API joins <code>neon_superuser</code>, so no role is ever created there.</li>
+<li>The runtime role logs in as itself. No login switches role with <code>SET ROLE</code> (owner ruling, 20 October 2026).</li>
+<li>A serving connection refuses to start if its login is a superuser, has <code>BYPASSRLS</code>, owns a table, or is a member of the owner, of <code>neon_superuser</code> or of any role with those rights.</li>
+<li>The owner&#39;s emergency use goes through the CI migration job, records the reason first and alerts the operator (<a href="../../buyer-data/">ADR-009</a>). See the <a href="../../runbooks/use-the-owner-role/">runbook</a>.</li>
+<li>The runtime role has a <code>statement_timeout</code> and an <code>idle_in_transaction_session_timeout</code>.</li>
+</ol>
+<h2 id="4-functions">4. Functions</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Kind</th>
+<th>Who may call</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>app.company()</code></td>
+<td><code>STABLE</code>, <code>PARALLEL SAFE</code>, never <code>SECURITY DEFINER</code></td>
+<td>Anyone</td>
+<td><code>nullif(current_setting(&#39;app.company_id&#39;, true), &#39;&#39;)::uuid</code>; raises when null. Its labels let Postgres evaluate it once per statement and use the <code>company_id</code> index</td>
+</tr>
+<tr>
+<td><code>app.enter_company(id)</code></td>
+<td>Invoker</td>
+<td>Runtime, lifecycle</td>
+<td>Sets <code>app.company_id</code> for this transaction, then reads <code>tenant</code> through row-level security and raises unless the row exists in a state this role may enter. Needs no special rights and no extra round trip</td>
+</tr>
+<tr>
+<td><code>app.open_tenant(id)</code></td>
+<td><code>SECURITY DEFINER</code>, allow-listed</td>
+<td>Runtime</td>
+<td>Used at sign-up in place of <code>enter_company</code>. Inserts a <code>tenant</code> row for <code>id</code> in state <code>open</code> and sets the company for this transaction. Raises if a row for <code>id</code> already exists (owner ruling, 20 October 2026)</td>
+</tr>
+<tr>
+<td><code>app.due_companies(limit)</code></td>
+<td><code>SECURITY DEFINER</code>, allow-listed</td>
+<td>Runtime</td>
+<td>Returns <code>(company_id, next_due_at)</code> from <code>due</code> for companies due now, earliest first</td>
+</tr>
+<tr>
+<td><code>app.buyer_ref_companies(hash)</code></td>
+<td><code>SECURITY DEFINER</code>, allow-listed</td>
+<td>Runtime</td>
+<td>Returns the company ids holding an eBay buyer hash (<a href="../../buyer-data/">ADR-009</a>)</td>
+</tr>
+</tbody></table></div>
+<p>Rules for the three definers:</p>
+<ol>
+<li>Owned by the definer owner, which cannot log in.</li>
+<li><code>search_path</code> pinned in the function definition.</li>
+<li>Return ids and times only.</li>
+<li><code>EXECUTE</code> granted to the runtime role only.</li>
+</ol>
+<p>Every other <code>SECURITY DEFINER</code> function is refused by the lint.</p>
+<p><strong>SQL-executing functions</strong> are revoked from <code>PUBLIC</code> in every cell: <code>query_to_xml</code>, <code>query_to_xmlschema</code>, <code>query_to_xml_and_xmlschema</code>, <code>cursor_to_xml</code>, <code>cursor_to_xmlschema</code>, <code>table_to_xml</code>, <code>table_to_xmlschema</code> and <code>table_to_xml_and_xmlschema</code>. Extensions that run SQL given as text, such as <code>dblink</code>, are never installed. They would let module SQL hidden in a string reach <code>set_config</code>.</p>
+<h2 id="5-declaring-tables">5. Declaring tables</h2>
+<p>Modules never write <code>CREATE TABLE</code>. They declare tables through <code>tenantTable()</code>, and the data layer generates everything tenancy needs.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Who</th>
+<th>Writes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>The module</td>
+<td>Columns, its own key columns, foreign keys by its own columns, checks, indexes, field tags (<code>pii</code>, <code>secret</code>, <code>retention</code>), and whether the table is append-only or partitioned by month</td>
+</tr>
+<tr>
+<td>The data layer</td>
+<td><code>company_id</code> and its default; composite primary, unique and foreign keys; the cascade to <code>tenant</code>; <code>ENABLE</code> + <code>FORCE</code> RLS and the policy, on the table and every partition; grants, with the append-only revoke; the table&#39;s entry in the slice manifest; anonymisation hooks</td>
+</tr>
+</tbody></table></div>
+<ol>
+<li><strong>Field tags</strong> drive buyer anonymisation, a buyer&#39;s erasure, AI masking and export redaction from one declaration.</li>
+<li><strong>Append-only tables</strong> have <code>UPDATE</code>, <code>DELETE</code> and <code>TRUNCATE</code> revoked from the runtime role. At launch: the stock ledger, the order hold table (every hold and release is a row; the current set is read from it, <a href="../../order-ingestion/">ADR-007</a>), the outbox and <code>audit_log</code>. Rows leave only through the slice operation, as the lifecycle role, or by a whole month detached after the archiver verified it (<a href="../../data-retention/">ADR-002</a>).</li>
+<li><strong>Partitions.</strong> A partition named directly ignores its parent&#39;s policies and grants, because partitions follow Postgres&#39;s inheritance rules (<a href="https://www.postgresql.org/docs/17/ddl-inherit.html">inheritance</a>, <a href="https://www.postgresql.org/docs/17/ddl-partitioning.html">partitioning</a>). So every partition gets its own <code>ENABLE</code>, <code>FORCE</code> and policy, and no grant to the runtime or lifecycle role. No default privileges grant the runtime role anything. Only the monthly migration run names a partition.</li>
+<li><strong>Partitioned by month:</strong> <code>audit_log</code>, <code>event_log</code>, orders, the stock ledger and outbound sends.</li>
+<li><strong>Logs:</strong> one table per retention class. <code>audit_log</code> holds security and access events, kept at least a year for live companies. <code>event_log</code> holds module activity, kept 90 days.</li>
+<li><strong>Operational state</strong> (rate buckets, leases, nonces, staging) lives in tenant tables like everything else.</li>
+<li><strong>Secrets:</strong> one table, <code>secrets(company_id, purpose)</code>.</li>
+</ol>
+<h2 id="6-guard-rails">6. Guard rails</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Guard</th>
+<th>Where</th>
+<th>Rule</th>
+<th>On failure</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Statement filter</td>
+<td>Data layer</td>
+<td>See the list below</td>
+<td>Refuse the statement</td>
+</tr>
+<tr>
+<td>Commit check</td>
+<td>Data layer</td>
+<td>Before every commit, read <code>current_setting(&#39;app.company_id&#39;, true)</code> and <code>current_user</code>, and compare them with the company and role the transaction entered (owner ruling, 20 October 2026). No result reaches the client, and no egress intent is sent, until the transaction commits</td>
+<td>Raise, roll back, page the operator, close the database&#39;s egress</td>
+</tr>
+<tr>
+<td>Request guard</td>
+<td>Data layer</td>
+<td>Sign-in puts the signed-in company in request context. <code>forCompany(id)</code> throws when <code>id</code> differs. Operator and background code opt in explicitly; an operator does so only under a live grant (<a href="../../users-and-access/">ADR-010</a>). Opting in never bypasses row-level security</td>
+<td>Throw</td>
+</tr>
+<tr>
+<td>Caches</td>
+<td>Data layer</td>
+<td>Hyperdrive query caching is off. Any other cache is reached only through one key builder that takes the company id. Logs carry ids, never field values</td>
+<td>Lint error</td>
+</tr>
+<tr>
+<td>Catalogue lint</td>
+<td>CI and production</td>
+<td><a href="#61-catalogue-lint">Section 6.1</a></td>
+<td>Fail the build, or page and close egress</td>
+</tr>
+<tr>
+<td>Change control</td>
+<td>Source control</td>
+<td>A change to the isolation code (the table helper, the functions in section 4, the policies, the filter, the commit check, the lint and the allow-list) needs a person&#39;s approval before it merges</td>
+<td>Merge blocked</td>
+</tr>
+</tbody></table></div>
+<p><strong>The statement filter</strong> reads each module statement with Postgres&#39;s own lexical rules: dollar-quote tags may contain digits, and any character from 0x80 up is a word character. It refuses a statement that:</p>
+<ol>
+<li>holds more than one statement;</li>
+<li>begins with <code>set</code> or <code>reset</code>, or names <code>set_config</code> or <code>app.company_id</code> anywhere outside a string;</li>
+<li>names <code>app.enter_company</code>, <code>app.open_tenant</code>, <code>pg_stats</code> or <code>pg_statistic</code> (the statistics show other companies&#39; values);</li>
+<li>begins with transaction control: <code>begin</code>, <code>start</code>, <code>commit</code>, <code>end</code>, <code>rollback</code>, <code>abort</code>, <code>savepoint</code>, <code>release</code> or <code>prepare</code>;</li>
+<li>begins with DDL or rights: <code>create</code>, <code>alter</code>, <code>drop</code>, <code>grant</code>, <code>revoke</code>, <code>do</code> or <code>call</code>;</li>
+<li>leaves a string, quoted identifier, dollar quote or comment unclosed.</li>
+</ol>
+<p>Postgres cannot revoke <code>set_config</code> on a custom setting, so this has to be application code. A string can still carry SQL to a function that runs it; those functions are revoked (<a href="#4-functions">section 4</a>), and the commit check catches anything the filter misses. The foundation&#39;s stock ledger trigger is not module SQL: a migration defines it, and it only applies a ledger entry to its balances.</p>
+<h3 id="61-catalogue-lint">6.1 Catalogue lint</h3>
+<p>Fails if any table or partition in a cell has:</p>
+<ol>
+<li>no <code>company_id NOT NULL</code> leading its primary key, or any unique key or index not led by <code>company_id</code>;</li>
+<li>no forced RLS, a policy missing either clause, or a policy whose expression is not exactly <code>company_id = app.company()</code>;</li>
+<li>a foreign key not composite on <code>company_id</code>, or no cascade to <code>tenant</code>;</li>
+<li>a grant on a partition, or a <code>TRUNCATE</code> grant;</li>
+<li>a runtime role holding <code>UPDATE</code>, <code>DELETE</code> or <code>TRUNCATE</code> on an append-only table.</li>
+</ol>
+<p>It also fails on:</p>
+<ol start="6">
+<li>raw <code>CREATE TABLE</code>, <code>serial</code> or identity columns, <code>ON CONFLICT</code> without <code>company_id</code>, or session-level <code>SET</code> in module source;</li>
+<li><code>SECURITY DEFINER</code> outside the allow-list, views without <code>security_invoker</code>, or materialized views;</li>
+<li>default privileges for the runtime role;</li>
+<li>a runtime or lifecycle role with <code>BYPASSRLS</code>, or any role but the owner in <code>neon_superuser</code>;</li>
+<li><code>app.company()</code> not <code>STABLE</code> and <code>PARALLEL SAFE</code>, or labelled <code>SECURITY DEFINER</code>;</li>
+<li>the runtime role able to execute a function in <a href="#4-functions">section 4</a>&#39;s revoked list.</li>
+</ol>
+<p>Named exceptions: the <code>tenant</code> table, keyed by its own <code>id</code>, and the definer owner&#39;s read policies on <code>due</code> and <code>buyer_ref</code>.</p>
+<h2 id="7-control-database-and-routing">7. Control database and routing</h2>
+<p>Control is its own database on its own compute. A cell credential can never read the login directory, and restoring a cell can never rewind control.</p>
+<p><strong>Control holds, and nothing else:</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Data</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Company registry</td>
+<td>Plan (trial or paid), status, subscription, tombstones, <code>database_id</code></td>
+</tr>
+<tr>
+<td>Database registry</td>
+<td><code>database(id, region, kind shared or dedicated, state open, closed or draining, cap)</code></td>
+</tr>
+<tr>
+<td>Login directory</td>
+<td>Logins, sign-in methods, recovery codes, sessions (<a href="../../users-and-access/">ADR-010</a>); only the sign-in role touches these</td>
+</tr>
+<tr>
+<td>Memberships and operator data</td>
+<td>Memberships, operator accounts and grants. Written by the runtime role</td>
+</tr>
+<tr>
+<td>External directory</td>
+<td>Marketplace seller id → company</td>
+</tr>
+<tr>
+<td>Erasure register</td>
+<td>Every buyer erasure and company tombstone, by id and time only. Also written, entry by entry, to an append-only log in object storage, so a restore of control cannot lose an erasure</td>
+</tr>
+<tr>
+<td>Sync epoch</td>
+<td>Per company, raised on every restore (<a href="../../inventory-sync/">ADR-008</a>)</td>
+</tr>
+<tr>
+<td>Platform data</td>
+<td>Settings, the platform security log, shared marketplace quotas, usage rollups, alerts</td>
+</tr>
+<tr>
+<td>Migration summary</td>
+<td>Per database, the version the last deploy reached (<a href="#12-operations">section 12</a>)</td>
+</tr>
+</tbody></table></div>
+<p><strong>Emails in control</strong> are stored only as an HMAC of the normalised address, keyed by a secret held outside Postgres by the sign-in Worker. The address lives only in the company&#39;s own users table.</p>
+<p><strong>Routing:</strong></p>
+<ol>
+<li><code>forCompany(id)</code> reads <code>company.database_id</code> from control (cached) and uses that database&#39;s connection.</li>
+<li>A stale cache cannot do harm: the old database&#39;s tenant row is no longer <code>open</code>, so <code>enter_company</code> raises, and the router reloads the route once.</li>
+<li>Each database in the registry has one Hyperdrive binding in the Worker.</li>
+<li>Reads of control always use control&#39;s own connection, never a cell&#39;s transaction.</li>
+</ol>
+<p><strong>Writes across databases</strong> (sign-up, adding a user, closing a company, opening an operator grant):</p>
+<ol>
+<li>Write the company side first, in one cell transaction, with an outbox note naming the control write still needed.</li>
+<li>Then write control. The write is idempotent.</li>
+<li>If the second write fails, the sweeper retries the note until it succeeds.</li>
+<li>No transaction spans two databases.</li>
+<li>Repairs run as the runtime role and only rewrite memberships, directory and registry rows. Logins, sign-in methods, recovery codes and sessions are written only by the sign-in Worker. At sign-up the login exists before the company does.</li>
+</ol>
+<h2 id="8-adding-companies-and-databases">8. Adding companies and databases</h2>
+<p>Every company in a cell shares that cell&#39;s database, Hyperdrive configuration and Worker binding, so a new company needs none of them. Adding a company is a product action. Adding a database is infrastructure work done ahead of need.</p>
+<h3 id="adding-a-company">Adding a company</h3>
+<p>Runs at sign-up, or when the operator creates an enterprise company.</p>
+<ol>
+<li><strong>Pick the database.</strong> A trial or paid company goes to the newest <code>open</code> shared cell. A new enterprise company goes straight to its dedicated database. An existing company that becomes enterprise is moved there by the slice operation.</li>
+<li><strong>One cell transaction:</strong> <code>app.open_tenant(id)</code>, the company&#39;s own rows and its member row, and an outbox note for control.</li>
+<li><strong>Write control:</strong> the registry row with its <code>database_id</code>, and the membership (<a href="../../users-and-access/">ADR-010</a>).</li>
+<li>The company is reachable once control routes to it.</li>
+</ol>
+<p>Sign-up never runs a migration and never registers a database.</p>
+<h3 id="the-cell-cap">The cell cap</h3>
+<ol>
+<li>A shared cell&#39;s cap is 200 companies; a dedicated database&#39;s cap is 1. A shared cap above 200 is refused.</li>
+<li>Placement counts the companies whose <code>database_id</code> is that cell. When the count reaches the cap, it sets the cell <code>closed</code>. A closed cell keeps serving the companies it has.</li>
+<li>The cap is soft (owner ruling, 20 October 2026). The count is read without a lock, so two sign-ups at the same moment may place a cell slightly past 200.</li>
+</ol>
+<h3 id="adding-a-cell">Adding a cell</h3>
+<p><code>cell:add</code>. The steps are in the <a href="../../runbooks/add-a-cell/">runbook</a>. The rules:</p>
+<ol>
+<li>Roles are made in SQL, never in the console.</li>
+<li>Every Hyperdrive configuration is created with caching off and points at Neon&#39;s direct endpoint, not Neon&#39;s pooler.</li>
+<li>The cell is registered in control as <code>closed</code> once migrated, so the audit and its sweeper see it.</li>
+<li>It becomes <code>open</code> only after a checked deploy: the deployed Worker opens a transaction through the new binding, as the runtime role, and enters the canary company; then the production audit passes.</li>
+</ol>
+<h3 id="adding-a-dedicated-database">Adding a dedicated database</h3>
+<p><code>dedicated:add</code> is <code>cell:add</code> with <code>kind = dedicated</code> and a cap of 1, in a Neon project of its own. Steps: <a href="../../runbooks/add-a-dedicated-database/">runbook</a>.</p>
+<h3 id="dedicated-databases-and-residency">Dedicated databases and residency</h3>
+<ul>
+<li><strong>Inside the UK and EU</strong>, the database alone is enough. Every database is in Neon&#39;s EU region, the Worker is placed next to it, and Durable Objects and object storage use Cloudflare&#39;s EU jurisdiction.</li>
+<li><strong>Outside the EU</strong>, a dedicated database needs a whole cell of its own: Worker placement, Hyperdrive configuration, object-storage bucket, Durable Object jurisdiction, logs and backup location.</li>
+</ul>
+<h3 id="trials">Trials</h3>
+<ol>
+<li>A trial lives in the newest open shared cell from sign-up. Paying changes its plan in control; nothing moves.</li>
+<li>Trials have the same backups, alerts and switch-off rules as paying companies: a trial may already sell on real marketplaces. Demo companies live in a cell like any other company.</li>
+<li>When trials together use more than 25% of a cell&#39;s compute for 7 days, the system recommends a cell for trials only. New trials then start there, and a trial that pays is moved to a paid cell by the slice operation.</li>
+<li>When a trial lapses or a company closes, retention and erasure follow <a href="../../billing-and-plans/">ADR-012</a>. Until erased, the data stays in its cell.</li>
+</ol>
+<h3 id="when-to-add-a-database">When to add a database</h3>
+<p>The system recommends a new cell when any signal holds for 7 days. The operator decides.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>Recommend a new cell when</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Companies in the cell</td>
+<td>160, 80% of the cap</td>
+</tr>
+<tr>
+<td>Hyperdrive pool</td>
+<td>Over 80% of ~100 connections in use at peak, or requests waiting for a connection</td>
+</tr>
+<tr>
+<td>Compute</td>
+<td>At its autoscaling maximum for over 20% of the busiest hour</td>
+</tr>
+<tr>
+<td>Restore time</td>
+<td>The drill&#39;s restore of the cell&#39;s largest company takes over 15 minutes, or the cell holds over 500 GB. A company that alone breaks this is offered a dedicated database</td>
+</tr>
+<tr>
+<td>Trials</td>
+<td>Trials use over 25% of a cell&#39;s compute</td>
+</tr>
+<tr>
+<td>Hyperdrive configurations</td>
+<td>15 of 25 used: ask Cloudflare for more</td>
+</tr>
+</tbody></table></div>
+<h2 id="9-background-work-and-the-outbox">9. Background work and the outbox</h2>
+<h3 id="the-sweeper">The sweeper</h3>
+<ol>
+<li>Each database (shared cell or dedicated) has one sweeper: a Durable Object named after the database, created on demand from its registry row.</li>
+<li>It reads <code>app.due_companies</code> once, then runs each due company in its own transaction, side by side.</li>
+<li>No background code loops over the company registry or visits a company with nothing due.</li>
+<li>After a run it sets its alarm for the earliest <code>next_due_at</code>, or none when nothing is due.</li>
+<li>A change nudges the sweeper of the company&#39;s own database within seconds.</li>
+<li>An hourly scheduled trigger reads control&#39;s database registry and nudges the sweeper of every database in state <code>open</code>, <code>closed</code> or <code>draining</code>. This is the safety net for a lost alarm.</li>
+</ol>
+<h3 id="the-due-table">The <code>due</code> table</h3>
+<p><code>due(company_id, kind, next_due_at)</code> holds ids, kinds and times only. It is a tenant table, indexed on <code>next_due_at</code>.</p>
+<ol>
+<li>A command that creates future work upserts its <code>due</code> row in its own transaction, keeping the earlier time.</li>
+<li>The job that does the work sets the next time, or deletes the row, in its own transaction.</li>
+<li>A kind is declared by the module that owns the work. The sweeper refuses an undeclared kind.</li>
+<li>A move copies the company&#39;s <code>due</code> rows with its slice.</li>
+</ol>
+<p>Launch kinds, taken from the records:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Kind</th>
+<th>Owner</th>
+<th>Due when</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Outbox delivery</td>
+<td>Kernel</td>
+<td>A note has no receipt for one of its handlers</td>
+</tr>
+<tr>
+<td>Control repair</td>
+<td>Kernel</td>
+<td>A cross-database note&#39;s control write has not landed</td>
+</tr>
+<tr>
+<td>Egress send and read-back</td>
+<td>Channels host (<a href="../../channel-connectors/">ADR-004</a>)</td>
+<td>A recorded send is due, or a send passed its deadline unconfirmed</td>
+</tr>
+<tr>
+<td>Backup order read</td>
+<td>Order ingestion (<a href="../../order-ingestion/">ADR-007</a>)</td>
+<td>An account&#39;s scheduled read is due</td>
+</tr>
+<tr>
+<td>Listing safety read</td>
+<td>Catalogue (<a href="../../catalogue-sync/">ADR-005</a>)</td>
+<td>An account&#39;s daily read is due</td>
+</tr>
+<tr>
+<td>Nightly stock check</td>
+<td>Foundation (<a href="../../stock-ledger/">ADR-006</a>)</td>
+<td>Once a night</td>
+</tr>
+<tr>
+<td>Buyer anonymisation</td>
+<td>Buyer data (<a href="../../buyer-data/">ADR-009</a>)</td>
+<td>30 days after delivery</td>
+</tr>
+<tr>
+<td>Erasure after closing</td>
+<td>Billing (<a href="../../billing-and-plans/">ADR-012</a>)</td>
+<td>30 days after the company closes</td>
+</tr>
+</tbody></table></div>
+<h3 id="fair-shares">Fair shares</h3>
+<p>Platform settings in control, changed without a deploy (owner ruling, 20 October 2026). Starting values:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Limit</th>
+<th>Value</th>
+<th>Unit</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Sweeper slots per cell</td>
+<td>40</td>
+<td>Company jobs running at once, each holding one pooled connection; leaves ~60 of ~100 for requests</td>
+</tr>
+<tr>
+<td>Per company</td>
+<td>8</td>
+<td>Background or bulk jobs running at once</td>
+</tr>
+<tr>
+<td>Trials, background (<em>Later</em>, <a href="#0-at-launch-and-later">section 0</a>)</td>
+<td>25% of the cell&#39;s sweeper slots</td>
+<td>All trial companies in the cell together</td>
+</tr>
+<tr>
+<td>Trials, marketplace (<em>Later</em>)</td>
+<td>25% of each allowance shared by the whole application, at lower priority</td>
+<td>Stock decreases on a live connection are exempt and always go first</td>
+</tr>
+</tbody></table></div>
+<h3 id="the-outbox">The outbox</h3>
+<ol>
+<li><strong>Outbox note.</strong> The transaction that makes a change also writes the note. Both commit or neither does.</li>
+<li><strong>Deliver now.</strong> Right after commit, the request or job that committed hands the note to every handler of that kind. This is the normal path.</li>
+<li><strong>Handler.</strong> Runs in a transaction that also writes a receipt for (event, handler). A second delivery does nothing.</li>
+<li><strong>Leftovers.</strong> The sweeper delivers any note still missing a receipt.</li>
+<li>The outbox, not a queue, is the source of truth. The inbound queue carries only marketplace webhooks, which must be answered before anything is written.</li>
+</ol>
+<p><strong>Egress effects</strong> are calls that change something on a marketplace or at a supplier: figures, dispatch, confirmations, messages. They go through the egress gate (<a href="../../system-architecture/#talking-to-marketplaces">ADR-000</a>). Notice subscriptions made by a connector&#39;s connect and disconnect hooks are set-up calls, not egress effects: they run in shadow mode too, through the host&#39;s HTTP and rate budgets (<a href="../../channel-connectors/">ADR-004</a>).</p>
+<h2 id="10-company-lifecycle">10. Company lifecycle</h2>
+<h3 id="the-slice-operation">The slice operation</h3>
+<ol>
+<li>One operation, generated from the catalogue, copies or deletes every row where <code>company_id = X</code>, in foreign-key order. Export, move, restore, dedicated placement and erase all use it.</li>
+<li>It runs in the operations job, as the lifecycle role, over a direct connection (not Hyperdrive, whose statements stop at 60 seconds).</li>
+<li>It works in committed batches of short transactions while the company is fenced. One long transaction would hold back vacuum for every company in the cell.</li>
+<li>It reads from a branch or a read replica where it can, and through parent tables only.</li>
+<li>Loading a slice refuses a company that has a tombstone, and does not finish until every erasure register entry for that company is replayed.</li>
+<li>Every branch the lifecycle tool makes has every tenant row set to <code>lookback</code> before anything else connects, and is deleted within 24 hours.</li>
+</ol>
+<h3 id="erase">Erase</h3>
+<p>Erase is done when all three hold, recorded in the erasure register:</p>
+<ol>
+<li>the batch deletes and then the tenant row delete have committed;</li>
+<li>a generated count over every table is 0 for the company;</li>
+<li>the company&#39;s data key is destroyed.</li>
+</ol>
+<p>Erase also purges the company&#39;s files and any soft-deleted or versioned copies in object storage, and releases its marketplace seller ids in control. It removes the company&#39;s <code>audit_log</code>, so the one-year retention applies to live companies only. Steps: <a href="../../runbooks/erase-a-company/">runbook</a>.</p>
+<h3 id="export">Export</h3>
+<p>A bundle: a manifest with per-table row counts and hashes, machine-readable files the slice operation can load again, and readable CSV files. Bound to the company id, refused if loaded under another company, and logged as a view of buyer data. Steps: <a href="../../runbooks/export-a-company/">runbook</a>.</p>
+<h3 id="move">Move</h3>
+<p>Fence (<code>moving_out</code>), copy in batches, compare checksums, switch the registry row, set the source to <code>moved_out</code>, delete the source slice. Steps: <a href="../../runbooks/move-a-company/">runbook</a>.</p>
+<h3 id="restore">Restore</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Kind</th>
+<th>When</th>
+<th>Effect</th>
+<th>Runbook</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Look back</td>
+<td>Most mistakes, such as one bad bulk edit</td>
+<td>Old records read from a branch; what is needed is copied back as normal commands</td>
+<td><a href="../../runbooks/restore-a-company-look-back/">Look back</a></td>
+</tr>
+<tr>
+<td>Full rewind</td>
+<td>Corruption only</td>
+<td>The company&#39;s live slice replaced from a branch, then made safe before stock is pushed</td>
+<td><a href="../../runbooks/restore-a-company-full-rewind/">Full rewind</a></td>
+</tr>
+<tr>
+<td>Whole cell</td>
+<td>Disaster</td>
+<td>The cell restored, then every company made consistent with control</td>
+<td><a href="../../runbooks/restore-a-whole-cell/">Whole cell</a></td>
+</tr>
+</tbody></table></div>
+<p>After any full rewind, before the company opens:</p>
+<ol>
+<li>the erasure register and the anonymisation rule (<a href="../../buyer-data/">ADR-009</a>) are replayed;</li>
+<li>counters are at least their live values, and invoices and credit notes issued after the restore time are re-registered from object storage (<a href="../../invoicing-and-vat/">ADR-011</a>);</li>
+<li>restored outbound sends are <code>unknown</code>, never resent; every account is back in shadow; the sync epoch is raised (<a href="../../inventory-sync/">ADR-008</a>);</li>
+<li>orders placed since the restore time are re-imported, and the seller confirms the differences before any stock push.</li>
+</ol>
+<h3 id="backups">Backups</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Point-in-time history window</td>
+<td>7 days (<code>history_retention_seconds</code> 604800)</td>
+</tr>
+<tr>
+<td>Scheduled snapshots</td>
+<td>Kept 30 days</td>
+</tr>
+<tr>
+<td>Manual snapshots</td>
+<td>None: they never expire</td>
+</tr>
+<tr>
+<td>Erasure complete in backups</td>
+<td>Day 30, stated in the customer terms</td>
+</tr>
+<tr>
+<td>Files in object storage</td>
+<td>Versioning or a 30-day soft delete; a file key is never overwritten</td>
+</tr>
+</tbody></table></div>
+<h3 id="encryption">Encryption</h3>
+<ol>
+<li>Credentials and buyer contact fields are encrypted under a per-company data key in <code>secrets(company_id, purpose)</code>, wrapped by a key-encryption key held as a platform secret.</li>
+<li><code>company_id</code> is bound in as associated data, so a row read under the wrong company fails to decrypt.</li>
+<li>The wrapped keys stay in the database. Which buyer fields, and the search they allow, are <a href="../../buyer-data/">ADR-009&#39;s</a>.</li>
+</ol>
+<h3 id="drills">Drills</h3>
+<p>Monthly at launch, a random real company and each cell&#39;s largest company are restored unattended; control has a drill of its own. <em>Later</em> (<a href="#0-at-launch-and-later">section 0</a>): the random drill weekly, and the canary moved and moved back nightly. Steps: <a href="../../runbooks/drills/">runbook</a>.</p>
+<h2 id="11-production-checks">11. Production checks</h2>
+<p>CI proves the schema it builds. These prove the databases running, because a console role, a partition made after deploy or a hand-edited configuration is invisible to CI. Each failure pages the operator and closes egress for the affected database.</p>
+<p><strong>Audit, at every deploy and every night,</strong> over every database and branch in the Neon project and every Hyperdrive configuration in the account:</p>
+<ol>
+<li>The only login roles are the owner, runtime and lifecycle roles, plus the sign-in role on control.</li>
+<li>The runtime role has no right on the login tables. Only the owner has <code>BYPASSRLS</code> or is in <code>neon_superuser</code>. No runtime or lifecycle role owns a table.</li>
+<li>The definer owner cannot log in, is not in <code>neon_superuser</code>, and has only the rights in <a href="#3-roles">section 3</a>.</li>
+<li>Every Hyperdrive configuration has caching off.</li>
+<li>The catalogue lint passes on the live catalogue, and the next two months&#39; partitions exist.</li>
+<li>The history window is 7 days, scheduled snapshots are kept 30 days, and no manual snapshot exists.</li>
+<li>Every branch was made by the lifecycle tool and is younger than 24 hours.</li>
+<li>Each database&#39;s migration version is the one the deployed code needs.</li>
+</ol>
+<p><strong>A canary company in every database.</strong> A second synthetic company must see none of the canary&#39;s rows: every table nightly and after each deploy and each new partition. A transaction with no company set must raise. <em>Later</em> (<a href="#0-at-launch-and-later">section 0</a>): a few tables every 10 minutes, and the egress gate scanning every outbound payload for the canary&#39;s marker strings.</p>
+<h2 id="12-operations">12. Operations</h2>
+<ol>
+<li><strong>Timeouts.</strong> Every migration sets a <code>lock_timeout</code> and retries, so a migration waiting for a lock on a shared table does not queue every seller behind it.</li>
+<li><strong>Migrations run as a ring:</strong> first on control, then the newest cell (which holds the trials and the canary), then the others. They finish everywhere before new code goes live (<a href="../../system-architecture/#runtime">ADR-000</a>).</li>
+<li><strong>Migrations only add.</strong> A migration already merged is never edited.</li>
+<li><strong>One-time reset before launch</strong> (owner ruling, 20 October 2026). Before launch, every module&#39;s migrations were squashed into one new first migration. This was allowed once, only because no production database existed. Development databases from before the reset are recreated, and the data layer refuses to start on a database that still holds objects from before it. From then on rule 3 has no exception.</li>
+<li><strong>Migration ledger.</strong> Each database&#39;s own ledger, committed with each migration, is the authority on what it has applied. Control keeps, per database, the version the last deploy reached; the deploy writes it after reading each database&#39;s ledger.</li>
+<li><strong>Partitions.</strong> A monthly scheduled run of the CI migration job creates partitions three months ahead, so a failed run waits for the next. It detaches and drops a month only after the archiver has written and verified that month&#39;s per-company files (<a href="../../data-retention/">ADR-002</a>).</li>
+<li><strong>Hot rows.</strong> <code>due</code> and the counter table get a lower fillfactor and their own autovacuum thresholds.</li>
+<li><strong>Alerts</strong> on transaction-id age, long-running transactions and leftover replication slots.</li>
+<li><strong>Scale to zero is off</strong> for production databases.</li>
+</ol>
+<h2 id="13-platform-constraints">13. Platform constraints</h2>
+<p>Checked against Neon&#39;s and Cloudflare&#39;s documentation on 18 October 2026. Re-check before launch.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Constraint</th>
+<th>Consequence for Vervoro</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>All databases on one Neon branch share its compute and <code>max_connections</code> (839 for a 0.25–2 CU compute)</td>
+<td>Control has a compute of its own</td>
+<td><a href="https://neon.com/docs/reference/compatibility">Neon compatibility</a></td>
+</tr>
+<tr>
+<td>Point-in-time restore reaches back as far as the history window: 1 day by default, at most 7 on Launch, 30 on Scale</td>
+<td>The window is set to 7 days, and the audit checks it</td>
+<td><a href="https://neon.com/docs/postgres/backup-restore/history-window">History window</a></td>
+</tr>
+<tr>
+<td>Restore works on a whole branch, never one database or one company</td>
+<td>Restoring one company is a branch plus the slice copy</td>
+<td><a href="https://neon.com/docs/guides/backup-restore">Backup and restore</a></td>
+</tr>
+<tr>
+<td>Scheduled snapshots are kept up to 35 days; manual ones never expire unless given an expiry</td>
+<td>Scheduled 30 days; no manual snapshots</td>
+<td><a href="https://neon.com/docs/guides/backup-restore">Backup and restore</a></td>
+</tr>
+<tr>
+<td>Roles created in the Neon console, CLI or API join <code>neon_superuser</code>, which has <code>BYPASSRLS</code>; roles created in SQL get only what is granted</td>
+<td>Every role is created in SQL; the audit checks it</td>
+<td><a href="https://neon.com/docs/manage/roles">Neon roles</a></td>
+</tr>
+<tr>
+<td>Hyperdrive pools connections itself</td>
+<td>Hyperdrive connects to Neon&#39;s direct endpoint, never Neon&#39;s pooler</td>
+<td><a href="https://developers.cloudflare.com/hyperdrive/examples/connect-to-postgres/postgres-database-providers/neon/">Hyperdrive with Neon</a></td>
+</tr>
+<tr>
+<td>25 Hyperdrive configurations per paid account, more by request. One configuration is one database and one user</td>
+<td>One configuration per database; staging in a separate account</td>
+<td><a href="https://developers.cloudflare.com/hyperdrive/platform/limits/">Hyperdrive limits</a></td>
+</tr>
+<tr>
+<td>About 100 origin connections per configuration; a statement stops after 60 seconds</td>
+<td>~100 pooled connections per cell; slice operations use a direct connection</td>
+<td><a href="https://developers.cloudflare.com/hyperdrive/platform/limits/">Hyperdrive limits</a></td>
+</tr>
+<tr>
+<td>Transaction-mode pooling: a <code>SET</code> inside a transaction takes effect, and the connection is reset when it returns</td>
+<td>The transaction-local company setting relies on it</td>
+<td><a href="https://developers.cloudflare.com/hyperdrive/concepts/how-hyperdrive-works/">How Hyperdrive works</a></td>
+</tr>
+<tr>
+<td>Query caching is on by default and cannot see the company setting</td>
+<td>Caching off on every configuration; the audit refuses any with caching on</td>
+<td><a href="https://developers.cloudflare.com/hyperdrive/concepts/query-caching/">Query caching</a></td>
+</tr>
+<tr>
+<td>A Worker reaches a Hyperdrive configuration only through a binding in its deployed configuration</td>
+<td>Adding a database needs a deploy</td>
+<td><a href="https://developers.cloudflare.com/hyperdrive/get-started/">Hyperdrive</a></td>
+</tr>
+<tr>
+<td>Each transaction holds one pooled connection until it ends</td>
+<td>No marketplace or other outside call runs inside a transaction</td>
+<td><a href="https://developers.cloudflare.com/hyperdrive/concepts/how-hyperdrive-works/">How Hyperdrive works</a></td>
+</tr>
+</tbody></table></div>
+<h2 id="14-tests-that-prove-each-rule">14. Tests that prove each rule</h2>
+<p>Isolation counts as proven only on real Postgres under the runtime role. An embedded or superuser database skips row-level security even when it is forced.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Where</th>
+<th>Proves</th>
+<th>Rules</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Isolation suite</td>
+<td>CI, real Postgres, runtime role</td>
+<td>As company A, every read, insert, update and delete of B&#39;s rows is refused, for every tenant table; an unset company raises</td>
+<td>1, 2</td>
+</tr>
+<tr>
+<td>Suite can fail</td>
+<td>CI, scratch database</td>
+<td>With one <code>FORCE</code> and one composite foreign key removed, the isolation suite and the fuzz fail</td>
+<td>1, 2</td>
+</tr>
+<tr>
+<td>Append-only</td>
+<td>CI, real Postgres</td>
+<td>As runtime, an update, delete or truncate of an append-only row is refused; as lifecycle, the slice operation still removes a company&#39;s rows</td>
+<td>5</td>
+</tr>
+<tr>
+<td>Two-company fuzz</td>
+<td>CI, real Postgres</td>
+<td>Every command, run for A and B interleaved, touches only its own rows</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Statement filter</td>
+<td>CI</td>
+<td>Refuses every form in <a href="#6-guard-rails">section 6</a>, including a dollar tag with digits and SQL hidden in a string passed to a revoked function</td>
+<td>4, 6</td>
+</tr>
+<tr>
+<td>Commit check</td>
+<td>CI, real Postgres</td>
+<td>A transaction whose company setting or role changed after entering is rolled back and alerts</td>
+<td>6</td>
+</tr>
+<tr>
+<td>Catalogue lint</td>
+<td>CI and production</td>
+<td>Every lint rule holds for every table and partition; seeded bad tables fail</td>
+<td>6.1</td>
+</tr>
+<tr>
+<td>Two databases</td>
+<td>CI, two real Postgres</td>
+<td>Entering a company a database does not hold raises; the request guard throws on a mismatched id; each role enters only the states in <a href="#tenant-states">section 1</a></td>
+<td>1, 6, 7</td>
+</tr>
+<tr>
+<td>Pooler soak</td>
+<td>CI, transaction-mode pooler</td>
+<td>10,000 interleaved transactions for 20 companies each see only their own company; a statement after <code>COMMIT</code> errors</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Hyperdrive run</td>
+<td>Staging, real Hyperdrive</td>
+<td>The same soak through Hyperdrive</td>
+<td>1, 13</td>
+</tr>
+<tr>
+<td>Roles</td>
+<td>CI and production</td>
+<td>The Worker binds only the runtime role; only the owner has <code>BYPASSRLS</code> or <code>neon_superuser</code>; only the operations job holds the lifecycle credential; a serving login with a bypassing membership refuses to start</td>
+<td>3</td>
+</tr>
+<tr>
+<td>Sign-up</td>
+<td>CI, real Postgres, runtime role</td>
+<td>Sign-up writes the tenant row, company rows and note in one transaction through <code>open_tenant</code>; a second <code>open_tenant</code> for the same id raises</td>
+<td>4, 8</td>
+</tr>
+<tr>
+<td>Sweeper</td>
+<td>CI</td>
+<td>Only due companies run; at most 40 at once and 8 per company; no code path visits a company with nothing due</td>
+<td>9</td>
+</tr>
+<tr>
+<td>Slice round trip</td>
+<td>CI</td>
+<td>Copy, compare checksums, erase, count 0; a tombstoned company&#39;s slice is refused; the erasure register is replayed</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Canary</td>
+<td>Production</td>
+<td>Another company sees none of the canary&#39;s rows; outbound payloads never carry its markers</td>
+<td>11</td>
+</tr>
+<tr>
+<td>Restore drill</td>
+<td>Production, monthly (weekly later)</td>
+<td>A real company restores unattended into a branch the runtime role cannot enter, neighbours unchanged, time per gigabyte recorded</td>
+<td>10</td>
+</tr>
+</tbody></table></div>
+<h2 id="15-questions-the-review-raised-answered">15. Questions the review raised, answered</h2>
+<p>A code review found 17 places where the record was unclear. Each is answered by a rule above.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Question</th>
+<th>Answer</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>May a plain login switch into the runtime role with <code>SET ROLE</code>?</td>
+<td>No. The runtime role logs in itself (owner ruling)</td>
+<td><a href="#3-roles">3</a></td>
+</tr>
+<tr>
+<td>2</td>
+<td>Which role writes the tenant row at sign-up?</td>
+<td>The runtime role, through the allow-listed definer <code>app.open_tenant</code> (owner ruling)</td>
+<td><a href="#4-functions">4</a>, <a href="#adding-a-company">8</a></td>
+</tr>
+<tr>
+<td>3</td>
+<td>Is a keyword filter enough?</td>
+<td>No. It also follows Postgres&#39;s lexical rules, refuses transaction control, DDL and unclosed text, and SQL-executing functions are revoked</td>
+<td><a href="#4-functions">4</a>, <a href="#6-guard-rails">6</a></td>
+</tr>
+<tr>
+<td>4</td>
+<td>Are order holds append-only, or only their log?</td>
+<td>The hold table itself: every hold and release is a row (<a href="../../order-ingestion/">ADR-007</a>)</td>
+<td><a href="#5-declaring-tables">5</a></td>
+</tr>
+<tr>
+<td>5</td>
+<td>Does the cascade from <code>tenant</code> break append-only?</td>
+<td>No. It is the erase path&#39;s last step, open only to the lifecycle role</td>
+<td><a href="#2-keys-and-identifiers">2</a>, <a href="#erase">10</a></td>
+</tr>
+<tr>
+<td>6</td>
+<td>Are notice subscriptions egress effects?</td>
+<td>No. They are set-up calls run on connect, in shadow too (<a href="../../channel-connectors/">ADR-004</a>)</td>
+<td><a href="#the-outbox">9</a></td>
+</tr>
+<tr>
+<td>7</td>
+<td>How does the row check work?</td>
+<td>A check of the company setting and role before every commit (owner ruling)</td>
+<td><a href="#6-guard-rails">6</a></td>
+</tr>
+<tr>
+<td>8</td>
+<td>How hard is the cap, and do half-added companies count?</td>
+<td>Soft (owner ruling). A company counts once control places it</td>
+<td><a href="#the-cell-cap">8</a></td>
+</tr>
+<tr>
+<td>9</td>
+<td>Who writes and clears <code>due</code>, and which kinds exist?</td>
+<td>The command that creates the work writes it; the job clears it; launch kinds listed</td>
+<td><a href="#the-due-table">9</a></td>
+</tr>
+<tr>
+<td>10</td>
+<td>How does the hourly trigger reach one sweeper per database?</td>
+<td>It reads control&#39;s database registry and nudges each</td>
+<td><a href="#the-sweeper">9</a></td>
+</tr>
+<tr>
+<td>11</td>
+<td>What are &quot;about 8 jobs&quot; and &quot;the trial share&quot;?</td>
+<td>40 slots per cell, 8 jobs per company, 25% for trials (owner ruling)</td>
+<td><a href="#fair-shares">9</a></td>
+</tr>
+<tr>
+<td>12</td>
+<td>Is an enterprise added directly or moved?</td>
+<td>New: added directly. Existing: moved</td>
+<td><a href="#adding-a-company">8</a></td>
+</tr>
+<tr>
+<td>13</td>
+<td>Which migration ledger is the authority?</td>
+<td>Each database&#39;s own; control keeps a summary</td>
+<td><a href="#12-operations">12</a></td>
+</tr>
+<tr>
+<td>14</td>
+<td>When does a new cell become <code>open</code>?</td>
+<td>After a checked deploy and the audit; until then <code>closed</code></td>
+<td><a href="#adding-a-cell">8</a></td>
+</tr>
+<tr>
+<td>15</td>
+<td>Which role repairs login rows?</td>
+<td>None. Repairs touch memberships and directories only, as runtime; logins are the sign-in Worker&#39;s</td>
+<td><a href="#7-control-database-and-routing">7</a></td>
+</tr>
+<tr>
+<td>16</td>
+<td>Was the pre-launch migration squash allowed?</td>
+<td>Once, before launch (owner ruling)</td>
+<td><a href="#12-operations">12</a></td>
+</tr>
+<tr>
+<td>17</td>
+<td>May one transaction read several companies, or control?</td>
+<td>No. One company per transaction; control on its own connection</td>
+<td><a href="#1-tenancy-inside-a-cell">1</a>, <a href="#7-control-database-and-routing">7</a></td>
+</tr>
+</tbody></table></div>
+<h2 id="how-to-check-it-was-built-right">How to check it was built right</h2>
+<p>For someone reviewing code an AI wrote. Each line says where to look.</p>
+<ul>
+<li><input disabled="" type="checkbox"> <strong>Cell catalogue:</strong> every table and partition has <code>relrowsecurity</code> and <code>relforcerowsecurity</code> true (<code>pg_class</code>).</li>
+<li><input disabled="" type="checkbox"> <strong>Cell catalogue:</strong> every policy&#39;s expression is exactly <code>company_id = app.company()</code>, in both <code>qual</code> and <code>with_check</code> (<code>pg_policies</code>).</li>
+<li><input disabled="" type="checkbox"> <strong>Cell catalogue:</strong> every primary key, unique key, foreign key and index starts with <code>company_id</code> (<code>pg_index</code>, <code>pg_constraint</code>).</li>
+<li><input disabled="" type="checkbox"> <strong>Cell catalogue:</strong> every foreign key to <code>tenant</code> is <code>ON DELETE CASCADE</code>; no other foreign key is single-column.</li>
+<li><input disabled="" type="checkbox"> <strong>Roles:</strong> only the owner, runtime and lifecycle roles can log in, plus sign-in on control; only the owner has <code>rolbypassrls</code> (<code>pg_roles</code>, <code>pg_auth_members</code>).</li>
+<li><input disabled="" type="checkbox"> <strong>Roles:</strong> the runtime role is not a member of any role (<code>pg_auth_members</code>), and the app connects as it directly, with no <code>SET ROLE</code> anywhere in the data layer.</li>
+<li><input disabled="" type="checkbox"> <strong>Grants:</strong> the runtime role has no <code>UPDATE</code>, <code>DELETE</code> or <code>TRUNCATE</code> on the stock ledger, order holds, outbox or <code>audit_log</code> (<code>information_schema.role_table_grants</code>).</li>
+<li><input disabled="" type="checkbox"> <strong>Grants:</strong> no partition has a grant, and the runtime role cannot execute <code>query_to_xml</code> (<code>has_function_privilege</code>).</li>
+<li><input disabled="" type="checkbox"> <strong>Functions:</strong> exactly three <code>SECURITY DEFINER</code> functions in a cell, each with a <code>search_path</code> setting, owned by a role that cannot log in (<code>pg_proc.prosecdef</code>, <code>proconfig</code>).</li>
+<li><input disabled="" type="checkbox"> <strong>Functions:</strong> <code>app.company()</code> is <code>STABLE</code>, <code>PARALLEL SAFE</code>, not a definer, and raises when unset: run <code>select app.company()</code> in a fresh transaction.</li>
+<li><input disabled="" type="checkbox"> <strong>Data layer:</strong> every transaction&#39;s first statement is <code>enter_company</code> or <code>open_tenant</code>; there is no autocommit path for company work.</li>
+<li><input disabled="" type="checkbox"> <strong>Data layer:</strong> the statement filter&#39;s tests include <code>$a1$</code> dollar tags, <code>query_to_xml(&#39;…set_config…&#39;)</code>, <code>commit</code> and <code>create</code>, and all are refused.</li>
+<li><input disabled="" type="checkbox"> <strong>Data layer:</strong> the commit check runs before every commit, read-only transactions included, and a mismatch pages and closes egress.</li>
+<li><input disabled="" type="checkbox"> <strong>Data layer:</strong> no code path keeps one transaction open across two companies, or reads control through a cell&#39;s transaction.</li>
+<li><input disabled="" type="checkbox"> <strong>Worker configuration:</strong> the app Worker holds only runtime credentials; no serving process holds the owner or lifecycle credential, or runs migrations.</li>
+<li><input disabled="" type="checkbox"> <strong>Worker configuration:</strong> one Hyperdrive binding per database in control&#39;s registry, none a placeholder, each with caching off.</li>
+<li><input disabled="" type="checkbox"> <strong>Control:</strong> holds no business table; the login directory stores an email HMAC, never an address; the erasure register, sync epoch and migration summary exist.</li>
+<li><input disabled="" type="checkbox"> <strong>Control:</strong> the runtime role has no right on logins, sign-in methods, recovery codes or sessions.</li>
+<li><input disabled="" type="checkbox"> <strong>Routing:</strong> every request reaches its database through <code>forCompany</code>, and a request for company A with a session for B throws.</li>
+<li><input disabled="" type="checkbox"> <strong>Sign-up:</strong> writes <code>open_tenant</code>, the company rows and the outbox note in one cell transaction, then control; it runs no migration.</li>
+<li><input disabled="" type="checkbox"> <strong>Sweeper:</strong> no background job loops over the company registry; each writer upserts <code>due</code>; the hourly trigger nudges every database in control&#39;s registry.</li>
+<li><input disabled="" type="checkbox"> <strong>Slice operation:</strong> erase, export, move and restore run in the operations job as the lifecycle role, never the owner.</li>
+<li><input disabled="" type="checkbox"> <strong>CI:</strong> the catalogue lint runs over all modules on real Postgres and is green; the isolation suite covers every tenant table.</li>
+<li><input disabled="" type="checkbox"> <strong>Production:</strong> the nightly audit and the canary run, and a seeded failure in staging pages and closes egress.</li>
+<li><input disabled="" type="checkbox"> <strong>Source control:</strong> a change to the isolation code needs a named approver before it merges.</li>
+</ul>
+
+<footer>Vervoro</footer>
+</main>
+</body>
+</html>
