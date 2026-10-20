@@ -24,7 +24,7 @@ Parts marked *Later* keep their rules in the SPEC but are built only when their 
 1. **A control database** on its own compute holds the platform's data: companies and where each lives, logins, memberships, operators, plans, shared quotas and the erasure register. No company business data.
 2. **Cells (customer databases)** hold many companies in shared tables. `company_id` leads every key, and row-level security (Postgres itself refusing another company's rows) is forced on every table. A dedicated cell holds one company in its own Neon project, on the same code path. *Later: dedicated cells, at the first enterprise that needs one.*
 3. **Every transaction enters one company first.** Its first statement raises unless this database holds that company in a state the role may enter. An unset or wrong company is an error, never zero rows.
-4. **Only the data layer sets the company**, and it checks the company is unchanged before every commit. A CI lint checks every table; a nightly audit and a canary company (a synthetic company no other may ever see) check production. Any sign of cross-company exposure pages the operator and stops that database's outbound calls.
+4. **Only the data layer sets the company**, and it checks the company is unchanged before every commit. Modules write no SQL: they query through a typed query builder that cannot set the company, control a transaction, change the schema or call a function outside an allow-list (owner ruling, 21 October 2026). A CI lint checks every table; a nightly audit and a canary company (a synthetic company no other may ever see) check production. Any sign of cross-company exposure pages the operator and stops that database's outbound calls.
 5. **Every role is created in SQL, never in the Neon console.** The owner migrates, from CI only. The runtime role, which serves requests, logs in as itself and cannot bypass row-level security. The lifecycle role runs company operations; a sign-in role serves only the sign-in Worker.
 6. **Control says where each company lives**, from day one. Adding a company needs no new database and no deploy; adding a cell does. A shared cell closes to new companies at about 200. *Later: a second cell, at about 160 companies.*
 7. **A trial is a state, not a place.** Trials live in normal cells; paying moves nothing. *Later: a capped trial share, then a trial cell, when trials crowd a cell.*
@@ -51,6 +51,7 @@ Parts marked *Later* keep their rules in the SPEC but are built only when their 
 **Costs**
 
 - Every table and query carries `company_id`; the table helper and the lint carry it for modules.
+- A query the builder cannot express needs the builder extended, or a view added by migration, under the isolation change control.
 - A policy mistake exposes rows rather than failing, so the lint, commit check, canary and isolation tests are part of the design.
 - Restoring or erasing a company takes minutes, not seconds.
 - Erasure reaches backups only after 30 days.
@@ -67,6 +68,7 @@ Parts marked *Later* keep their rules in the SPEC but are built only when their 
 - **An erasure log in company rows:** the restore that replays it would rewind it.
 - **Slice operations as the owner:** row-level security off, owner credential in a running service.
 - **Per-company backup keys:** a key store whose loss loses everyone.
+- **Module SQL behind a statement filter:** a hand-written SQL reader is a fence with gaps; a review got past it twice.
 - **Silent zero rows:** an empty stock read pushes 0 and delists a seller.
 - **One log table, or one per module:** mixed retention, or many tables to lint.
 - **Logical replication for moves:** a forgotten slot fills the disk.

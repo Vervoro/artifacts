@@ -88,7 +88,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tbody></table></div>
 <h2 id="steps">Steps</h2>
 <ol>
-<li>Start the deploy from a green main: every test has passed on both databases.</li>
+<li>Start the deploy from a green main: every test has passed on real Postgres.</li>
 <li>Migrations run on control, then the newest cell, then the other cells (<a href="../../database-architecture/spec/#12-operations">ADR-001 SPEC 12</a>). Each waits for its locks with a timeout and retries.</li>
 <li>The pipeline reads each database&#39;s migration ledger and records in control the version each reached. It stops if any database is below the version the new code needs.</li>
 <li>If the sign-in Worker changed, it deploys first (<a href="../../users-and-access/#the-sign-in-worker">ADR-010</a>).</li>

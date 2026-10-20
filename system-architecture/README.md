@@ -28,7 +28,7 @@ Parts marked *Later* keep their rules in the SPEC but are built only when their 
 6. **Marketplace connectors are plugins behind a fixed contract.** A connector only translates; Channels, the host, owns credentials, HTTP, rate budgets, notice checks and the sending half of the gate ([ADR-004](../channel-connectors/)). Orders arrive by webhook; a scheduled read is only the completeness check behind it.
 7. **Serverless on Cloudflare, Postgres on Neon, in the EU.** An app Worker serves the API, the client and webhooks; a separate sign-in Worker alone holds the sign-in keys ([ADR-010](../users-and-access/#the-sign-in-worker)). Both are placed next to the databases and reach every database through Hyperdrive, with caching off. Queues and Durable Objects live in the EU jurisdiction and carry ids only. Nothing leaves Vervoro during a database transaction. Tenancy, storage and retention follow [ADR-001](../database-architecture/) and [ADR-002](../data-retention/).
 8. **A phone-first React client,** built only from one UI package and styled only from one token package. Every word comes from a catalogue, English first.
-9. **The build enforces the rules.** Tests run on the real kernel against real databases, with no mocks. Every outside service has a simulator that speaks its real API; development and tests never call a real marketplace, and no simulator code reaches production. One verify command means green, and nobody weakens a test. Migrations only add, new modules start from a scaffold, and docs change with the code.
+9. **The build enforces the rules.** Tests run on the real kernel against real Postgres only, with no mocks. Every outside service has a simulator that speaks its real API; development and tests never call a real marketplace, and no simulator code reaches production. One verify command means green, and nobody weakens a test. Migrations only add, new modules start from a scaffold, and docs change with the code.
 10. **UK first, not UK hard-coded.** Money always carries its currency, VAT rates come from a per-country table, and UK rules live only in the records that need them ([SPEC 14](spec/#14-money-and-countries)). *Later: selling into the EU, a record of its own.*
 
 ## Architecture
@@ -55,7 +55,7 @@ A request reaches the app Worker, which checks the session with the sign-in Work
 - Data at rest stays in the EU. Processing runs on Cloudflare's network, placed in the EU but not guaranteed there ([SPEC 10](spec/#10-runtime), rule 12).
 - Every outbound effect is two steps, record then send, and every handler must be idempotent; a listing's figure is worked out moments after the stock change commits, not inside it.
 - The simulators are a large second codebase that can drift from the real APIs; recorded real replies keep them honest.
-- Two database drivers and two local modes to keep working; an order that reserves stock crosses two modules inside one transaction.
+- An in-process database for running the app on a laptop, which no test proves; an order that reserves stock crosses two modules inside one transaction.
 
 ## Alternatives rejected
 

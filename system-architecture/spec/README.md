@@ -42,7 +42,7 @@ Extension points (several providers of one port, chosen per key, such as connect
 3. **An extension point** is a port that many modules provide, chosen per key. The marketplace connector is one.
 4. **The module boundary is its package.** A module's package exports only its contract (ports, events, their types) and its manifest. Nothing else is importable from it.
 5. **Library packages** hold code that several modules share (owner ruling, 20 October 2026). A library has no tables, no manifest, no state and no business rule, and may be imported by any module. The kernel is one. Code with state or a business rule is a module and is reached through a port.
-6. **The kernel** is the library every module is built on: typed results and ids, a controllable clock, one database port over two drivers, transactions, the outbox, a keyed dispatcher, the egress record (the recording half of the gate), configuration and composition.
+6. **The kernel** is the library every module is built on: typed results and ids, a controllable clock, one database port over real Postgres (an in-process database only for running the app on a laptop), transactions, the outbox, a keyed dispatcher, the egress record (the recording half of the gate), configuration and composition.
 
 ## 2. Tables
 
@@ -210,9 +210,9 @@ Procedure: [Deploy and roll back](../../runbooks/deploy-and-roll-back/).
 ## 15. Testing and verification
 
 1. Tests run on the real kernel, with real databases and the simulators. Nothing is mocked.
-2. **Two database drivers, one contract.** The fast local mode uses an embedded Postgres; everything else uses real Postgres. One contract suite runs against both.
+2. **One test database: real Postgres** (owner ruling, 21 October 2026), the same major version as production, started locally by the test runner. The in-process database allows one connection and runs as a superuser, so it cannot prove locking or row-level security; it is used only by `dev` to run the app on a laptop, and no test depends on it.
 3. Concurrency, duplicate delivery, database roles and isolation are proved only on real Postgres, under the runtime role.
-4. **One verify command** means green: lint, typecheck and the tests the change can affect. A change to the data layer, migrations, locking or the ledger also runs on both databases. Every test runs before a release.
+4. **One verify command** means green: lint, typecheck and the tests the change can affect. Every test runs before a release.
 5. Every code example in the core packages' documentation is executed by a test.
 6. A test is never deleted, skipped or weakened to go green.
 7. **A module is tested alone.** Its tests start only the kernel, the modules in its needs and the simulators. The app's own tests check the wiring only.

@@ -112,7 +112,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Marketplace connectors are plugins behind a fixed contract.</strong> A connector only translates; Channels, the host, owns credentials, HTTP, rate budgets, notice checks and the sending half of the gate (<a href="../channel-connectors/">ADR-004</a>). Orders arrive by webhook; a scheduled read is only the completeness check behind it.</li>
 <li><strong>Serverless on Cloudflare, Postgres on Neon, in the EU.</strong> An app Worker serves the API, the client and webhooks; a separate sign-in Worker alone holds the sign-in keys (<a href="../users-and-access/#the-sign-in-worker">ADR-010</a>). Both are placed next to the databases and reach every database through Hyperdrive, with caching off. Queues and Durable Objects live in the EU jurisdiction and carry ids only. Nothing leaves Vervoro during a database transaction. Tenancy, storage and retention follow <a href="../database-architecture/">ADR-001</a> and <a href="../data-retention/">ADR-002</a>.</li>
 <li><strong>A phone-first React client,</strong> built only from one UI package and styled only from one token package. Every word comes from a catalogue, English first.</li>
-<li><strong>The build enforces the rules.</strong> Tests run on the real kernel against real databases, with no mocks. Every outside service has a simulator that speaks its real API; development and tests never call a real marketplace, and no simulator code reaches production. One verify command means green, and nobody weakens a test. Migrations only add, new modules start from a scaffold, and docs change with the code.</li>
+<li><strong>The build enforces the rules.</strong> Tests run on the real kernel against real Postgres only, with no mocks. Every outside service has a simulator that speaks its real API; development and tests never call a real marketplace, and no simulator code reaches production. One verify command means green, and nobody weakens a test. Migrations only add, new modules start from a scaffold, and docs change with the code.</li>
 <li><strong>UK first, not UK hard-coded.</strong> Money always carries its currency, VAT rates come from a per-country table, and UK rules live only in the records that need them (<a href="spec/#14-money-and-countries">SPEC 14</a>). <em>Later: selling into the EU, a record of its own.</em></li>
 </ol>
 <h2 id="architecture">Architecture</h2>
@@ -209,7 +209,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>Data at rest stays in the EU. Processing runs on Cloudflare&#39;s network, placed in the EU but not guaranteed there (<a href="spec/#10-runtime">SPEC 10</a>, rule 12).</li>
 <li>Every outbound effect is two steps, record then send, and every handler must be idempotent; a listing&#39;s figure is worked out moments after the stock change commits, not inside it.</li>
 <li>The simulators are a large second codebase that can drift from the real APIs; recorded real replies keep them honest.</li>
-<li>Two database drivers and two local modes to keep working; an order that reserves stock crosses two modules inside one transaction.</li>
+<li>An in-process database for running the app on a laptop, which no test proves; an order that reserves stock crosses two modules inside one transaction.</li>
 </ul>
 <h2 id="alternatives-rejected">Alternatives rejected</h2>
 <ul>

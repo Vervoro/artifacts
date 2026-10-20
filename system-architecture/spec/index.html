@@ -172,7 +172,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>An extension point</strong> is a port that many modules provide, chosen per key. The marketplace connector is one.</li>
 <li><strong>The module boundary is its package.</strong> A module&#39;s package exports only its contract (ports, events, their types) and its manifest. Nothing else is importable from it.</li>
 <li><strong>Library packages</strong> hold code that several modules share (owner ruling, 20 October 2026). A library has no tables, no manifest, no state and no business rule, and may be imported by any module. The kernel is one. Code with state or a business rule is a module and is reached through a port.</li>
-<li><strong>The kernel</strong> is the library every module is built on: typed results and ids, a controllable clock, one database port over two drivers, transactions, the outbox, a keyed dispatcher, the egress record (the recording half of the gate), configuration and composition.</li>
+<li><strong>The kernel</strong> is the library every module is built on: typed results and ids, a controllable clock, one database port over real Postgres (an in-process database only for running the app on a laptop), transactions, the outbox, a keyed dispatcher, the egress record (the recording half of the gate), configuration and composition.</li>
 </ol>
 <h2 id="2-tables">2. Tables</h2>
 <ol>
@@ -823,9 +823,9 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2 id="15-testing-and-verification">15. Testing and verification</h2>
 <ol>
 <li>Tests run on the real kernel, with real databases and the simulators. Nothing is mocked.</li>
-<li><strong>Two database drivers, one contract.</strong> The fast local mode uses an embedded Postgres; everything else uses real Postgres. One contract suite runs against both.</li>
+<li><strong>One test database: real Postgres</strong> (owner ruling, 21 October 2026), the same major version as production, started locally by the test runner. The in-process database allows one connection and runs as a superuser, so it cannot prove locking or row-level security; it is used only by <code>dev</code> to run the app on a laptop, and no test depends on it.</li>
 <li>Concurrency, duplicate delivery, database roles and isolation are proved only on real Postgres, under the runtime role.</li>
-<li><strong>One verify command</strong> means green: lint, typecheck and the tests the change can affect. A change to the data layer, migrations, locking or the ledger also runs on both databases. Every test runs before a release.</li>
+<li><strong>One verify command</strong> means green: lint, typecheck and the tests the change can affect. Every test runs before a release.</li>
 <li>Every code example in the core packages&#39; documentation is executed by a test.</li>
 <li>A test is never deleted, skipped or weakened to go green.</li>
 <li><strong>A module is tested alone.</strong> Its tests start only the kernel, the modules in its needs and the simulators. The app&#39;s own tests check the wiring only.</li>

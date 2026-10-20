@@ -100,7 +100,7 @@ Rules for the three definers:
 
 Every other `SECURITY DEFINER` function is refused by the lint.
 
-**SQL-executing functions** are revoked from `PUBLIC` in every cell: `query_to_xml`, `query_to_xmlschema`, `query_to_xml_and_xmlschema`, `cursor_to_xml`, `cursor_to_xmlschema`, `table_to_xml`, `table_to_xmlschema` and `table_to_xml_and_xmlschema`. Extensions that run SQL given as text, such as `dblink`, are never installed. They would let module SQL hidden in a string reach `set_config`.
+**SQL-executing functions** are revoked from `PUBLIC` in every cell: `query_to_xml`, `query_to_xmlschema`, `query_to_xml_and_xmlschema`, `cursor_to_xml`, `cursor_to_xmlschema`, `table_to_xml`, `table_to_xmlschema` and `table_to_xml_and_xmlschema`. Extensions that run SQL given as text, such as `dblink`, are never installed. They would let SQL hidden in a string reach `set_config`.
 
 ## 5. Declaring tables
 
@@ -123,23 +123,24 @@ Modules never write `CREATE TABLE`. They declare tables through `tenantTable()`,
 
 | Guard | Where | Rule | On failure |
 | --- | --- | --- | --- |
-| Statement filter | Data layer | See the list below | Refuse the statement |
+| Query builder | Data layer | See the list below | Type error at build time; the lint fails the build |
 | Commit check | Data layer | Before every commit, read `current_setting('app.company_id', true)` and `current_user`, and compare them with the company and role the transaction entered (owner ruling, 20 October 2026). No result reaches the client, and no egress intent is sent, until the transaction commits | Raise, roll back, page the operator, close the database's egress |
 | Request guard | Data layer | Sign-in puts the signed-in company in request context. `forCompany(id)` throws when `id` differs. Operator and background code opt in explicitly; an operator does so only under a live grant ([ADR-010](../../users-and-access/)). Opting in never bypasses row-level security | Throw |
 | Caches | Data layer | Hyperdrive query caching is off. Any other cache is reached only through one key builder that takes the company id. Logs carry ids, never field values | Lint error |
 | Catalogue lint | CI and production | [Section 6.1](#61-catalogue-lint) | Fail the build, or page and close egress |
-| Change control | Source control | A change to the isolation code (the table helper, the functions in section 4, the policies, the filter, the commit check, the lint and the allow-list) needs a person's approval before it merges | Merge blocked |
+| Change control | Source control | A change to the isolation code (the table helper, the functions in section 4, the policies, the query builder and its function allow-list, the commit check, the lint and the cross-company allow-list) needs a person's approval before it merges | Merge blocked |
 
-**The statement filter** reads each module statement with Postgres's own lexical rules: dollar-quote tags may contain digits, and any character from 0x80 up is a word character. It refuses a statement that:
+**The query builder** (owner ruling, 21 October 2026). Modules never write SQL text. They build every query with a typed query builder ([Kysely](https://kysely.dev/)) that the data layer hands them inside an entered transaction, typed from the tables they declared with `tenantTable()`. The builder they receive:
 
-1. holds more than one statement;
-2. begins with `set` or `reset`, or names `set_config` or `app.company_id` anywhere outside a string;
-3. names `app.enter_company`, `app.open_tenant`, `pg_stats` or `pg_statistic` (the statistics show other companies' values);
-4. begins with transaction control: `begin`, `start`, `commit`, `end`, `rollback`, `abort`, `savepoint`, `release` or `prepare`;
-5. begins with DDL or rights: `create`, `alter`, `drop`, `grant`, `revoke`, `do` or `call`;
-6. leaves a string, quoted identifier, dollar quote or comment unclosed.
+1. builds only `select`, `insert`, `update` and `delete`, with upserts through `conflict()`;
+2. has no raw-SQL helper: the builder's `sql` template, `raw` and `execute` on text are not exported to modules, and a lint refuses importing them;
+3. calls only functions on an allow-list (aggregates, date, text and maths functions); `set_config`, `current_setting`, the `app.*` functions and every SQL-executing function are not on it;
+4. names only tables and views the module declared, or another module's read views it was given through a port; never `pg_stats`, `pg_statistic` or another catalogue;
+5. cannot begin, commit or roll back: the data layer owns the transaction.
 
-Postgres cannot revoke `set_config` on a custom setting, so this has to be application code. A string can still carry SQL to a function that runs it; those functions are revoked ([section 4](#4-functions)), and the commit check catches anything the filter misses. The foundation's stock ledger trigger is not module SQL: a migration defines it, and it only applies a ledger entry to its balances.
+Raw SQL exists only in the kernel's data layer (entering, the commit check, the lock) and in migrations, both under change control. A query the builder cannot express is solved by extending the builder or adding a view by migration, never by raw SQL in a module.
+
+The commit check stays as the second fence, and SQL-executing functions stay revoked ([section 4](#4-functions)). The foundation's stock ledger trigger is not module SQL: a migration defines it, and it only applies a ledger entry to its balances.
 
 ### 6.1 Catalogue lint
 
@@ -443,7 +444,7 @@ Isolation counts as proven only on real Postgres under the runtime role. An embe
 | Suite can fail | CI, scratch database | With one `FORCE` and one composite foreign key removed, the isolation suite and the fuzz fail | 1, 2 |
 | Append-only | CI, real Postgres | As runtime, an update, delete or truncate of an append-only row is refused; as lifecycle, the slice operation still removes a company's rows | 5 |
 | Two-company fuzz | CI, real Postgres | Every command, run for A and B interleaved, touches only its own rows | 1 |
-| Statement filter | CI | Refuses every form in [section 6](#6-guard-rails), including a dollar tag with digits and SQL hidden in a string passed to a revoked function | 4, 6 |
+| Query builder | CI | Type tests: a module cannot build `set_config`, a function off the allow-list, transaction control, DDL or an undeclared table; the lint fails a module that imports the raw-SQL helpers | 4, 6 |
 | Commit check | CI, real Postgres | A transaction whose company setting or role changed after entering is rolled back and alerts | 6 |
 | Catalogue lint | CI and production | Every lint rule holds for every table and partition; seeded bad tables fail | 6.1 |
 | Two databases | CI, two real Postgres | Entering a company a database does not hold raises; the request guard throws on a mismatched id; each role enters only the states in [section 1](#tenant-states) | 1, 6, 7 |
@@ -466,7 +467,7 @@ A code review found 17 places where the record was unclear. Each is answered by 
 | --- | --- | --- | --- |
 | 1 | May a plain login switch into the runtime role with `SET ROLE`? | No. The runtime role logs in itself (owner ruling) | [3](#3-roles) |
 | 2 | Which role writes the tenant row at sign-up? | The runtime role, through the allow-listed definer `app.open_tenant` (owner ruling) | [4](#4-functions), [8](#adding-a-company) |
-| 3 | Is a keyword filter enough? | No. It also follows Postgres's lexical rules, refuses transaction control, DDL and unclosed text, and SQL-executing functions are revoked | [4](#4-functions), [6](#6-guard-rails) |
+| 3 | Is a keyword filter enough? | No. Modules write no SQL; they use a typed query builder with a function allow-list, and SQL-executing functions are revoked (owner ruling, 21 October 2026) | [4](#4-functions), [6](#6-guard-rails) |
 | 4 | Are order holds append-only, or only their log? | The hold table itself: every hold and release is a row ([ADR-007](../../order-ingestion/)) | [5](#5-declaring-tables) |
 | 5 | Does the cascade from `tenant` break append-only? | No. It is the erase path's last step, open only to the lifecycle role | [2](#2-keys-and-identifiers), [10](#erase) |
 | 6 | Are notice subscriptions egress effects? | No. They are set-up calls run on connect, in shadow too ([ADR-004](../../channel-connectors/)) | [9](#the-outbox) |
@@ -497,7 +498,7 @@ For someone reviewing code an AI wrote. Each line says where to look.
 - [ ] **Functions:** exactly three `SECURITY DEFINER` functions in a cell, each with a `search_path` setting, owned by a role that cannot log in (`pg_proc.prosecdef`, `proconfig`).
 - [ ] **Functions:** `app.company()` is `STABLE`, `PARALLEL SAFE`, not a definer, and raises when unset: run `select app.company()` in a fresh transaction.
 - [ ] **Data layer:** every transaction's first statement is `enter_company` or `open_tenant`; there is no autocommit path for company work.
-- [ ] **Data layer:** the statement filter's tests include `$a1$` dollar tags, `query_to_xml('…set_config…')`, `commit` and `create`, and all are refused.
+- [ ] **Data layer:** no module imports the query builder's raw-SQL helpers (`sql`, `raw`) or a database driver; search the module packages. The function allow-list does not hold `set_config`, `current_setting` or any `app.*` function.
 - [ ] **Data layer:** the commit check runs before every commit, read-only transactions included, and a mismatch pages and closes egress.
 - [ ] **Data layer:** no code path keeps one transaction open across two companies, or reads control through a cell's transaction.
 - [ ] **Worker configuration:** the app Worker holds only runtime credentials; no serving process holds the owner or lifecycle credential, or runs migrations.
