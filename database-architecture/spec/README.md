@@ -100,7 +100,7 @@ Rules for the three definers:
 
 Every other `SECURITY DEFINER` function is refused by the lint.
 
-**SQL-executing functions** are revoked from `PUBLIC` in every cell: `query_to_xml`, `query_to_xmlschema`, `query_to_xml_and_xmlschema`, `cursor_to_xml`, `cursor_to_xmlschema`, `table_to_xml`, `table_to_xmlschema` and `table_to_xml_and_xmlschema`. Extensions that run SQL given as text, such as `dblink`, are never installed. They would let SQL hidden in a string reach `set_config`.
+**SQL-executing functions** are revoked from `PUBLIC` in every cell: `query_to_xml`, `query_to_xmlschema`, `query_to_xml_and_xmlschema`, `cursor_to_xml`, `cursor_to_xmlschema`, `table_to_xml`, `table_to_xmlschema` and `table_to_xml_and_xmlschema`. Extensions that run SQL given as text, such as `dblink`, are never installed. `pg_stats` is revoked from `PUBLIC` too: its sample values would show other companies' data. They would let SQL hidden in a string reach `set_config`.
 
 ## 5. Declaring tables
 
@@ -123,7 +123,7 @@ Modules never write `CREATE TABLE`. They declare tables through `tenantTable()`,
 
 | Guard | Where | Rule | On failure |
 | --- | --- | --- | --- |
-| Query builder | Data layer | See the list below | Type error at build time; the lint fails the build |
+| Query builder | Data layer | See the list below | Type error at build time; the lint fails the build; at run time the query check refuses the query |
 | Commit check | Data layer | Before every commit, read `current_setting('app.company_id', true)` and `current_user`, and compare them with the company and role the transaction entered (owner ruling, 20 October 2026). No result reaches the client, and no egress intent is sent, until the transaction commits | Raise, roll back, page the operator, close the database's egress |
 | Request guard | Data layer | Sign-in puts the signed-in company in request context. `forCompany(id)` throws when `id` differs. Operator and background code opt in explicitly; an operator does so only under a live grant ([ADR-010](../../users-and-access/)). Opting in never bypasses row-level security | Throw |
 | Caches | Data layer | Hyperdrive query caching is off. Any other cache is reached only through one key builder that takes the company id. Logs carry ids, never field values | Lint error |
@@ -137,6 +137,8 @@ Modules never write `CREATE TABLE`. They declare tables through `tenantTable()`,
 3. calls only functions on an allow-list (aggregates, date, text and maths functions); `set_config`, `current_setting`, the `app.*` functions and every SQL-executing function are not on it;
 4. names only tables and views the module declared, or another module's read views it was given through a port; never `pg_stats`, `pg_statistic` or another catalogue;
 5. cannot begin, commit or roll back: the data layer owns the transaction.
+
+**The query check** runs on every module query at run time, because types and lint can be bypassed (a cast, a name built at run time). A plugin on the builder walks each query's tree before it reaches the database and refuses, failing closed, any raw-SQL node, any function off the allow-list and any table or view outside the module's set. A refusal pages the operator.
 
 Raw SQL exists only in the kernel's data layer (entering, the commit check, the lock) and in migrations, both under change control. A query the builder cannot express is solved by extending the builder or adding a view by migration, never by raw SQL in a module.
 
@@ -444,7 +446,7 @@ Isolation counts as proven only on real Postgres under the runtime role. An embe
 | Suite can fail | CI, scratch database | With one `FORCE` and one composite foreign key removed, the isolation suite and the fuzz fail | 1, 2 |
 | Append-only | CI, real Postgres | As runtime, an update, delete or truncate of an append-only row is refused; as lifecycle, the slice operation still removes a company's rows | 5 |
 | Two-company fuzz | CI, real Postgres | Every command, run for A and B interleaved, touches only its own rows | 1 |
-| Query builder | CI | Type tests: a module cannot build `set_config`, a function off the allow-list, transaction control, DDL or an undeclared table; the lint fails a module that imports the raw-SQL helpers | 4, 6 |
+| Query builder | CI | Run-time tests with casts and names built at run time: a raw node, an off-list function and an undeclared table are refused by the query check; type tests: a module cannot build `set_config`, a function off the allow-list, transaction control, DDL or an undeclared table; the lint fails a module that imports the raw-SQL helpers | 4, 6 |
 | Commit check | CI, real Postgres | A transaction whose company setting or role changed after entering is rolled back and alerts | 6 |
 | Catalogue lint | CI and production | Every lint rule holds for every table and partition; seeded bad tables fail | 6.1 |
 | Two databases | CI, two real Postgres | Entering a company a database does not hold raises; the request guard throws on a mismatched id; each role enters only the states in [section 1](#tenant-states) | 1, 6, 7 |

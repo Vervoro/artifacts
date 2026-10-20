@@ -348,7 +348,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><code>EXECUTE</code> granted to the runtime role only.</li>
 </ol>
 <p>Every other <code>SECURITY DEFINER</code> function is refused by the lint.</p>
-<p><strong>SQL-executing functions</strong> are revoked from <code>PUBLIC</code> in every cell: <code>query_to_xml</code>, <code>query_to_xmlschema</code>, <code>query_to_xml_and_xmlschema</code>, <code>cursor_to_xml</code>, <code>cursor_to_xmlschema</code>, <code>table_to_xml</code>, <code>table_to_xmlschema</code> and <code>table_to_xml_and_xmlschema</code>. Extensions that run SQL given as text, such as <code>dblink</code>, are never installed. They would let SQL hidden in a string reach <code>set_config</code>.</p>
+<p><strong>SQL-executing functions</strong> are revoked from <code>PUBLIC</code> in every cell: <code>query_to_xml</code>, <code>query_to_xmlschema</code>, <code>query_to_xml_and_xmlschema</code>, <code>cursor_to_xml</code>, <code>cursor_to_xmlschema</code>, <code>table_to_xml</code>, <code>table_to_xmlschema</code> and <code>table_to_xml_and_xmlschema</code>. Extensions that run SQL given as text, such as <code>dblink</code>, are never installed. <code>pg_stats</code> is revoked from <code>PUBLIC</code> too: its sample values would show other companies&#39; data. They would let SQL hidden in a string reach <code>set_config</code>.</p>
 <h2 id="5-declaring-tables">5. Declaring tables</h2>
 <p>Modules never write <code>CREATE TABLE</code>. They declare tables through <code>tenantTable()</code>, and the data layer generates everything tenancy needs.</p>
 <div class="table-wrap"><table>
@@ -390,7 +390,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Query builder</td>
 <td>Data layer</td>
 <td>See the list below</td>
-<td>Type error at build time; the lint fails the build</td>
+<td>Type error at build time; the lint fails the build; at run time the query check refuses the query</td>
 </tr>
 <tr>
 <td>Commit check</td>
@@ -431,6 +431,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>names only tables and views the module declared, or another module&#39;s read views it was given through a port; never <code>pg_stats</code>, <code>pg_statistic</code> or another catalogue;</li>
 <li>cannot begin, commit or roll back: the data layer owns the transaction.</li>
 </ol>
+<p><strong>The query check</strong> runs on every module query at run time, because types and lint can be bypassed (a cast, a name built at run time). A plugin on the builder walks each query&#39;s tree before it reaches the database and refuses, failing closed, any raw-SQL node, any function off the allow-list and any table or view outside the module&#39;s set. A refusal pages the operator.</p>
 <p>Raw SQL exists only in the kernel&#39;s data layer (entering, the commit check, the lock) and in migrations, both under change control. A query the builder cannot express is solved by extending the builder or adding a view by migration, never by raw SQL in a module.</p>
 <p>The commit check stays as the second fence, and SQL-executing functions stay revoked (<a href="#4-functions">section 4</a>). The foundation&#39;s stock ledger trigger is not module SQL: a migration defines it, and it only applies a ledger entry to its balances.</p>
 <h3 id="61-catalogue-lint">6.1 Catalogue lint</h3>
@@ -977,7 +978,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td>Query builder</td>
 <td>CI</td>
-<td>Type tests: a module cannot build <code>set_config</code>, a function off the allow-list, transaction control, DDL or an undeclared table; the lint fails a module that imports the raw-SQL helpers</td>
+<td>Run-time tests with casts and names built at run time: a raw node, an off-list function and an undeclared table are refused by the query check; type tests: a module cannot build <code>set_config</code>, a function off the allow-list, transaction control, DDL or an undeclared table; the lint fails a module that imports the raw-SQL helpers</td>
 <td>4, 6</td>
 </tr>
 <tr>
