@@ -18,6 +18,7 @@ Everything below is built at launch except these parts, which keep their rules h
 | Variants: an alternative provider of a port, assigned by the operator to a named company | The first experiment the operator wants to run | [3](#3-assembly-per-company) |
 | Selling into the EU: rates, rules and marketplace sites | Its own record ([ADR-011](../../invoicing-and-vat/)) | [14](#14-money-and-countries) |
 | A Worker placement outside the EU | A dedicated cell outside the EU ([ADR-001](../../database-architecture/spec/#dedicated-databases-and-residency)) | [10](#10-runtime) |
+| The sweeper and the queue consumer hand each company's run to the app's placed request path | The placed-work test shows their jobs hold a company's lock clearly longer than a request does ([ADR-001 SPEC 14](../../database-architecture/spec/#14-tests-that-prove-each-rule)) | [10](#10-runtime) |
 
 Extension points (several providers of one port, chosen per key, such as connectors) are built at launch.
 
@@ -147,7 +148,8 @@ An **egress effect** is a call that changes something on a marketplace or at a s
 1. Each marketplace is its own module that contributes one connector definition. The host, the gate, the server and the screens name no marketplace, so removing the module removes the marketplace.
 2. What a connector declares and what the host does with it: [ADR-004](../../channel-connectors/#what-a-connector-declares).
 3. A connector has no network access of its own. A lint rule refuses any network call in a connector.
-4. Orders arrive by notice: verified before any database read, queued, answered at once; the consumer fetches and imports. A failed delivery is retried with growing delays for about 40 minutes, then goes to the dead-letter queue, which alerts the operator. The completeness check and its intervals are [ADR-004](../../channel-connectors/#notices-in).
+4. Orders arrive by notice: verified before any database read, queued, answered at once; the consumer fetches and imports. A failed delivery is retried with growing delays for about 40 minutes, then goes to the dead-letter queue, which alerts the operator. The completeness check and its intervals are [ADR-004](../../channel-connectors/#notices-in). A queue message carries ids only (the account, the topic, and the marketplace's notice and resource ids), never the notice's body.
+5. **Amazon's notices** arrive only through an AWS queue or event bus. A small AWS bridge, built once with no code (queue, pipe, API destination) in an EU region, posts them to the app's webhook like any other notice.
 
 ## 9. Simulators
 
@@ -166,12 +168,13 @@ An **egress effect** is a call that changes something on a marketplace or at a s
 3. **Webhooks** go through one inbound queue with retries and a dead-letter queue.
 4. **Live updates** come from one Durable Object per company that holds its open screens' connections, so a screen updates when a background job changes what it shows. They carry ids and statuses, never buyer data ([ADR-009](../../buyer-data/)).
 5. **Postgres on Neon, through Hyperdrive:** one configuration per database, transaction-mode pooling, query caching off on every one ([ADR-001 SPEC 13](../../database-architecture/spec/#13-platform-constraints)).
-6. **Placement.** The app Worker is placed in the databases' EU region, not near the visitor, because a stock command holds its company's lock for its whole transaction. One placement serves every UK and EU cell.
-7. **Nothing leaves during a transaction.** No marketplace or other outside call runs inside a database transaction. The host's HTTP refuses a call while the caller holds a transaction, so the rule is enforced, not remembered.
+6. **Placement.** The app Worker is placed in the databases' EU region, not near the visitor, because a stock command holds its company's lock for its whole transaction. One placement serves every UK and EU cell. Queues and Durable Objects are created in the EU jurisdiction, near the databases.
+7. **Nothing leaves during a transaction.** No marketplace or other outside call runs inside a database transaction. The host's HTTP refuses a call while the caller holds a transaction, so the rule is enforced, not remembered. Postgres backs the rule: the runtime role's `transaction_timeout` ends any transaction before Hyperdrive's 60-second limit, so a stuck request cannot hold a company's lock.
 8. **Screens show stored copies** (owner ruling, 20 October 2026). A request never calls a marketplace. Marketplace data a screen shows is read by a background job and stored; the screen shows it with its age and may ask for a refresh, which becomes background work.
 9. **Slow work runs in the background,** never in a request: the request writes the work's `due` row and the sweeper runs it. The inbound queue carries only marketplace notices.
-10. **Telemetry** (one point per marketplace call, sweep, alert pass and queue batch) goes to the platform's analytics store, never to the database. Structured logs carry the company, the account and a correlation id that follows one change from import to applied.
-11. **Alerts page the operator** on: a stalled order watermark, a non-empty dead-letter queue, a difference in the nightly stock check, and a failed migration. Other records add their own.
+10. **Telemetry** (one point per marketplace call, sweep, alert pass and queue batch) is a structured log line, never written to the database. It carries the company, the account and a correlation id that follows one change from import to applied, never a field value. Invocation logs are off. Nothing goes to an analytics store, whose data location cannot be held to the EU.
+11. **Alerts page the operator** on: a stalled order watermark, a non-empty dead-letter queue, a difference in the nightly stock check, and a failed migration. Other records add their own. A scheduled check from outside Cloudflare, in the AWS account Amazon's notices already need, pages the operator when the app cannot be reached or any background work is more than 5 minutes overdue. It covers a lost alarm, a stuck queue and the cron itself.
+12. **Where data goes.** Company and buyer data are stored only in the EU databases. Queue messages, Durable Object state and live updates carry ids and statuses only. No Worker binds a key-value store, SQL database or analytics store. Hyperdrive caches nothing. Logs carry ids only. Processing runs on Cloudflare's network, placed in the EU but not guaranteed there; that meets the data-location limit (owner ruling, 21 October 2026).
 
 ## 11. Deploying
 

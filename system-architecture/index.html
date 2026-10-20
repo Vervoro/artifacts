@@ -75,7 +75,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>17 October 2026; revised 18 October 2026; split into ADR, SPEC and RUNBOOK, with the module map, 20–21 October 2026</td>
+<td>17 October 2026; revised 18 October 2026; split into ADR, SPEC and RUNBOOK, with the module map, 20–21 October 2026; hosting reviewed 21 October 2026</td>
 </tr>
 <tr>
 <td><strong>Scope</strong></td>
@@ -110,7 +110,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Events are written with the change</strong> in an outbox in the same transaction, delivered right after commit (or later by the sweeper), and handled once through a receipt per handler.</li>
 <li><strong>Nothing reaches a marketplace or a supplier except through one egress gate.</strong> Every effect is recorded with an idempotency key, sent after commit, rate-limited per account, and sent only when the account is live. Every connection starts in shadow mode, where nothing is sent.</li>
 <li><strong>Marketplace connectors are plugins behind a fixed contract.</strong> A connector only translates; Channels, the host, owns credentials, HTTP, rate budgets, notice checks and the sending half of the gate (<a href="../channel-connectors/">ADR-004</a>). Orders arrive by webhook; a scheduled read is only the completeness check behind it.</li>
-<li><strong>Serverless on Cloudflare, Postgres on Neon, in the EU.</strong> An app Worker serves the API, the client and webhooks; a separate sign-in Worker alone holds the sign-in keys (<a href="../users-and-access/#the-sign-in-worker">ADR-010</a>). Nothing leaves Vervoro during a database transaction. Tenancy, storage and retention follow <a href="../database-architecture/">ADR-001</a> and <a href="../data-retention/">ADR-002</a>.</li>
+<li><strong>Serverless on Cloudflare, Postgres on Neon, in the EU.</strong> An app Worker serves the API, the client and webhooks; a separate sign-in Worker alone holds the sign-in keys (<a href="../users-and-access/#the-sign-in-worker">ADR-010</a>). Both are placed next to the databases and reach every database through Hyperdrive, with caching off. Queues and Durable Objects live in the EU jurisdiction and carry ids only. Nothing leaves Vervoro during a database transaction. Tenancy, storage and retention follow <a href="../database-architecture/">ADR-001</a> and <a href="../data-retention/">ADR-002</a>.</li>
 <li><strong>A phone-first React client,</strong> built only from one UI package and styled only from one token package. Every word comes from a catalogue, English first.</li>
 <li><strong>The build enforces the rules.</strong> Tests run on the real kernel against real databases, with no mocks. Every outside service has a simulator that speaks its real API; development and tests never call a real marketplace, and no simulator code reaches production. One verify command means green, and nobody weakens a test. Migrations only add, new modules start from a scaffold, and docs change with the code.</li>
 <li><strong>UK first, not UK hard-coded.</strong> Money always carries its currency, VAT rates come from a per-country table, and UK rules live only in the records that need them (<a href="spec/#14-money-and-countries">SPEC 14</a>). <em>Later: selling into the EU, a record of its own.</em></li>
@@ -205,6 +205,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ul>
 <li>Nothing physical stops a developer reaching across modules inside one deploy; package exports, lint rules, the composition test and review hold the boundaries.</li>
 <li>One company&#39;s stock writes are serialised by its lock, so transactions stay short and the Worker stays next to the database.</li>
+<li>Production runs on the Workers runtime; development and tests run on Bun. A smoke run on the Workers runtime in CI catches the gap, and every job fits one invocation&#39;s limits: its memory, six open connections, and 30 seconds of work after the response.</li>
+<li>Data at rest stays in the EU. Processing runs on Cloudflare&#39;s network, placed in the EU but not guaranteed there (<a href="spec/#10-runtime">SPEC 10</a>, rule 12).</li>
 <li>Every outbound effect is two steps, record then send, and every handler must be idempotent; a listing&#39;s figure is worked out moments after the stock change commits, not inside it.</li>
 <li>The simulators are a large second codebase that can drift from the real APIs; recorded real replies keep them honest.</li>
 <li>Two database drivers and two local modes to keep working; an order that reserves stock crosses two modules inside one transaction.</li>
@@ -219,10 +221,12 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Inventory writes each listing&#39;s figure in the stock transaction:</strong> Inventory would have to know listings, links and pack sizes, and the company&#39;s lock would cover link reads.</li>
 <li><strong>Exceptions for expected failures:</strong> a missed catch becomes a crash or a silent failure.</li>
 <li><strong>Live marketplace reads in a request:</strong> a slow marketplace blocks a screen and spends rate budget on page views.</li>
+<li><strong>Managed containers next to managed Postgres in the EU</strong> (for example a container service with its cloud&#39;s Postgres): no machines, but one engineer would own a container image to patch, access policies, a private network and connection arithmetic. Revisit if processing must be guaranteed in the EU and Cloudflare cannot guarantee it.</li>
 </ul>
 <h2 id="open-items">Open items</h2>
 <ul>
 <li><strong>Paging alerts have no written first steps.</strong> The stalled order watermark, the dead-letter queue, the nightly stock check and a failed migration page the operator; only the deploy has a runbook. Each owning record writes its own.</li>
+<li><strong>Hosting checks before launch</strong> (owner, 21 October 2026): how long a company&#39;s lock is held when the sweeper or the queue consumer runs a job, compared with a request; which EU region Amazon accepts for its notification queue; the residency of Hyperdrive and Workers Logs (<a href="spec/#10-runtime">SPEC 10</a>, rule 12). Processing placed in the EU, without a guarantee, meets the data-location limit (owner ruling, 21 October 2026).</li>
 <li><strong>MCP access, soon after launch</strong> (owner, 21 October 2026). A seller connects an AI assistant to ask about stock, sales and orders, get reorder advice from their history, see which products make money, and have a purchase order drafted. It needs its own record: a switchable module calling the core&#39;s ports, revising ADR-010&#39;s &quot;no API tokens at launch&quot;, with no buyer data. Reorder advice, profit and purchase orders depend on Purchasing and Profit, which are parked.</li>
 <li><strong>Other records still say &quot;the foundation&quot;</strong> where they mean one of its modules. That stays true; each record names the exact module when it is split into ADR, SPEC and RUNBOOK.</li>
 <li><strong>ADR-006 and ADR-008 still say the figure is written in the stock transaction</strong> (ADR-006 &quot;What gives listings a new figure&quot;, ADR-008 &quot;The figure per listing&quot;). The changes that give a new figure stay the same; who works it out and when changes. Both are aligned when they are split.</li>

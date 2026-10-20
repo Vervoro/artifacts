@@ -58,8 +58,8 @@
   <text x="380" y="368" text-anchor="middle" font-size="11.5" class="quiet">control and cells, EU</text>
 
   <rect x="516" y="328" width="220" height="52" rx="8" class="box"/>
-  <text x="626" y="350" text-anchor="middle" font-weight="600" class="ink">Analytics store</text>
-  <text x="626" y="368" text-anchor="middle" font-size="11.5" class="quiet">telemetry, never Postgres</text>
+  <text x="626" y="350" text-anchor="middle" font-weight="600" class="ink">Logs</text>
+  <text x="626" y="368" text-anchor="middle" font-size="11.5" class="quiet">ids only, never Postgres</text>
 
   <g class="edge" fill="none" stroke-width="1.25">
     <path d="M120 100V156" marker-end="url(#rt-arrow)"/>

@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>20 October 2026</td>
+<td>20 October 2026; hosting reviewed 21 October 2026</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -591,7 +591,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2 id="9-background-work-and-the-outbox">9. Background work and the outbox</h2>
 <h3 id="the-sweeper">The sweeper</h3>
 <ol>
-<li>Each database (shared cell or dedicated) has one sweeper: a Durable Object named after the database, created on demand from its registry row.</li>
+<li>Each database (shared cell or dedicated) has one sweeper: a Durable Object named after the database, created on demand from its registry row. It is created in the EU jurisdiction.</li>
 <li>It reads <code>app.due_companies</code> once, then runs each due company in its own transaction, side by side.</li>
 <li>No background code loops over the company registry or visits a company with nothing due.</li>
 <li>After a run it sets its alarm for the earliest <code>next_due_at</code>, or none when nothing is due.</li>
@@ -803,6 +803,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>The history window is 7 days, scheduled snapshots are kept 30 days, and no manual snapshot exists.</li>
 <li>Every branch was made by the lifecycle tool and is younger than 24 hours.</li>
 <li>Each database&#39;s migration version is the one the deployed code needs.</li>
+<li>Every Worker is placed next to its databases and has invocation logs off. Every queue and Durable Object namespace is in the EU jurisdiction. No Worker binds a key-value store, SQL database or analytics store. A failure here pages the operator but does not close egress: it concerns where data is processed, not who can see it.</li>
 </ol>
 <p><strong>A canary company in every database.</strong> A second synthetic company must see none of the canary&#39;s rows: every table nightly and after each deploy and each new partition. A transaction with no company set must raise. <em>Later</em> (<a href="#0-at-launch-and-later">section 0</a>): a few tables every 10 minutes, and the egress gate scanning every outbound payload for the canary&#39;s marker strings.</p>
 <h2 id="12-operations">12. Operations</h2>
@@ -818,7 +819,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Scale to zero is off</strong> for production databases.</li>
 </ol>
 <h2 id="13-platform-constraints">13. Platform constraints</h2>
-<p>Checked against Neon&#39;s and Cloudflare&#39;s documentation on 18 October 2026. Re-check before launch.</p>
+<p>Checked against Neon&#39;s, Cloudflare&#39;s and AWS&#39;s documentation on 18 and 21 October 2026. Re-check before launch.</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -859,7 +860,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>25 Hyperdrive configurations per paid account, more by request. One configuration is one database and one user</td>
-<td>One configuration per database; staging in a separate account</td>
+<td>One configuration per database and role: three at launch (control as runtime, control as sign-in, cell A), about ten at 1,000 companies; staging in a separate account</td>
 <td><a href="https://developers.cloudflare.com/hyperdrive/platform/limits/">Hyperdrive limits</a></td>
 </tr>
 <tr>
@@ -886,6 +887,56 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Each transaction holds one pooled connection until it ends</td>
 <td>No marketplace or other outside call runs inside a transaction</td>
 <td><a href="https://developers.cloudflare.com/hyperdrive/concepts/how-hyperdrive-works/">How Hyperdrive works</a></td>
+</tr>
+<tr>
+<td>A Neon major Postgres upgrade is a new project and a copy</td>
+<td>A runbook before the first major upgrade</td>
+<td><a href="https://neon.com/docs/postgresql/postgres-upgrade">Neon upgrade</a></td>
+</tr>
+<tr>
+<td>Placement is a hint and covers fetch handlers only</td>
+<td>Queue, alarm and cron handlers are not placed; the placed-work test measures their lock time</td>
+<td><a href="https://developers.cloudflare.com/workers/configuration/placement/">Placement</a></td>
+</tr>
+<tr>
+<td>Queues and Durable Objects can be held to the EU jurisdiction; a Durable Object&#39;s id is still logged outside it</td>
+<td>Both created in the EU jurisdiction; ids carry no company or buyer data</td>
+<td><a href="https://developers.cloudflare.com/queues/configuration/data-location/">Queues data location</a>, <a href="https://developers.cloudflare.com/durable-objects/reference/data-location/">Durable Objects data location</a></td>
+</tr>
+<tr>
+<td>One invocation waits on at most six connections at once</td>
+<td>A sweep or a queue batch runs at most six company jobs per invocation</td>
+<td><a href="https://developers.cloudflare.com/workers/platform/limits/">Workers limits</a></td>
+</tr>
+<tr>
+<td>Durable Object alarms are retried up to six times, then not run until set again</td>
+<td>The hourly safety net and the outside check stay</td>
+<td><a href="https://developers.cloudflare.com/durable-objects/api/alarms/">Alarms</a></td>
+</tr>
+<tr>
+<td>Work handed off after the response is cancelled 30 seconds later</td>
+<td>A lease covers the cancelled delivery; the sweeper takes it</td>
+<td><a href="https://developers.cloudflare.com/workers/runtime-apis/context/">Context</a></td>
+</tr>
+<tr>
+<td>Workers Logs keep 7 days; their storage location is not stated; invocation logs can be switched off</td>
+<td>Ids-only lines; invocation logs off; the 12-month security log stays in Postgres</td>
+<td><a href="https://developers.cloudflare.com/workers/observability/logs/workers-logs/">Workers Logs</a></td>
+</tr>
+<tr>
+<td>Cloudflare&#39;s data-localisation list does not cover Hyperdrive, Queues or Workers Logs</td>
+<td>Caching off; ids-only queue messages and logs</td>
+<td><a href="https://developers.cloudflare.com/data-localization/compatibility/">Compatibility</a></td>
+</tr>
+<tr>
+<td>Amazon&#39;s notifications are delivered only to SQS or EventBridge</td>
+<td>An AWS bridge posts them to the app&#39;s webhook</td>
+<td><a href="https://developer-docs.amazon/sp-api/docs/notifications-api-v1-use-case-guide">SP-API notifications</a></td>
+</tr>
+<tr>
+<td>EventBridge API destinations wait 5 seconds for an answer and retry for 24 hours</td>
+<td>The queue takes the notice in time; the backup order read covers one dropped after 24 hours</td>
+<td><a href="https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-api-destinations.html">API destinations</a></td>
 </tr>
 </tbody></table></div>
 <h2 id="14-tests-that-prove-each-rule">14. Tests that prove each rule</h2>
@@ -994,6 +1045,18 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Production, monthly (weekly later)</td>
 <td>A real company restores unattended into a branch the runtime role cannot enter, neighbours unchanged, time per gigabyte recorded</td>
 <td>10</td>
+</tr>
+<tr>
+<td>Kill test</td>
+<td>Staging, before launch and after a platform change</td>
+<td>Killing the app mid-transaction and mid-send leaves the ledger and the egress log consistent; every effect is either recorded and sent once or recorded as <code>unknown</code> and read back</td>
+<td>9</td>
+</tr>
+<tr>
+<td>Placed work</td>
+<td>Staging, before launch</td>
+<td>A job run by the sweeper or the queue consumer holds its company&#39;s lock about as long as the same work in a request</td>
+<td>13</td>
 </tr>
 </tbody></table></div>
 <h2 id="15-questions-the-review-raised-answered">15. Questions the review raised, answered</h2>

@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-001: Multi-tenant database architecture](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-001-multi-tenant-database-architecture) |
-| **Date** | 20 October 2026 |
+| **Date** | 20 October 2026; hosting reviewed 21 October 2026 |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-001 from. Each section is a rule set, a table or a list of states. The record decides; this page says exactly how. Where this page and the ADR disagree, the ADR wins and this page is fixed. The words used are defined in the [map and glossary](../../guide/).
@@ -260,7 +260,7 @@ The system recommends a new cell when any signal holds for 7 days. The operator 
 
 ### The sweeper
 
-1. Each database (shared cell or dedicated) has one sweeper: a Durable Object named after the database, created on demand from its registry row.
+1. Each database (shared cell or dedicated) has one sweeper: a Durable Object named after the database, created on demand from its registry row. It is created in the EU jurisdiction.
 2. It reads `app.due_companies` once, then runs each due company in its own transaction, side by side.
 3. No background code loops over the company registry or visits a company with nothing due.
 4. After a run it sets its alarm for the earliest `next_due_at`, or none when nothing is due.
@@ -388,6 +388,7 @@ CI proves the schema it builds. These prove the databases running, because a con
 6. The history window is 7 days, scheduled snapshots are kept 30 days, and no manual snapshot exists.
 7. Every branch was made by the lifecycle tool and is younger than 24 hours.
 8. Each database's migration version is the one the deployed code needs.
+9. Every Worker is placed next to its databases and has invocation logs off. Every queue and Durable Object namespace is in the EU jurisdiction. No Worker binds a key-value store, SQL database or analytics store. A failure here pages the operator but does not close egress: it concerns where data is processed, not who can see it.
 
 **A canary company in every database.** A second synthetic company must see none of the canary's rows: every table nightly and after each deploy and each new partition. A transaction with no company set must raise. *Later* ([section 0](#0-at-launch-and-later)): a few tables every 10 minutes, and the egress gate scanning every outbound payload for the canary's marker strings.
 
@@ -405,7 +406,7 @@ CI proves the schema it builds. These prove the databases running, because a con
 
 ## 13. Platform constraints
 
-Checked against Neon's and Cloudflare's documentation on 18 October 2026. Re-check before launch.
+Checked against Neon's, Cloudflare's and AWS's documentation on 18 and 21 October 2026. Re-check before launch.
 
 | Constraint | Consequence for Vervoro | Source |
 | --- | --- | --- |
@@ -415,12 +416,22 @@ Checked against Neon's and Cloudflare's documentation on 18 October 2026. Re-che
 | Scheduled snapshots are kept up to 35 days; manual ones never expire unless given an expiry | Scheduled 30 days; no manual snapshots | [Backup and restore](https://neon.com/docs/guides/backup-restore) |
 | Roles created in the Neon console, CLI or API join `neon_superuser`, which has `BYPASSRLS`; roles created in SQL get only what is granted | Every role is created in SQL; the audit checks it | [Neon roles](https://neon.com/docs/manage/roles) |
 | Hyperdrive pools connections itself | Hyperdrive connects to Neon's direct endpoint, never Neon's pooler | [Hyperdrive with Neon](https://developers.cloudflare.com/hyperdrive/examples/connect-to-postgres/postgres-database-providers/neon/) |
-| 25 Hyperdrive configurations per paid account, more by request. One configuration is one database and one user | One configuration per database; staging in a separate account | [Hyperdrive limits](https://developers.cloudflare.com/hyperdrive/platform/limits/) |
+| 25 Hyperdrive configurations per paid account, more by request. One configuration is one database and one user | One configuration per database and role: three at launch (control as runtime, control as sign-in, cell A), about ten at 1,000 companies; staging in a separate account | [Hyperdrive limits](https://developers.cloudflare.com/hyperdrive/platform/limits/) |
 | About 100 origin connections per configuration; a statement stops after 60 seconds | ~100 pooled connections per cell; slice operations use a direct connection | [Hyperdrive limits](https://developers.cloudflare.com/hyperdrive/platform/limits/) |
 | Transaction-mode pooling: a `SET` inside a transaction takes effect, and the connection is reset when it returns | The transaction-local company setting relies on it | [How Hyperdrive works](https://developers.cloudflare.com/hyperdrive/concepts/how-hyperdrive-works/) |
 | Query caching is on by default and cannot see the company setting | Caching off on every configuration; the audit refuses any with caching on | [Query caching](https://developers.cloudflare.com/hyperdrive/concepts/query-caching/) |
 | A Worker reaches a Hyperdrive configuration only through a binding in its deployed configuration | Adding a database needs a deploy | [Hyperdrive](https://developers.cloudflare.com/hyperdrive/get-started/) |
 | Each transaction holds one pooled connection until it ends | No marketplace or other outside call runs inside a transaction | [How Hyperdrive works](https://developers.cloudflare.com/hyperdrive/concepts/how-hyperdrive-works/) |
+| A Neon major Postgres upgrade is a new project and a copy | A runbook before the first major upgrade | [Neon upgrade](https://neon.com/docs/postgresql/postgres-upgrade) |
+| Placement is a hint and covers fetch handlers only | Queue, alarm and cron handlers are not placed; the placed-work test measures their lock time | [Placement](https://developers.cloudflare.com/workers/configuration/placement/) |
+| Queues and Durable Objects can be held to the EU jurisdiction; a Durable Object's id is still logged outside it | Both created in the EU jurisdiction; ids carry no company or buyer data | [Queues data location](https://developers.cloudflare.com/queues/configuration/data-location/), [Durable Objects data location](https://developers.cloudflare.com/durable-objects/reference/data-location/) |
+| One invocation waits on at most six connections at once | A sweep or a queue batch runs at most six company jobs per invocation | [Workers limits](https://developers.cloudflare.com/workers/platform/limits/) |
+| Durable Object alarms are retried up to six times, then not run until set again | The hourly safety net and the outside check stay | [Alarms](https://developers.cloudflare.com/durable-objects/api/alarms/) |
+| Work handed off after the response is cancelled 30 seconds later | A lease covers the cancelled delivery; the sweeper takes it | [Context](https://developers.cloudflare.com/workers/runtime-apis/context/) |
+| Workers Logs keep 7 days; their storage location is not stated; invocation logs can be switched off | Ids-only lines; invocation logs off; the 12-month security log stays in Postgres | [Workers Logs](https://developers.cloudflare.com/workers/observability/logs/workers-logs/) |
+| Cloudflare's data-localisation list does not cover Hyperdrive, Queues or Workers Logs | Caching off; ids-only queue messages and logs | [Compatibility](https://developers.cloudflare.com/data-localization/compatibility/) |
+| Amazon's notifications are delivered only to SQS or EventBridge | An AWS bridge posts them to the app's webhook | [SP-API notifications](https://developer-docs.amazon/sp-api/docs/notifications-api-v1-use-case-guide) |
+| EventBridge API destinations wait 5 seconds for an answer and retry for 24 hours | The queue takes the notice in time; the backup order read covers one dropped after 24 hours | [API destinations](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-api-destinations.html) |
 
 ## 14. Tests that prove each rule
 
@@ -444,6 +455,8 @@ Isolation counts as proven only on real Postgres under the runtime role. An embe
 | Slice round trip | CI | Copy, compare checksums, erase, count 0; a tombstoned company's slice is refused; the erasure register is replayed | 10 |
 | Canary | Production | Another company sees none of the canary's rows; outbound payloads never carry its markers | 11 |
 | Restore drill | Production, monthly (weekly later) | A real company restores unattended into a branch the runtime role cannot enter, neighbours unchanged, time per gigabyte recorded | 10 |
+| Kill test | Staging, before launch and after a platform change | Killing the app mid-transaction and mid-send leaves the ledger and the egress log consistent; every effect is either recorded and sent once or recorded as `unknown` and read back | 9 |
+| Placed work | Staging, before launch | A job run by the sweeper or the queue consumer holds its company's lock about as long as the same work in a request | 13 |
 
 ## 15. Questions the review raised, answered
 

@@ -75,7 +75,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>17 October 2026; revised 18 October 2026; split into ADR, SPEC and RUNBOOK 20 October 2026</td>
+<td>17 October 2026; revised 18 October 2026; split into ADR, SPEC and RUNBOOK 20 October 2026; hosting reviewed 21 October 2026</td>
 </tr>
 <tr>
 <td><strong>Scope</strong></td>
@@ -217,10 +217,11 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ul>
 <h2 id="open-items">Open items</h2>
 <ul>
-<li><strong>Re-check before launch</strong> the Neon and Hyperdrive limits (<a href="spec/#13-platform-constraints">SPEC 13</a>), last checked 18 October 2026.</li>
+<li><strong>Re-check before launch</strong> the Neon, Hyperdrive and Workers limits (<a href="spec/#13-platform-constraints">SPEC 13</a>), last checked 21 October 2026.</li>
 <li><strong>Fair-share numbers</strong> (40 sweeper slots per cell, 8 jobs per company) are guesses until a load test.</li>
 <li><strong>The cell cap is soft</strong> (owner, 20 October 2026): simultaneous sign-ups may pass 200 slightly.</li>
 <li><strong>Restoring control</strong> has a drill but no written procedure.</li>
+<li><strong>A major Postgres upgrade on Neon</strong> is a new project per database and a copy, not an in-place upgrade. It needs a runbook before the first one.</li>
 <li><strong>Owner rulings of 20 October 2026</strong> (runtime login, sign-up definer, commit check, migration reset, launch and later) are in the <a href="spec/#15-questions-the-review-raised-answered">SPEC</a>.</li>
 </ul>
 

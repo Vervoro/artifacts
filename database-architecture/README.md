@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Status** | Proposed |
-| **Date** | 17 October 2026; revised 18 October 2026; split into ADR, SPEC and RUNBOOK 20 October 2026 |
+| **Date** | 17 October 2026; revised 18 October 2026; split into ADR, SPEC and RUNBOOK 20 October 2026; hosting reviewed 21 October 2026 |
 | **Scope** | How Vervoro stores, isolates, routes and moves each company's data |
 | **Builds on** | [ADR-000: System architecture](../system-architecture/) |
 | **SPEC** | [The rules to build from, and how to check them](spec/) |
@@ -73,8 +73,9 @@ Parts marked *Later* keep their rules in the SPEC but are built only when their 
 
 ## Open items
 
-- **Re-check before launch** the Neon and Hyperdrive limits ([SPEC 13](spec/#13-platform-constraints)), last checked 18 October 2026.
+- **Re-check before launch** the Neon, Hyperdrive and Workers limits ([SPEC 13](spec/#13-platform-constraints)), last checked 21 October 2026.
 - **Fair-share numbers** (40 sweeper slots per cell, 8 jobs per company) are guesses until a load test.
 - **The cell cap is soft** (owner, 20 October 2026): simultaneous sign-ups may pass 200 slightly.
 - **Restoring control** has a drill but no written procedure.
+- **A major Postgres upgrade on Neon** is a new project per database and a copy, not an in-place upgrade. It needs a runbook before the first one.
 - **Owner rulings of 20 October 2026** (runtime login, sign-up definer, commit check, migration reset, launch and later) are in the [SPEC](spec/#15-questions-the-review-raised-answered).

@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Status** | Proposed |
-| **Date** | 17 October 2026; revised 18 October 2026; split into ADR, SPEC and RUNBOOK, with the module map, 20–21 October 2026 |
+| **Date** | 17 October 2026; revised 18 October 2026; split into ADR, SPEC and RUNBOOK, with the module map, 20–21 October 2026; hosting reviewed 21 October 2026 |
 | **Scope** | The overall shape of the system and the rules every module follows |
 | **Related** | [ADR-001: Multi-tenant database architecture](../database-architecture/), [ADR-002: Data retention and archiving](../data-retention/) |
 | **SPEC** | [The rules to build from, and how to check them](spec/) |
@@ -26,7 +26,7 @@ Parts marked *Later* keep their rules in the SPEC but are built only when their 
 4. **Events are written with the change** in an outbox in the same transaction, delivered right after commit (or later by the sweeper), and handled once through a receipt per handler.
 5. **Nothing reaches a marketplace or a supplier except through one egress gate.** Every effect is recorded with an idempotency key, sent after commit, rate-limited per account, and sent only when the account is live. Every connection starts in shadow mode, where nothing is sent.
 6. **Marketplace connectors are plugins behind a fixed contract.** A connector only translates; Channels, the host, owns credentials, HTTP, rate budgets, notice checks and the sending half of the gate ([ADR-004](../channel-connectors/)). Orders arrive by webhook; a scheduled read is only the completeness check behind it.
-7. **Serverless on Cloudflare, Postgres on Neon, in the EU.** An app Worker serves the API, the client and webhooks; a separate sign-in Worker alone holds the sign-in keys ([ADR-010](../users-and-access/#the-sign-in-worker)). Nothing leaves Vervoro during a database transaction. Tenancy, storage and retention follow [ADR-001](../database-architecture/) and [ADR-002](../data-retention/).
+7. **Serverless on Cloudflare, Postgres on Neon, in the EU.** An app Worker serves the API, the client and webhooks; a separate sign-in Worker alone holds the sign-in keys ([ADR-010](../users-and-access/#the-sign-in-worker)). Both are placed next to the databases and reach every database through Hyperdrive, with caching off. Queues and Durable Objects live in the EU jurisdiction and carry ids only. Nothing leaves Vervoro during a database transaction. Tenancy, storage and retention follow [ADR-001](../database-architecture/) and [ADR-002](../data-retention/).
 8. **A phone-first React client,** built only from one UI package and styled only from one token package. Every word comes from a catalogue, English first.
 9. **The build enforces the rules.** Tests run on the real kernel against real databases, with no mocks. Every outside service has a simulator that speaks its real API; development and tests never call a real marketplace, and no simulator code reaches production. One verify command means green, and nobody weakens a test. Migrations only add, new modules start from a scaffold, and docs change with the code.
 10. **UK first, not UK hard-coded.** Money always carries its currency, VAT rates come from a per-country table, and UK rules live only in the records that need them ([SPEC 14](spec/#14-money-and-countries)). *Later: selling into the EU, a record of its own.*
@@ -51,6 +51,8 @@ A request reaches the app Worker, which checks the session with the sign-in Work
 
 - Nothing physical stops a developer reaching across modules inside one deploy; package exports, lint rules, the composition test and review hold the boundaries.
 - One company's stock writes are serialised by its lock, so transactions stay short and the Worker stays next to the database.
+- Production runs on the Workers runtime; development and tests run on Bun. A smoke run on the Workers runtime in CI catches the gap, and every job fits one invocation's limits: its memory, six open connections, and 30 seconds of work after the response.
+- Data at rest stays in the EU. Processing runs on Cloudflare's network, placed in the EU but not guaranteed there ([SPEC 10](spec/#10-runtime), rule 12).
 - Every outbound effect is two steps, record then send, and every handler must be idempotent; a listing's figure is worked out moments after the stock change commits, not inside it.
 - The simulators are a large second codebase that can drift from the real APIs; recorded real replies keep them honest.
 - Two database drivers and two local modes to keep working; an order that reserves stock crosses two modules inside one transaction.
@@ -65,10 +67,12 @@ A request reaches the app Worker, which checks the session with the sign-in Work
 - **Inventory writes each listing's figure in the stock transaction:** Inventory would have to know listings, links and pack sizes, and the company's lock would cover link reads.
 - **Exceptions for expected failures:** a missed catch becomes a crash or a silent failure.
 - **Live marketplace reads in a request:** a slow marketplace blocks a screen and spends rate budget on page views.
+- **Managed containers next to managed Postgres in the EU** (for example a container service with its cloud's Postgres): no machines, but one engineer would own a container image to patch, access policies, a private network and connection arithmetic. Revisit if processing must be guaranteed in the EU and Cloudflare cannot guarantee it.
 
 ## Open items
 
 - **Paging alerts have no written first steps.** The stalled order watermark, the dead-letter queue, the nightly stock check and a failed migration page the operator; only the deploy has a runbook. Each owning record writes its own.
+- **Hosting checks before launch** (owner, 21 October 2026): how long a company's lock is held when the sweeper or the queue consumer runs a job, compared with a request; which EU region Amazon accepts for its notification queue; the residency of Hyperdrive and Workers Logs ([SPEC 10](spec/#10-runtime), rule 12). Processing placed in the EU, without a guarantee, meets the data-location limit (owner ruling, 21 October 2026).
 - **MCP access, soon after launch** (owner, 21 October 2026). A seller connects an AI assistant to ask about stock, sales and orders, get reorder advice from their history, see which products make money, and have a purchase order drafted. It needs its own record: a switchable module calling the core's ports, revising ADR-010's "no API tokens at launch", with no buyer data. Reorder advice, profit and purchase orders depend on Purchasing and Profit, which are parked.
 - **Other records still say "the foundation"** where they mean one of its modules. That stays true; each record names the exact module when it is split into ADR, SPEC and RUNBOOK.
 - **ADR-006 and ADR-008 still say the figure is written in the stock transaction** (ADR-006 "What gives listings a new figure", ADR-008 "The figure per listing"). The changes that give a new figure stay the same; who works it out and when changes. Both are aligned when they are split.

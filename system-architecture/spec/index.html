@@ -112,6 +112,11 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>A dedicated cell outside the EU (<a href="../../database-architecture/spec/#dedicated-databases-and-residency">ADR-001</a>)</td>
 <td><a href="#10-runtime">10</a></td>
 </tr>
+<tr>
+<td>The sweeper and the queue consumer hand each company&#39;s run to the app&#39;s placed request path</td>
+<td>The placed-work test shows their jobs hold a company&#39;s lock clearly longer than a request does (<a href="../../database-architecture/spec/#14-tests-that-prove-each-rule">ADR-001 SPEC 14</a>)</td>
+<td><a href="#10-runtime">10</a></td>
+</tr>
 </tbody></table></div>
 <p>Extension points (several providers of one port, chosen per key, such as connectors) are built at launch.</p>
 <h2 id="1-modules-and-the-manifest">1. Modules and the manifest</h2>
@@ -678,7 +683,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>Each marketplace is its own module that contributes one connector definition. The host, the gate, the server and the screens name no marketplace, so removing the module removes the marketplace.</li>
 <li>What a connector declares and what the host does with it: <a href="../../channel-connectors/#what-a-connector-declares">ADR-004</a>.</li>
 <li>A connector has no network access of its own. A lint rule refuses any network call in a connector.</li>
-<li>Orders arrive by notice: verified before any database read, queued, answered at once; the consumer fetches and imports. A failed delivery is retried with growing delays for about 40 minutes, then goes to the dead-letter queue, which alerts the operator. The completeness check and its intervals are <a href="../../channel-connectors/#notices-in">ADR-004</a>.</li>
+<li>Orders arrive by notice: verified before any database read, queued, answered at once; the consumer fetches and imports. A failed delivery is retried with growing delays for about 40 minutes, then goes to the dead-letter queue, which alerts the operator. The completeness check and its intervals are <a href="../../channel-connectors/#notices-in">ADR-004</a>. A queue message carries ids only (the account, the topic, and the marketplace&#39;s notice and resource ids), never the notice&#39;s body.</li>
+<li><strong>Amazon&#39;s notices</strong> arrive only through an AWS queue or event bus. A small AWS bridge, built once with no code (queue, pipe, API destination) in an EU region, posts them to the app&#39;s webhook like any other notice.</li>
 </ol>
 <h2 id="9-simulators">9. Simulators</h2>
 <ol>
@@ -749,8 +755,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
   <text x="380" y="368" text-anchor="middle" font-size="11.5" class="quiet">control and cells, EU</text>
 
   <rect x="516" y="328" width="220" height="52" rx="8" class="box"/>
-  <text x="626" y="350" text-anchor="middle" font-weight="600" class="ink">Analytics store</text>
-  <text x="626" y="368" text-anchor="middle" font-size="11.5" class="quiet">telemetry, never Postgres</text>
+  <text x="626" y="350" text-anchor="middle" font-weight="600" class="ink">Logs</text>
+  <text x="626" y="368" text-anchor="middle" font-size="11.5" class="quiet">ids only, never Postgres</text>
 
   <g class="edge" fill="none" stroke-width="1.25">
     <path d="M120 100V156" marker-end="url(#rt-arrow)"/>
@@ -776,12 +782,13 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Webhooks</strong> go through one inbound queue with retries and a dead-letter queue.</li>
 <li><strong>Live updates</strong> come from one Durable Object per company that holds its open screens&#39; connections, so a screen updates when a background job changes what it shows. They carry ids and statuses, never buyer data (<a href="../../buyer-data/">ADR-009</a>).</li>
 <li><strong>Postgres on Neon, through Hyperdrive:</strong> one configuration per database, transaction-mode pooling, query caching off on every one (<a href="../../database-architecture/spec/#13-platform-constraints">ADR-001 SPEC 13</a>).</li>
-<li><strong>Placement.</strong> The app Worker is placed in the databases&#39; EU region, not near the visitor, because a stock command holds its company&#39;s lock for its whole transaction. One placement serves every UK and EU cell.</li>
-<li><strong>Nothing leaves during a transaction.</strong> No marketplace or other outside call runs inside a database transaction. The host&#39;s HTTP refuses a call while the caller holds a transaction, so the rule is enforced, not remembered.</li>
+<li><strong>Placement.</strong> The app Worker is placed in the databases&#39; EU region, not near the visitor, because a stock command holds its company&#39;s lock for its whole transaction. One placement serves every UK and EU cell. Queues and Durable Objects are created in the EU jurisdiction, near the databases.</li>
+<li><strong>Nothing leaves during a transaction.</strong> No marketplace or other outside call runs inside a database transaction. The host&#39;s HTTP refuses a call while the caller holds a transaction, so the rule is enforced, not remembered. Postgres backs the rule: the runtime role&#39;s <code>transaction_timeout</code> ends any transaction before Hyperdrive&#39;s 60-second limit, so a stuck request cannot hold a company&#39;s lock.</li>
 <li><strong>Screens show stored copies</strong> (owner ruling, 20 October 2026). A request never calls a marketplace. Marketplace data a screen shows is read by a background job and stored; the screen shows it with its age and may ask for a refresh, which becomes background work.</li>
 <li><strong>Slow work runs in the background,</strong> never in a request: the request writes the work&#39;s <code>due</code> row and the sweeper runs it. The inbound queue carries only marketplace notices.</li>
-<li><strong>Telemetry</strong> (one point per marketplace call, sweep, alert pass and queue batch) goes to the platform&#39;s analytics store, never to the database. Structured logs carry the company, the account and a correlation id that follows one change from import to applied.</li>
-<li><strong>Alerts page the operator</strong> on: a stalled order watermark, a non-empty dead-letter queue, a difference in the nightly stock check, and a failed migration. Other records add their own.</li>
+<li><strong>Telemetry</strong> (one point per marketplace call, sweep, alert pass and queue batch) is a structured log line, never written to the database. It carries the company, the account and a correlation id that follows one change from import to applied, never a field value. Invocation logs are off. Nothing goes to an analytics store, whose data location cannot be held to the EU.</li>
+<li><strong>Alerts page the operator</strong> on: a stalled order watermark, a non-empty dead-letter queue, a difference in the nightly stock check, and a failed migration. Other records add their own. A scheduled check from outside Cloudflare, in the AWS account Amazon&#39;s notices already need, pages the operator when the app cannot be reached or any background work is more than 5 minutes overdue. It covers a lost alarm, a stuck queue and the cron itself.</li>
+<li><strong>Where data goes.</strong> Company and buyer data are stored only in the EU databases. Queue messages, Durable Object state and live updates carry ids and statuses only. No Worker binds a key-value store, SQL database or analytics store. Hyperdrive caches nothing. Logs carry ids only. Processing runs on Cloudflare&#39;s network, placed in the EU but not guaranteed there; that meets the data-location limit (owner ruling, 21 October 2026).</li>
 </ol>
 <h2 id="11-deploying">11. Deploying</h2>
 <ol>
