@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Runbook: Settle a VAT difference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono&display=swap">
+<style>
+:root {
+  --bg: #f6f6f8; --surface: #ffffff; --sunken: #ededf1; --text: #16161a; --muted: #5c5c66; --border: #e0e0e6;
+  --accent: #4338ca; --accent-soft: #eef0ff; --edge: #8a8a96; --tint: #f0f0f4;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #111114; --surface: #1a1a1f; --sunken: #23232a; --text: #ececf1; --muted: #a2a2ad; --border: #2d2d35;
+  --accent: #a5b4fc; --accent-soft: #23264a; --edge: #74747f; --tint: #202027; color-scheme: dark; } }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 var(--sans); }
+main { max-width: 860px; margin: 0 auto; padding: 48px max(20px, env(safe-area-inset-left)) 80px; }
+header.site { max-width: 860px; margin: 0 auto; padding: 20px max(20px, env(safe-area-inset-left)) 0; font-size: 14px; }
+header.site a { color: var(--muted); text-decoration: none; }
+header.site a:hover { color: var(--accent); }
+h1, h2, h3 { line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(28px, 4vw, 38px); letter-spacing: -0.02em; margin: 0 0 20px; }
+h2 { font-size: 23px; margin: 48px 0 12px; padding-top: 20px; border-top: 1px solid var(--border); }
+h3 { font-size: 18px; margin: 32px 0 8px; }
+p, li { max-width: 72ch; }
+a { color: var(--accent); }
+code { font-family: var(--mono); font-size: 0.86em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--sunken); padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 13.5px; line-height: 1.5; }
+pre code { background: none; padding: 0; overflow-wrap: normal; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 16px 0; background: var(--surface); }
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+.table-wrap table { margin: 0; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+th { background: var(--sunken); font-weight: 600; font-size: 13px; color: var(--muted); }
+tr:last-child td { border-bottom: none; }
+ul, ol { padding-left: 22px; }
+li + li { margin-top: 4px; }
+figure { margin: 20px 0; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; }
+svg.diagram { display: block; width: 100%; min-width: 640px; height: auto; font-family: var(--sans); }
+svg .ink { fill: var(--text); } svg .quiet { fill: var(--muted); }
+svg .edge { stroke: var(--edge); } svg .edge-fill { fill: var(--edge); }
+svg .accent { stroke: var(--accent); } svg .accent-fill { fill: var(--accent); }
+svg .box { fill: none; stroke: var(--edge); stroke-width: 1.25; }
+svg .box-main { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+svg .band { fill: var(--tint); stroke: var(--edge); stroke-width: 1.25; }
+.cards { list-style: none; padding: 0; display: grid; gap: 12px; }
+.cards a { display: block; padding: 18px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; text-decoration: none; color: var(--text); }
+.cards a:hover, .cards a:focus-visible { border-color: var(--accent); outline: none; }
+.cards.sub { margin: 12px 0 0 24px; padding-left: 16px; border-left: 2px solid var(--border); }
+.parts { margin: 6px 0 0 20px; font-size: 14px; color: var(--muted); } .cards .parts a { display: inline; padding: 0; background: none; border: none; border-radius: 0; color: var(--accent); font-weight: 600; text-decoration: none; } .cards .parts a:hover { text-decoration: underline; }
+.cards b { display: block; font-size: 17px; } .cards span { color: var(--muted); font-size: 14px; }
+.order li { margin-top: 10px; } .order span { color: var(--muted); font-size: 14px; }
+footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header class="site"><a href="../../">← Vervoro artifacts</a> / <a href="../">Runbooks</a></header>
+<main>
+<h1 id="runbook-settle-a-vat-difference">Runbook: Settle a VAT difference</h1>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Built</strong></td>
+<td>At launch</td>
+</tr>
+<tr>
+<td><strong>Record</strong></td>
+<td><a href="../../invoicing-and-vat/">ADR-011</a>, rules in <a href="../../invoicing-and-vat/spec/#7-working-out-the-vat">SPEC 7</a> and <a href="../../invoicing-and-vat/spec/#8-differences-from-the-marketplace">SPEC 8</a></td>
+</tr>
+<tr>
+<td><strong>Who runs it</strong></td>
+<td>The seller&#39;s Manager, Admin or Owner, when the account&#39;s alerts show a VAT difference, or an invoice is refused because the order is flagged</td>
+</tr>
+<tr>
+<td><strong>Role or credential</strong></td>
+<td>Vervoro as Manager or above; issuing on Vervoro&#39;s figure needs Admin or Owner. Fixing a tax code at the marketplace needs the seller&#39;s own marketplace account</td>
+</tr>
+</tbody></table></div>
+<p>A flag means the marketplace&#39;s tax on an order&#39;s goods differs from Vervoro&#39;s by more than 1p at one rate. The order ships as normal; only invoicing waits. VAT shown on an invoice is owed by whoever issues it, so the flag is settled before a document is issued.</p>
+<h2 id="steps">Steps</h2>
+<ol>
+<li>Open the alert. Flags are grouped by product, with the VAT at stake and the orders affected.</li>
+<li>Read the product&#39;s VAT class against what it is. The class is the seller&#39;s decision; the screen says what each class means.</li>
+<li><strong>The class is wrong:</strong> change it on the product. Vervoro writes a correction record for each flagged order&#39;s lines, and the flags clear when the figures match. If the class was set for a period already exported, tell the seller&#39;s accountant: the export shows the correction in its own section.</li>
+<li><strong>The class is right, the marketplace is wrong:</strong> fix the tax setting at the marketplace (an Amazon product tax code, a shop&#39;s tax setting), so new orders match.<ul>
+<li>For an Amazon order, Amazon&#39;s own invoice already stated its figure, so the record keeps it; tell the seller&#39;s accountant.</li>
+<li>For an order Vervoro must invoice, an Admin or Owner issues on Vervoro&#39;s figure and types the reason. The reason is kept on the document.</li>
+</ul>
+</li>
+<li><strong>A bundle component has no cost:</strong> enter the component&#39;s standard cost; the next record written splits the line.</li>
+<li><strong>The order is not priced in pounds:</strong> it cannot be invoiced at launch. Tell the buyer, and the seller&#39;s accountant.</li>
+</ol>
+<h2 id="verify">Verify</h2>
+<ul>
+<li>The alert no longer lists the product, or lists only orders still waiting for a person&#39;s decision.</li>
+<li>The order&#39;s invoice action is offered again, or the issued invoice shows the override reason.</li>
+</ul>
+<h2 id="if-it-stops-halfway">If it stops halfway</h2>
+<p>A class change and its correction records are one command: it either happened or it did not. Reopen the alert; whatever is still flagged is still to do. Never change a product&#39;s class to make a flag go away when the class was right.</p>
+
+<footer>Vervoro</footer>
+</main>
+</body>
+</html>

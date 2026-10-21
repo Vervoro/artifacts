@@ -152,8 +152,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h3 id="11-charge-lines-and-listings-that-are-not-stock">1.1 Charge lines and listings that are not stock</h3>
 <p>Owner ruling, 21 October 2026: non-stock charges are charge lines, not a product kind.</p>
 <ol>
-<li><strong>A charge line</strong> is a name (1–200 characters), an amount with its currency, and a VAT class (section 11). It sits on a manual order (<a href="../../order-ingestion/spec/#18-manual-orders">ADR-007</a>) and on the invoice made from it (<a href="../../invoicing-and-vat/#what-a-document-holds">ADR-011</a>). It never reserves, picks or moves stock, and never reaches a pick list.</li>
-<li><strong>Delivery is not a charge line.</strong> It stays the order&#39;s delivery charge, and its VAT follows the goods (<a href="../../invoicing-and-vat/#working-out-the-vat">ADR-011</a>).</li>
+<li><strong>A charge line</strong> is a name (1–200 characters), an amount with its currency, and a VAT class (section 11). It sits on a manual order (<a href="../../order-ingestion/spec/#18-manual-orders">ADR-007</a>) and on the invoice made from it (<a href="../../invoicing-and-vat/spec/#4-what-a-document-holds">ADR-011</a>). It never reserves, picks or moves stock, and never reaches a pick list.</li>
+<li><strong>Delivery is not a charge line.</strong> It stays the order&#39;s delivery charge, and its VAT follows the goods (<a href="../../invoicing-and-vat/spec/#7-working-out-the-vat">ADR-011</a>).</li>
 <li><strong>A marketplace listing that is not stock</strong> (a warranty, gift wrap) is marked &quot;not stock&quot; with a VAT class instead of being linked (<a href="../../catalogue-sync/spec/#12-unlinked-listings-and-going-live">ADR-005</a>). It gets no figure; its order lines import as charge lines and never wait for a link.</li>
 <li><strong>No product kind, flag or setting</strong> turns a product into a charge.</li>
 </ol>
@@ -586,7 +586,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>The rate table</strong> is platform data in control, the same for every company, changed only by the operator (<a href="../../runbooks/change-a-vat-rate/">runbook</a>). At launch it holds the UK&#39;s rows. Rows for one country and class never overlap or leave a gap, and a row whose dates have passed is never changed. A temporary rate is rows with their dates. A class a country lacks is not offered there.</li>
 <li><strong>The screen shows the class with the home rate:</strong> &quot;Standard (20%)&quot;, &quot;Zero (0%)&quot;, &quot;Exempt&quot;.</li>
 <li><strong>Zero is not exempt:</strong> a zero-rated sale is taxable at 0% and is on the VAT return; an exempt sale is outside VAT.</li>
-<li><strong>Every order line, charge line, invoice line and purchase order line</strong> stores the country, class and rate it used; a later rate change never rewrites it. Which rate applies to a sale is <a href="../../invoicing-and-vat/#vat-rates-and-classes">ADR-011</a>.</li>
+<li><strong>Every order line, charge line, invoice line and purchase order line</strong> stores the country, class and rate it used; a later rate change never rewrites it. Which rate applies to a sale is <a href="../../invoicing-and-vat/spec/#7-working-out-the-vat">ADR-011</a>.</li>
 <li><strong>The class is the seller&#39;s decision.</strong> Vervoro explains each class and never guesses one.</li>
 <li><em>Later:</em> a <code>product_vat</code> row sets a different class for one country; every other country uses the product&#39;s own.</li>
 </ol>

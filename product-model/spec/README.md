@@ -35,8 +35,8 @@ Everything below is built at launch except these parts, which keep their rules h
 
 Owner ruling, 21 October 2026: non-stock charges are charge lines, not a product kind.
 
-1. **A charge line** is a name (1–200 characters), an amount with its currency, and a VAT class (section 11). It sits on a manual order ([ADR-007](../../order-ingestion/spec/#18-manual-orders)) and on the invoice made from it ([ADR-011](../../invoicing-and-vat/#what-a-document-holds)). It never reserves, picks or moves stock, and never reaches a pick list.
-2. **Delivery is not a charge line.** It stays the order's delivery charge, and its VAT follows the goods ([ADR-011](../../invoicing-and-vat/#working-out-the-vat)).
+1. **A charge line** is a name (1–200 characters), an amount with its currency, and a VAT class (section 11). It sits on a manual order ([ADR-007](../../order-ingestion/spec/#18-manual-orders)) and on the invoice made from it ([ADR-011](../../invoicing-and-vat/spec/#4-what-a-document-holds)). It never reserves, picks or moves stock, and never reaches a pick list.
+2. **Delivery is not a charge line.** It stays the order's delivery charge, and its VAT follows the goods ([ADR-011](../../invoicing-and-vat/spec/#7-working-out-the-vat)).
 3. **A marketplace listing that is not stock** (a warranty, gift wrap) is marked "not stock" with a VAT class instead of being linked ([ADR-005](../../catalogue-sync/spec/#12-unlinked-listings-and-going-live)). It gets no figure; its order lines import as charge lines and never wait for a link.
 4. **No product kind, flag or setting** turns a product into a charge.
 
@@ -223,7 +223,7 @@ Listings and how they are read and matched are [ADR-005](../../catalogue-sync/).
 2. **The rate table** is platform data in control, the same for every company, changed only by the operator ([runbook](../../runbooks/change-a-vat-rate/)). At launch it holds the UK's rows. Rows for one country and class never overlap or leave a gap, and a row whose dates have passed is never changed. A temporary rate is rows with their dates. A class a country lacks is not offered there.
 3. **The screen shows the class with the home rate:** "Standard (20%)", "Zero (0%)", "Exempt".
 4. **Zero is not exempt:** a zero-rated sale is taxable at 0% and is on the VAT return; an exempt sale is outside VAT.
-5. **Every order line, charge line, invoice line and purchase order line** stores the country, class and rate it used; a later rate change never rewrites it. Which rate applies to a sale is [ADR-011](../../invoicing-and-vat/#vat-rates-and-classes).
+5. **Every order line, charge line, invoice line and purchase order line** stores the country, class and rate it used; a later rate change never rewrites it. Which rate applies to a sale is [ADR-011](../../invoicing-and-vat/spec/#7-working-out-the-vat).
 6. **The class is the seller's decision.** Vervoro explains each class and never guesses one.
 7. *Later:* a `product_vat` row sets a different class for one country; every other country uses the product's own.
 

@@ -132,6 +132,15 @@ Rules: [ADR-010 SPEC](../users-and-access/spec/).
 | --- | --- |
 | [Open an operator grant](open-an-operator-grant/) | The operator needs to see a company's screens to help, or to read its old records at the seller's request |
 
+## ADR-011: Invoicing and VAT
+
+Rules: [ADR-011 SPEC](../invoicing-and-vat/spec/). Also: [Change a VAT rate](change-a-vat-rate/) (ADR-003).
+
+| Procedure | When |
+| --- | --- |
+| [Correct or credit an issued invoice](correct-or-credit-an-issued-invoice/) | A refund is recorded on an order Vervoro invoiced, or an issued invoice is wrong; run by the seller's Manager |
+| [Settle a VAT difference](settle-a-vat-difference/) | A VAT difference from the marketplace flags an order and blocks its invoice; run by the seller's Manager |
+
 ## ADR-013: Sign-in
 
 Rules: [ADR-013 SPEC](../sign-in/spec/).

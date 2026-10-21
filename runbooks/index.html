@@ -349,6 +349,24 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>The operator needs to see a company&#39;s screens to help, or to read its old records at the seller&#39;s request</td>
 </tr>
 </tbody></table></div>
+<h2 id="adr-011-invoicing-and-vat">ADR-011: Invoicing and VAT</h2>
+<p>Rules: <a href="../invoicing-and-vat/spec/">ADR-011 SPEC</a>. Also: <a href="change-a-vat-rate/">Change a VAT rate</a> (ADR-003).</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Procedure</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="correct-or-credit-an-issued-invoice/">Correct or credit an issued invoice</a></td>
+<td>A refund is recorded on an order Vervoro invoiced, or an issued invoice is wrong; run by the seller&#39;s Manager</td>
+</tr>
+<tr>
+<td><a href="settle-a-vat-difference/">Settle a VAT difference</a></td>
+<td>A VAT difference from the marketplace flags an order and blocks its invoice; run by the seller&#39;s Manager</td>
+</tr>
+</tbody></table></div>
 <h2 id="adr-013-sign-in">ADR-013: Sign-in</h2>
 <p>Rules: <a href="../sign-in/spec/">ADR-013 SPEC</a>.</p>
 <div class="table-wrap"><table>
