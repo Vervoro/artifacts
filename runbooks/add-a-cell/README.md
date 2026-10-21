@@ -11,7 +11,7 @@
 
 1. Create the database in the EU region.
 2. In SQL, create the runtime, lifecycle and definer-owner roles, each `NOBYPASSRLS`; the definer owner `NOLOGIN`. Never create a role in the Neon console, CLI or API.
-3. Run every migration, including the next three months' partitions.
+3. Run every migration, including the next three months' partitions and the catalogue revokes. Where Neon refuses a revoke, the lint warns and the cell may still be registered; the query check is the fence ([SPEC 4](../../database-architecture/spec/#4-functions)).
 4. Seed the canary company.
 5. Register the cell in control as `closed`, with a cap of 200. Its sweeper exists from this row on, and the audit now covers it.
 6. Create its Hyperdrive configuration on the direct endpoint with caching **off**, add the binding to the Worker, and deploy.

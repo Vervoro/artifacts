@@ -229,7 +229,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Idempotency keys</td>
-<td>Unique per <code>(company_id, key)</code></td>
+<td>Unique per <code>(company_id, key)</code>, in an unpartitioned table where the rows they guard are partitioned (<a href="#5-declaring-tables">section 5</a>)</td>
 </tr>
 </tbody></table></div>
 <h2 id="3-roles">3. Roles</h2>
@@ -250,7 +250,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Every database</td>
 <td>Neon, with the project</td>
 <td>Yes</td>
-<td>Yes (Neon makes it a member of <code>neon_superuser</code>)</td>
+<td>Only if it holds <code>BYPASSRLS</code> itself. Neon makes it a member of <code>neon_superuser</code>, but Postgres does not pass <code>BYPASSRLS</code> on through membership, so <code>FORCE</code> binds it otherwise (checked on the project; owner ruling, 21 October 2026)</td>
 <td>Owns every table. Migrations, partitions, creating the other roles</td>
 <td>The CI migration job only</td>
 </tr>
@@ -331,7 +331,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><code>app.due_companies(limit)</code></td>
 <td><code>SECURITY DEFINER</code>, allow-listed</td>
 <td>Runtime</td>
-<td>Returns <code>(company_id, next_due_at)</code> from <code>due</code> for companies due now, earliest first</td>
+<td>Returns <code>(company_id, next_due_at)</code> from <code>due</code> for companies due now, earliest first, plus one row with no company holding the earliest future <code>next_due_at</code>, so the sweeper can set its alarm (owner ruling, 21 October 2026)</td>
 </tr>
 <tr>
 <td><code>app.buyer_ref_companies(hash)</code></td>
@@ -346,9 +346,10 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><code>search_path</code> pinned in the function definition.</li>
 <li>Return ids and times only.</li>
 <li><code>EXECUTE</code> granted to the runtime role only.</li>
+<li>The owner is a member of the definer owner only while a migration hands it a function, and the membership is revoked straight after: a member would inherit the definer owner&#39;s read policies on <code>due</code> and <code>buyer_ref</code>, which see every company (owner ruling, 21 October 2026).</li>
 </ol>
 <p>Every other <code>SECURITY DEFINER</code> function is refused by the lint.</p>
-<p><strong>SQL-executing functions</strong> are revoked from <code>PUBLIC</code> in every cell: <code>query_to_xml</code>, <code>query_to_xmlschema</code>, <code>query_to_xml_and_xmlschema</code>, <code>cursor_to_xml</code>, <code>cursor_to_xmlschema</code>, <code>table_to_xml</code>, <code>table_to_xmlschema</code> and <code>table_to_xml_and_xmlschema</code>. Extensions that run SQL given as text, such as <code>dblink</code>, are never installed. <code>pg_stats</code> is revoked from <code>PUBLIC</code> too: its sample values would show other companies&#39; data. They would let SQL hidden in a string reach <code>set_config</code>.</p>
+<p><strong>SQL-executing functions and <code>pg_stats</code>.</strong> <code>query_to_xml</code>, <code>query_to_xmlschema</code>, <code>query_to_xml_and_xmlschema</code>, <code>cursor_to_xml</code>, <code>cursor_to_xmlschema</code>, <code>table_to_xml</code>, <code>table_to_xmlschema</code> and <code>table_to_xml_and_xmlschema</code> would let SQL hidden in a string reach <code>set_config</code>; <code>pg_stats</code> would show other companies&#39; sample values. Every cell tries to revoke them from <code>PUBLIC</code>. On Neon the owner is no superuser and the platform may refuse the revoke; no revoke is then needed (owner ruling, 21 October 2026): the lint reports it as a warning, and the query check, which refuses every function off the allow-list and every catalogue table, is the fence (<a href="#6-guard-rails">section 6</a>). Extensions that run SQL given as text, such as <code>dblink</code>, are never installed.</p>
 <h2 id="5-declaring-tables">5. Declaring tables</h2>
 <p>Modules never write <code>CREATE TABLE</code>. They declare tables through <code>tenantTable()</code>, and the data layer generates everything tenancy needs.</p>
 <div class="table-wrap"><table>
@@ -371,7 +372,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Field tags</strong> drive buyer anonymisation, a buyer&#39;s erasure, AI masking and export redaction from one declaration.</li>
 <li><strong>Append-only tables</strong> have <code>UPDATE</code>, <code>DELETE</code> and <code>TRUNCATE</code> revoked from the runtime role. At launch: the stock ledger, the order hold table (every hold and release is a row; the current set is read from it, <a href="../../order-ingestion/">ADR-007</a>), the outbox and <code>audit_log</code>. Rows leave only through the slice operation, as the lifecycle role, or by a whole month detached after the archiver verified it (<a href="../../data-retention/">ADR-002</a>).</li>
 <li><strong>Partitions.</strong> A partition named directly ignores its parent&#39;s policies and grants, because partitions follow Postgres&#39;s inheritance rules (<a href="https://www.postgresql.org/docs/17/ddl-inherit.html">inheritance</a>, <a href="https://www.postgresql.org/docs/17/ddl-partitioning.html">partitioning</a>). So every partition gets its own <code>ENABLE</code>, <code>FORCE</code> and policy, and no grant to the runtime or lifecycle role. No default privileges grant the runtime role anything. Only the monthly migration run names a partition.</li>
-<li><strong>Partitioned by month:</strong> <code>audit_log</code>, <code>event_log</code>, orders, the stock ledger and outbound sends.</li>
+<li><strong>Partitioned by month:</strong> <code>audit_log</code>, <code>event_log</code>, orders, the stock ledger and outbound sends. A unique index on a partitioned table must hold the partition column, so outbound sends keep their idempotency keys in an unpartitioned <code>(company_id, key)</code> table kept for the retention window. Until that table exists, outbound sends are unpartitioned (owner ruling, 21 October 2026).</li>
 <li><strong>Logs:</strong> one table per retention class. <code>audit_log</code> holds security and access events, kept at least a year for live companies. <code>event_log</code> holds module activity, kept 90 days.</li>
 <li><strong>Operational state</strong> (rate buckets, leases, nonces, staging) lives in tenant tables like everything else.</li>
 <li><strong>Secrets:</strong> one table, <code>secrets(company_id, purpose)</code>.</li>
@@ -419,8 +420,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td>Change control</td>
 <td>Source control</td>
-<td>A change to the isolation code (the table helper, the functions in section 4, the policies, the query builder and its function allow-list, the commit check, the lint and the cross-company allow-list) needs a person&#39;s approval before it merges</td>
-<td>Merge blocked</td>
+<td>A change to the isolation code (the table helper, the functions in section 4, the policies, the query builder and its function allow-list, the commit check, the lint and the cross-company allow-list) needs a person&#39;s approval before it merges. The approvers are named in a code-owners file; enforcing their review is off for now (owner ruling, 21 October 2026)</td>
+<td>Merge blocked once enforced</td>
 </tr>
 </tbody></table></div>
 <p><strong>The query builder</strong> (owner ruling, 21 October 2026). Modules never write SQL text. They build every query with a typed query builder (<a href="https://kysely.dev/">Kysely</a>) that the data layer hands them inside an entered transaction, typed from the tables they declared with <code>tenantTable()</code>. The builder they receive:</p>
@@ -433,7 +434,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ol>
 <p><strong>The query check</strong> runs on every module query at run time, because types and lint can be bypassed (a cast, a name built at run time). A plugin on the builder walks each query&#39;s tree before it reaches the database and refuses, failing closed, any raw-SQL node, any function off the allow-list and any table or view outside the module&#39;s set. A refusal pages the operator.</p>
 <p>Raw SQL exists only in the kernel&#39;s data layer (entering, the commit check, the lock) and in migrations, both under change control. A query the builder cannot express is solved by extending the builder or adding a view by migration, never by raw SQL in a module.</p>
-<p>The commit check stays as the second fence, and SQL-executing functions stay revoked (<a href="#4-functions">section 4</a>). The foundation&#39;s stock ledger trigger is not module SQL: a migration defines it, and it only applies a ledger entry to its balances.</p>
+<p>The commit check stays as the second fence, and SQL-executing functions are revoked where the platform allows (<a href="#4-functions">section 4</a>). The foundation&#39;s stock ledger trigger is not module SQL: a migration defines it, and it only applies a ledger entry to its balances.</p>
 <h3 id="61-catalogue-lint">6.1 Catalogue lint</h3>
 <p>Fails if any table or partition in a cell has:</p>
 <ol>
@@ -450,9 +451,9 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>default privileges for the runtime role;</li>
 <li>a runtime or lifecycle role with <code>BYPASSRLS</code>, or any role but the owner in <code>neon_superuser</code>;</li>
 <li><code>app.company()</code> not <code>STABLE</code> and <code>PARALLEL SAFE</code>, or labelled <code>SECURITY DEFINER</code>;</li>
-<li>the runtime role able to execute a function in <a href="#4-functions">section 4</a>&#39;s revoked list.</li>
+<li>an extension that runs SQL given as text, such as <code>dblink</code>. The runtime role still able to execute a function in <a href="#4-functions">section 4</a>&#39;s list, or to read <code>pg_stats</code>, is a <strong>warning</strong>, not a failure, where the platform refused the revoke (owner ruling, 21 October 2026).</li>
 </ol>
-<p>Named exceptions: the <code>tenant</code> table, keyed by its own <code>id</code>, and the definer owner&#39;s read policies on <code>due</code> and <code>buyer_ref</code>.</p>
+<p>Named exceptions: the <code>tenant</code> table, keyed by its own <code>id</code>; the definer owner&#39;s read policies on <code>due</code> and <code>buyer_ref</code>; and each cell&#39;s migration ledger, which is the owner&#39;s alone, in its own schema, with no grants (owner ruling, 21 October 2026).</p>
 <h2 id="7-control-database-and-routing">7. Control database and routing</h2>
 <p>Control is its own database on its own compute. A cell credential can never read the login directory, and restoring a cell can never rewind control.</p>
 <p><strong>Control holds, and nothing else:</strong></p>
@@ -465,7 +466,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </thead>
 <tbody><tr>
 <td>Company registry</td>
-<td>Plan (trial or paid), status, subscription, tombstones, <code>database_id</code></td>
+<td>Plan (trial or paid), tombstones and <code>database_id</code>. No stored status: a company&#39;s state is computed from dates (<a href="../../billing-and-plans/">ADR-012</a>), and billing adds its own fields (owner ruling, 21 October 2026)</td>
 </tr>
 <tr>
 <td>Database registry</td>
@@ -512,7 +513,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ol>
 <li>Write the company side first, in one cell transaction, with an outbox note naming the control write still needed.</li>
 <li>Then write control. The write is idempotent.</li>
-<li>If the second write fails, the sweeper retries the note until it succeeds.</li>
+<li>If the second write fails, the sweeper retries the note until it succeeds. The note is an ordinary outbox note whose handler writes control (<a href="#the-outbox">section 9</a>).</li>
 <li>No transaction spans two databases.</li>
 <li>Repairs run as the runtime role and only rewrite memberships, directory and registry rows. Logins, sign-in methods, recovery codes and sessions are written only by the sign-in Worker. At sign-up the login exists before the company does.</li>
 </ol>
@@ -600,7 +601,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>An hourly scheduled trigger reads control&#39;s database registry and nudges the sweeper of every database in state <code>open</code>, <code>closed</code> or <code>draining</code>. This is the safety net for a lost alarm.</li>
 </ol>
 <h3 id="the-due-table">The <code>due</code> table</h3>
-<p><code>due(company_id, kind, next_due_at)</code> holds ids, kinds and times only. It is a tenant table, indexed on <code>next_due_at</code>.</p>
+<p><code>due(company_id, kind, next_due_at)</code> holds ids, kinds and times only. It is a tenant table, indexed on <code>(company_id, next_due_at)</code> like every other index; the sweeper&#39;s one cross-company read scans a table of a few rows per company (owner ruling, 21 October 2026).</p>
 <ol>
 <li>A command that creates future work upserts its <code>due</code> row in its own transaction, keeping the earlier time.</li>
 <li>The job that does the work sets the next time, or deletes the row, in its own transaction.</li>
@@ -619,12 +620,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tbody><tr>
 <td>Outbox delivery</td>
 <td>Kernel</td>
-<td>A note has no receipt for one of its handlers</td>
-</tr>
-<tr>
-<td>Control repair</td>
-<td>Kernel</td>
-<td>A cross-database note&#39;s control write has not landed</td>
+<td>A note has no receipt for one of its handlers. A control write still needed is an outbox note too, whose handler runs outside the transaction: one kind, not two (owner ruling, 21 October 2026)</td>
 </tr>
 <tr>
 <td>Egress send and read-back</td>
@@ -797,8 +793,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p><strong>Audit, at every deploy and every night,</strong> over every database and branch in the Neon project and every Hyperdrive configuration in the account:</p>
 <ol>
 <li>The only login roles are the owner, runtime and lifecycle roles, plus the sign-in role on control.</li>
-<li>The runtime role has no right on the login tables. Only the owner has <code>BYPASSRLS</code> or is in <code>neon_superuser</code>. No runtime or lifecycle role owns a table.</li>
-<li>The definer owner cannot log in, is not in <code>neon_superuser</code>, and has only the rights in <a href="#3-roles">section 3</a>.</li>
+<li>The runtime role has no right on the login tables. No role but the owner may hold <code>BYPASSRLS</code> or be in <code>neon_superuser</code>. No runtime or lifecycle role owns a table.</li>
+<li>The definer owner cannot log in, is not in <code>neon_superuser</code>, has no members, and has only the rights in <a href="#3-roles">section 3</a>.</li>
 <li>Every Hyperdrive configuration has caching off.</li>
 <li>The catalogue lint passes on the live catalogue, and the next two months&#39; partitions exist.</li>
 <li>The history window is 7 days, scheduled snapshots are kept 30 days, and no manual snapshot exists.</li>
@@ -850,7 +846,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="https://neon.com/docs/guides/backup-restore">Backup and restore</a></td>
 </tr>
 <tr>
-<td>Roles created in the Neon console, CLI or API join <code>neon_superuser</code>, which has <code>BYPASSRLS</code>; roles created in SQL get only what is granted</td>
+<td>Roles created in the Neon console, CLI or API join <code>neon_superuser</code>, which has <code>BYPASSRLS</code>; a member does not inherit it but can switch into it. Roles created in SQL get only what is granted</td>
 <td>Every role is created in SQL; the audit checks it</td>
 <td><a href="https://neon.com/docs/manage/roles">Neon roles</a></td>
 </tr>
@@ -1014,7 +1010,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td>Roles</td>
 <td>CI and production</td>
-<td>The Worker binds only the runtime role; only the owner has <code>BYPASSRLS</code> or <code>neon_superuser</code>; only the operations job holds the lifecycle credential; a serving login with a bypassing membership refuses to start</td>
+<td>The Worker binds only the runtime role; no role but the owner has <code>BYPASSRLS</code> or <code>neon_superuser</code>; only the operations job holds the lifecycle credential; a serving login with a bypassing membership refuses to start</td>
 <td>3</td>
 </tr>
 <tr>
@@ -1122,7 +1118,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td>9</td>
 <td>Who writes and clears <code>due</code>, and which kinds exist?</td>
-<td>The command that creates the work writes it; the job clears it; launch kinds listed</td>
+<td>The command that creates the work writes it; the job clears it; launch kinds listed, control repairs being outbox notes</td>
 <td><a href="#the-due-table">9</a></td>
 </tr>
 <tr>
@@ -1175,33 +1171,33 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </tbody></table></div>
 <h2 id="how-to-check-it-was-built-right">How to check it was built right</h2>
-<p>For someone reviewing code an AI wrote. Each line says where to look.</p>
+<p>For someone reviewing code an AI wrote. Each line says where to look, and when it can be ticked: <strong>[Skeleton]</strong> once the database layer and the app exist, <strong>[Before launch]</strong> once the deployed Workers, the sweeper and the operations job do (owner ruling, 21 October 2026).</p>
 <ul>
-<li><input disabled="" type="checkbox"> <strong>Cell catalogue:</strong> every table and partition has <code>relrowsecurity</code> and <code>relforcerowsecurity</code> true (<code>pg_class</code>).</li>
-<li><input disabled="" type="checkbox"> <strong>Cell catalogue:</strong> every policy&#39;s expression is exactly <code>company_id = app.company()</code>, in both <code>qual</code> and <code>with_check</code> (<code>pg_policies</code>).</li>
-<li><input disabled="" type="checkbox"> <strong>Cell catalogue:</strong> every primary key, unique key, foreign key and index starts with <code>company_id</code> (<code>pg_index</code>, <code>pg_constraint</code>).</li>
-<li><input disabled="" type="checkbox"> <strong>Cell catalogue:</strong> every foreign key to <code>tenant</code> is <code>ON DELETE CASCADE</code>; no other foreign key is single-column.</li>
-<li><input disabled="" type="checkbox"> <strong>Roles:</strong> only the owner, runtime and lifecycle roles can log in, plus sign-in on control; only the owner has <code>rolbypassrls</code> (<code>pg_roles</code>, <code>pg_auth_members</code>).</li>
-<li><input disabled="" type="checkbox"> <strong>Roles:</strong> the runtime role is not a member of any role (<code>pg_auth_members</code>), and the app connects as it directly, with no <code>SET ROLE</code> anywhere in the data layer.</li>
-<li><input disabled="" type="checkbox"> <strong>Grants:</strong> the runtime role has no <code>UPDATE</code>, <code>DELETE</code> or <code>TRUNCATE</code> on the stock ledger, order holds, outbox or <code>audit_log</code> (<code>information_schema.role_table_grants</code>).</li>
-<li><input disabled="" type="checkbox"> <strong>Grants:</strong> no partition has a grant, and the runtime role cannot execute <code>query_to_xml</code> (<code>has_function_privilege</code>).</li>
-<li><input disabled="" type="checkbox"> <strong>Functions:</strong> exactly three <code>SECURITY DEFINER</code> functions in a cell, each with a <code>search_path</code> setting, owned by a role that cannot log in (<code>pg_proc.prosecdef</code>, <code>proconfig</code>).</li>
-<li><input disabled="" type="checkbox"> <strong>Functions:</strong> <code>app.company()</code> is <code>STABLE</code>, <code>PARALLEL SAFE</code>, not a definer, and raises when unset: run <code>select app.company()</code> in a fresh transaction.</li>
-<li><input disabled="" type="checkbox"> <strong>Data layer:</strong> every transaction&#39;s first statement is <code>enter_company</code> or <code>open_tenant</code>; there is no autocommit path for company work.</li>
-<li><input disabled="" type="checkbox"> <strong>Data layer:</strong> no module imports the query builder&#39;s raw-SQL helpers (<code>sql</code>, <code>raw</code>) or a database driver; search the module packages. The function allow-list does not hold <code>set_config</code>, <code>current_setting</code> or any <code>app.*</code> function.</li>
-<li><input disabled="" type="checkbox"> <strong>Data layer:</strong> the commit check runs before every commit, read-only transactions included, and a mismatch pages and closes egress.</li>
-<li><input disabled="" type="checkbox"> <strong>Data layer:</strong> no code path keeps one transaction open across two companies, or reads control through a cell&#39;s transaction.</li>
-<li><input disabled="" type="checkbox"> <strong>Worker configuration:</strong> the app Worker holds only runtime credentials; no serving process holds the owner or lifecycle credential, or runs migrations.</li>
-<li><input disabled="" type="checkbox"> <strong>Worker configuration:</strong> one Hyperdrive binding per database in control&#39;s registry, none a placeholder, each with caching off.</li>
-<li><input disabled="" type="checkbox"> <strong>Control:</strong> holds no business table; the login directory stores an email HMAC, never an address; the erasure register, sync epoch and migration summary exist.</li>
-<li><input disabled="" type="checkbox"> <strong>Control:</strong> the runtime role has no right on logins, sign-in methods, recovery codes or sessions.</li>
-<li><input disabled="" type="checkbox"> <strong>Routing:</strong> every request reaches its database through <code>forCompany</code>, and a request for company A with a session for B throws.</li>
-<li><input disabled="" type="checkbox"> <strong>Sign-up:</strong> writes <code>open_tenant</code>, the company rows and the outbox note in one cell transaction, then control; it runs no migration.</li>
-<li><input disabled="" type="checkbox"> <strong>Sweeper:</strong> no background job loops over the company registry; each writer upserts <code>due</code>; the hourly trigger nudges every database in control&#39;s registry.</li>
-<li><input disabled="" type="checkbox"> <strong>Slice operation:</strong> erase, export, move and restore run in the operations job as the lifecycle role, never the owner.</li>
-<li><input disabled="" type="checkbox"> <strong>CI:</strong> the catalogue lint runs over all modules on real Postgres and is green; the isolation suite covers every tenant table.</li>
-<li><input disabled="" type="checkbox"> <strong>Production:</strong> the nightly audit and the canary run, and a seeded failure in staging pages and closes egress.</li>
-<li><input disabled="" type="checkbox"> <strong>Source control:</strong> a change to the isolation code needs a named approver before it merges.</li>
+<li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Cell catalogue:</strong> every table and partition has <code>relrowsecurity</code> and <code>relforcerowsecurity</code> true (<code>pg_class</code>).</li>
+<li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Cell catalogue:</strong> every policy&#39;s expression is exactly <code>company_id = app.company()</code>, in both <code>qual</code> and <code>with_check</code> (<code>pg_policies</code>).</li>
+<li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Cell catalogue:</strong> every primary key, unique key, foreign key and index starts with <code>company_id</code> (<code>pg_index</code>, <code>pg_constraint</code>).</li>
+<li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Cell catalogue:</strong> every foreign key to <code>tenant</code> is <code>ON DELETE CASCADE</code>; no other foreign key is single-column.</li>
+<li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Roles:</strong> only the owner, runtime and lifecycle roles can log in, plus sign-in on control; no role but the owner has <code>rolbypassrls</code> (<code>pg_roles</code>, <code>pg_auth_members</code>).</li>
+<li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Roles:</strong> the runtime role is not a member of any role (<code>pg_auth_members</code>), and the app connects as it directly, with no <code>SET ROLE</code> anywhere in the data layer.</li>
+<li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Grants:</strong> the runtime role has no <code>UPDATE</code>, <code>DELETE</code> or <code>TRUNCATE</code> on the stock ledger, order holds, outbox or <code>audit_log</code> (<code>information_schema.role_table_grants</code>).</li>
+<li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Grants:</strong> no partition has a grant; no <code>dblink</code> or similar extension is installed (<code>pg_extension</code>). Where <code>has_function_privilege</code> shows the runtime role can still execute <code>query_to_xml</code>, the query check&#39;s tests must refuse it.</li>
+<li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Functions:</strong> exactly three <code>SECURITY DEFINER</code> functions in a cell, each with a <code>search_path</code> setting, owned by a role that cannot log in (<code>pg_proc.prosecdef</code>, <code>proconfig</code>).</li>
+<li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Functions:</strong> <code>app.company()</code> is <code>STABLE</code>, <code>PARALLEL SAFE</code>, not a definer, and raises when unset: run <code>select app.company()</code> in a fresh transaction.</li>
+<li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Data layer:</strong> every transaction&#39;s first statement is <code>enter_company</code> or <code>open_tenant</code>; there is no autocommit path for company work.</li>
+<li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Data layer:</strong> no module imports the query builder&#39;s raw-SQL helpers (<code>sql</code>, <code>raw</code>) or a database driver; search the module packages. The function allow-list does not hold <code>set_config</code>, <code>current_setting</code> or any <code>app.*</code> function.</li>
+<li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Data layer:</strong> the commit check runs before every commit, read-only transactions included, and a mismatch pages and closes egress.</li>
+<li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Data layer:</strong> no code path keeps one transaction open across two companies, or reads control through a cell&#39;s transaction.</li>
+<li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Worker configuration:</strong> the app Worker holds only runtime credentials; no serving process holds the owner or lifecycle credential, or runs migrations.</li>
+<li><input disabled="" type="checkbox"> <strong>[Before launch]</strong> <strong>Worker configuration:</strong> one Hyperdrive binding per database in control&#39;s registry, none a placeholder, each with caching off.</li>
+<li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Control:</strong> holds no business table; the login directory stores an email HMAC, never an address; the erasure register, sync epoch and migration summary exist.</li>
+<li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Control:</strong> the runtime role has no right on logins, sign-in methods, recovery codes or sessions.</li>
+<li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Routing:</strong> every request reaches its database through <code>forCompany</code>, and a request for company A with a session for B throws.</li>
+<li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Sign-up:</strong> writes <code>open_tenant</code>, the company rows and the outbox note in one cell transaction, then control; it runs no migration.</li>
+<li><input disabled="" type="checkbox"> <strong>[Before launch]</strong> <strong>Sweeper:</strong> no background job loops over the company registry; each writer upserts <code>due</code>; the hourly trigger nudges every database in control&#39;s registry.</li>
+<li><input disabled="" type="checkbox"> <strong>[Before launch]</strong> <strong>Slice operation:</strong> erase, export, move and restore run in the operations job as the lifecycle role, never the owner.</li>
+<li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>CI:</strong> the catalogue lint runs over all modules on real Postgres and is green; the isolation suite covers every tenant table.</li>
+<li><input disabled="" type="checkbox"> <strong>[Before launch]</strong> <strong>Production:</strong> the nightly audit and the canary run, and a seeded failure in staging pages and closes egress.</li>
+<li><input disabled="" type="checkbox"> <strong>[Before launch]</strong> <strong>Source control:</strong> a change to the isolation code needs a named approver before it merges.</li>
 </ul>
 
 <footer>Vervoro</footer>

@@ -377,7 +377,7 @@ Checked against the official sources on 18 October 2026.
 - Without the buyer's email, carriers get only a phone number for delivery notices.
 - Delivery dates must be tracked to use the full 30 days; without them, orders lose buyer data earlier.
 - eBay deletion notices for every eBay user cost one indexed query per cell each.
-- A second non-tenant table per cell, `buyer_ref`, beside `due`.
+- A second lookup table per cell, `buyer_ref`, beside `due`: a tenant table like any other, read across companies only through an allow-listed function that returns company ids (ADR-001).
 - The security schedule is a standing workload for one operator: monthly scans, quarterly reviews, a yearly test.
 
 ## Alternatives considered

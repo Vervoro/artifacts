@@ -810,7 +810,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>Without the buyer&#39;s email, carriers get only a phone number for delivery notices.</li>
 <li>Delivery dates must be tracked to use the full 30 days; without them, orders lose buyer data earlier.</li>
 <li>eBay deletion notices for every eBay user cost one indexed query per cell each.</li>
-<li>A second non-tenant table per cell, <code>buyer_ref</code>, beside <code>due</code>.</li>
+<li>A second lookup table per cell, <code>buyer_ref</code>, beside <code>due</code>: a tenant table like any other, read across companies only through an allow-listed function that returns company ids (ADR-001).</li>
 <li>The security schedule is a standing workload for one operator: monthly scans, quarterly reviews, a yearly test.</li>
 </ul>
 <h2 id="alternatives-considered">Alternatives considered</h2>

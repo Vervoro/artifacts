@@ -90,7 +90,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ol>
 <li>Create the database in the EU region.</li>
 <li>In SQL, create the runtime, lifecycle and definer-owner roles, each <code>NOBYPASSRLS</code>; the definer owner <code>NOLOGIN</code>. Never create a role in the Neon console, CLI or API.</li>
-<li>Run every migration, including the next three months&#39; partitions.</li>
+<li>Run every migration, including the next three months&#39; partitions and the catalogue revokes. Where Neon refuses a revoke, the lint warns and the cell may still be registered; the query check is the fence (<a href="../../database-architecture/spec/#4-functions">SPEC 4</a>).</li>
 <li>Seed the canary company.</li>
 <li>Register the cell in control as <code>closed</code>, with a cap of 200. Its sweeper exists from this row on, and the audit now covers it.</li>
 <li>Create its Hyperdrive configuration on the direct endpoint with caching <strong>off</strong>, add the binding to the Worker, and deploy.</li>
