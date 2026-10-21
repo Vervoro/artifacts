@@ -5,7 +5,7 @@
 | **Built** | At launch |
 | **Record** | [ADR-010](../../users-and-access/), rules in [SPEC 7](../../users-and-access/spec/#7-operator-access-to-a-company) |
 | **Who runs it** | The operator, to look at a company's screens when helping a seller, or to read old records in a restore branch at the seller's request |
-| **Role or credential** | The operator console, signed in with a passkey on a managed laptop ([ADR-013 SPEC 9](../../sign-in/spec/#9-operators)). The runtime role, under row-level security |
+| **Role or credential** | The operator console, signed in with a passkey on a managed laptop ([ADR-013 SPEC 10](../../sign-in/spec/#10-operators)). The runtime role, under row-level security |
 
 A repair (rebuilding a balance, re-importing an order, an export, move or restore) needs no grant: run it as its recorded command, which writes its own audit entry.
 

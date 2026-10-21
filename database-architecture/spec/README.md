@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-001: Multi-tenant database architecture](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-001-multi-tenant-database-architecture) |
-| **Date** | 20 October 2026; hosting reviewed 21 October 2026 |
+| **Date** | 20 October 2026; hosting reviewed 21 October 2026; sign-in data aligned with Better Auth ([ADR-013](../../sign-in/)) 21 October 2026 |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-001 from. Each section is a rule set, a table or a list of states. The record decides; this page says exactly how. Where this page and the ADR disagree, the ADR wins and this page is fixed. The words used are defined in the [map and glossary](../../guide/).
@@ -68,9 +68,9 @@ A move or restore changes the source row first, so a stale route to the old data
 | Role | Where | Created by | Can log in | Bypasses RLS | Rights | Credential held by |
 | --- | --- | --- | --- | --- | --- | --- |
 | **Owner** | Every database | Neon, with the project | Yes | Only if it holds `BYPASSRLS` itself. Neon makes it a member of `neon_superuser`, but Postgres does not pass `BYPASSRLS` on through membership, so `FORCE` binds it otherwise (checked on the project; owner ruling, 21 October 2026) | Owns every table. Migrations, partitions, creating the other roles | The CI migration job only |
-| **Runtime** | Every database | SQL | Yes, as itself | No (`NOBYPASSRLS`) | `SELECT, INSERT, UPDATE, DELETE` on tenant tables, minus the append-only revoke. `SELECT` on `tenant`. No right on control's login tables. Owns nothing | The app Worker, through Hyperdrive |
+| **Runtime** | Every database | SQL | Yes, as itself | No (`NOBYPASSRLS`) | `SELECT, INSERT, UPDATE, DELETE` on tenant tables, minus the append-only revoke. `SELECT` on `tenant`. No usage on control's `auth` and `auth_policy` schemas. Owns nothing | The app Worker, through Hyperdrive |
 | **Lifecycle** | Every database | SQL | Yes | No | Reads and deletes through parent tables for the slice operation, including append-only tables. Enters the states in [section 1](#tenant-states). No DDL. Owns nothing | The operations job only, never a serving Worker |
-| **Sign-in** | Control only | SQL | Yes | No | Alone reads and writes logins, sign-in methods, recovery codes and sessions ([ADR-013 SPEC 6](../../sign-in/spec/#6-the-sign-in-worker)). Owns nothing | The sign-in Worker, through its own Hyperdrive configuration |
+| **Sign-in** | Control only | SQL | Yes | No | `SELECT, INSERT, UPDATE, DELETE` on the `auth` schema (Better Auth's tables) and the `auth_policy` schema (Vervoro's sign-in policy tables); `INSERT` on the platform security log; nothing else ([ADR-013 SPEC 8](../../sign-in/spec/#8-the-sign-in-worker)). Owns nothing; the owner role creates both schemas by migration | The sign-in Worker, through its own Hyperdrive configuration |
 | **Definer owner** | Every cell | SQL | No | No | Owns the three allow-listed functions. Its own read policy on `due` and `buyer_ref`; insert on `tenant` | Nobody |
 
 Rules:
@@ -168,7 +168,9 @@ Named exceptions: the `tenant` table, keyed by its own `id`; the definer owner's
 
 ## 7. Control database and routing
 
-Control is its own database on its own compute. A cell credential can never read the login directory, and restoring a cell can never rewind control.
+Control is its own database on its own compute. A cell credential can never read sign-in data, and restoring a cell can never rewind control.
+
+**Three kinds of data, kept apart:** sign-in data (the `auth` and `auth_policy` schemas, the sign-in role only), platform data (everything else in control, the runtime role), and company data (the cells). Sign-in data is never copied into a cell; a company's users table keeps its own copy of the person's address and name.
 
 **Control holds, and nothing else:**
 
@@ -176,7 +178,7 @@ Control is its own database on its own compute. A cell credential can never read
 | --- | --- |
 | Company registry | Plan (trial or paid), tombstones and `database_id`. No stored status: a company's state is computed from dates ([ADR-012](../../billing-and-plans/)), and billing adds its own fields (owner ruling, 21 October 2026) |
 | Database registry | `database(id, region, kind shared or dedicated, state open, closed or draining, cap)` |
-| Login directory | Logins, sign-in methods, recovery codes, sessions ([ADR-013 SPEC 1](../../sign-in/spec/#1-the-login)); only the sign-in role touches these |
+| Sign-in data | Better Auth's tables in the `auth` schema (logins with their email address and name, sessions, passwords, passkeys, authenticators, backup codes, verifications, rate counts) and Vervoro's sign-in policy tables in `auth_policy` ([ADR-013 SPEC 2](../../sign-in/spec/#2-the-login-and-its-data)); only the sign-in role touches these |
 | Memberships and operator data | Memberships, operator accounts and grants. Written by the runtime role |
 | External directory | Marketplace seller id → company |
 | Erasure register | Every buyer erasure and company tombstone, by id and time only. Also written, entry by entry, to an append-only log in object storage, so a restore of control cannot lose an erasure |
@@ -184,7 +186,7 @@ Control is its own database on its own compute. A cell credential can never read
 | Platform data | Settings, the platform security log, shared marketplace quotas, usage rollups, alerts |
 | Migration summary | Per database, the version the last deploy reached ([section 12](#12-operations)) |
 
-**Emails in control** are stored only as an HMAC of the normalised address, keyed by a secret held outside Postgres by the sign-in Worker. The address lives only in the company's own users table.
+**Emails in control** are stored readable, once per login, in Better Auth's user table in the `auth` schema, reachable only by the sign-in role; storage encryption covers it at rest and control's backups hold it for their 30 days. No outside identity service holds it ([ADR-009](../../buyer-data/)). Each company's users table holds its own copy.
 
 **Routing:**
 
@@ -199,7 +201,7 @@ Control is its own database on its own compute. A cell credential can never read
 2. Then write control. The write is idempotent.
 3. If the second write fails, the sweeper retries the note until it succeeds. The note is an ordinary outbox note whose handler writes control ([section 9](#the-outbox)).
 4. No transaction spans two databases.
-5. Repairs run as the runtime role and only rewrite memberships, directory and registry rows. Logins, sign-in methods, recovery codes and sessions are written only by the sign-in Worker. At sign-up the login exists before the company does.
+5. Repairs run as the runtime role and only rewrite memberships, directory and registry rows. Sign-in data is written only by the sign-in Worker. At sign-up the login exists before the company does.
 
 ## 8. Adding companies and databases
 
@@ -384,7 +386,7 @@ CI proves the schema it builds. These prove the databases running, because a con
 **Audit, at every deploy and every night,** over every database and branch in the Neon project and every Hyperdrive configuration in the account:
 
 1. The only login roles are the owner, runtime and lifecycle roles, plus the sign-in role on control.
-2. The runtime role has no right on the login tables. No role but the owner may hold `BYPASSRLS` or be in `neon_superuser`. No runtime or lifecycle role owns a table.
+2. The runtime role has no usage on the `auth` and `auth_policy` schemas; the sign-in role has no right outside them but its insert on the security log. No role but the owner may hold `BYPASSRLS` or be in `neon_superuser`. No runtime or lifecycle role owns a table.
 3. The definer owner cannot log in, is not in `neon_superuser`, has no members, and has only the rights in [section 3](#3-roles).
 4. Every Hyperdrive configuration has caching off.
 5. The catalogue lint passes on the live catalogue, and the next two months' partitions exist.
@@ -481,7 +483,7 @@ A code review found 17 places where the record was unclear. Each is answered by 
 | 12 | Is an enterprise added directly or moved? | New: added directly. Existing: moved | [8](#adding-a-company) |
 | 13 | Which migration ledger is the authority? | Each database's own; control keeps a summary | [12](#12-operations) |
 | 14 | When does a new cell become `open`? | After a checked deploy and the audit; until then `closed` | [8](#adding-a-cell) |
-| 15 | Which role repairs login rows? | None. Repairs touch memberships and directories only, as runtime; logins are the sign-in Worker's | [7](#7-control-database-and-routing) |
+| 15 | Which role repairs login rows? | None. Repairs touch memberships and directories only, as runtime; sign-in data is the sign-in Worker's | [7](#7-control-database-and-routing) |
 | 16 | Was the pre-launch migration squash allowed? | Once, before launch (owner ruling) | [12](#12-operations) |
 | 17 | May one transaction read several companies, or control? | No. One company per transaction; control on its own connection | [1](#1-tenancy-inside-a-cell), [7](#7-control-database-and-routing) |
 
@@ -505,8 +507,8 @@ For someone reviewing code an AI wrote. Each line says where to look, and when i
 - [ ] **[Skeleton]** **Data layer:** no code path keeps one transaction open across two companies, or reads control through a cell's transaction.
 - [ ] **[Skeleton]** **Worker configuration:** the app Worker holds only runtime credentials; no serving process holds the owner or lifecycle credential, or runs migrations.
 - [ ] **[Before launch]** **Worker configuration:** one Hyperdrive binding per database in control's registry, none a placeholder, each with caching off.
-- [ ] **[Skeleton]** **Control:** holds no business table; the login directory stores an email HMAC, never an address; the erasure register, sync epoch and migration summary exist.
-- [ ] **[Skeleton]** **Control:** the runtime role has no right on logins, sign-in methods, recovery codes or sessions.
+- [ ] **[Skeleton]** **Control:** holds no business table; sign-in data is only in the `auth` and `auth_policy` schemas; the erasure register, sync epoch and migration summary exist.
+- [ ] **[Skeleton]** **Control:** the runtime role has no usage on `auth` or `auth_policy`; the `auth` schema's migrations are Better Auth's reviewed `generate` output, committed like any other.
 - [ ] **[Skeleton]** **Routing:** every request reaches its database through `forCompany`, and a request for company A with a session for B throws.
 - [ ] **[Skeleton]** **Sign-up:** writes `open_tenant`, the company rows and the outbox note in one cell transaction, then control; it runs no migration.
 - [ ] **[Before launch]** **Sweeper:** no background job loops over the company registry; each writer upserts `due`; the hourly trigger nudges every database in control's registry.

@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>21 October 2026</td>
+<td>21 October 2026; Better Auth replaces the in-house engine, owner approval of 21 October 2026; owner rulings on sessions, email and the passkey fallback the same day</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -87,6 +87,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </tbody></table></div>
 <p>The rules to build ADR-013 from. The record decides; this page says exactly how. Where this page and the ADR disagree, the ADR wins and this page is fixed. Who may do what once signed in is <a href="../../users-and-access/spec/">ADR-010</a>. The words used are defined in the <a href="../../guide/">map and glossary</a>.</p>
+<p><strong>Use Better Auth the way its documentation says.</strong> Configure it, call its API, and put Vervoro&#39;s policy in its hooks. Never fork or patch it, never replace its password hashing, sessions or passkey checks, and never write SQL against its tables. If a rule below cannot be met that way, stop and raise it with the owner; do not build around it. No coding agent changes the Better Auth setup, its plugins or its schema without this record.</p>
 <h2 id="0-at-launch-and-later">0. At launch and later</h2>
 <p>Everything below is built at launch except these parts, which keep their rules here and are built only when their trigger arrives.</p>
 <div class="table-wrap"><table>
@@ -98,71 +99,238 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </thead>
 <tbody><tr>
-<td>The email-hash key&#39;s rotation job</td>
-<td>An incident that needs it; until then the <a href="../../runbooks/rotate-the-email-hash-key/">runbook</a> is the procedure</td>
-<td><a href="#8-keys">8</a></td>
-</tr>
-<tr>
 <td>Switching off one way in at a time (passwords, or new passkeys)</td>
 <td>Sellers or an incident show the need</td>
-<td><a href="#10-incident-commands">10</a></td>
+<td><a href="#11-incident-commands">11</a></td>
 </tr>
 <tr>
 <td>A screen for a login&#39;s history (a query on the security log until then)</td>
 <td>The same</td>
-<td><a href="#10-incident-commands">10</a></td>
+<td><a href="#11-incident-commands">11</a></td>
 </tr>
 <tr>
 <td>A synthetic login in each cell&#39;s canary company that alerts on any attempt</td>
 <td>The same</td>
-<td><a href="#12-tests-that-prove-each-rule">12</a></td>
-</tr>
-<tr>
-<td>A measured timing check that known and unknown addresses look the same (the stand-in hash is built at launch)</td>
-<td>The same</td>
-<td><a href="#5-lockouts-and-the-one-answer">5</a></td>
+<td><a href="#15-tests-that-prove-each-rule">15</a></td>
 </tr>
 <tr>
 <td>Lockout counted per device</td>
 <td>The security log shows one login locked again and again</td>
-<td><a href="#5-lockouts-and-the-one-answer">5</a></td>
-</tr>
-<tr>
-<td>An in-house passkey verifier, with the library as its test oracle</td>
-<td>The pinned library becomes a risk</td>
-<td><a href="#7-primitives">7</a></td>
+<td><a href="#7-lockouts-rate-limits-and-bots">7</a></td>
 </tr>
 </tbody></table></div>
-<h2 id="1-the-login">1. The login</h2>
+<h2 id="1-better-auth-and-what-is-switched-on">1. Better Auth and what is switched on</h2>
+<p>Better Auth is exact-pinned with its plugins (the candidate is 1.7.12, the latest release on 21 October 2026; <a href="#13-upgrades-and-migrations">section 13</a>).</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Setting</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Email and password</td>
+<td>On, with <code>requireEmailVerification</code>, <code>minPasswordLength</code> 12, <code>maxPasswordLength</code> 128, <code>revokeSessionsOnPasswordReset</code>, <code>autoSignIn</code> only after a proved address</td>
+<td>The fallback; the policy layer adds Amazon&#39;s rules (<a href="#4-password-policy">section 4</a>)</td>
+</tr>
+<tr>
+<td>Passkey plugin</td>
+<td>On: <code>rpID</code> and <code>origin</code> set explicitly to the app&#39;s address, <code>authenticatorSelection.userVerification: &quot;required&quot;</code>, <code>registration.requireSession: false</code> with <code>resolveUser</code> for passkey-first sign-up</td>
+<td>The default method</td>
+</tr>
+<tr>
+<td>Two-factor plugin</td>
+<td>On: TOTP (6 digits, 30-second steps), backup codes stored encrypted (its default), <code>accountLockout</code> 10 failures for 30 minutes, <code>skipVerificationOnEnable</code> off</td>
+<td>The password&#39;s second factor</td>
+</tr>
+<tr>
+<td>Captcha plugin</td>
+<td>On, Turnstile, on <code>/sign-up/email</code>, <code>/sign-in/email</code> and <code>/request-password-reset</code></td>
+<td>The bot check before any password is hashed</td>
+</tr>
+<tr>
+<td>Breached-password plugin</td>
+<td>On, on sign-up, change and reset</td>
+<td>Refuses known breached passwords</td>
+</tr>
+<tr>
+<td>Rate limit</td>
+<td>On, stored in the database (memory is unsuitable on Workers), keyed by <code>cf-connecting-ip</code></td>
+<td><a href="#7-lockouts-rate-limits-and-bots">Section 7</a></td>
+</tr>
+<tr>
+<td>Sessions</td>
+<td><code>expiresIn</code> 24 hours for everyone, <code>disableSessionRefresh</code>, <code>freshAge</code> 5 minutes, cookie cache off</td>
+<td><a href="#5-sessions">Section 5</a></td>
+</tr>
+<tr>
+<td>Telemetry</td>
+<td>Off</td>
+<td>Nothing leaves</td>
+</tr>
+<tr>
+<td>Off, and never switched on without changing this record</td>
+<td>Social and single sign-on providers, magic links, email codes, phone numbers, anonymous users, organisation, admin, multi-session, one-time tokens, bearer tokens, JWT, trusted devices</td>
+<td>ADR-013 decisions 3 and 5</td>
+</tr>
+</tbody></table></div>
+<p><strong>Conflicts found in Better Auth 1.7.12, for the owner</strong> (from its documentation and its published source):</p>
 <ol>
-<li><strong>The login</strong> is in control: a random id, the keyed hash of the normalised email (<a href="../../database-architecture/spec/#7-control-database-and-routing">ADR-001 SPEC 7</a>), the sealed password hash and authenticator secret, its passkeys&#39; public keys, the hashes of its recovery codes, and its sessions. No name and no clear email address.</li>
-<li>Only the sign-in Worker reads or writes the login, its methods, its recovery codes and its sessions. Memberships are <a href="../../users-and-access/spec/#2-logins-and-member-rows">ADR-010&#39;s</a>.</li>
-<li>A login with no membership is deleted after 30 days.</li>
+<li><strong>Passkey sign-in does not require the fingerprint, face or PIN check.</strong> <code>userVerification</code> applies at registration; sign-in asks only for &quot;preferred&quot; and verifies without requiring the user-verified flag. Vervoro&#39;s fix uses a hook, not a patch: <code>authentication.afterVerification</code> and <code>registration.afterVerification</code> refuse a response whose user-verified flag is unset. The registration hook is documented; the sign-in hook is in the source but not the documentation. If it is removed, the fix needs an upstream change.</li>
+<li><strong>A password user without a confirmed authenticator gets a full session.</strong> The two-factor plugin challenges only users who have it switched on. Vervoro&#39;s session check (<a href="#5-sessions">section 5</a>) treats such a session as setup-only.</li>
+<li><strong>An authenticator code is accepted again within its time window.</strong> Better Auth keeps no record of used codes, and RFC 6238 forbids a second acceptance. Proposed: a <code>before</code> hook on code verification that records each accepted code&#39;s time step per login for 90 seconds and refuses a repeat. The owner decides.</li>
+<li><strong>Backup codes belong to the two-factor plugin.</strong> They exist only for people with an authenticator app and are entered only after the password. A passkey-only person cannot hold them, so the old recovery codes for passkey-only Owners, Admins, Accountants and operators have no Better Auth home; Vervoro keeps no second code store. Passkey-only people recover with a second passkey or through their company (<a href="#6-recovery">section 6</a>); operators keep a third passkey offline (<a href="#10-operators">section 10</a>).</li>
+<li><strong>The password and the code are no longer judged together.</strong> Better Auth answers a correct password with the code challenge, so a correct password is visible before the code. Accepted: the lockout, the rate limit and the bot check cover guessing.</li>
 </ol>
-<h2 id="2-sign-in-methods">2. Sign-in methods</h2>
+<h2 id="2-the-login-and-its-data">2. The login and its data</h2>
+<ol>
+<li><strong>A login is a Better Auth user.</strong> Its id, a uuidv7 (Better Auth&#39;s <code>generateId</code>), is the stable login id every other record uses (<a href="../../users-and-access/spec/#2-logins-and-member-rows">ADR-010 SPEC 2</a>).</li>
+<li><strong>Better Auth&#39;s tables</strong> live in the <code>auth</code> schema of the control database (<code>database.schemaName</code>). <strong>Vervoro&#39;s sign-in policy tables</strong> live beside them in <code>auth_policy</code>. Only the sign-in role has rights on either; the app&#39;s runtime role has no usage on them (<a href="../../database-architecture/spec/#3-roles">ADR-001 SPEC 3</a>).</li>
+<li><strong>What each personal field is for:</strong></li>
+</ol>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Where</th>
+<th>Why it is kept</th>
+<th>Until</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Email address, normalised</td>
+<td><code>auth.user</code></td>
+<td>Better Auth requires it; signing in by password, reset links, sign-in notices</td>
+<td>The login is deleted</td>
+</tr>
+<tr>
+<td>Name</td>
+<td><code>auth.user</code></td>
+<td>Better Auth requires it; Amazon&#39;s &quot;no part of the name&quot; rule on every password set; the passkey&#39;s label</td>
+<td>The same</td>
+</tr>
+<tr>
+<td>Password hash</td>
+<td><code>auth.account</code></td>
+<td>Better Auth&#39;s own scrypt</td>
+<td>The password is removed, or the login deleted</td>
+</tr>
+<tr>
+<td>Authenticator secret, backup codes</td>
+<td>Two-factor table</td>
+<td>Encrypted by Better Auth under its secret</td>
+<td>The authenticator is removed</td>
+</tr>
+<tr>
+<td>Passkey public key, counter, device type</td>
+<td>Passkey table</td>
+<td>Better Auth&#39;s passkey check</td>
+<td>The passkey is removed</td>
+</tr>
+<tr>
+<td>Session token, network address, browser</td>
+<td><code>auth.session</code></td>
+<td>The session; &quot;recent sign-ins&quot; on the security page; spotting odd sign-ins (Amazon 1.2.2)</td>
+<td>30 days after the session ends</td>
+</tr>
+<tr>
+<td>Password history (hashes only)</td>
+<td><code>auth_policy</code></td>
+<td>Amazon&#39;s last-10 rule</td>
+<td>Replaced by newer ones; the login is deleted</td>
+</tr>
+</tbody></table></div>
+<ol start="4">
+<li><strong>A login with no membership is deleted after 30 days,</strong> with its methods and sessions, through Better Auth&#39;s delete; the security log keeps only its id.</li>
+<li><strong>Nothing from the auth schema is copied into a cell.</strong> The company&#39;s users table keeps its own copy of the address and name (<a href="../../users-and-access/spec/#2-logins-and-member-rows">ADR-010</a>).</li>
+</ol>
+<h2 id="3-sign-in-methods">3. Sign-in methods</h2>
 <p>Every person has a passkey, or a password with an authenticator app, or both.</p>
 <p><strong>Passkeys:</strong></p>
 <ol>
-<li>User verification is required. A response without the user-verified flag, for another site, or with a replayed challenge is refused. No attestation.</li>
+<li>The fingerprint, face or PIN check is required at registration and at every sign-in (<a href="#1-better-auth-and-what-is-switched-on">section 1</a>, conflict 1). A response for another site or origin, or with a used challenge, is refused by Better Auth. No attestation.</li>
 <li>Synced passkeys are accepted. Only the public key is stored.</li>
-<li>Sign-up and every invitation start with creating a passkey; &quot;use a password instead&quot; is a smaller link below it. After a password sign-in on a device that can hold a passkey, the app offers one.</li>
+<li>Sign-up and every invitation start with creating a passkey; &quot;use a password instead&quot; is a smaller link below it. After a password sign-in on a device that can hold a passkey, the sign-in page offers one.</li>
 <li>On a phone with a passkey, signing in needs no email address. A laptop without one uses the phone through the browser&#39;s cross-device sign-in, or the password and code.</li>
+<li>Passkey sign-in is not challenged for a code: with the check it counts as both factors, the device held and the fingerprint, face or PIN (NIST SP 800-63B). Amazon&#39;s text neither accepts nor refuses passkeys: its policy says only &quot;Multi-Factor Authentication&quot;, and its guidance approves TOTP, hardware tokens and biometrics. The operator asks Amazon through a developer support case and files the answer here. <strong>If Amazon says no</strong> (owner ruling, 21 October 2026): every login must also confirm an authenticator, and an <code>after</code> hook on passkey sign-in turns the session into a code challenge, as Better Auth&#39;s documentation advises for methods it does not challenge itself. Nothing else changes.</li>
 </ol>
 <p><strong>Password and authenticator app:</strong></p>
 <ol>
-<li>The person enters email and password, then a 6-digit code. Codes follow RFC 6238: 30-second steps, one step either side, each code accepted once.</li>
-<li>Setting up the app happens at the first password sign-in: scan the code on screen, type one code back.</li>
-<li><strong>Password rules</strong> (Amazon 1.4.1): at least 12 characters of mixed character types; no part of the person&#39;s name (the names come with the call from the app); at least 1 day old before a change; a change forced at the next sign-in after 365 days; the last 10 not reused.</li>
-<li><strong>Added from NIST</strong>, which Amazon&#39;s rules allow: refused if on a list of breached passwords; up to 64 characters; password managers may fill and paste.</li>
-<li>A password is stored only as a salted scrypt hash, sealed (<a href="#7-primitives">section 7</a>).</li>
+<li>The person enters email and password, then a 6-digit code: Better Auth&#39;s two-factor challenge.</li>
+<li>A login with a password must have a confirmed authenticator. Until it does, its only session is setup-only (<a href="#5-sessions">section 5</a>): it can scan the code on screen and type one back, nothing else.</li>
+<li>Better Auth&#39;s &quot;trust this device&quot; is refused: a <code>before</code> hook rejects any request that asks for it.</li>
 </ol>
-<p><strong>Recovery codes:</strong></p>
+<p><strong>Backup codes:</strong></p>
 <ol>
-<li>10 single-use codes, shown once when a second factor is set up; setup does not finish until the person confirms they saved them. Each is stored as a keyed hash.</li>
-<li>Issued to everyone with an authenticator app, and to every Owner, Admin and Accountant and anyone in more than one company, even with passkeys only. A single-company Manager, Warehouse or Staff member with passkeys only gets none: a synced passkey survives a lost phone, and otherwise their company resets them.</li>
+<li>Better Auth issues 10 single-use codes when an authenticator is confirmed, shown once; setup does not finish until the person confirms they saved them.</li>
+<li>A backup code is entered in place of the code after the password. It signs in once, the person and their Owners and Admins are told, and the session is setup-only until a new authenticator is confirmed.</li>
 </ol>
-<p><strong>The security page.</strong> Each person sees their methods and recent sign-ins and can remove a lost passkey. Adding or removing a method, changing the password and using a recovery code are told to the person by email.</p>
-<h2 id="3-sessions">3. Sessions</h2>
+<p><strong>The security page.</strong> Each person sees their methods and recent sign-ins and can remove a lost passkey. Adding or removing a method needs a session started in the last 5 minutes (Better Auth&#39;s <code>freshAge</code>). Adding or removing a method, changing the password and using a backup code are told to the person by email.</p>
+<h2 id="4-password-policy">4. Password policy</h2>
+<p>A small Vervoro layer in Better Auth&#39;s <code>before</code> hooks on <code>/sign-up/email</code>, <code>/change-password</code> and <code>/reset-password</code>, and one database trigger. It decides; Better Auth hashes and stores.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Source</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>At least 12 characters</td>
+<td>Amazon 1.4.1</td>
+<td>Better Auth&#39;s <code>minPasswordLength</code></td>
+</tr>
+<tr>
+<td>At least one upper-case letter, lower-case letter, number and symbol</td>
+<td>Amazon 1.4.1 (&quot;minimum requirements for each&quot;)</td>
+<td>Policy hook</td>
+</tr>
+<tr>
+<td>No part of the person&#39;s name (words of 3 or more letters) or of the address before the @</td>
+<td>Amazon 1.4.1</td>
+<td>Policy hook, against <code>auth.user</code></td>
+</tr>
+<tr>
+<td>At least 1 day since the last change</td>
+<td>Amazon 1.4.1</td>
+<td>Policy hook on <code>/change-password</code>. A forgotten-password reset and a recovery are exempt (Vervoro&#39;s reading; confirm with Amazon)</td>
+</tr>
+<tr>
+<td>Changed at least every 365 days</td>
+<td>Amazon 1.4.1</td>
+<td>At sign-in, a password older than 365 days makes the session setup-only until it is changed</td>
+</tr>
+<tr>
+<td>None of the last 10 reused</td>
+<td>Amazon 1.4.1</td>
+<td>Policy hook: the candidate is checked with Better Auth&#39;s own <code>password.verify</code> against the history a database trigger keeps (below)</td>
+</tr>
+<tr>
+<td>Not a known breached password</td>
+<td>Vervoro (NIST advice Amazon allows)</td>
+<td>Better Auth&#39;s breached-password plugin. It fails closed: if the lookup is down, the password cannot be set and a passkey still works</td>
+</tr>
+<tr>
+<td>Up to 128 characters, password managers and paste allowed</td>
+<td>Vervoro (NIST advice)</td>
+<td>Better Auth&#39;s <code>maxPasswordLength</code>; the page blocks nothing</td>
+</tr>
+<tr>
+<td>Salted scrypt hash</td>
+<td>Better Auth</td>
+<td>Its default, unchanged</td>
+</tr>
+</tbody></table></div>
+<p><strong>Password history: how it is kept.</strong> No second hashing system and no change to Better Auth; three small parts, each on a documented surface or in Vervoro&#39;s own migration:</p>
+<ol>
+<li><strong>Record, in the same transaction.</strong> A Postgres trigger on Better Auth&#39;s credential rows (<code>auth.account</code>, <code>providerId</code> = <code>credential</code>), after an insert or an update of <code>password</code>, copies the new hash Better Auth made into <code>auth_policy.password_history</code> (login, hash, set at) and keeps the newest 10. Better Auth writes a change and a reset inside one transaction, and the trigger runs inside the same statement, so the password and its history can never disagree: either both are written or neither is. The trigger reads Better Auth&#39;s row and never changes it; it lives in Vervoro&#39;s reviewed control migrations.</li>
+<li><strong>Check, before Better Auth writes.</strong> The <code>before</code> hooks on <code>/change-password</code> and <code>/reset-password</code> compare the candidate with each stored hash using Better Auth&#39;s own <code>password.verify</code>, and refuse a match with one error. For a change the login comes from the session; for a reset, from Vervoro&#39;s own note of which login a reset link was sent to, written by the <code>sendResetPassword</code> callback, which Better Auth calls with the user and the token.</li>
+<li><strong>Ages from the same table.</strong> The newest row&#39;s time gives the 1-day minimum and the 365-day maximum.</li>
+</ol>
+<p>A check that passes and a write that then fails changes nothing. A Better Auth upgrade that renames those columns fails the migration review and the password tests, so the trigger cannot silently stop. Checking 10 hashes costs 10 password checks of CPU, only when a password is set; measured in <a href="#14-checked-before-launch">section 14</a>.</p>
+<h2 id="5-sessions">5. Sessions</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -174,239 +342,339 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tbody><tr>
 <td><strong>Longest session</strong></td>
 <td>24 hours</td>
-<td>12 hours</td>
+<td>24 hours (owner ruling, 21 October 2026)</td>
 </tr>
 <tr>
 <td><strong>Fresh check for account changes</strong></td>
-<td>A full sign-in within the last 5 minutes</td>
+<td>A session started within the last 5 minutes</td>
 <td>The same</td>
 </tr>
 <tr>
 <td><strong>Ends at once on</strong></td>
-<td>Sign-out, removal, a role change, a reset, a recovery, an incident</td>
+<td>Sign-out, removal from the last company, a reset, a recovery, an incident</td>
 <td>Sign-out, an incident</td>
 </tr>
 </tbody></table></div>
 <ol>
-<li>A session is a row in control: the hash of a random token of at least 128 bits, the login, start, end, and the time of the last full sign-in. The token is never stored.</li>
-<li>The browser holds the token only, in a cookie marked <code>__Host-</code>, <code>Secure</code>, <code>HttpOnly</code> and <code>SameSite=Strict</code>. No session, role or buyer data in the browser&#39;s storage (<a href="../../buyer-data/">ADR-009</a>).</li>
-<li>Every request reads the session; nothing is written per request. Revoking takes effect on the next request; <a href="../../runbooks/restore-a-company-full-rewind/">ADR-001&#39;s restore</a> and ADR-009&#39;s containment use the same revocation.</li>
-<li>Before a session ends, the app asks for a full sign-in, which starts a new session; the old one is never extended. With a passkey it happens in place; a password sign-in returns to the same screen, and scans already on the open screen survive.</li>
-<li>No idle lock in the app. Amazon&#39;s 15-minute lock and managed-device rules (1.1.2) bind Vervoro&#39;s own laptops, not the seller&#39;s phones.</li>
-<li>Only the sign-in Worker records a full sign-in check, and it checks the time again itself before carrying out any account change, so the app cannot claim one. Which changes need it is <a href="../../users-and-access/spec/#5-rules-for-every-action">ADR-010 SPEC 5</a>.</li>
+<li><strong>One session model:</strong> Better Auth&#39;s session row. Vervoro keeps no session table of its own.</li>
+<li><strong>Effective end</strong> = the session&#39;s start + 24 hours, for everyone. Better Auth&#39;s own settings do it: <code>expiresIn</code> 24 hours and <code>disableSessionRefresh</code>, so no hook and no second limit exist. The validation call checks start + 24 hours again and refuses past it, as a backstop.</li>
+<li><strong>The cookie</strong> holds Better Auth&#39;s signed token only: <code>Secure</code>, <code>HttpOnly</code>, <code>SameSite=Strict</code>, host-only (no <code>Domain</code>), on the app&#39;s own address; a <code>__Host-</code> name if Better Auth&#39;s cookie settings allow it. No session, role or buyer data in the browser&#39;s storage (<a href="../../buyer-data/">ADR-009</a>).</li>
+<li><strong>Validation over the binding.</strong> The app passes the request&#39;s cookie to the sign-in Worker&#39;s <code>session</code> call (<a href="#8-the-sign-in-worker">section 8</a>), which asks Better Auth for the session and applies Vervoro&#39;s checks: the effective end, a freeze, and the setup-only states (a password without a confirmed authenticator, a backup code just used, a password past 365 days or forced to change). It answers the login id, the session id, whether it is an operator, when it started and when it ends, and full or setup-only, or nothing. The app treats setup-only as no session for everything but sending the person to the sign-in pages.</li>
+<li><strong>Every request reads the session; nothing is written per request.</strong> Revoking takes effect on the next request. <a href="../../runbooks/restore-a-company-full-rewind/">ADR-001&#39;s restore</a> and ADR-009&#39;s containment use the same revocation.</li>
+<li><strong>The fresh check</strong> is a session started within the last 5 minutes, which only a full sign-in makes. The app reads the start time from the <code>session</code> answer; the sign-in Worker checks it again itself before carrying out any reset or method change, so the app cannot claim one. Which changes need it is <a href="../../users-and-access/spec/#5-rules-for-every-action">ADR-010 SPEC 5</a>.</li>
+<li><strong>Before a session ends,</strong> the app asks for a full sign-in, which starts a new session; the old one is never extended. With a passkey it happens in place; a password sign-in returns to the same screen, and scans already on the open screen survive.</li>
+<li><strong>No idle lock in the app.</strong> Amazon&#39;s 15-minute lock and managed-device rules (1.1.2) bind Vervoro&#39;s own laptops, not the seller&#39;s phones.</li>
 </ol>
-<h2 id="4-recovery">4. Recovery</h2>
+<h2 id="6-recovery">6. Recovery</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>
 <th>Lost</th>
 <th>How the person comes back</th>
+<th>Better Auth</th>
+<th>Vervoro</th>
 </tr>
 </thead>
 <tbody><tr>
 <td>The password</td>
-<td>A reset link to their email address, valid 1 hour, plus their app code or a passkey. All other sessions end</td>
+<td>A reset link to their address, valid 1 hour. Signing in afterwards still needs the code or a passkey. All other sessions end</td>
+<td>Password reset, <code>revokeSessionsOnPasswordReset</code></td>
+<td>Notices, the security log</td>
 </tr>
 <tr>
-<td>The authenticator app, or the passkey&#39;s phone</td>
-<td>The password plus one recovery code, or another passkey; then a new second factor</td>
+<td>The authenticator app</td>
+<td>The password plus one backup code, then a new authenticator</td>
+<td>Backup code</td>
+<td>Setup-only session, notices</td>
+</tr>
+<tr>
+<td>The passkey&#39;s phone</td>
+<td>Another passkey (a synced one survives a lost phone), or the password and code</td>
+<td>Passkey</td>
+<td>—</td>
 </tr>
 <tr>
 <td>Everything, below Admin</td>
-<td>An Owner or Admin, after a fresh check, resets them. A one-time code appears on the resetter&#39;s screen, on a sign-in Worker page, to hand over in person or by phone, and a link goes to the person&#39;s email. Both are needed, within 24 hours. An Owner resets an Admin; another Owner resets an Owner</td>
+<td>An Owner or Admin, after a fresh check, resets them. A one-time code appears on the resetter&#39;s screen, on a sign-in Worker page, to hand over in person or by phone, and a link goes to the person&#39;s email. Both are needed, within 24 hours</td>
+<td>Removing the old methods and sessions through its server API; new methods</td>
+<td>Who may reset whom, the code, the link, the scope below</td>
 </tr>
 <tr>
 <td>Everything, as the last Owner</td>
 <td>The <a href="../../runbooks/recover-a-last-owner/">last-Owner runbook</a></td>
+<td>The same</td>
+<td>The marketplace proof, the wait, the notices</td>
 </tr>
 </tbody></table></div>
 <p><strong>A reset reaches one company:</strong></p>
 <ol>
-<li>It re-activates the person only in the resetter&#39;s company. Their other memberships are paused until they prove themselves there: with a recovery code they still hold, or when that company&#39;s Owner or Admin confirms them with a fresh check.</li>
+<li>It re-activates the person only in the resetter&#39;s company. Their other memberships are paused until that company&#39;s Owner or Admin confirms them with a fresh check. Pausing is the app&#39;s, in control (<a href="../../users-and-access/spec/#6-invitations-sign-up-and-removal">ADR-010</a>).</li>
 <li>Each paused company&#39;s Owners and Admins are told at once, and the person sees it marked &quot;waiting for an Owner or Admin&quot;.</li>
-<li>After a reset, unused recovery codes only un-pause memberships; a new set comes with the next factor set up.</li>
 </ol>
 <p>This stops a trial company from inviting someone, resetting them, and opening every company they belong to.</p>
 <p><strong>The last Owner</strong> (no room for judgement):</p>
 <ol>
 <li>The link goes to the Owner&#39;s address in the company&#39;s users table.</li>
 <li>The Owner approves Vervoro again on one of the company&#39;s connected marketplace accounts, which must return the seller account already in the external directory (<a href="../../database-architecture/">ADR-001</a>). The approval is used only to read the seller id; its tokens are discarded at once and the live connection is untouched.</li>
-<li>A 72-hour wait, with every member told by email. Any sign-in by that login cancels it. If an Owner or Admin objects, Vervoro&#39;s owner decides.</li>
+<li>A 72-hour wait, recorded in <code>auth_policy</code>, with every member told by email. Any sign-in by that login cancels it (a hook on session creation). If an Owner or Admin objects, Vervoro&#39;s owner decides.</li>
 <li>New methods are set up; every old method and session ends.</li>
 </ol>
 <p>A company with no connected marketplace is a trial with little in it: the person signs up again. Any other case is decided by Vervoro&#39;s owner on documents, never by the operator alone.</p>
 <p><strong>After every recovery,</strong> the person and the company&#39;s Owners and Admins are told, every session of the login ends, and both audit trails record it.</p>
-<h2 id="5-lockouts-and-the-one-answer">5. Lockouts and the one answer</h2>
-<ol>
-<li>Ten wrong passwords, codes or recovery codes in a row lock password sign-in for 30 minutes and tell the person by email, adding &quot;ask your Owner or Admin&quot; if it happens again. A passkey still signs in. The counts are in the database.</li>
-<li>A bot check (Turnstile) runs before any password is hashed: on every password sign-in, sign-up and password reset. Passkey sign-in has none.</li>
-<li>Requests from one network address are rate-limited, generously enough for 30 phones on one connection.</li>
-<li>The password and the code are judged together, with one error for any failure. An address with no login runs a full hash against a stand-in record.</li>
-<li>No sign-in page takes a web address to return to; return targets are names of the app&#39;s own screens.</li>
-</ol>
-<h2 id="6-the-sign-in-worker">6. The sign-in Worker</h2>
-<p><strong>What it is, and must stay.</strong> Adding a page or a call needs a change to this record.</p>
-<ol>
-<li><strong>Pages:</strong> signing in, signing up, setting and resetting a password, adding and removing methods, showing a reset code, recovery. Plain pages with the design tokens and none of the app&#39;s components. The app registers no service worker over them and never renders a password field.</li>
-<li><strong>Calls</strong> over the service binding: is this session live (answering the login and the session&#39;s end), revoke, reset, un-pause, change email hash, and the incident commands. Calls only ever add, never change, so an older app works with a newer sign-in Worker.</li>
-<li><strong>Data:</strong> its own role on control (<a href="../../database-architecture/spec/#3-roles">ADR-001 SPEC 3</a>) through its own Hyperdrive configuration, in the EU, caching off. It queries through the same typed query builder and run-time check as modules, and writes no SQL text (<a href="../../database-architecture/spec/#6-guard-rails">ADR-001 SPEC 6</a>). The app&#39;s role has no right on the login tables.</li>
-<li><strong>It carries out, never decides.</strong> The app decides who may reset whom (<a href="../../users-and-access/spec/#5-rules-for-every-action">ADR-010</a>). The sign-in Worker checks the actor&#39;s session and fresh check itself, limits how fast resets run, and alerts on a burst. The reset code appears only on its own page.</li>
-<li><strong>It never reaches a cell and never sends email.</strong> It hands the app the event and, for a reset or recovery, the link; the app mails the address in the company&#39;s users table.</li>
-<li><strong>Built on its own terms:</strong> its own package list and frozen lockfile, the passkey library its only dependency; installs with package scripts off; built in its own CI job before anything of the app is installed; deployed with a token that can deploy only it. Each Worker deploys only when its own code changes; when both change, the sign-in Worker goes first (<a href="../../runbooks/deploy-and-roll-back/">runbook</a>). A test of the calls runs whenever either side changes them.</li>
-</ol>
-<p><strong>A risk accepted.</strong> A poisoned app receives the session cookie and can act as a signed-in person, with their rights, for up to 24 hours. It cannot add a method or reset anyone, because those need a fresh check only the sign-in Worker records. Signing everyone out ends it.</p>
-<h2 id="7-primitives">7. Primitives</h2>
+<p><strong>Removing another person&#39;s methods</strong> (a reset, a last-Owner recovery) has no ready-made Better Auth endpoint for one user acting on another. The sign-in Worker does it through Better Auth&#39;s server API and adapter, never SQL; the penetration test covers it.</p>
+<h2 id="7-lockouts-rate-limits-and-bots">7. Lockouts, rate limits and bots</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>
-<th>Piece</th>
-<th>How</th>
-<th>Why</th>
+<th>Guard</th>
+<th>Owner</th>
+<th>Rule</th>
 </tr>
 </thead>
 <tbody><tr>
-<td>Password hashing</td>
-<td>The runtime&#39;s scrypt, N = 2^14, r = 8, p = 5 (16 MiB), an OWASP minimum. Only a few hashes at once per instance, the number set from the benchmark</td>
-<td>PBKDF2 is capped at 100,000 iterations on Workers, below OWASP&#39;s 600,000; Argon2 is not native; N = 2^17 needs 128 MiB</td>
+<td>Password lockout</td>
+<td>Vervoro&#39;s policy layer</td>
+<td>Ten wrong passwords in a row lock password sign-in for that login for 30 minutes and tell the person by email, adding &quot;ask your Owner or Admin&quot; if it happens again. A passkey still signs in. Counted in <code>auth_policy</code>, from <code>before</code> and <code>after</code> hooks on <code>/sign-in/email</code></td>
 </tr>
 <tr>
-<td>Sealing</td>
-<td>The password hash, the authenticator secret and the recovery codes&#39; key, with AES-GCM under the versioned sign-in key</td>
-<td>A copied database holds nothing to crack; the key rotates without a password change, which a pepper cannot</td>
+<td>Code lockout</td>
+<td>Better Auth</td>
+<td>Its two-factor <code>accountLockout</code>: ten wrong codes or backup codes in a row lock code entry for 30 minutes</td>
 </tr>
 <tr>
-<td>Authenticator codes</td>
-<td>Vervoro&#39;s own, on the runtime&#39;s HMAC-SHA-1, tested against RFC 6238&#39;s vectors. A code is used up in one statement</td>
-<td>Small and fully specified. Fallback if HMAC-SHA-1 fails on the runtime: one audited hashing library</td>
+<td>Request rate per network address</td>
+<td>Better Auth</td>
+<td>Its rate limiter, stored in the database. <code>/sign-in/email</code> and <code>/two-factor/*</code> allow 30 attempts a minute per address, enough for 30 phones on one connection</td>
 </tr>
 <tr>
-<td>Passkeys</td>
-<td>SimpleWebAuthn, exact-pinned, behind Vervoro&#39;s own verify function</td>
-<td>Parsing authenticator formats is where hand-written verifiers fail. Its ~25 packages are pinned and every change reviewed</td>
+<td>Bot check</td>
+<td>Better Auth&#39;s captcha plugin with Turnstile</td>
+<td>Before any password is hashed: password sign-in, sign-up and reset requests. Passkey sign-in has none</td>
 </tr>
 <tr>
-<td>Breached passwords</td>
-<td>The range lookup with padding, when a password is set or changed; only 5 characters of its SHA-1 leave. If the service is down, the password is accepted, the login flagged, and the check runs at its next sign-in</td>
-<td>Free, no key, the password never leaves</td>
+<td>Enumeration</td>
+<td>Better Auth</td>
+<td>One error for a wrong address or password; an unknown address still runs a full hash. Sign-up and reset answer the same whether the address exists</td>
 </tr>
 <tr>
-<td>Rate limit</td>
-<td>The runtime&#39;s rate-limiting binding</td>
-<td>Approximate by design; lockout counts stay in the database</td>
+<td>Odd sign-ins</td>
+<td>Vervoro</td>
+<td>The security log alerts on a burst of failures or resets (<a href="../../users-and-access/spec/#8-audit">ADR-010 SPEC 8</a>)</td>
+</tr>
+<tr>
+<td>Network attacks in bulk</td>
+<td>Cloudflare</td>
+<td>Its standard protection in front of every Worker; no extra rule</td>
 </tr>
 </tbody></table></div>
-<p><strong>Leaving.</strong> Everything stored is standard: scrypt hashes, RFC 6238 secrets and WebAuthn public keys, unsealed with the sign-in key for export.</p>
-<h2 id="8-keys">8. Keys</h2>
+<p>No sign-in page takes a web address to return to; return targets are names of the app&#39;s own screens.</p>
+<h2 id="8-the-sign-in-worker">8. The sign-in Worker</h2>
+<p><strong>What it is, and must stay.</strong> Adding a page or a call needs a change to this record.</p>
 <ol>
-<li>The email-hash key and the sign-in key are versioned secrets of the sign-in Worker only.</li>
-<li><strong>The sign-in key</strong> rotates by sealing every value again under a new version, in a resumable job, with no sign-in interrupted (<a href="../../runbooks/rotate-the-sign-in-key/">runbook</a>). Built and rehearsed before launch.</li>
-<li><strong>The email-hash key</strong> rotates by reading each person&#39;s address from a company where they are a member and storing the new hash. <em>Later</em> as a job (<a href="../../runbooks/rotate-the-email-hash-key/">runbook</a>). A leaked email-hash key lets someone test whether a known address has an account; it reveals no password, code or buyer data.</li>
+<li><strong>Pages,</strong> served on a path of the app&#39;s own address, so the cookie stays host-only: signing in, signing up, setting and resetting a password, adding and removing methods, showing a reset code, recovery. Plain pages with the design tokens and none of the app&#39;s components. The app registers no service worker over them and never renders a password field.</li>
+<li><strong>Calls</strong> over the service binding (the whole contract; calls only ever add, never change, so an older app works with a newer sign-in Worker):</li>
 </ol>
-<h2 id="9-operators">9. Operators</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Call</th>
+<th>Does</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>session(cookie)</code></td>
+<td><a href="#5-sessions">Section 5</a>, rule 4</td>
+</tr>
+<tr>
+<td><code>enrol(address, name, purpose)</code></td>
+<td>After the app accepts an invitation or a proved sign-up address: a one-time link to set up the first method, valid 24 hours</td>
+</tr>
+<tr>
+<td><code>reset(actor&#39;s cookie, login, company)</code></td>
+<td>A reset or a last-Owner completion; re-checks the actor&#39;s fresh check</td>
+</tr>
+<tr>
+<td><code>revoke(login ids, or everyone)</code></td>
+<td>Ends sessions</td>
+</tr>
+<tr>
+<td><code>setEmail(login, address)</code></td>
+<td>After the app has proved a new address (<a href="../../users-and-access/spec/#2-logins-and-member-rows">ADR-010 SPEC 2</a>)</td>
+</tr>
+<tr>
+<td><code>incident(command)</code></td>
+<td><a href="#11-incident-commands">Section 11</a></td>
+</tr>
+</tbody></table></div>
+<ol start="3">
+<li><strong>Data:</strong> Better Auth reaches <code>auth</code> through its PostgreSQL (Kysely) adapter; Vervoro&#39;s policy code reaches <code>auth_policy</code> through the typed query builder (<a href="../../database-architecture/spec/#6-guard-rails">ADR-001 SPEC 6</a>) and writes sign-in events to the platform security log. Both use the sign-in role, through the sign-in Worker&#39;s own Hyperdrive configuration, in the EU, caching off, a client per request. No Vervoro code queries Better Auth&#39;s tables except through Better Auth.</li>
+<li><strong>It carries out, never decides.</strong> The app decides who may reset whom (<a href="../../users-and-access/spec/#5-rules-for-every-action">ADR-010</a>). The sign-in Worker checks the actor&#39;s session and fresh check itself, limits how fast resets run, and alerts on a burst. The reset code appears only on its own page.</li>
+<li><strong>It sends its own sign-in mail</strong> (address proofs, reset links, method and lockout notices) through Cloudflare&#39;s Email Service, from a <code>send_email</code> binding restricted to Vervoro&#39;s sign-in sender address: no API key, and no new sub-processor (<a href="../../buyer-data/">ADR-009</a>). Better Auth&#39;s <code>sendResetPassword</code> and <code>sendVerificationEmail</code> callbacks call it. A send that fails is retried by the person (&quot;send again&quot;); it never blocks a sign-in. Invitations and company notices stay with the app. It never reaches a cell.</li>
+<li><strong>Built on its own terms:</strong> its own package list and frozen lockfile, with Better Auth, its plugins and their dependencies exact-pinned; installs with package scripts off; built in its own CI job before anything of the app is installed; deployed with a token that can deploy only it; <code>nodejs_compat</code> on. Each Worker deploys only when its own code changes; when both change, the sign-in Worker goes first (<a href="../../runbooks/deploy-and-roll-back/">runbook</a>). A test of the calls runs whenever either side changes them.</li>
+</ol>
+<p><strong>A risk accepted.</strong> A poisoned app receives the session cookie and can act as a signed-in person, with their rights, for up to 24 hours. It cannot add a method or reset anyone, because those need a fresh check only the sign-in Worker can see. Signing everyone out ends it.</p>
+<h2 id="9-secrets">9. Secrets</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Secret</th>
+<th>Held by</th>
+<th>Rotation</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Better Auth&#39;s secret, versioned (<code>BETTER_AUTH_SECRETS</code>)</td>
+<td>The sign-in Worker only</td>
+<td><a href="../../runbooks/rotate-the-better-auth-secret/">Runbook</a>: once a year and at once on suspicion</td>
+</tr>
+<tr>
+<td>The sign-in role&#39;s database credential</td>
+<td>The sign-in Worker&#39;s Hyperdrive configuration only</td>
+<td>By the CI migration job, in minutes (<a href="../../database-architecture/spec/#3-roles">ADR-001 SPEC 3</a>)</td>
+</tr>
+<tr>
+<td>The Turnstile secret</td>
+<td>The sign-in Worker only</td>
+<td>On suspicion</td>
+</tr>
+<tr>
+<td>The sign-in Worker&#39;s deploy token</td>
+<td>CI only</td>
+<td>On suspicion</td>
+</tr>
+</tbody></table></div>
 <ol>
-<li>Operators sign in only to the operator console, on its own address, with passkeys from Vervoro&#39;s managed laptops: at least two per operator, on two devices. No password.</li>
-<li>Operator sessions last 12 hours (<a href="#3-sessions">section 3</a>); their grants are <a href="../../users-and-access/spec/#7-operator-access-to-a-company">ADR-010&#39;s</a>.</li>
-<li>Nobody resets their own operator access. The operator and Vervoro&#39;s owner, as deputy (<a href="../../buyer-data/">ADR-009</a>), reset each other; each keeps recovery codes offline, and using one alerts (<a href="../../runbooks/recover-an-operator/">runbook</a>).</li>
+<li><strong>Better Auth&#39;s secret</strong> signs the session cookies and encrypts the authenticator secrets and backup codes. A new version goes first in the list; older versions stay to decrypt. Signed cookies are checked only against the current version, so a rotation signs everyone out. Encrypted values are re-encrypted only when next written, and an authenticator secret is not rewritten when used, so an old version can be removed only once nothing is stored under it.</li>
+<li><strong>No other sign-in key exists.</strong> The in-house sign-in key and the email-hash key are gone with the code they served. The app&#39;s own secrets (<a href="../../buyer-data/">ADR-009</a>) never reach the sign-in Worker, and its secrets never reach the app.</li>
 </ol>
-<h2 id="10-incident-commands">10. Incident commands</h2>
+<h2 id="10-operators">10. Operators</h2>
+<ol>
+<li>Operators sign in only to the operator console, on its own address with its own passkey site name and cookie, with passkeys from Vervoro&#39;s managed laptops: at least two per operator, on two devices, and a third on a hardware security key kept offline. No password, so no authenticator or backup codes.</li>
+<li>Operator sessions last at most 24 hours, like everyone&#39;s (<a href="#5-sessions">section 5</a>); their grants are <a href="../../users-and-access/spec/#7-operator-access-to-a-company">ADR-010&#39;s</a>.</li>
+<li>Nobody resets their own operator access. The operator and Vervoro&#39;s owner, as deputy (<a href="../../buyer-data/">ADR-009</a>), reset each other; using the offline key alerts (<a href="../../runbooks/recover-an-operator/">runbook</a>).</li>
+</ol>
+<h2 id="11-incident-commands">11. Incident commands</h2>
 <p>Each is built and rehearsed once on a staging copy before launch, and each use is written to the platform security log (<a href="../../runbooks/sign-in-incident-commands/">runbook</a>).</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
 <th>Command</th>
-<th>What it does</th>
+<th>Better Auth</th>
+<th>Vervoro</th>
+<th>Sessions, passkeys, passwords, codes</th>
 </tr>
 </thead>
 <tbody><tr>
 <td>Sign everyone out</td>
-<td>Ends every session of one company, or of the platform, in one statement</td>
+<td>Revoking every session of each login named, or of every login</td>
+<td>The app names a company&#39;s member logins</td>
+<td>Sessions end; methods unchanged</td>
 </tr>
 <tr>
 <td>Force a password change</td>
-<td>Every password login sets a new password at its next sign-in</td>
+<td>Its change-password page</td>
+<td>A cut-off time in <code>auth_policy</code>: any password set before it makes the session setup-only</td>
+<td>Sessions continue until the next sign-in; passkeys and codes unchanged</td>
 </tr>
 <tr>
 <td>Freeze sign-in</td>
-<td>No new sessions anywhere; live sessions continue unless also ended</td>
+<td>—</td>
+<td>A flag in <code>auth_policy</code>; a <code>before</code> hook refuses every sign-in, sign-up and reset route</td>
+<td>No new sessions; live sessions continue unless also ended</td>
 </tr>
 <tr>
-<td>Rotate the sign-in key</td>
-<td><a href="#8-keys">Section 8</a></td>
+<td>Rotate the Better Auth secret</td>
+<td>Its versioned secrets</td>
+<td>The <a href="../../runbooks/rotate-the-better-auth-secret/">runbook</a></td>
+<td>Every session ends; methods unchanged</td>
 </tr>
 </tbody></table></div>
 <p>A poisoned package follows its own <a href="../../runbooks/contain-a-poisoned-package/">runbook</a>.</p>
-<h2 id="11-checked-before-launch">11. Checked before launch</h2>
+<h2 id="12-security-events">12. Security events</h2>
+<p>Written to the platform security log (<a href="../../users-and-access/spec/#8-audit">ADR-010 SPEC 8</a>) from Better Auth&#39;s hooks and Vervoro&#39;s policy layer: every sign-in and its result, failed attempts, lockouts, bot-check failures, passkeys and authenticators added or removed, backup codes used, password changes and resets, sessions revoked, recoveries (last Owner and operator included), resets and paused memberships, every incident command. Never logged: a password, a code, an authenticator secret, a backup code, a session token or any passkey private material.</p>
+<h2 id="13-upgrades-and-migrations">13. Upgrades and migrations</h2>
 <ol>
-<li><strong>scrypt benchmark</strong> on a deployed Worker: p50 and p95 time and memory, for one hash and for two or three at once. p95 well under a second and within memory; the results go into this page, and the hashes-at-once number is set from them.</li>
-<li><strong>Cryptography smoke test</strong> on the deployed runtime: scrypt, HMAC-SHA-1, AES-GCM and the passkey library each run once.</li>
-<li><strong>An outside penetration test</strong> of sign-in, recovery, resets and return paths, with a retest of any finding.</li>
-<li><strong>Session end on a slow low-cost Android phone:</strong> a half-packed order survives the sign-in, scans on screen.</li>
-<li><strong>Real devices:</strong> password and code, passkey, and cross-device sign-in on a laptop work on current iPhones and low-cost Android phones.</li>
+<li><strong>No schema change at start-up.</strong> Better Auth&#39;s <code>migrate</code> command is never run against a shared database.</li>
+<li><strong>An upgrade</strong> (a Better Auth version or plugin change) goes: read its release notes and security advisories; run <code>generate</code> for the <code>auth</code> schema; review the SQL; commit it as a control migration; CI with every sign-in test; deploy and migrate through the normal release (<a href="../../runbooks/deploy-and-roll-back/">runbook</a>).</li>
+<li><strong>Migrations only add</strong> (<a href="../../system-architecture/spec/#11-deploying">ADR-000 SPEC 11</a>). A generated change that drops or renames is split into an adding step now and a removing step a release later, or the upgrade waits.</li>
+<li><strong>Deliberate upgrades only:</strong> no version ranges, no automatic updates, never a minor or major version without this procedure; security fixes follow the same steps faster. Dependency scanning runs on every build and monthly (<a href="../../buyer-data/">ADR-009</a>).</li>
+<li><strong>Rehearsed:</strong> an upgrade and a rollback of the sign-in Worker over the new schema, on a staging copy, before launch.</li>
 </ol>
-<h2 id="12-tests-that-prove-each-rule">12. Tests that prove each rule</h2>
-<p>Database tests run on real Postgres (<a href="../../system-architecture/spec/#15-testing-and-verification">ADR-000 SPEC 15</a>).</p>
+<h2 id="14-checked-before-launch">14. Checked before launch</h2>
+<ol>
+<li><strong>Better Auth on a deployed Worker,</strong> through Hyperdrive, with the pinned version: every flow in section 15 once, and the CPU time of a password sign-in.</li>
+<li><strong>The passkey site name and domains:</strong> the app&#39;s and the operator console&#39;s addresses, cross-device sign-in on a laptop.</li>
+<li><strong>The cookie</strong> across Vervoro&#39;s addresses: host-only, <code>SameSite=Strict</code>, ends with the session.</li>
+<li><strong>Amazon&#39;s answer on passkeys</strong> is filed in section 3, and the fallback built if it is no. <strong>Cloudflare&#39;s Email Service</strong> is generally available, or its daily quota covers launch; SPF, DKIM and DMARC pass for the sign-in sender.</li>
+<li><strong>How Better Auth stores sensitive fields:</strong> the session token, the authenticator secret, the backup codes, the password hash. The secret rotation procedure is rehearsed.</li>
+<li><strong>An outside penetration test</strong> of Better Auth&#39;s configuration, the sign-in Worker&#39;s own code, cookies and sessions, the service binding, recovery, the hand-off to ADR-010, database rights and the Cloudflare set-up, with a retest of any finding.</li>
+<li><strong>Session end on a slow low-cost Android phone:</strong> a half-packed order survives the sign-in, scans on screen.</li>
+<li><strong>Real devices:</strong> password and code, passkey, and cross-device sign-in work on current iPhones and low-cost Android phones.</li>
+</ol>
+<h2 id="15-tests-that-prove-each-rule">15. Tests that prove each rule</h2>
+<p>Database tests run on real Postgres (<a href="../../system-architecture/spec/#15-testing-and-verification">ADR-000 SPEC 15</a>). These must pass before ADR-013 can be Accepted.</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
-<th>Test</th>
-<th>Proves</th>
+<th>Area</th>
+<th>Tests</th>
 </tr>
 </thead>
 <tbody><tr>
+<td>Passkeys</td>
+<td>Enrolment; sign-in; a response without the user-verified flag is refused; a replayed response is refused; another site name or origin is refused</td>
+</tr>
+<tr>
+<td>Password and code</td>
+<td>Password alone gives no full session; with a correct code, accepted; with a wrong code, refused; a code used twice is refused (if conflict 3 is approved); a backup code works once and leaves a setup-only session; &quot;trust this device&quot; is refused; a password login without a confirmed authenticator is setup-only</td>
+</tr>
+<tr>
+<td>Enrolment</td>
+<td>An invited person sets up a passkey, or a password and authenticator, only through their own link</td>
+</tr>
+<tr>
 <td>Password rules</td>
-<td>Each of Amazon&#39;s rules is enforced; a breached password is refused; the yearly change is forced; a passkey-only login has none</td>
+<td>Each rule of section 4; the last 10 passwords refused on change and on reset; a failed change leaves password and history unchanged; a passkey-only login has none</td>
 </tr>
 <tr>
-<td>Second factor</td>
-<td>A password alone never signs in; a code works once</td>
+<td>Sessions</td>
+<td>Expired and revoked sessions are refused; every session ends at 24 hours; a session is never extended; the fresh check is refused after 5 minutes and cannot come from the app</td>
 </tr>
 <tr>
-<td>Primitives</td>
-<td>Codes match RFC 6238&#39;s vectors; bad passkey responses (no user verification, another site, a replayed challenge, a wrong signature) are refused through the verify function, again after every library change</td>
-</tr>
-<tr>
-<td>Lockouts</td>
-<td>Ten failures lock password sign-in for 30 minutes; a passkey still signs in</td>
-</tr>
-<tr>
-<td>Session length</td>
-<td>After 24 hours a seller needs a full sign-in, an operator after 12</td>
-</tr>
-<tr>
-<td>Fresh check</td>
-<td>An account change with a fresh check the sign-in Worker did not record is refused</td>
-</tr>
-<tr>
-<td>Recovery</td>
-<td>Each path in section 4 needs every step it names, tells the people it names, and ends every old session</td>
-</tr>
-<tr>
-<td>Reset scope</td>
-<td>A reset re-activates only the resetter&#39;s company; every other membership stays paused until cleared</td>
-</tr>
-<tr>
-<td>One answer</td>
-<td>A wrong password and a wrong code give the same error; an unknown address runs a full hash</td>
-</tr>
-<tr>
-<td>Return paths</td>
-<td>A table of hostile return targets always lands on the app&#39;s home screen</td>
+<td>Hand-off to ADR-010</td>
+<td>A valid sign-in with no membership reaches no company; removal from a company stops the next request there; one company&#39;s actions never change another company&#39;s access</td>
 </tr>
 <tr>
 <td>Walls (CI and nightly)</td>
-<td>The app&#39;s role has no right on the login tables; the app&#39;s code and bundle hold neither key; the dependency tree matches its frozen list</td>
+<td>The app&#39;s role has no right on <code>auth</code> or <code>auth_policy</code>; the app&#39;s code, bundle and bindings hold no sign-in secret; the dependency tree matches its frozen list</td>
+</tr>
+<tr>
+<td>Lockouts and limits</td>
+<td>Ten wrong passwords lock password sign-in for 30 minutes while a passkey still signs in; ten wrong codes lock code entry; the bot check runs before hashing</td>
+</tr>
+<tr>
+<td>Recovery</td>
+<td>Each path of section 6, last Owner and operator included, needs every step it names, tells the people it names, and ends every old session; a reset re-activates only the resetter&#39;s company</td>
+</tr>
+<tr>
+<td>Incident commands</td>
+<td>Each works on a staging copy; after signing everyone out an old session is refused; after a freeze a new sign-in is refused</td>
+</tr>
+<tr>
+<td>Upgrades</td>
+<td>A Better Auth upgrade with its migration, and a rollback of the sign-in Worker, rehearsed</td>
 </tr>
 <tr>
 <td>Calls</td>
 <td>An older app&#39;s calls pass against the newer sign-in Worker</td>
 </tr>
 <tr>
-<td>Incident commands (before launch, once)</td>
-<td>Each works on a staging copy</td>
+<td>Security log</td>
+<td>No entry holds a password, code, secret or token</td>
 </tr>
 </tbody></table></div>
-<h2 id="13-platform-constraints">13. Platform constraints</h2>
-<p>Checked against the official sources on 18 October 2026. Re-check before launch.</p>
+<h2 id="16-platform-constraints">16. Platform constraints</h2>
+<p>Checked against the official sources on 21 October 2026. Re-check before launch.</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -417,13 +685,13 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </thead>
 <tbody><tr>
 <td>Amazon: multi-factor and passwords</td>
-<td>Multi-factor for all user accounts; where passwords are used: 12 characters, no part of the name, mixed types, 1 to 365 days old, last 10 not reused</td>
+<td>Multi-factor for all user accounts; where passwords are used: at least 12 characters; no part of the user&#39;s name; upper case, lower case, numbers and special characters, with a minimum for each; at least 1 day old; at most 365 days; last 10 not reused</td>
 <td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US">Data Protection Policy, 1.4.1</a></td>
 </tr>
 <tr>
-<td>Amazon: lockout</td>
-<td>After no more than 10 consecutive failures; authentication monitored</td>
-<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US">Data Protection Policy, 1.2.2</a></td>
+<td>Amazon: lockout and monitoring</td>
+<td>Locked after no more than 10 consecutive failures; anomalous sign-ins detected. The update effective 25 August 2026 names a 30-minute lockout after ten failures</td>
+<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US">Data Protection Policy, 1.2.2</a>, <a href="https://developer.amazonservices.com/policy-update-for-sp-api">Policy update</a></td>
 </tr>
 <tr>
 <td>Amazon: own devices</td>
@@ -432,7 +700,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Amazon: second factors</td>
-<td>TOTP, hardware tokens and biometrics are approved</td>
+<td>TOTP, hardware tokens and biometrics are approved; passkeys are not named</td>
 <td><a href="https://developer-docs.amazon/sp-api/docs/guidance-to-address-key-security-controls-in-sp-api-integration">Key security control guidance</a></td>
 </tr>
 <tr>
@@ -441,8 +709,58 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="https://developer-docs.amazon/sp-api/docs/website-authorization-workflow">Amazon</a>, <a href="https://shopify.dev/docs/apps/build/authentication-authorization/access-tokens/authorization-code-grant">Shopify</a></td>
 </tr>
 <tr>
+<td>Better Auth: Workers</td>
+<td>Needs <code>nodejs_compat</code> (or <code>nodejs_als</code>) for AsyncLocalStorage; the handler takes a web-standard request. No Cloudflare page in its docs; Hyperdrive not mentioned</td>
+<td><a href="https://www.better-auth.com/docs/integrations/hono">Hono integration</a></td>
+</tr>
+<tr>
+<td>Better Auth: PostgreSQL</td>
+<td>Kysely adapter; <code>database.schemaName</code> selects a schema, which <code>generate</code> creates; <code>migrate</code> only for the built-in adapter</td>
+<td><a href="https://www.better-auth.com/docs/adapters/postgresql">PostgreSQL adapter</a>, <a href="https://www.better-auth.com/docs/concepts/database">Database</a>, <a href="https://www.better-auth.com/docs/concepts/cli">CLI</a></td>
+</tr>
+<tr>
+<td>Better Auth: tables</td>
+<td>User (name and email required, email unique), session (token, expiry, address, browser), account (password), verification; <code>generateId</code>; database hooks can replace or refuse a write</td>
+<td><a href="https://www.better-auth.com/docs/concepts/database">Database</a></td>
+</tr>
+<tr>
+<td>Better Auth: passkeys</td>
+<td>Built on SimpleWebAuthn; <code>userVerification</code> required, preferred or discouraged (default preferred); <code>requireSession: false</code> with <code>resolveUser</code> for passkey-first; <code>registration.afterVerification</code></td>
+<td><a href="https://www.better-auth.com/docs/plugins/passkey">Passkey plugin</a></td>
+</tr>
+<tr>
+<td>Better Auth: two factors</td>
+<td>Password sign-in returns a challenge, no session until verified; passkey and other methods not challenged; TOTP 30 seconds, one step either side; backup codes single use; trusted devices 30 days; shared lockout counter</td>
+<td><a href="https://www.better-auth.com/docs/plugins/2fa">Two-factor plugin</a></td>
+</tr>
+<tr>
+<td>Better Auth: sessions</td>
+<td>7 days by default; <code>updateAge</code>; <code>disableSessionRefresh</code>; <code>freshAge</code> by start time; revoke one, others or all</td>
+<td><a href="https://www.better-auth.com/docs/concepts/session-management">Session management</a></td>
+</tr>
+<tr>
+<td>Better Auth: secrets</td>
+<td>Versioned secrets rotate without downtime; new data carries a version; old data re-encrypted when next written</td>
+<td><a href="https://www.better-auth.com/docs/reference/security">Security</a>, <a href="https://www.better-auth.com/docs/reference/options">Options</a></td>
+</tr>
+<tr>
+<td>Better Auth: hooks</td>
+<td><code>before</code> and <code>after</code> hooks per route, refusing with an error; <code>password.hash</code> and <code>verify</code> available to hooks</td>
+<td><a href="https://www.better-auth.com/docs/concepts/hooks">Hooks</a></td>
+</tr>
+<tr>
+<td>Better Auth: passwords and cookies</td>
+<td>scrypt by default; 8 to 128 characters by default; reset token 1 hour; cookies <code>HttpOnly</code>, <code>Secure</code>, <code>SameSite=Lax</code> by default and configurable</td>
+<td><a href="https://www.better-auth.com/docs/authentication/email-password">Email and password</a>, <a href="https://www.better-auth.com/docs/concepts/cookies">Cookies</a></td>
+</tr>
+<tr>
+<td>Better Auth: rate limits and bots</td>
+<td>100 requests per 10 seconds, 3 per 10 seconds on password sign-in; memory store unsuitable for serverless, database store available; Turnstile through the captcha plugin; breached passwords by 5 characters of a SHA-1</td>
+<td><a href="https://www.better-auth.com/docs/concepts/rate-limit">Rate limit</a>, <a href="https://www.better-auth.com/docs/plugins/captcha">Captcha</a>, <a href="https://www.better-auth.com/docs/plugins/have-i-been-pwned">Have I Been Pwned</a></td>
+</tr>
+<tr>
 <td>NIST: passwords</td>
-<td>A blocklist; allow 64 characters, managers and paste; no composition rules or forced change</td>
+<td>A blocklist; allow 64 characters or more, managers and paste; no composition rules or forced change</td>
 <td><a href="https://pages.nist.gov/800-63-4/sp800-63b.html">SP 800-63B rev. 4, 3.1.1.2</a></td>
 </tr>
 <tr>
@@ -452,53 +770,28 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>NIST: sessions</td>
-<td>AAL2: at most 24 hours overall, an idle limit of 1 hour advised; <code>__Host-</code>, <code>Secure</code>, <code>HttpOnly</code>, <code>SameSite</code> cookies; no secrets in local storage</td>
+<td>AAL2: at most 24 hours overall; <code>Secure</code>, <code>HttpOnly</code>, <code>SameSite</code> cookies; no secrets in local storage</td>
 <td><a href="https://pages.nist.gov/800-63-4/sp800-63b.html">SP 800-63B rev. 4, 2.2.5 and 5</a></td>
 </tr>
 <tr>
 <td>NIST: email and recovery</td>
-<td>Email is not a factor; recovery by two routes or a code plus a factor; saved codes allowed; every recovery notified</td>
+<td>Email is not a factor; recovery codes allowed; every recovery notified</td>
 <td><a href="https://pages.nist.gov/800-63-4/sp800-63b.html">SP 800-63B rev. 4, 3.1.3.2 and 4.2</a></td>
 </tr>
 <tr>
-<td>OWASP: password storage</td>
-<td>scrypt N = 2^14, r = 8, p = 5 equals N = 2^17, p = 1; PBKDF2 at 600,000; a leaked pepper resets everyone; p95 well under a second</td>
-<td><a href="https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html">Password Storage Cheat Sheet</a></td>
-</tr>
-<tr>
-<td>Workers: limits</td>
-<td>128 MB memory per instance; 30 seconds of CPU per request by default</td>
-<td><a href="https://developers.cloudflare.com/workers/platform/limits/">Workers limits</a></td>
-</tr>
-<tr>
-<td>Workers: password primitives</td>
-<td>PBKDF2 capped at 100,000 in the runtime&#39;s source; scrypt via Node crypto, default memory ceiling 32 MiB; no Argon2</td>
-<td><a href="https://developers.cloudflare.com/workers/runtime-apis/nodejs/crypto/">Node crypto</a>, <a href="https://github.com/cloudflare/workerd/blob/main/src/workerd/io/limit-enforcer.h">limits source</a>, <a href="https://github.com/cloudflare/workerd/blob/main/src/node/internal/crypto_scrypt.ts">scrypt source</a></td>
-</tr>
-<tr>
-<td>Workers: secrets</td>
-<td>Any module can import the Worker&#39;s environment, secrets included</td>
-<td><a href="https://developers.cloudflare.com/workers/runtime-apis/bindings/">Bindings</a></td>
-</tr>
-<tr>
-<td>Workers: service bindings and rate limiting</td>
-<td>No added latency or cost; rate-limit counters are per location and approximate</td>
-<td><a href="https://developers.cloudflare.com/workers/runtime-apis/bindings/service-bindings/">Service bindings</a>, <a href="https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/">Rate limiting</a></td>
-</tr>
-<tr>
-<td>Breached passwords</td>
-<td>The range lookup takes 5 characters of a SHA-1, needs no key, can pad</td>
-<td><a href="https://haveibeenpwned.com/API/v3">Pwned Passwords API</a></td>
+<td>Cloudflare Email Service</td>
+<td>Sending is in beta, on Workers Paid; a Worker sends through a <code>send_email</code> binding with no API key, restricted to allowed addresses if set; new accounts start on a conservative daily quota that grows with reputation; 50 recipients and 5 MiB per message</td>
+<td><a href="https://developers.cloudflare.com/email-service/">Overview</a>, <a href="https://developers.cloudflare.com/email-service/api/send-emails/workers-api/">Workers API</a>, <a href="https://developers.cloudflare.com/email-service/platform/limits/">Limits</a></td>
 </tr>
 <tr>
 <td>Authenticator codes</td>
-<td>30-second steps, drift allowance, a used code refused; test vectors</td>
-<td><a href="https://www.rfc-editor.org/rfc/rfc6238">RFC 6238</a></td>
+<td>A used code must not be accepted again</td>
+<td><a href="https://www.rfc-editor.org/rfc/rfc6238">RFC 6238, 5.2</a></td>
 </tr>
 <tr>
-<td>SimpleWebAuthn</td>
-<td>Runs on Workers; user verification can be required; listed by passkeys.dev</td>
-<td><a href="https://simplewebauthn.dev/docs/packages/server">Server docs</a>, <a href="https://passkeys.dev/docs/tools-libraries/libraries/">passkeys.dev</a></td>
+<td>Workers: secrets, bindings</td>
+<td>Any module can import the Worker&#39;s environment, secrets included; service bindings add no latency or cost</td>
+<td><a href="https://developers.cloudflare.com/workers/runtime-apis/bindings/">Bindings</a>, <a href="https://developers.cloudflare.com/workers/runtime-apis/bindings/service-bindings/">Service bindings</a></td>
 </tr>
 <tr>
 <td>Package supply chain</td>
@@ -506,31 +799,26 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="https://www.cisa.gov/news-events/alerts/2025/09/23/widespread-supply-chain-compromise-impacting-npm-ecosystem">CISA alert, 23 September 2025</a></td>
 </tr>
 </tbody></table></div>
-<p><strong>Where Vervoro departs from a source.</strong> Amazon&#39;s mixed character types and yearly change are what NIST advises against; Amazon&#39;s policy binds Vervoro and NIST&#39;s does not, so passwords follow Amazon and add what NIST advises and Amazon allows. Passkeys carry no password rule, which is why they are the default. NIST advises an idle limit of an hour; no binding rule asks for one, and an in-app lock would mean typing a password after every break.</p>
+<p><strong>Where Vervoro departs from a source.</strong> Amazon&#39;s composition rules and yearly change are what NIST advises against; Amazon&#39;s policy binds Vervoro and NIST&#39;s does not, so passwords follow Amazon and add what NIST advises and Amazon allows. Passkeys carry no password rule, which is why they are the default. NIST advises an idle limit of an hour; no binding rule asks for one, and an in-app lock would mean typing a password after every break.</p>
 <h2 id="how-to-check-it-was-built-right">How to check it was built right</h2>
 <p>For someone reviewing code an AI wrote. Each line says where to look and which test proves it.</p>
 <ul>
-<li><input disabled="" type="checkbox"> <strong>Walls:</strong> the app Worker&#39;s bindings hold neither key and no binding to the login tables; the app&#39;s database role has no grant on them (catalogue); the walls test is green.</li>
-<li><input disabled="" type="checkbox"> <strong>No password in the app:</strong> no password or code input in the app&#39;s components; sign-in pages import only the design tokens.</li>
-<li><input disabled="" type="checkbox"> <strong>Closed list:</strong> the service binding&#39;s call list matches section 6; a call was only added, never changed; the calls test runs against the previous app.</li>
-<li><input disabled="" type="checkbox"> <strong>Hyperdrive:</strong> the sign-in Worker has its own configuration, to control only, caching off, placed in the EU.</li>
-<li><input disabled="" type="checkbox"> <strong>No SQL text:</strong> the sign-in Worker&#39;s queries use the typed builder with the run-time check.</li>
-<li><input disabled="" type="checkbox"> <strong>Build:</strong> its own lockfile with one direct dependency, exact-pinned; scripts off at install; its CI job runs before the app&#39;s install; its deploy token is scoped to it.</li>
-<li><input disabled="" type="checkbox"> <strong>Passkeys:</strong> the verify function requires user verification, checks the site and the challenge; the bad-response set is green.</li>
-<li><input disabled="" type="checkbox"> <strong>Codes:</strong> RFC 6238 vectors pass; a used code is spent in the same statement that accepts it.</li>
-<li><input disabled="" type="checkbox"> <strong>Passwords:</strong> scrypt parameters as section 7; the hash is sealed before it is written; the rules apply only when a password exists.</li>
-<li><input disabled="" type="checkbox"> <strong>Sessions:</strong> only the token&#39;s hash is stored; the cookie flags as section 3; no per-request write; 24 and 12 hours enforced by the server.</li>
-<li><input disabled="" type="checkbox"> <strong>Fresh check:</strong> recorded and re-checked only in the sign-in Worker; the app never sends a time.</li>
-<li><input disabled="" type="checkbox"> <strong>One answer:</strong> one error path for password and code; the stand-in record is hashed in full.</li>
-<li><input disabled="" type="checkbox"> <strong>Bot check:</strong> runs before the hash on every password path; not on passkey sign-in.</li>
-<li><input disabled="" type="checkbox"> <strong>Lockout:</strong> counted in the database; passkey sign-in ignores it.</li>
-<li><input disabled="" type="checkbox"> <strong>Return targets:</strong> only names of screens; the hostile-targets test is green.</li>
-<li><input disabled="" type="checkbox"> <strong>Reset scope:</strong> a reset changes only the resetter&#39;s membership; others are paused; the reset-scope test is green.</li>
-<li><input disabled="" type="checkbox"> <strong>Last Owner:</strong> the marketplace step discards its tokens and never touches the live connection; any sign-in cancels the wait.</li>
-<li><input disabled="" type="checkbox"> <strong>Email:</strong> the sign-in Worker sends none and reaches no cell.</li>
-<li><input disabled="" type="checkbox"> <strong>Keys:</strong> the sign-in key&#39;s rotation job is resumable and was rehearsed; both keys carry a version on every sealed value.</li>
+<li><input disabled="" type="checkbox"> <strong>Better Auth as documented:</strong> one pinned version; no patch, fork, custom adapter, custom hashing or WebAuthn code; only section 1&#39;s plugins; telemetry off.</li>
+<li><input disabled="" type="checkbox"> <strong>Walls:</strong> the app has no sign-in secret and no right on <code>auth</code> or <code>auth_policy</code> (catalogue); the walls test is green.</li>
+<li><input disabled="" type="checkbox"> <strong>Closed list:</strong> the binding&#39;s calls match section 8; a call was only added; the calls test runs against the previous app.</li>
+<li><input disabled="" type="checkbox"> <strong>Hand-off:</strong> the app takes only the login id and session facts; every access decision is ADR-010&#39;s resolver; no organisation plugin.</li>
+<li><input disabled="" type="checkbox"> <strong>Passkeys:</strong> <code>rpID</code> and <code>origin</code> set; both <code>afterVerification</code> hooks refuse a missing user-verified flag; the passkey tests are green.</li>
+<li><input disabled="" type="checkbox"> <strong>Second factor:</strong> a password login without a confirmed authenticator is setup-only; trusted devices refused; the password-and-code tests are green.</li>
+<li><input disabled="" type="checkbox"> <strong>Password policy:</strong> in hooks only, with source per rule; history kept by the trigger in Better Auth&#39;s transaction and verified with its <code>password.verify</code>; no second hash function.</li>
+<li><input disabled="" type="checkbox"> <strong>Sessions:</strong> refresh off; 24 hours from Better Auth&#39;s <code>expiresIn</code> and again by <code>session</code>; cookie flags as section 5; no Vervoro session table.</li>
+<li><input disabled="" type="checkbox"> <strong>Fresh check:</strong> start time from Better Auth, re-checked by the sign-in Worker before any reset or method change.</li>
+<li><input disabled="" type="checkbox"> <strong>Lockouts and limits:</strong> owners as section 7; rate limit stored in the database; the bot check on every password route.</li>
+<li><input disabled="" type="checkbox"> <strong>Recovery:</strong> section 6&#39;s split; a reset touches only the resetter&#39;s company; the last-Owner wait cancels on any sign-in.</li>
+<li><input disabled="" type="checkbox"> <strong>Migrations:</strong> the <code>auth</code> schema from reviewed, committed <code>generate</code> output; no <code>migrate</code> at start-up; only adding steps.</li>
+<li><input disabled="" type="checkbox"> <strong>Secrets:</strong> <code>BETTER_AUTH_SECRETS</code> only in the sign-in Worker; the rotation was rehearsed.</li>
+<li><input disabled="" type="checkbox"> <strong>Logs:</strong> the events of section 12 are written; none holds a secret, code or token.</li>
 <li><input disabled="" type="checkbox"> <strong>Incidents:</strong> the four commands exist and write to the security log; the staging rehearsal is recorded.</li>
-<li><input disabled="" type="checkbox"> <strong>Launch checks:</strong> the benchmark results are in section 11 and set the hashes-at-once number.</li>
+<li><input disabled="" type="checkbox"> <strong>Launch checks:</strong> section 14&#39;s results are written into this page.</li>
 </ul>
 
 <footer>Vervoro</footer>

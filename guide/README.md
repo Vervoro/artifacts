@@ -14,7 +14,7 @@ ADR-000  System architecture: modules, the foundation, outbox, egress gate, simu
 │
 ├── People and access
 │   ├── ADR-010  Users, roles and access
-│   └── ADR-013  Sign-in: passkeys, sessions, recovery, the sign-in Worker
+│   └── ADR-013  Sign-in: the sign-in Worker running Better Auth, passkeys, sessions, recovery
 │
 ├── Products and stock
 │   ├── ADR-003  Product model: SKU, packs, bundles, VAT class, charge lines
@@ -70,12 +70,20 @@ One word per concept. Where two words appear in the records, the table says whet
 | Term | Meaning |
 | --- | --- |
 | **Company** | One customer of Vervoro: a seller's business. "Tenant" in ADR-001 means the same thing; the **tenant row** is a cell's own record of a company and its state there. Vervoro has no separate "organisation" |
-| **Login** | One person's way in: email, sign-in methods and sessions, held in the control database (ADR-013) |
-| **Sign-in Worker** | The only Worker besides the app: it serves the sign-in pages, alone holds the sign-in keys and writes the login tables, and tells the app whether a session is live. The app never sees a typed password (ADR-013) |
+| **Login** | One person's way in: a Better Auth user, with their email address, sign-in methods and sessions, in the control database's auth schema. Its id is the login id every other record uses (ADR-013) |
+| **Authentication** | Proving who a person is: sign-in methods, sessions, recovery steps. Done by Better Auth inside the sign-in Worker (ADR-013) |
+| **Authorization** | Deciding what a signed-in person may do in a company: memberships, roles, warehouse scope, permissions, operator grants. Done only by the Access module (ADR-010), never by Better Auth |
+| **Better Auth** | The open-source authentication library the sign-in Worker runs. A dependency inside Vervoro, writing to Vervoro's own database: not a hosted identity provider, and not Vervoro's authorization (ADR-013) |
+| **Sign-in Worker** | The only Worker besides the app. It runs Better Auth, serves the sign-in pages, alone holds the sign-in secret and touches the auth schema, and tells the app over a service binding whether a session is live and whose. The app never sees a typed password (ADR-013) |
+| **Auth schema** | The `auth` schema in the control database, where Better Auth keeps its tables, beside `auth_policy`, Vervoro's own sign-in policy tables. Only the sign-in role can reach them (ADR-001, ADR-013) |
+| **Access module** | The core module that answers "may this login do this here": it reads the membership and member row and applies the permission matrix (ADR-000, ADR-010) |
+| **Session** | Better Auth's record that a login signed in, held in the browser as a cookie: at most 24 hours for everyone, never extended. The only session model (ADR-013) |
+| **Passkey** | A key the person's phone, laptop or password manager keeps, unlocked by a fingerprint, a face or the device's PIN. The default way to sign in (ADR-013) |
+| **Recovery** | Getting a person back in after they lose a method: Better Auth's steps (reset, backup code, new methods) under Vervoro's rules on who may start it and which company it reopens (ADR-013) |
 | **Membership** | A login's place in one company, with one role and an optional warehouse scope. One person can be a member of several companies |
 | **Role** | One of six: Owner, Admin, Manager, Warehouse, Accountant, Staff (ADR-010) |
 | **Operator** | A person running the Vervoro platform, not a member of any company. Acts on a company only through an audited, time-limited grant |
-| **Control database** | The one database that holds who the companies are and where they live: registry, routing, logins, operators, shared quotas, the erasure register. No business data (ADR-001) |
+| **Control database** | The one database that holds who the companies are and where they live: registry, routing, logins (Better Auth's tables in the auth schema), operators, shared quotas, the erasure register. No business data (ADR-001) |
 | **Cell** | A database holding the business data of many companies in shared tables, each row carrying `company_id`, fenced by forced row-level security. There is no schema per company |
 | **Dedicated database** | A cell holding one company, in its own Neon project, with the same schema and the same code path. Also called a dedicated cell |
 | **Routing** | Finding a company's database: `company.database_id` in control, read by `forCompany(id)`. Every transaction then proves it is in the right database |

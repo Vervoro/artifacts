@@ -34,7 +34,7 @@
   <g font-size="11.5" class="quiet">
     <text x="40" y="294">own compute</text>
     <text x="40" y="310">company + DB registry</text>
-    <text x="40" y="326">logins (HMAC), plans</text>
+    <text x="40" y="326">auth schema, plans</text>
     <text x="40" y="342">erasure register</text>
     <text x="40" y="358">quotas, alerts, migrations</text>
     <text x="40" y="374">no business data</text>

@@ -11,7 +11,7 @@ Load this page with any task. Load the linked record before changing the area it
 
 ## 2. Companies and databases
 
-3. **One control database and many cells; no schema per company.** Control holds the platform's own data (companies and where they live, logins, operators, plans, quotas, the erasure register), never company business data. A cell holds many companies in shared tables. A dedicated database is a cell with one company, using the same schema and code path. [ADR-001](../database-architecture/#decision)
+3. **One control database and many cells; no schema per company.** Control holds the platform's own data (companies and where they live, logins and Better Auth's sign-in tables, operators, plans, quotas, the erasure register), never company business data. A cell holds many companies in shared tables. A dedicated database is a cell with one company, using the same schema and code path. [ADR-001](../database-architecture/#decision)
 4. **Every transaction enters exactly one company first.** Its first statement is `app.enter_company`, which raises unless this database holds that company and it is open. An unset company is an error, never zero rows. No autocommit for company work. [ADR-001](../database-architecture/spec/#1-tenancy-inside-a-cell)
 5. **Isolation is enforced by the database, not by remembering a filter.** Every tenant table has `company_id` first in every key, composite foreign keys, and forced row-level security. The runtime role logs in as itself with `NOBYPASSRLS`, and no role is ever created in the Neon console. [ADR-001](../database-architecture/spec/#1-tenancy-inside-a-cell)
 6. **Modules never write SQL.** They declare tables through `tenantTable()` and query through the typed query builder the data layer gives them, which has no raw-SQL helper and calls only allow-listed functions; upserts go through `conflict()`. Raw SQL lives only in the kernel's data layer and in migrations. There are no serial or identity columns; ids are uuidv7. [ADR-001](../database-architecture/spec/#5-declaring-tables)
@@ -59,16 +59,18 @@ Load this page with any task. Load the linked record before changing the area it
 
 37. **Every request is checked on the server** against the person's role, warehouse scope and status in that company, read in the same transaction as the work. [ADR-010 SPEC 5](../users-and-access/spec/#5-rules-for-every-action)
 38. **Operators have no standing access.** They use a grant with a reason and an end time, which the seller sees and can end. [ADR-010 SPEC 7](../users-and-access/spec/#7-operator-access-to-a-company)
-39. **Sign-in lives only in the sign-in Worker.** Only it holds the sign-in keys, writes the login tables and shows a password field. The app asks it whether a session is live and never records a fresh check itself. Its pages and calls are a closed list. [ADR-013 SPEC 6](../sign-in/spec/#6-the-sign-in-worker)
-40. **Buyer data comes only from the fetched order,** only the fields ADR-009 allows, encrypted per field under the company's key. It never goes to control, queues, logs, URLs, caches, emails, client storage or the AI provider. [ADR-009](../buyer-data/#decision)
-41. **Every view of buyer data is logged.** It is anonymised 30 days after delivery. [ADR-009](../buyer-data/#decision)
-42. **No real buyer data outside production.** Tests, fixtures and demos use synthetic buyers. [ADR-009](../buyer-data/#decision)
+39. **Sign-in is Better Auth inside the sign-in Worker, and nothing else.** Only the sign-in Worker runs Better Auth, holds its secret, shows a password field and touches the `auth` and `auth_policy` schemas; no other code queries or writes Better Auth's tables. Nobody writes passkey, authenticator-code, password-hashing or session code beside it, forks it or patches it. The app asks the sign-in Worker whether a session is live and never records a fresh check itself; its pages and calls are a closed list. [ADR-013 SPEC 8](../sign-in/spec/#8-the-sign-in-worker)
+40. **Better Auth says who; ADR-010 says what.** The sign-in Worker hands the app a login id and the session's facts; companies, roles, scope, permissions and operator grants are decided only by Access. Better Auth's organisation and access features stay off. [ADR-013](../sign-in/#decision), [ADR-010 SPEC 5](../users-and-access/spec/#5-rules-for-every-action)
+41. **A passkey, or a password with its second factor; never a password alone.** Passkeys are the default and need the fingerprint, face or PIN check. Only the methods ADR-013 names are switched on. Better Auth and its plugins are exact-pinned and upgraded only through a reviewed, committed schema migration and the sign-in tests, never at start-up; no agent changes its setup or schema without the record. [ADR-013 SPEC 1](../sign-in/spec/#1-better-auth-and-what-is-switched-on), [SPEC 13](../sign-in/spec/#13-upgrades-and-migrations)
+42. **Buyer data comes only from the fetched order,** only the fields ADR-009 allows, encrypted per field under the company's key. It never goes to control, queues, logs, URLs, caches, emails, client storage or the AI provider. [ADR-009](../buyer-data/#decision)
+43. **Every view of buyer data is logged.** It is anonymised 30 days after delivery. [ADR-009](../buyer-data/#decision)
+44. **No real buyer data outside production.** Tests, fixtures and demos use synthetic buyers. [ADR-009](../buyer-data/#decision)
 
 ## 7. Money and countries
 
-43. **Money always carries its currency,** and amounts in different currencies are never added. [ADR-000](../system-architecture/spec/#14-money-and-countries), [ADR-003](../product-model/spec/#21-numbers-and-money)
-44. **Country rules live only where the country matters:** VAT and invoices, Vervoro's billing, food law, and each marketplace's site. A product has a VAT class, and every line stores the country, class and rate it used. [ADR-000](../system-architecture/spec/#14-money-and-countries), [ADR-011](../invoicing-and-vat/#decision)
-45. **Nothing that moves orders or stock is ever refused for a billing reason.** [ADR-012](../billing-and-plans/#decision)
+45. **Money always carries its currency,** and amounts in different currencies are never added. [ADR-000](../system-architecture/spec/#14-money-and-countries), [ADR-003](../product-model/spec/#21-numbers-and-money)
+46. **Country rules live only where the country matters:** VAT and invoices, Vervoro's billing, food law, and each marketplace's site. A product has a VAT class, and every line stores the country, class and rate it used. [ADR-000](../system-architecture/spec/#14-money-and-countries), [ADR-011](../invoicing-and-vat/#decision)
+47. **Nothing that moves orders or stock is ever refused for a billing reason.** [ADR-012](../billing-and-plans/#decision)
 
 ## Changing a rule
 

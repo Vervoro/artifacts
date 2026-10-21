@@ -169,16 +169,12 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Sessions, passwords or sign-in itself must be stopped in an incident</td>
 </tr>
 <tr>
-<td><a href="rotate-the-sign-in-key/">Rotate the sign-in key</a></td>
-<td>The sign-in Worker may be compromised, or the yearly rotation is due</td>
-</tr>
-<tr>
-<td><a href="rotate-the-email-hash-key/">Rotate the email-hash key</a></td>
-<td>The email-hash key may have leaked (<em>Later</em> as a job)</td>
+<td><a href="rotate-the-better-auth-secret/">Rotate the Better Auth secret</a></td>
+<td>The sign-in Worker or its secret may be compromised, or the yearly rotation is due</td>
 </tr>
 <tr>
 <td><a href="contain-a-poisoned-package/">Contain a poisoned package</a></td>
-<td>A dependency of the app or the sign-in Worker is found compromised</td>
+<td>A dependency of the app or the sign-in Worker, Better Auth included, is found compromised</td>
 </tr>
 <tr>
 <td><a href="recover-a-last-owner/">Recover a company&#39;s last Owner</a></td>

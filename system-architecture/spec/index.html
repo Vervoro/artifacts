@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>20–21 October 2026</td>
+<td>20–21 October 2026; sign-in on Better Auth (<a href="../../sign-in/">ADR-013</a>) 21 October 2026</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -695,7 +695,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>A build check refuses any simulator code in the production bundle.</li>
 </ol>
 <h2 id="10-runtime">10. Runtime</h2>
-<figure><svg class="diagram" viewBox="0 0 760 400" role="img" aria-label="Runtime: the app Worker and its platform parts in the EU, the sign-in Worker, Postgres through Hyperdrive, and outside services reached only through the egress gate" xmlns="http://www.w3.org/2000/svg" font-size="13">
+<figure><svg class="diagram" viewBox="0 0 760 400" role="img" aria-label="Runtime: the app Worker and its platform parts in the EU, the sign-in Worker with Better Auth inside it, which answers whose session a request carries so Access can decide, Postgres through Hyperdrive, and outside services reached only through the egress gate" xmlns="http://www.w3.org/2000/svg" font-size="13">
   <defs>
     <marker id="rt-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="edge-fill"/></marker>
   </defs>
@@ -706,7 +706,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 
   <rect x="270" y="48" width="220" height="52" rx="8" class="box"/>
   <text x="380" y="70" text-anchor="middle" font-weight="600" class="ink">Sign-in Worker</text>
-  <text x="380" y="88" text-anchor="middle" font-size="11.5" class="quiet">sign-in keys, login tables</text>
+  <text x="380" y="88" text-anchor="middle" font-size="11.5" class="quiet">runs Better Auth; holds its secret</text>
 
   <rect x="516" y="48" width="220" height="52" rx="8" class="box" stroke-dasharray="5 4"/>
   <text x="626" y="70" text-anchor="middle" font-weight="600" class="ink">Marketplaces and carriers</text>
@@ -736,7 +736,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 
   <rect x="216" y="226" width="160" height="52" rx="8" class="box"/>
   <text x="296" y="248" text-anchor="middle" font-weight="600" class="ink">Modules</text>
-  <text x="296" y="266" text-anchor="middle" font-size="11.5" class="quiet">mounted per company</text>
+  <text x="296" y="266" text-anchor="middle" font-size="11.5" class="quiet">Access decides, per company</text>
 
   <rect x="392" y="226" width="160" height="52" rx="8" class="box"/>
   <text x="472" y="248" text-anchor="middle" font-weight="600" class="ink">Inbound queue</text>
@@ -771,13 +771,13 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
     <path d="M244 354H268" marker-end="url(#rt-arrow)"/>
     <path d="M626 298V326" marker-end="url(#rt-arrow)"/>
   </g>
-  <text x="196" y="110" font-size="11" class="quiet">is this session live?</text>
-  <text x="390" y="318" font-size="11" class="quiet">own Hyperdrive, control only</text>
+  <text x="190" y="110" font-size="11" class="quiet">whose session? a login id</text>
+  <text x="390" y="318" font-size="11" class="quiet">own Hyperdrive, control's auth schemas only</text>
 </svg>
 </figure>
 
 <ol>
-<li><strong>The app Worker,</strong> one per environment, serves the built client as static files, the API and every webhook. <strong>The sign-in Worker</strong> is the only other one: it serves the sign-in pages, answers the app&#39;s &quot;is this session live?&quot;, and reaches only the control database, through its own Hyperdrive configuration (<a href="../../sign-in/spec/#6-the-sign-in-worker">ADR-013 SPEC 6</a>). Deployed code uses web-standard APIs and platform bindings only.</li>
+<li><strong>The app Worker,</strong> one per environment, serves the built client as static files, the API and every webhook. <strong>The sign-in Worker</strong> is the only other one: it runs Better Auth, serves the sign-in pages, answers the app&#39;s &quot;whose session is this?&quot; over a service binding, and reaches only control&#39;s <code>auth</code> and <code>auth_policy</code> schemas, through its own Hyperdrive configuration (<a href="../../sign-in/spec/#8-the-sign-in-worker">ADR-013 SPEC 8</a>). Better Auth is a pinned dependency inside it, not a module: no module imports it, and it never calls a module&#39;s port or writes a module&#39;s table. The login id it returns goes to Access, the core module that decides every permission (<a href="../../users-and-access/">ADR-010</a>). Deployed code uses web-standard APIs and platform bindings only.</li>
 <li><strong>Background work</strong> runs on one sweeper per database, a Durable Object driven by its alarm, that runs only companies with work due (<a href="../../database-architecture/spec/#9-background-work-and-the-outbox">ADR-001 SPEC 9</a>).</li>
 <li><strong>Webhooks</strong> go through one inbound queue with retries and a dead-letter queue.</li>
 <li><strong>Live updates</strong> come from one Durable Object per company that holds its open screens&#39; connections, so a screen updates when a background job changes what it shows. They carry ids and statuses, never buyer data (<a href="../../buyer-data/">ADR-009</a>).</li>
@@ -795,7 +795,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>Deploying is one command. Migrations run first, on control and every cell in the ring of <a href="../../database-architecture/spec/#12-operations">ADR-001 SPEC 12</a>, and finish before new code goes live.</li>
 <li>Migrations only add, so the previous code version runs on the new schema, and a rollback is switching back to it. A migration is never rolled back.</li>
 <li>A database below the version the code needs is an error that alerts, never a state the code handles.</li>
-<li>Each Worker deploys on its own, only when its code changes; when both change, the sign-in Worker goes first (<a href="../../sign-in/spec/#6-the-sign-in-worker">ADR-013 SPEC 6</a>).</li>
+<li>Each Worker deploys on its own, only when its code changes; when both change, the sign-in Worker goes first (<a href="../../sign-in/spec/#8-the-sign-in-worker">ADR-013 SPEC 8</a>). The <code>auth</code> schema&#39;s migrations are Better Auth&#39;s reviewed <code>generate</code> output, run with control&#39;s other migrations; nothing changes a schema at start-up (<a href="../../sign-in/spec/#13-upgrades-and-migrations">ADR-013 SPEC 13</a>).</li>
 </ol>
 <p>Procedure: <a href="../../runbooks/deploy-and-roll-back/">Deploy and roll back</a>.</p>
 <h2 id="12-the-client">12. The client</h2>

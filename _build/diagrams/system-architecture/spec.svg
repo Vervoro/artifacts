@@ -1,4 +1,4 @@
-<svg class="diagram" viewBox="0 0 760 400" role="img" aria-label="Runtime: the app Worker and its platform parts in the EU, the sign-in Worker, Postgres through Hyperdrive, and outside services reached only through the egress gate" xmlns="http://www.w3.org/2000/svg" font-size="13">
+<svg class="diagram" viewBox="0 0 760 400" role="img" aria-label="Runtime: the app Worker and its platform parts in the EU, the sign-in Worker with Better Auth inside it, which answers whose session a request carries so Access can decide, Postgres through Hyperdrive, and outside services reached only through the egress gate" xmlns="http://www.w3.org/2000/svg" font-size="13">
   <defs>
     <marker id="rt-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="edge-fill"/></marker>
   </defs>
@@ -9,7 +9,7 @@
 
   <rect x="270" y="48" width="220" height="52" rx="8" class="box"/>
   <text x="380" y="70" text-anchor="middle" font-weight="600" class="ink">Sign-in Worker</text>
-  <text x="380" y="88" text-anchor="middle" font-size="11.5" class="quiet">sign-in keys, login tables</text>
+  <text x="380" y="88" text-anchor="middle" font-size="11.5" class="quiet">runs Better Auth; holds its secret</text>
 
   <rect x="516" y="48" width="220" height="52" rx="8" class="box" stroke-dasharray="5 4"/>
   <text x="626" y="70" text-anchor="middle" font-weight="600" class="ink">Marketplaces and carriers</text>
@@ -39,7 +39,7 @@
 
   <rect x="216" y="226" width="160" height="52" rx="8" class="box"/>
   <text x="296" y="248" text-anchor="middle" font-weight="600" class="ink">Modules</text>
-  <text x="296" y="266" text-anchor="middle" font-size="11.5" class="quiet">mounted per company</text>
+  <text x="296" y="266" text-anchor="middle" font-size="11.5" class="quiet">Access decides, per company</text>
 
   <rect x="392" y="226" width="160" height="52" rx="8" class="box"/>
   <text x="472" y="248" text-anchor="middle" font-weight="600" class="ink">Inbound queue</text>
@@ -74,6 +74,6 @@
     <path d="M244 354H268" marker-end="url(#rt-arrow)"/>
     <path d="M626 298V326" marker-end="url(#rt-arrow)"/>
   </g>
-  <text x="196" y="110" font-size="11" class="quiet">is this session live?</text>
-  <text x="390" y="318" font-size="11" class="quiet">own Hyperdrive, control only</text>
+  <text x="190" y="110" font-size="11" class="quiet">whose session? a login id</text>
+  <text x="390" y="318" font-size="11" class="quiet">own Hyperdrive, control's auth schemas only</text>
 </svg>

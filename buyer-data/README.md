@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Status** | Proposed |
-| **Date** | 18 October 2026 |
+| **Date** | 18 October 2026; the seller's users' sign-in data added with ADR-013's move to Better Auth, 21 October 2026 |
 | **Scope** | The personal data of marketplace and website buyers: who is responsible for it, what is kept and why, where it lives, who sees it, when it goes, how buyers' requests and incidents are handled, the security controls marketplaces ask for, and each marketplace's own rules |
 | **Builds on** | [ADR-001: Multi-tenant database architecture](../database-architecture/), [ADR-002: Data retention and archiving](../data-retention/), [ADR-004: Channel connectors](../channel-connectors/) and its records for [eBay](../ebay-connector/), [Amazon](../amazon-seller-connector/) and [Shopify](../shopify-connector/), [ADR-003: Product model](../product-model/) |
 
@@ -28,7 +28,7 @@ The design has to meet these requirements:
 - **One operator and a small team.** Every rule has to run by itself, and be proved by a check or a test.
 - **Buyers ask through others.** A buyer asks the seller or the marketplace, never Vervoro. Vervoro still has to act within the time the law and the marketplace allow.
 
-**Out of scope.** Suppliers are business contacts, covered by a future purchasing record. The seller's own users (their staff accounts) are Vervoro's account data. They are covered by Vervoro's privacy notice, and they get the same security controls.
+**Out of scope.** Suppliers are business contacts, covered by a future purchasing record. The seller's own users (their staff accounts) are Vervoro's account data. They are covered by Vervoro's privacy notice, and they get the same security controls; where their sign-in data lives is listed in [The seller's users' sign-in data](#the-sellers-users-sign-in-data).
 
 ## Decision
 
@@ -72,7 +72,7 @@ The design has to meet these requirements:
 | Cloudflare | Runs the application, the inbound queue, the per-company live updates and object storage; the application is placed in the EU, and requests pass through Cloudflare's global network | All of it, while serving requests; label files at rest |
 | Neon | Runs the Postgres databases in the EU | All of it, at rest and encrypted field by field |
 | Amazon Web Services | The small relay that receives Amazon's notices and posts them to Vervoro | Amazon's order notices, which carry a destination postcode and no name or address; nothing is stored beyond the queue's own retries |
-| Email delivery provider | Sends emails to the seller's users | None: emails name an order, never a buyer |
+| Email delivery provider | Sends emails to the seller's users, so it receives their addresses. Sign-in mail goes through Cloudflare's Email Service, already listed above (owner ruling, 21 October 2026, [ADR-013](../sign-in/)) | None: emails name an order, never a buyer |
 | AI provider | Answers the seller's users' questions and proposals | None: buyer fields are masked before any call (ADR-001's field tags) |
 
 **Carriers are the seller's, not Vervoro's.** The seller connects their own carrier accounts. Sending an address to the seller's carrier to buy a label is the seller's instruction, and the carrier works for the seller.
@@ -127,6 +127,16 @@ What is never kept:
 - **Keys:** each company's data key is wrapped by a key-encryption key held as a platform secret, never in the database. The key-encryption key is rotated every year and at once on any suspicion, by re-wrapping the company keys.
 - **Label files** are encrypted with the company's data key before they are stored. They go to a bucket without versioning, so deleting one deletes it.
 - **Search:** the only search on buyer data is ADR-001's exact-match blind index on the phone number. Buyer email is not kept, so it has no index. The index entry is removed with the field.
+
+## The seller's users' sign-in data
+
+Not buyer data, but personal data Vervoro holds as controller, under its privacy notice. It is listed here so one record shows every place personal data lives.
+
+- **What, and why.** Each login's email address and name, its password hash, authenticator secret, backup codes and passkey public keys, its sessions with the network address and browser of each, and its password history. Each field's purpose is in [ADR-013 SPEC 2](../sign-in/spec/#2-the-login-and-its-data). The email address is stored readable, because Better Auth, the library the sign-in Worker runs, signs people in and mails them by it.
+- **Where.** In the control database's `auth` and `auth_policy` schemas, in the EU, inside Vervoro's own infrastructure. No third-party identity provider owns or acts as the system of record for Vervoro's users or their email addresses. Sign-in mail is sent through Cloudflare's Email Service, an existing sub-processor, which receives an address only to deliver that email.
+- **Who can reach it.** Only the sign-in Worker, through the sign-in role; the app, operators and developers cannot. The database owner role reaches it only in an emergency, under [its runbook](../runbooks/use-the-owner-role/). Passwords, codes, secrets and tokens are never logged.
+- **Protection.** TLS in transit, storage encryption at rest, authenticator secrets and backup codes also encrypted by Better Auth under the sign-in Worker's secret, and every sign-in event in the platform security log.
+- **Retention and deletion.** Sessions are deleted 30 days after they end; a login with no membership is deleted after 30 days, its address and name with it ([ADR-010](../users-and-access/spec/#6-invitations-sign-up-and-removal)). Control's backups hold a deleted login until they expire, within 30 days ([ADR-001](../database-architecture/spec/#backups)). Erasing a company removes its memberships, which starts that 30 days for anyone left with none.
 
 ## Who can see it
 
@@ -252,7 +262,7 @@ Amazon's schedule is the strictest of the three marketplaces, so it is the sched
 | Control | What Vervoro does | How often |
 | --- | --- | --- |
 | Multi-factor sign-in | Required for every user of every company, every operator and every developer account | Always |
-| Passwords | Where a password is used: at least 12 characters with mixed character types, none of the user's name, the last 10 not reused, changed at least once a year; locked after 10 failed attempts. Passkeys are the default ([ADR-013](../sign-in/)) | Always |
+| Passwords | Where a password is used, always with an authenticator code: at least 12 characters with upper and lower case, a number and a symbol, none of the user's name, at least a day old before a change, changed at least once a year, the last 10 not reused; locked after 10 failed attempts. Passkeys are the default ([ADR-013](../sign-in/)) | Always |
 | One person, one account | No shared or generic accounts | Always |
 | Security logs | Sign-ins, access grants, buyer-data views, exports, key use and admin actions, collected centrally, protected from change, with no buyer data in them | Kept at least 12 months; alerts reviewed continuously, the rest every two weeks |
 | Vulnerability scans | Every system that touches seller or buyer data | At least every 30 days, and the code before each release |
@@ -262,7 +272,7 @@ Amazon's schedule is the strictest of the three marketplaces, so it is the sched
 | Access removal | When someone leaves or changes role | Within 24 hours |
 | Incident response plan | Written, approved by the owner, tested | Reviewed every six months and after a major change |
 | Backup restore test | A restore, including the erasure replay | Every quarter |
-| Key rotation | Key-encryption key and marketplace credentials | Every year, and at once on suspicion |
+| Key rotation | Key-encryption key, marketplace credentials and the sign-in Worker's Better Auth secret ([runbook](../runbooks/rotate-the-better-auth-secret/)) | Every year, and at once on suspicion |
 | Risk assessment | Threats, likelihood and what is done about them | Every year |
 | Sub-processor review | Each provider's security against this record | Every year |
 | Training | Everyone with access | Every year |
@@ -340,7 +350,7 @@ Checked against the official sources on 18 October 2026.
 | Amazon: retention | Buyer data no longer than 30 days after order delivery, unless the law requires longer; kept only to ship, for tax, tax invoices and legal duties | [Data Protection Policy, 2.1](https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US) |
 | Amazon: deletion on a trigger | Within 30 days of Amazon's notice, the seller revoking access, or the end of participation | [Data Protection Policy, 1.7](https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US) |
 | Amazon: incidents | Notice to Amazon's security address within 24 hours; plan reviewed every six months; a named point of contact | [Data Protection Policy, 1.6](https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US) |
-| Amazon: sign-in | Multi-factor for every user account; password rules (12 characters, 10 not reused, at most 365 days) | [Data Protection Policy, 1.4.1](https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US) |
+| Amazon: sign-in | Multi-factor for every user account; password rules (12 characters, upper and lower case, numbers and symbols, no part of the name, 1 to 365 days old, 10 not reused); lockout after at most 10 failures (1.2.2) | [Data Protection Policy, 1.4.1](https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US) |
 | Amazon: encryption | At rest at least AES-128 or RSA-2048; in transit TLS 1.2 or higher | [Data Protection Policy, 2.4 and 1.5](https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US) |
 | Amazon: logs | No personal data in logs; kept at least 12 months; reviewed at least every two weeks | [Data Protection Policy, 2.6](https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US) |
 | Amazon: schedule | Scans every 30 days, penetration test yearly, critical fixes in 7 days and high in 30, access reviews quarterly, access removed within 24 hours, backup tests quarterly, key rotation yearly | [Key security control guidance](https://developer-docs.amazon/sp-api/docs/guidance-to-address-key-security-controls-in-sp-api-integration) |

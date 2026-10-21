@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-000: System architecture](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-000-system-architecture) |
-| **Date** | 20–21 October 2026 |
+| **Date** | 20–21 October 2026; sign-in on Better Auth ([ADR-013](../../sign-in/)) 21 October 2026 |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-000 from. Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins. Words are defined in the [map and glossary](../../guide/).
@@ -163,7 +163,7 @@ An **egress effect** is a call that changes something on a marketplace or at a s
 
 <!-- DIAGRAM -->
 
-1. **The app Worker,** one per environment, serves the built client as static files, the API and every webhook. **The sign-in Worker** is the only other one: it serves the sign-in pages, answers the app's "is this session live?", and reaches only the control database, through its own Hyperdrive configuration ([ADR-013 SPEC 6](../../sign-in/spec/#6-the-sign-in-worker)). Deployed code uses web-standard APIs and platform bindings only.
+1. **The app Worker,** one per environment, serves the built client as static files, the API and every webhook. **The sign-in Worker** is the only other one: it runs Better Auth, serves the sign-in pages, answers the app's "whose session is this?" over a service binding, and reaches only control's `auth` and `auth_policy` schemas, through its own Hyperdrive configuration ([ADR-013 SPEC 8](../../sign-in/spec/#8-the-sign-in-worker)). Better Auth is a pinned dependency inside it, not a module: no module imports it, and it never calls a module's port or writes a module's table. The login id it returns goes to Access, the core module that decides every permission ([ADR-010](../../users-and-access/)). Deployed code uses web-standard APIs and platform bindings only.
 2. **Background work** runs on one sweeper per database, a Durable Object driven by its alarm, that runs only companies with work due ([ADR-001 SPEC 9](../../database-architecture/spec/#9-background-work-and-the-outbox)).
 3. **Webhooks** go through one inbound queue with retries and a dead-letter queue.
 4. **Live updates** come from one Durable Object per company that holds its open screens' connections, so a screen updates when a background job changes what it shows. They carry ids and statuses, never buyer data ([ADR-009](../../buyer-data/)).
@@ -181,7 +181,7 @@ An **egress effect** is a call that changes something on a marketplace or at a s
 1. Deploying is one command. Migrations run first, on control and every cell in the ring of [ADR-001 SPEC 12](../../database-architecture/spec/#12-operations), and finish before new code goes live.
 2. Migrations only add, so the previous code version runs on the new schema, and a rollback is switching back to it. A migration is never rolled back.
 3. A database below the version the code needs is an error that alerts, never a state the code handles.
-4. Each Worker deploys on its own, only when its code changes; when both change, the sign-in Worker goes first ([ADR-013 SPEC 6](../../sign-in/spec/#6-the-sign-in-worker)).
+4. Each Worker deploys on its own, only when its code changes; when both change, the sign-in Worker goes first ([ADR-013 SPEC 8](../../sign-in/spec/#8-the-sign-in-worker)). The `auth` schema's migrations are Better Auth's reviewed `generate` output, run with control's other migrations; nothing changes a schema at start-up ([ADR-013 SPEC 13](../../sign-in/spec/#13-upgrades-and-migrations)).
 
 Procedure: [Deploy and roll back](../../runbooks/deploy-and-roll-back/).
 

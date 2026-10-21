@@ -75,7 +75,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>18 October 2026</td>
+<td>18 October 2026; the seller&#39;s users&#39; sign-in data added with ADR-013&#39;s move to Better Auth, 21 October 2026</td>
 </tr>
 <tr>
 <td><strong>Scope</strong></td>
@@ -104,7 +104,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>One operator and a small team.</strong> Every rule has to run by itself, and be proved by a check or a test.</li>
 <li><strong>Buyers ask through others.</strong> A buyer asks the seller or the marketplace, never Vervoro. Vervoro still has to act within the time the law and the marketplace allow.</li>
 </ul>
-<p><strong>Out of scope.</strong> Suppliers are business contacts, covered by a future purchasing record. The seller&#39;s own users (their staff accounts) are Vervoro&#39;s account data. They are covered by Vervoro&#39;s privacy notice, and they get the same security controls.</p>
+<p><strong>Out of scope.</strong> Suppliers are business contacts, covered by a future purchasing record. The seller&#39;s own users (their staff accounts) are Vervoro&#39;s account data. They are covered by Vervoro&#39;s privacy notice, and they get the same security controls; where their sign-in data lives is listed in <a href="#the-sellers-users-sign-in-data">The seller&#39;s users&#39; sign-in data</a>.</p>
 <h2 id="decision">Decision</h2>
 <ol>
 <li><strong>The seller is the controller and Vervoro is the processor</strong> of buyer data, under a data processing agreement that every company accepts before it connects a marketplace. Vervoro publishes its list of sub-processors and gives 30 days&#39; notice of a change.</li>
@@ -163,7 +163,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Email delivery provider</td>
-<td>Sends emails to the seller&#39;s users</td>
+<td>Sends emails to the seller&#39;s users, so it receives their addresses. Sign-in mail goes through Cloudflare&#39;s Email Service, already listed above (owner ruling, 21 October 2026, <a href="../sign-in/">ADR-013</a>)</td>
 <td>None: emails name an order, never a buyer</td>
 </tr>
 <tr>
@@ -259,6 +259,15 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Keys:</strong> each company&#39;s data key is wrapped by a key-encryption key held as a platform secret, never in the database. The key-encryption key is rotated every year and at once on any suspicion, by re-wrapping the company keys.</li>
 <li><strong>Label files</strong> are encrypted with the company&#39;s data key before they are stored. They go to a bucket without versioning, so deleting one deletes it.</li>
 <li><strong>Search:</strong> the only search on buyer data is ADR-001&#39;s exact-match blind index on the phone number. Buyer email is not kept, so it has no index. The index entry is removed with the field.</li>
+</ul>
+<h2 id="the-sellers-users-sign-in-data">The seller&#39;s users&#39; sign-in data</h2>
+<p>Not buyer data, but personal data Vervoro holds as controller, under its privacy notice. It is listed here so one record shows every place personal data lives.</p>
+<ul>
+<li><strong>What, and why.</strong> Each login&#39;s email address and name, its password hash, authenticator secret, backup codes and passkey public keys, its sessions with the network address and browser of each, and its password history. Each field&#39;s purpose is in <a href="../sign-in/spec/#2-the-login-and-its-data">ADR-013 SPEC 2</a>. The email address is stored readable, because Better Auth, the library the sign-in Worker runs, signs people in and mails them by it.</li>
+<li><strong>Where.</strong> In the control database&#39;s <code>auth</code> and <code>auth_policy</code> schemas, in the EU, inside Vervoro&#39;s own infrastructure. No third-party identity provider owns or acts as the system of record for Vervoro&#39;s users or their email addresses. Sign-in mail is sent through Cloudflare&#39;s Email Service, an existing sub-processor, which receives an address only to deliver that email.</li>
+<li><strong>Who can reach it.</strong> Only the sign-in Worker, through the sign-in role; the app, operators and developers cannot. The database owner role reaches it only in an emergency, under <a href="../runbooks/use-the-owner-role/">its runbook</a>. Passwords, codes, secrets and tokens are never logged.</li>
+<li><strong>Protection.</strong> TLS in transit, storage encryption at rest, authenticator secrets and backup codes also encrypted by Better Auth under the sign-in Worker&#39;s secret, and every sign-in event in the platform security log.</li>
+<li><strong>Retention and deletion.</strong> Sessions are deleted 30 days after they end; a login with no membership is deleted after 30 days, its address and name with it (<a href="../users-and-access/spec/#6-invitations-sign-up-and-removal">ADR-010</a>). Control&#39;s backups hold a deleted login until they expire, within 30 days (<a href="../database-architecture/spec/#backups">ADR-001</a>). Erasing a company removes its memberships, which starts that 30 days for anyone left with none.</li>
 </ul>
 <h2 id="who-can-see-it">Who can see it</h2>
 <p><strong>Seller&#39;s users</strong> see buyer data by role and by the order&#39;s state. Everyone else sees the order masked: its number, country and lines.</p>
@@ -498,7 +507,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Passwords</td>
-<td>Where a password is used: at least 12 characters with mixed character types, none of the user&#39;s name, the last 10 not reused, changed at least once a year; locked after 10 failed attempts. Passkeys are the default (<a href="../sign-in/">ADR-013</a>)</td>
+<td>Where a password is used, always with an authenticator code: at least 12 characters with upper and lower case, a number and a symbol, none of the user&#39;s name, at least a day old before a change, changed at least once a year, the last 10 not reused; locked after 10 failed attempts. Passkeys are the default (<a href="../sign-in/">ADR-013</a>)</td>
 <td>Always</td>
 </tr>
 <tr>
@@ -548,7 +557,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Key rotation</td>
-<td>Key-encryption key and marketplace credentials</td>
+<td>Key-encryption key, marketplace credentials and the sign-in Worker&#39;s Better Auth secret (<a href="../runbooks/rotate-the-better-auth-secret/">runbook</a>)</td>
 <td>Every year, and at once on suspicion</td>
 </tr>
 <tr>
@@ -700,7 +709,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Amazon: sign-in</td>
-<td>Multi-factor for every user account; password rules (12 characters, 10 not reused, at most 365 days)</td>
+<td>Multi-factor for every user account; password rules (12 characters, upper and lower case, numbers and symbols, no part of the name, 1 to 365 days old, 10 not reused); lockout after at most 10 failures (1.2.2)</td>
 <td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US">Data Protection Policy, 1.4.1</a></td>
 </tr>
 <tr>

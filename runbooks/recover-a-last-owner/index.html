@@ -75,7 +75,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Record</strong></td>
-<td><a href="../../sign-in/">ADR-013</a>, rules in <a href="../../sign-in/spec/#4-recovery">SPEC 4</a></td>
+<td><a href="../../sign-in/">ADR-013</a>, rules in <a href="../../sign-in/spec/#6-recovery">SPEC 6</a></td>
 </tr>
 <tr>
 <td><strong>Who runs it</strong></td>
@@ -83,26 +83,27 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Role or credential</strong></td>
-<td>The operator console with a fresh check. The steps run in the sign-in Worker and the app</td>
+<td>The operator console with a fresh check. The marketplace step runs in the app; the wait and the new methods run in the sign-in Worker, through Better Auth&#39;s API</td>
 </tr>
 </tbody></table></div>
-<p>Use it only for a company&#39;s last Owner who has lost every sign-in method and every recovery code. Anyone else is recovered by their company.</p>
+<p>Use it only for a company&#39;s last Owner who has lost every sign-in method and every backup code. Anyone else is recovered by their company.</p>
 <h2 id="steps">Steps</h2>
 <ol>
 <li>Send the recovery link to the Owner&#39;s email address as held in the company&#39;s users table.</li>
 <li>The Owner approves Vervoro again on one of the company&#39;s connected marketplace accounts. It must return the seller account the company already holds in the external directory. The approval&#39;s tokens are discarded at once; the live connection is not touched.</li>
-<li>The 72-hour wait starts. Every member of the company is told by email.</li>
+<li>The 72-hour wait starts in the sign-in Worker. Every member of the company is told by email.</li>
 <li>If an Owner or Admin objects, stop and pass it to Vervoro&#39;s owner.</li>
-<li>After 72 hours, the Owner sets up new sign-in methods; every old method and session of that login ends.</li>
+<li>After 72 hours, the sign-in Worker removes every old method and session of that login through Better Auth, and the Owner sets up new methods from a one-time link, a passkey first.</li>
 </ol>
 <p>A company with no connected marketplace is a trial: the person signs up again. Any other case goes to Vervoro&#39;s owner, decided on documents.</p>
 <h2 id="verify">Verify</h2>
 <ul>
 <li>The person and the company&#39;s Owners and Admins were told.</li>
+<li>The login has only its new methods, and no session from before.</li>
 <li>Both audit trails hold the recovery.</li>
 </ul>
 <h2 id="if-it-stops-halfway">If it stops halfway</h2>
-<p>Any sign-in by that login during the wait cancels the recovery: start again from step 1 only if the Owner asks again. A marketplace step that returns another seller account ends it.</p>
+<p>Any sign-in by that login during the wait cancels the recovery: start again from step 1 only if the Owner asks again. A marketplace step that returns another seller account ends it. If step 5 stops, run it again: removing a method already gone changes nothing.</p>
 
 <footer>Vervoro</footer>
 </main>

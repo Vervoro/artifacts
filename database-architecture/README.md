@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Status** | Proposed |
-| **Date** | 17 October 2026; revised 18 October 2026; split into ADR, SPEC and RUNBOOK 20 October 2026; hosting reviewed 21 October 2026 |
+| **Date** | 17 October 2026; revised 18 October 2026; split into ADR, SPEC and RUNBOOK 20 October 2026; hosting reviewed 21 October 2026; sign-in data aligned with Better Auth ([ADR-013](../sign-in/)) 21 October 2026 |
 | **Scope** | How Vervoro stores, isolates, routes and moves each company's data |
 | **Builds on** | [ADR-000: System architecture](../system-architecture/) |
 | **SPEC** | [The rules to build from, and how to check them](spec/) |
@@ -21,7 +21,7 @@
 
 Parts marked *Later* keep their rules in the SPEC but are built only when their trigger arrives.
 
-1. **A control database** on its own compute holds the platform's data: companies and where each lives, logins, memberships, operators, plans, shared quotas and the erasure register. No company business data.
+1. **A control database** on its own compute holds the platform's data: companies and where each lives, memberships, operators, plans, shared quotas and the erasure register, and, in an auth schema of their own, the logins Better Auth keeps for the sign-in Worker ([ADR-013](../sign-in/)). No company business data, and no sign-in data in any cell.
 2. **Cells (customer databases)** hold many companies in shared tables. `company_id` leads every key, and row-level security (Postgres itself refusing another company's rows) is forced on every table. A dedicated cell holds one company in its own Neon project, on the same code path. *Later: dedicated cells, at the first enterprise that needs one.*
 3. **Every transaction enters one company first.** Its first statement raises unless this database holds that company in a state the role may enter. An unset or wrong company is an error, never zero rows.
 4. **Only the data layer sets the company**, and it checks the company is unchanged before every commit. Modules write no SQL: they query through a typed query builder that cannot set the company, control a transaction, change the schema or call a function outside an allow-list (owner ruling, 21 October 2026). A CI lint checks every table; a nightly audit and a canary company (a synthetic company no other may ever see) check production. Any sign of cross-company exposure pages the operator and stops that database's outbound calls.

@@ -73,7 +73,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 │
 ├── People and access
 │   ├── ADR-010  Users, roles and access
-│   └── ADR-013  Sign-in: passkeys, sessions, recovery, the sign-in Worker
+│   └── ADR-013  Sign-in: the sign-in Worker running Better Auth, passkeys, sessions, recovery
 │
 ├── Products and stock
 │   ├── ADR-003  Product model: SKU, packs, bundles, VAT class, charge lines
@@ -167,11 +167,43 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Login</strong></td>
-<td>One person&#39;s way in: email, sign-in methods and sessions, held in the control database (ADR-013)</td>
+<td>One person&#39;s way in: a Better Auth user, with their email address, sign-in methods and sessions, in the control database&#39;s auth schema. Its id is the login id every other record uses (ADR-013)</td>
+</tr>
+<tr>
+<td><strong>Authentication</strong></td>
+<td>Proving who a person is: sign-in methods, sessions, recovery steps. Done by Better Auth inside the sign-in Worker (ADR-013)</td>
+</tr>
+<tr>
+<td><strong>Authorization</strong></td>
+<td>Deciding what a signed-in person may do in a company: memberships, roles, warehouse scope, permissions, operator grants. Done only by the Access module (ADR-010), never by Better Auth</td>
+</tr>
+<tr>
+<td><strong>Better Auth</strong></td>
+<td>The open-source authentication library the sign-in Worker runs. A dependency inside Vervoro, writing to Vervoro&#39;s own database: not a hosted identity provider, and not Vervoro&#39;s authorization (ADR-013)</td>
 </tr>
 <tr>
 <td><strong>Sign-in Worker</strong></td>
-<td>The only Worker besides the app: it serves the sign-in pages, alone holds the sign-in keys and writes the login tables, and tells the app whether a session is live. The app never sees a typed password (ADR-013)</td>
+<td>The only Worker besides the app. It runs Better Auth, serves the sign-in pages, alone holds the sign-in secret and touches the auth schema, and tells the app over a service binding whether a session is live and whose. The app never sees a typed password (ADR-013)</td>
+</tr>
+<tr>
+<td><strong>Auth schema</strong></td>
+<td>The <code>auth</code> schema in the control database, where Better Auth keeps its tables, beside <code>auth_policy</code>, Vervoro&#39;s own sign-in policy tables. Only the sign-in role can reach them (ADR-001, ADR-013)</td>
+</tr>
+<tr>
+<td><strong>Access module</strong></td>
+<td>The core module that answers &quot;may this login do this here&quot;: it reads the membership and member row and applies the permission matrix (ADR-000, ADR-010)</td>
+</tr>
+<tr>
+<td><strong>Session</strong></td>
+<td>Better Auth&#39;s record that a login signed in, held in the browser as a cookie: at most 24 hours for everyone, never extended. The only session model (ADR-013)</td>
+</tr>
+<tr>
+<td><strong>Passkey</strong></td>
+<td>A key the person&#39;s phone, laptop or password manager keeps, unlocked by a fingerprint, a face or the device&#39;s PIN. The default way to sign in (ADR-013)</td>
+</tr>
+<tr>
+<td><strong>Recovery</strong></td>
+<td>Getting a person back in after they lose a method: Better Auth&#39;s steps (reset, backup code, new methods) under Vervoro&#39;s rules on who may start it and which company it reopens (ADR-013)</td>
 </tr>
 <tr>
 <td><strong>Membership</strong></td>
@@ -187,7 +219,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Control database</strong></td>
-<td>The one database that holds who the companies are and where they live: registry, routing, logins, operators, shared quotas, the erasure register. No business data (ADR-001)</td>
+<td>The one database that holds who the companies are and where they live: registry, routing, logins (Better Auth&#39;s tables in the auth schema), operators, shared quotas, the erasure register. No business data (ADR-001)</td>
 </tr>
 <tr>
 <td><strong>Cell</strong></td>

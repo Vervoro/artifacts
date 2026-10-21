@@ -94,7 +94,7 @@ ${body}
 // extra links shown under a record's card.
 type Doc = { dir: string; title: string; blurb: string; parent?: string; partOf?: string; links?: { label: string; href: string }[] };
 const docs: Doc[] = [
-  { dir: "rulebook", title: "Engineering rulebook", blurb: "The 45 rules every change must keep, each a one-line summary of a decision a record makes, with a link to it. The record wins on any difference. Load it with every coding task." },
+  { dir: "rulebook", title: "Engineering rulebook", blurb: "The 47 rules every change must keep, each a one-line summary of a decision a record makes, with a link to it. The record wins on any difference. Load it with every coding task." },
   { dir: "guide", title: "Architecture map and glossary", blurb: "How the records fit together, one word per concept, and what each status (Proposed, Accepted, Implemented, Superseded, Deprecated) means. Every record is Proposed today." },
   { dir: "system-architecture", title: "ADR-000: System architecture", blurb: "A modular monolith: six core modules each the only writer of its data, modules that call toward the core and hear back by events, an outbox, one egress gate, connector plugins and simulators. Proposed 17 October 2026; split into ADR, SPEC and RUNBOOK 20 October 2026.", links: [{ label: "SPEC", href: "system-architecture/spec/" }, { label: "RUNBOOK", href: "runbooks/#adr-000-system-architecture" }] },
   { dir: "system-architecture/spec", partOf: "system-architecture", title: "ADR-000 SPEC: System architecture", blurb: "The rules to build ADR-000 from, the tests that prove them, and a checklist for reviewing the code." },
@@ -114,8 +114,7 @@ const docs: Doc[] = [
     ["change-a-vat-rate", "Change a VAT rate"],
     ["open-an-operator-grant", "Open an operator grant"],
     ["sign-in-incident-commands", "Sign-in incident commands"],
-    ["rotate-the-sign-in-key", "Rotate the sign-in key"],
-    ["rotate-the-email-hash-key", "Rotate the email-hash key"],
+    ["rotate-the-better-auth-secret", "Rotate the Better Auth secret"],
     ["contain-a-poisoned-package", "Contain a poisoned package"],
     ["recover-a-last-owner", "Recover a company's last Owner"],
     ["recover-an-operator", "Recover an operator's access"],
@@ -138,14 +137,14 @@ const docs: Doc[] = [
   { dir: "users-and-access/spec", partOf: "users-and-access", title: "ADR-010 SPEC: Users, roles and access", blurb: "The rules to build ADR-010 from, the tests that prove them, and a checklist for reviewing the code." },
   { dir: "invoicing-and-vat", title: "ADR-011: Invoicing and VAT", blurb: "The seller as supplier and one issuer per sale, Amazon invoicing its own orders, documents only when needed or asked for, a VAT record for every sale line from import, Vervoro's own VAT beside the marketplace's with differences flagged, per-line rounding, hampers split by cost and delivery by value, one gap-free series, frozen PDFs, credit notes only against Vervoro's invoices, a CSV export split by issuer, and UK-only scope with exports zero-rated. Proposed, 18 October 2026." },
   { dir: "billing-and-plans", title: "ADR-012: Billing and plans", blurb: "Plans as rows of modules with a soft order ceiling averaged over three months and no overage, unlimited users and connections, a 21-day trial with no card until a connection goes live, four states computed from dates with the stock path running until closing, closing by the seller's stop choice and then figures that only fall until erasure, reopening without losing anything, Stripe with cards and Bacs Direct Debit on hosted pages (SAQ A), upgrades at once and downgrades at renewal, one invoice sequence, UK VAT, and erasure 30 days after closing. Proposed, 18 October 2026." },
-  { dir: "sign-in", title: "ADR-013: Sign-in", blurb: "Built by Vervoro with no identity provider, in a Worker of its own that alone holds the sign-in keys. A passkey by default, a password and authenticator app code as the fallback with Amazon's password rules, one sign-in a day, recovery through the company first, lockouts and a bot check, four incident commands. Proposed 18 October 2026 within ADR-010; its own record, split into ADR, SPEC and RUNBOOK 21 October 2026.", links: [{ label: "SPEC", href: "sign-in/spec/" }, { label: "RUNBOOK", href: "runbooks/#adr-013-sign-in" }] },
+  { dir: "sign-in", title: "ADR-013: Sign-in", blurb: "Vervoro runs sign-in with Better Auth as its engine, inside a Worker of its own and on Vervoro's own database; no hosted identity provider. Better Auth says who a person is, ADR-010 what they may do. A passkey by default, a password only with an authenticator code, Amazon's password rules as a small policy layer, one sign-in a day on one session model, recovery through the company first, lockouts with a named owner each, one versioned secret and four incident commands. Proposed 18 October 2026 within ADR-010; its own record, split into ADR, SPEC and RUNBOOK 21 October 2026; Better Auth replaces the in-house engine the same day.", links: [{ label: "SPEC", href: "sign-in/spec/" }, { label: "RUNBOOK", href: "runbooks/#adr-013-sign-in" }] },
   { dir: "sign-in/spec", partOf: "sign-in", title: "ADR-013 SPEC: Sign-in", blurb: "The rules to build ADR-013 from, the tests that prove them, and a checklist for reviewing the code." },
 ];
 
 // The order to build in: each step needs the ones before it. `adrs` are dirs (linked) or planned titles.
 const buildOrder: { adrs: string[]; why: string }[] = [
   { adrs: ["system-architecture", "database-architecture"], why: "The skeleton: modules and ports, the outbox, the egress gate, tenancy and row-level security. Every later record is a module on top." },
-  { adrs: ["users-and-access", "sign-in"], why: "Users, roles and sign-in are part of the skeleton: every later module names its actions, and ADR-010 decides who holds them. Sign-in, sessions and operator grants exist before any screen shows a buyer's address. Sign-in is its own Worker with its own build and deploy, so it is set up with the skeleton." },
+  { adrs: ["users-and-access", "sign-in"], why: "Users, roles and sign-in are part of the skeleton: every later module names its actions, and ADR-010 decides who holds them. Sign-in, sessions and operator grants exist before any screen shows a buyer's address. Sign-in is its own Worker running Better Auth, with its own build, deploy and auth schema in control, so it is set up with the skeleton; Better Auth hands ADR-010 a login id and decides nothing about access." },
   { adrs: ["product-model"], why: "Products come first; listings, stock and orders all point at them." },
   { adrs: ["stock-ledger"], why: "Stock is recorded and reserved inside Vervoro before any marketplace sees a figure. Only the foundation writes it." },
   { adrs: ["channel-connectors", "ebay-connector", "amazon-seller-connector", "shopify-connector"], why: "The connector host first, then eBay and Amazon Seller side by side, then Shopify. Each runs against its simulator in shadow mode. Amazon Vendor (ADR-004.4, planned) comes later." },

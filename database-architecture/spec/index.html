@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>20 October 2026; hosting reviewed 21 October 2026</td>
+<td>20 October 2026; hosting reviewed 21 October 2026; sign-in data aligned with Better Auth (<a href="../../sign-in/">ADR-013</a>) 21 October 2026</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -260,7 +260,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>SQL</td>
 <td>Yes, as itself</td>
 <td>No (<code>NOBYPASSRLS</code>)</td>
-<td><code>SELECT, INSERT, UPDATE, DELETE</code> on tenant tables, minus the append-only revoke. <code>SELECT</code> on <code>tenant</code>. No right on control&#39;s login tables. Owns nothing</td>
+<td><code>SELECT, INSERT, UPDATE, DELETE</code> on tenant tables, minus the append-only revoke. <code>SELECT</code> on <code>tenant</code>. No usage on control&#39;s <code>auth</code> and <code>auth_policy</code> schemas. Owns nothing</td>
 <td>The app Worker, through Hyperdrive</td>
 </tr>
 <tr>
@@ -278,7 +278,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>SQL</td>
 <td>Yes</td>
 <td>No</td>
-<td>Alone reads and writes logins, sign-in methods, recovery codes and sessions (<a href="../../sign-in/spec/#6-the-sign-in-worker">ADR-013 SPEC 6</a>). Owns nothing</td>
+<td><code>SELECT, INSERT, UPDATE, DELETE</code> on the <code>auth</code> schema (Better Auth&#39;s tables) and the <code>auth_policy</code> schema (Vervoro&#39;s sign-in policy tables); <code>INSERT</code> on the platform security log; nothing else (<a href="../../sign-in/spec/#8-the-sign-in-worker">ADR-013 SPEC 8</a>). Owns nothing; the owner role creates both schemas by migration</td>
 <td>The sign-in Worker, through its own Hyperdrive configuration</td>
 </tr>
 <tr>
@@ -455,7 +455,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ol>
 <p>Named exceptions: the <code>tenant</code> table, keyed by its own <code>id</code>; the definer owner&#39;s read policies on <code>due</code> and <code>buyer_ref</code>; and each cell&#39;s migration ledger, which is the owner&#39;s alone, in its own schema, with no grants (owner ruling, 21 October 2026).</p>
 <h2 id="7-control-database-and-routing">7. Control database and routing</h2>
-<p>Control is its own database on its own compute. A cell credential can never read the login directory, and restoring a cell can never rewind control.</p>
+<p>Control is its own database on its own compute. A cell credential can never read sign-in data, and restoring a cell can never rewind control.</p>
+<p><strong>Three kinds of data, kept apart:</strong> sign-in data (the <code>auth</code> and <code>auth_policy</code> schemas, the sign-in role only), platform data (everything else in control, the runtime role), and company data (the cells). Sign-in data is never copied into a cell; a company&#39;s users table keeps its own copy of the person&#39;s address and name.</p>
 <p><strong>Control holds, and nothing else:</strong></p>
 <div class="table-wrap"><table>
 <thead>
@@ -473,8 +474,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><code>database(id, region, kind shared or dedicated, state open, closed or draining, cap)</code></td>
 </tr>
 <tr>
-<td>Login directory</td>
-<td>Logins, sign-in methods, recovery codes, sessions (<a href="../../sign-in/spec/#1-the-login">ADR-013 SPEC 1</a>); only the sign-in role touches these</td>
+<td>Sign-in data</td>
+<td>Better Auth&#39;s tables in the <code>auth</code> schema (logins with their email address and name, sessions, passwords, passkeys, authenticators, backup codes, verifications, rate counts) and Vervoro&#39;s sign-in policy tables in <code>auth_policy</code> (<a href="../../sign-in/spec/#2-the-login-and-its-data">ADR-013 SPEC 2</a>); only the sign-in role touches these</td>
 </tr>
 <tr>
 <td>Memberships and operator data</td>
@@ -501,7 +502,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Per database, the version the last deploy reached (<a href="#12-operations">section 12</a>)</td>
 </tr>
 </tbody></table></div>
-<p><strong>Emails in control</strong> are stored only as an HMAC of the normalised address, keyed by a secret held outside Postgres by the sign-in Worker. The address lives only in the company&#39;s own users table.</p>
+<p><strong>Emails in control</strong> are stored readable, once per login, in Better Auth&#39;s user table in the <code>auth</code> schema, reachable only by the sign-in role; storage encryption covers it at rest and control&#39;s backups hold it for their 30 days. No outside identity service holds it (<a href="../../buyer-data/">ADR-009</a>). Each company&#39;s users table holds its own copy.</p>
 <p><strong>Routing:</strong></p>
 <ol>
 <li><code>forCompany(id)</code> reads <code>company.database_id</code> from control (cached) and uses that database&#39;s connection.</li>
@@ -515,7 +516,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>Then write control. The write is idempotent.</li>
 <li>If the second write fails, the sweeper retries the note until it succeeds. The note is an ordinary outbox note whose handler writes control (<a href="#the-outbox">section 9</a>).</li>
 <li>No transaction spans two databases.</li>
-<li>Repairs run as the runtime role and only rewrite memberships, directory and registry rows. Logins, sign-in methods, recovery codes and sessions are written only by the sign-in Worker. At sign-up the login exists before the company does.</li>
+<li>Repairs run as the runtime role and only rewrite memberships, directory and registry rows. Sign-in data is written only by the sign-in Worker. At sign-up the login exists before the company does.</li>
 </ol>
 <h2 id="8-adding-companies-and-databases">8. Adding companies and databases</h2>
 <p>Every company in a cell shares that cell&#39;s database, Hyperdrive configuration and Worker binding, so a new company needs none of them. Adding a company is a product action. Adding a database is infrastructure work done ahead of need.</p>
@@ -793,7 +794,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p><strong>Audit, at every deploy and every night,</strong> over every database and branch in the Neon project and every Hyperdrive configuration in the account:</p>
 <ol>
 <li>The only login roles are the owner, runtime and lifecycle roles, plus the sign-in role on control.</li>
-<li>The runtime role has no right on the login tables. No role but the owner may hold <code>BYPASSRLS</code> or be in <code>neon_superuser</code>. No runtime or lifecycle role owns a table.</li>
+<li>The runtime role has no usage on the <code>auth</code> and <code>auth_policy</code> schemas; the sign-in role has no right outside them but its insert on the security log. No role but the owner may hold <code>BYPASSRLS</code> or be in <code>neon_superuser</code>. No runtime or lifecycle role owns a table.</li>
 <li>The definer owner cannot log in, is not in <code>neon_superuser</code>, has no members, and has only the rights in <a href="#3-roles">section 3</a>.</li>
 <li>Every Hyperdrive configuration has caching off.</li>
 <li>The catalogue lint passes on the live catalogue, and the next two months&#39; partitions exist.</li>
@@ -1154,7 +1155,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td>15</td>
 <td>Which role repairs login rows?</td>
-<td>None. Repairs touch memberships and directories only, as runtime; logins are the sign-in Worker&#39;s</td>
+<td>None. Repairs touch memberships and directories only, as runtime; sign-in data is the sign-in Worker&#39;s</td>
 <td><a href="#7-control-database-and-routing">7</a></td>
 </tr>
 <tr>
@@ -1189,8 +1190,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Data layer:</strong> no code path keeps one transaction open across two companies, or reads control through a cell&#39;s transaction.</li>
 <li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Worker configuration:</strong> the app Worker holds only runtime credentials; no serving process holds the owner or lifecycle credential, or runs migrations.</li>
 <li><input disabled="" type="checkbox"> <strong>[Before launch]</strong> <strong>Worker configuration:</strong> one Hyperdrive binding per database in control&#39;s registry, none a placeholder, each with caching off.</li>
-<li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Control:</strong> holds no business table; the login directory stores an email HMAC, never an address; the erasure register, sync epoch and migration summary exist.</li>
-<li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Control:</strong> the runtime role has no right on logins, sign-in methods, recovery codes or sessions.</li>
+<li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Control:</strong> holds no business table; sign-in data is only in the <code>auth</code> and <code>auth_policy</code> schemas; the erasure register, sync epoch and migration summary exist.</li>
+<li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Control:</strong> the runtime role has no usage on <code>auth</code> or <code>auth_policy</code>; the <code>auth</code> schema&#39;s migrations are Better Auth&#39;s reviewed <code>generate</code> output, committed like any other.</li>
 <li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Routing:</strong> every request reaches its database through <code>forCompany</code>, and a request for company A with a session for B throws.</li>
 <li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Sign-up:</strong> writes <code>open_tenant</code>, the company rows and the outbox note in one cell transaction, then control; it runs no migration.</li>
 <li><input disabled="" type="checkbox"> <strong>[Before launch]</strong> <strong>Sweeper:</strong> no background job loops over the company registry; each writer upserts <code>due</code>; the hourly trigger nudges every database in control&#39;s registry.</li>

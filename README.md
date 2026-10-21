@@ -21,8 +21,7 @@ Architecture decisions and plans, published with GitHub Pages.
   - [Runbook: Change a VAT rate](runbooks/change-a-vat-rate/README.md)
   - [Runbook: Open an operator grant](runbooks/open-an-operator-grant/README.md)
   - [Runbook: Sign-in incident commands](runbooks/sign-in-incident-commands/README.md)
-  - [Runbook: Rotate the sign-in key](runbooks/rotate-the-sign-in-key/README.md)
-  - [Runbook: Rotate the email-hash key](runbooks/rotate-the-email-hash-key/README.md)
+  - [Runbook: Rotate the Better Auth secret](runbooks/rotate-the-better-auth-secret/README.md)
   - [Runbook: Contain a poisoned package](runbooks/contain-a-poisoned-package/README.md)
   - [Runbook: Recover a company's last Owner](runbooks/recover-a-last-owner/README.md)
   - [Runbook: Recover an operator's access](runbooks/recover-an-operator/README.md)
@@ -52,7 +51,7 @@ Architecture decisions and plans, published with GitHub Pages.
 The order to build in. Each step needs the ones before it.
 
 1. **[ADR-000: System architecture](system-architecture/README.md), [ADR-001: Multi-tenant database architecture](database-architecture/README.md).** The skeleton: modules and ports, the outbox, the egress gate, tenancy and row-level security. Every later record is a module on top.
-2. **[ADR-010: Users, roles and access](users-and-access/README.md), [ADR-013: Sign-in](sign-in/README.md).** Users, roles and sign-in are part of the skeleton: every later module names its actions, and ADR-010 decides who holds them. Sign-in, sessions and operator grants exist before any screen shows a buyer's address. Sign-in is its own Worker with its own build and deploy, so it is set up with the skeleton.
+2. **[ADR-010: Users, roles and access](users-and-access/README.md), [ADR-013: Sign-in](sign-in/README.md).** Users, roles and sign-in are part of the skeleton: every later module names its actions, and ADR-010 decides who holds them. Sign-in, sessions and operator grants exist before any screen shows a buyer's address. Sign-in is its own Worker running Better Auth, with its own build, deploy and auth schema in control, so it is set up with the skeleton; Better Auth hands ADR-010 a login id and decides nothing about access.
 3. **[ADR-003: Product model](product-model/README.md).** Products come first; listings, stock and orders all point at them.
 4. **[ADR-006: Stock ledger and reservations](stock-ledger/README.md).** Stock is recorded and reserved inside Vervoro before any marketplace sees a figure. Only the foundation writes it.
 5. **[ADR-004: Channel connectors](channel-connectors/README.md), [ADR-004.1: eBay connector](ebay-connector/README.md), [ADR-004.2: Amazon Seller connector](amazon-seller-connector/README.md), [ADR-004.3: Shopify connector](shopify-connector/README.md).** The connector host first, then eBay and Amazon Seller side by side, then Shopify. Each runs against its simulator in shadow mode. Amazon Vendor (ADR-004.4, planned) comes later.

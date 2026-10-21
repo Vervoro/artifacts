@@ -24,7 +24,7 @@ Everything below is built at launch except these parts, which keep their rules h
 | Who | Signs in to | Holds |
 | --- | --- | --- |
 | **Seller's users** | The app, on their own phone or laptop, in one or more companies | One role per company |
-| **Operators** | The operator console only, never the app ([ADR-013 SPEC 9](../../sign-in/spec/#9-operators)) | Platform work, and grants to look inside a company. No standing access |
+| **Operators** | The operator console only, never the app ([ADR-013 SPEC 10](../../sign-in/spec/#10-operators)) | Platform work, and grants to look inside a company. No standing access |
 | **Developers** | Source control and the build pipeline only | No production data ([ADR-009](../../buyer-data/)). Deploys run under the pipeline's identity; the sign-in Worker has a deploy identity of its own |
 | **System actors** | Nothing | The sweeper, the queue consumer and the egress gate act for a company under a named system actor, recorded on every entry they write |
 
@@ -32,12 +32,12 @@ Buyers and suppliers sign in to nothing. Every login belongs to one person, iden
 
 ## 2. Logins and member rows
 
-1. **The login** is in control and belongs to [ADR-013](../../sign-in/spec/#1-the-login): it holds no name and no clear email address.
-2. **The membership** (login, company) is in control, written by the app's runtime role.
+1. **The login** is a Better Auth user in control's auth schema and belongs to [ADR-013](../../sign-in/spec/#2-the-login-and-its-data). Its id is the only thing this record takes from it: Better Auth establishes who the person is; memberships, roles, scope, permissions and grants are decided here. Nothing here reads Better Auth's tables.
+2. **The membership** (login id, company) is in control, written by the app's runtime role. It holds the login id with no foreign key into the auth schema, so a Better Auth upgrade never touches it.
 3. **The member row** is in the company's own users table, in its cell: email address, name, role, warehouse scope, status (`invited`, `active`, `removed`) and when each changed. It alone decides what the person may do in that company, and it is exported, restored and erased with the company.
-4. **Switching company** is a menu. The session belongs to the login, and every request names its company, so two tabs can work in two companies. Switching asks for no new sign-in; account changes still ask for a fresh check ([ADR-013 SPEC 3](../../sign-in/spec/#3-sessions)).
-5. **Email to a person** reads their address from any company where they are active. Recovery and invitation mail goes to the address the person types, once its hash matches.
-6. **Changing email** changes the address in every company where the person is a member, then asks the sign-in Worker to change the hash in control, retried from the outbox ([ADR-001 SPEC 7](../../database-architecture/spec/#7-control-database-and-routing)). Both the old and the new address are told.
+4. **Switching company** is a menu. The session belongs to the login, and every request names its company, so two tabs can work in two companies. Switching asks for no new sign-in; account changes still ask for a fresh check ([ADR-013 SPEC 5](../../sign-in/spec/#5-sessions)).
+5. **Email to a person** from the app reads their address from any company where they are active. Sign-in mail (address proofs, resets, sign-in notices) is the sign-in Worker's, to the login's own address ([ADR-013 SPEC 8](../../sign-in/spec/#8-the-sign-in-worker)).
+6. **Changing email** proves the new address, changes it in every company where the person is a member, then asks the sign-in Worker to set the login's address, retried from the outbox ([ADR-001 SPEC 7](../../database-architecture/spec/#7-control-database-and-routing)). Both the old and the new address are told.
 
 ## 3. Roles and warehouse scope
 
@@ -129,7 +129,7 @@ While a company is restricted or closed, [ADR-012](../../billing-and-plans/#what
 2. **A grant needs every condition:** the module is on for the company, the role holds the action, the scope covers the warehouse, and the person is `active`.
 3. **Every refusal carries its reason** ("needs a manager", "outside your warehouses"), so the screen can show it.
 4. **A role or scope change applies to the next request,** because it is read in the request's own transaction.
-5. **Account changes need a fresh check** ([ADR-013 SPEC 3](../../sign-in/spec/#3-sessions)): inviting, removing or changing anyone's role or scope; resetting anyone's sign-in; connecting, disconnecting, going live on or switching off a marketplace account; an export with buyer data; switching on buyer data for an operator grant; closing the company or changing an Owner; the billing steps ADR-012 names. Picking, packing, printing and counting never ask.
+5. **Account changes need a fresh check** ([ADR-013 SPEC 5](../../sign-in/spec/#5-sessions)): inviting, removing or changing anyone's role or scope; resetting anyone's sign-in; connecting, disconnecting, going live on or switching off a marketplace account; an export with buyer data; switching on buyer data for an operator grant; closing the company or changing an Owner; the billing steps ADR-012 names. Picking, packing, printing and counting never ask.
 
 **Who manages whom:**
 
@@ -142,16 +142,16 @@ While a company is restricted or closed, [ADR-012](../../billing-and-plans/#what
 
 **Sign-up:**
 
-1. The person enters their email address and passes the bot check; a link valid for 24 hours proves the address.
-2. The sign-in Worker creates the login with its first sign-in method and recovery codes ([ADR-013 SPEC 2](../../sign-in/spec/#2-sign-in-methods)). The login exists before the company does.
+1. The person enters their email address on the sign-in Worker's page and passes the bot check; a link valid for 24 hours proves the address.
+2. The sign-in Worker creates the login, a Better Auth user, with its first sign-in method: a passkey, or a password with a confirmed authenticator and its backup codes ([ADR-013 SPEC 3](../../sign-in/spec/#3-sign-in-methods)). The login exists before the company does.
 3. The person names their company. One cell transaction in the newest open shared cell opens the company as a trial and writes its member row (Owner) and an outbox note; then control gets the registry row and the membership ([ADR-001 SPEC 8](../../database-architecture/spec/#adding-a-company)). A failed control write is repaired from the outbox.
-4. An address whose hash is already a login makes no second login: the person signs in, and the new company becomes another membership.
+4. An address that is already a login makes no second login: the person signs in, and the new company becomes another membership.
 
 **Invitations:**
 
 1. An Owner, or an Admin for roles below Admin, invites by the person's own email address, with a role and, where it applies, a scope.
 2. The link is single-use, valid for 7 days, and works only for the address it names. Accepting proves the address.
-3. A new person sets up sign-in on their own device; a person with a login signs in, and the company joins their memberships.
+3. A new person sets up sign-in on their own device, from a one-time link the app gets from the sign-in Worker's `enrol` call; a person with a login signs in, and the company joins their memberships.
 4. An invitation can be withdrawn until accepted. Acceptance, expiry and withdrawal are logged.
 
 **Trials and paying.** Paying changes the plan and nothing moves, so nobody signs in again ([ADR-001](../../database-architecture/)). If a company moves cell, its member rows move with it; logins, memberships and sessions stay in control.
@@ -159,9 +159,9 @@ While a company is restricted or closed, [ADR-012](../../billing-and-plans/#what
 **Removing a person** (an Owner, or an Admin for roles below Admin, with a fresh check):
 
 1. The member row becomes `removed` and its email address is cleared; the name stays, because the ledger, the audit log and every record they made name them.
-2. Their sessions in that company end.
+2. Their next request in that company is refused, because the membership check fails; if they have no membership left, the sign-in Worker revokes every session of the login.
 3. Their membership in control is removed, through the outbox if that write fails.
-4. A login left with no membership, by removal or by the company's erasure, is deleted after 30 days with its sign-in methods; the security log keeps only its id.
+4. A login left with no membership, by removal or by the company's erasure, is deleted after 30 days with its sign-in methods, email address and sessions, by the sign-in Worker through Better Auth; the security log keeps only its id.
 
 All of it happens within minutes, inside ADR-009's 24 hours.
 
@@ -190,7 +190,7 @@ All of it happens within minutes, inside ADR-009's 24 hours.
 | | Company `audit_log` | Platform security log |
 | --- | --- | --- |
 | **Where** | The company's cell, a tenant table | Control |
-| **Records** | Invitations; role, scope and status changes; resets and recoveries; every view of buyer data; exports; connections connected, gone live, stopped or disconnected; operator grants with every request under them; operator repairs; privacy requests; billing actions | Every sign-in attempt and its result; methods added or removed; password changes; recovery codes used; recoveries; resets, paused and un-paused memberships, bursts of resets; sessions revoked; sign-in frozen; lockouts; bot-check failures; operator sign-ins; grants opened and ended; use of the database owner role |
+| **Records** | Invitations; role, scope and status changes; resets and recoveries; every view of buyer data; exports; connections connected, gone live, stopped or disconnected; operator grants with every request under them; operator repairs; privacy requests; billing actions | Every sign-in attempt and its result; methods added or removed; password changes; backup codes used; recoveries; resets, paused and un-paused memberships, bursts of resets; sessions revoked; sign-in frozen; lockouts; bot-check failures; operator sign-ins; grants opened and ended; use of the database owner role |
 | **Each entry** | Time, actor (person, operator with grant, or system actor), action, the ids it named, result | Time, login or operator id, event, network address and device kind, result |
 | **Never holds** | Buyer data (a view records which fields were shown, not their values) | Buyer data, email addresses, names, passwords or codes |
 | **Read by** | Owner, Admin, Accountant | The operator; each person sees their own sign-ins |
@@ -242,7 +242,8 @@ For someone reviewing code an AI wrote. Each line says where to look and which t
 - [ ] **Self-change:** the role-change, scope-change and reset commands refuse the actor's own login; the last-Owner guard runs in the same transaction as the change.
 - [ ] **Fresh check:** each account-change command asks the sign-in Worker for the fresh check; none trusts a flag from the client.
 - [ ] **Sign-up order:** the login is created by the sign-in Worker before the cell transaction; control writes go through the outbox repair path.
-- [ ] **Removal:** removing clears the email address, ends the sessions in that company and removes the membership; the revocation test is green.
+- [ ] **Hand-off:** the Access resolver takes only the login id from the sign-in Worker's answer; no code here reads or writes the auth schema or uses Better Auth's organisation or role features.
+- [ ] **Removal:** removing clears the email address and removes the membership, and the next request there is refused; a login with no membership left loses every session; the revocation test is green.
 - [ ] **Grants:** operator code reaches a company only through the request guard with a live grant; the actor (operator, grant) is set on the transaction; no operator route writes business data.
 - [ ] **Buyer fields:** the decrypting code checks the grant's buyer-data flag for an operator actor.
 - [ ] **Seller notice:** opening a grant notifies every Owner and Admin and writes the audit entry before the control row.

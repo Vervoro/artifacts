@@ -75,7 +75,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>17 October 2026; revised 18 October 2026; split into ADR, SPEC and RUNBOOK 20 October 2026; hosting reviewed 21 October 2026</td>
+<td>17 October 2026; revised 18 October 2026; split into ADR, SPEC and RUNBOOK 20 October 2026; hosting reviewed 21 October 2026; sign-in data aligned with Better Auth (<a href="../sign-in/">ADR-013</a>) 21 October 2026</td>
 </tr>
 <tr>
 <td><strong>Scope</strong></td>
@@ -105,7 +105,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2 id="decision">Decision</h2>
 <p>Parts marked <em>Later</em> keep their rules in the SPEC but are built only when their trigger arrives.</p>
 <ol>
-<li><strong>A control database</strong> on its own compute holds the platform&#39;s data: companies and where each lives, logins, memberships, operators, plans, shared quotas and the erasure register. No company business data.</li>
+<li><strong>A control database</strong> on its own compute holds the platform&#39;s data: companies and where each lives, memberships, operators, plans, shared quotas and the erasure register, and, in an auth schema of their own, the logins Better Auth keeps for the sign-in Worker (<a href="../sign-in/">ADR-013</a>). No company business data, and no sign-in data in any cell.</li>
 <li><strong>Cells (customer databases)</strong> hold many companies in shared tables. <code>company_id</code> leads every key, and row-level security (Postgres itself refusing another company&#39;s rows) is forced on every table. A dedicated cell holds one company in its own Neon project, on the same code path. <em>Later: dedicated cells, at the first enterprise that needs one.</em></li>
 <li><strong>Every transaction enters one company first.</strong> Its first statement raises unless this database holds that company in a state the role may enter. An unset or wrong company is an error, never zero rows.</li>
 <li><strong>Only the data layer sets the company</strong>, and it checks the company is unchanged before every commit. Modules write no SQL: they query through a typed query builder that cannot set the company, control a transaction, change the schema or call a function outside an allow-list (owner ruling, 21 October 2026). A CI lint checks every table; a nightly audit and a canary company (a synthetic company no other may ever see) check production. Any sign of cross-company exposure pages the operator and stops that database&#39;s outbound calls.</li>
@@ -153,7 +153,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
   <g font-size="11.5" class="quiet">
     <text x="40" y="294">own compute</text>
     <text x="40" y="310">company + DB registry</text>
-    <text x="40" y="326">logins (HMAC), plans</text>
+    <text x="40" y="326">auth schema, plans</text>
     <text x="40" y="342">erasure register</text>
     <text x="40" y="358">quotas, alerts, migrations</text>
     <text x="40" y="374">no business data</text>

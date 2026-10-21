@@ -75,11 +75,11 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>18 October 2026, as part of ADR-010; made its own record, split into ADR, SPEC and RUNBOOK, 21 October 2026</td>
+<td>18 October 2026, as part of ADR-010; made its own record, split into ADR, SPEC and RUNBOOK, 21 October 2026; Better Auth replaces the in-house engine, owner approval of 21 October 2026; owner rulings on sessions, email and the passkey fallback the same day</td>
 </tr>
 <tr>
 <td><strong>Scope</strong></td>
-<td>How a person proves who they are: sign-in methods, sessions, recovery, lockouts, the sign-in Worker, its keys and its incident commands</td>
+<td>How a person proves who they are: the sign-in Worker and Better Auth inside it, sign-in methods, Vervoro&#39;s password policy, sessions, recovery, lockouts, secrets and the incident commands</td>
 </tr>
 <tr>
 <td><strong>Builds on</strong></td>
@@ -98,43 +98,44 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ul>
 <li><strong>Amazon&#39;s Data Protection Policy binds every seller&#39;s login:</strong> multi-factor sign-in on every account, its password rules wherever passwords are used, a lockout after at most 10 failures. Losing a marketplace&#39;s approval ends the product for every seller on it.</li>
 <li><strong>Phone first, gloves on.</strong> Every worker signs in on their own phone (<a href="../users-and-access/">ADR-010</a>). Signing in must be quick, or people share one account.</li>
-<li><strong>Small sellers and one operator.</strong> Nobody runs a directory or hands out hardware, and every lockout that needs a person at Vervoro costs the operator time.</li>
-<li><strong>The owner&#39;s limits:</strong> no recurring identity bill, no third party holding a person&#39;s email address (only a keyed hash is kept, <a href="../database-architecture/">ADR-001</a>), data in the UK or EU, and operators sign in the same way as sellers.</li>
-<li><strong>A poisoned package can read its Worker&#39;s secrets.</strong> Leaked authenticator secrets and password hashes cannot be rotated away: each person would have to set up again. Database credentials rotate in minutes.</li>
+<li><strong>Small sellers and one operator.</strong> Nobody runs a directory or hands out hardware; every lockout that needs Vervoro costs the operator time.</li>
+<li><strong>The owner&#39;s limits:</strong> no recurring identity bill, no outside service as the system of record for Vervoro&#39;s users, data in the UK or EU, and operators sign in the same way as sellers.</li>
+<li><strong>Sign-in protocols are where home-made code fails.</strong> A maintained library already does passkeys, codes, password storage and sessions.</li>
+<li><strong>A poisoned package can read its Worker&#39;s secrets,</strong> so sign-in stays away from the app&#39;s packages.</li>
 </ul>
 <h2 id="decision">Decision</h2>
 <p>Parts marked <em>Later</em> keep their rules in the SPEC but are built only when their trigger arrives.</p>
 <ol>
-<li><strong>Vervoro builds sign-in itself.</strong> Logins, sessions, lockouts and recovery are its own code, on the runtime&#39;s own cryptography and one exact-pinned passkey library. No identity provider (a hosted service that keeps the users and signs them in) and no auth framework: no third party holds an email address, and nothing is billed per user.</li>
-<li><strong>Sign-in runs in a Worker of its own.</strong> It serves the sign-in pages, alone holds the sign-in keys, and alone writes the login tables, through its own database role and its own Hyperdrive connection to control in the EU, caching off. The app reaches it only over a service binding (a direct call between Workers), through a closed list of calls, and never sees a typed password, a password hash or an authenticator secret.</li>
-<li><strong>A passkey is the default.</strong> A passkey is a key the person&#39;s phone, laptop or password manager keeps, unlocked by a fingerprint, a face or the device&#39;s PIN; with that check it counts as both factors. Sign-up and every invitation set one up first. A password with a 6-digit code from an authenticator app is the fallback for a device that cannot hold or reach a passkey. Operators use passkeys only.</li>
-<li><strong>Passwords follow Amazon&#39;s rules, and only password logins carry them</strong> (Data Protection Policy 1.4.1): at least 12 characters of mixed types, no part of the person&#39;s name, at least a day old before a change, changed at least once a year, the last 10 not reused. Vervoro adds a check against breached passwords.</li>
-<li><strong>Nothing else signs anyone in:</strong> no codes by text message or email, no email sign-in links, no Google or Microsoft sign-in. Email carries invitations, resets and notices only.</li>
-<li><strong>One sign-in a day.</strong> A seller&#39;s session lasts at most 24 hours and an operator&#39;s 12, then a full sign-in starts a new one; a session is never extended. The app has no idle lock; the device&#39;s screen lock covers idle time. Account changes need a full sign-in check within the last 5 minutes, which only the sign-in Worker records.</li>
-<li><strong>Recovery goes through the company first:</strong> the person&#39;s other factor, a recovery code, or a reset by an Owner or Admin. A reset re-activates the person only in the resetter&#39;s company; their other companies wait for their own confirmation. Only a company&#39;s last Owner, with nothing left, goes to Vervoro: proof of the company&#39;s marketplace account, then a 72-hour wait with notice to everyone.</li>
-<li><strong>Ten failures in a row lock password sign-in for 30 minutes;</strong> a passkey still signs in. A bot check runs before any password is hashed. Any failure gets the same answer, so nobody learns which part was wrong or whether an account exists.</li>
-<li><strong>Two keys, held only by the sign-in Worker:</strong> the email-hash key and the sign-in key, which seals stored password hashes, authenticator secrets and recovery codes. The sign-in key&#39;s rotation is built and rehearsed before launch. <em>Later: the email-hash key&#39;s rotation job, when an incident needs it; its procedure is written.</em></li>
-<li><strong>Four incident commands at launch,</strong> each rehearsed once: sign everyone out, force a password change, freeze sign-in, rotate the sign-in key. <em>Later: switching off one way in at a time, and a screen for a login&#39;s history, when sellers or an incident show the need.</em></li>
+<li><strong>Vervoro runs sign-in; Better Auth is its engine.</strong> Better Auth, an open-source authentication library, runs inside Vervoro&#39;s sign-in Worker and writes to Vervoro&#39;s own database; it is not a hosted identity provider. It does passkeys, passwords, codes, backup codes and sessions; Vervoro writes none of these. Only the features named here are on. It is exact-pinned, upgraded deliberately, never forked or patched.</li>
+<li><strong>Sign-in runs in a Worker of its own.</strong> Only it runs Better Auth, holds its secret, shows a password field and touches Better Auth&#39;s tables, in an <code>auth</code> schema in control under the sign-in role. The email address is stored there readable, as Better Auth needs. The app reaches sign-in only over a service binding, through a closed list of calls, and never sees a password, code, secret or those tables. Sign-in mail goes through Cloudflare&#39;s Email Service, from a binding of the sign-in Worker (owner ruling, 21 October 2026).</li>
+<li><strong>Better Auth says who; ADR-010 says what.</strong> The sign-in Worker hands the app one stable login id and the session&#39;s facts. Companies, memberships, roles, warehouse scope, permissions and operator grants are <a href="../users-and-access/">ADR-010&#39;s</a>, never Better Auth&#39;s organisation or access features.</li>
+<li><strong>A passkey is the default:</strong> a key the person&#39;s phone, laptop or password manager keeps, accepted only when unlocked by a fingerprint, face or PIN. Sign-up and every invitation set one up first. Operators use passkeys only. If Amazon does not accept a passkey as multi-factor, passkey sign-in also asks for the authenticator code (owner ruling, 21 October 2026).</li>
+<li><strong>A password never signs in alone.</strong> The fallback is a password plus a 6-digit authenticator code; a password login without a confirmed authenticator can only set one up. Backup codes replace a lost authenticator. Nothing else signs anyone in: no text or email codes, no email links, no Google or Microsoft sign-in, no &quot;trust this device&quot;.</li>
+<li><strong>Amazon&#39;s password rules are a small policy layer around Better Auth</strong> (Data Protection Policy 1.4.1): 12 characters with upper and lower case, a number and a symbol, no part of the name, a day old before a change, changed yearly, the last 10 not reused. The history check uses Better Auth&#39;s own hashing; Vervoro adds none. Better Auth&#39;s breached-password check runs too.</li>
+<li><strong>One sign-in a day, on one session model.</strong> Better Auth&#39;s session is the only one: at most 24 hours for everyone, operators included, never extended (owner ruling, 21 October 2026). Account changes need a session started in the last 5 minutes. No idle lock in the app; the device&#39;s screen lock covers it.</li>
+<li><strong>Recovery goes through the company first.</strong> Better Auth provides the steps (reset, backup code, new methods); Vervoro decides who may start one, which company reopens, the last Owner&#39;s proof and 72-hour wait, the notices and the audit trail.</li>
+<li><strong>Each guard has one owner.</strong> Better Auth limits request rates, locks code entry after 10 failures and runs the bot check on password routes. Vervoro&#39;s policy locks password sign-in after 10 failures in a row; a passkey still works.</li>
+<li><strong>One sign-in secret and four incident commands.</strong> Better Auth&#39;s versioned secret is the only sign-in key; the in-house sign-in and email-hash keys are gone. Rehearsed before launch: sign everyone out, force a password change, freeze sign-in, rotate the secret. <em>Later: switching off one way in, and a login-history screen.</em></li>
 </ol>
 <h2 id="architecture">Architecture</h2>
-<figure><svg class="diagram" viewBox="0 0 900 400" role="img" aria-label="A person, or an operator on a managed laptop, signs in on the sign-in Worker's own pages with a passkey, or a password and an authenticator app code. The sign-in Worker holds the email-hash key and the sign-in key, has its own lockfile, CI job and deploy token, and alone reads and writes the login tables in the control database, through its own Hyperdrive connection in the EU with caching off. Every other request goes to the app Worker, which asks the sign-in Worker over a service binding, through a closed list of calls, whether the session is live, and never sees a password, a hash or an authenticator secret. The app Worker reads memberships and operator grants in control with the runtime role and sends every email. Dashed: later parts of the sign-in Worker, the email-hash key's rotation job, per-method switches and a login-history screen." xmlns="http://www.w3.org/2000/svg" font-size="13">
+<figure><svg class="diagram" viewBox="0 0 900 400" role="img" aria-label="A person, or an operator on a managed laptop, signs in on the sign-in Worker's own pages, served under the app's address, with a passkey, or a password and an authenticator app code. Inside the sign-in Worker, Better Auth does passkeys, passwords, codes, backup codes, sessions, rate limits and the bot check; Vervoro's small policy layer adds Amazon's password rules, the password lockout, the session limits and recovery. The sign-in Worker alone holds Better Auth's secret, has its own lockfile, CI job and deploy token, and alone reads and writes the auth and auth_policy schemas in the control database, through its own Hyperdrive connection in the EU with caching off. Every other request goes to the app Worker, which asks the sign-in Worker over a service binding, through a closed list of calls, whose session it carries, gets back a login id, and has Access decide memberships, roles and grants in control with the runtime role. It never sees a password, a code or a secret. Dashed: later parts, per-method switches and a login-history screen." xmlns="http://www.w3.org/2000/svg" font-size="13">
   <defs>
     <marker id="si-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="edge-fill"/></marker>
   </defs>
-  <text x="24" y="26" font-size="15" font-weight="600" class="ink">The sign-in Worker is the only door to the login tables</text>
+  <text x="24" y="26" font-size="15" font-weight="600" class="ink">The sign-in Worker, with Better Auth inside, is the only door to sign-in data</text>
 
   <g class="edge" fill="none" stroke-width="1.25">
     <path d="M174 192H204V110H234" marker-end="url(#si-arrow)"/>
     <path d="M174 222H204V305H234" marker-end="url(#si-arrow)"/>
-    <path d="M364 250V212" marker-end="url(#si-arrow)"/>
-    <path d="M494 110H594" marker-end="url(#si-arrow)"/>
+    <path d="M364 250V224" marker-end="url(#si-arrow)"/>
+    <path d="M494 120H594" marker-end="url(#si-arrow)"/>
     <path d="M494 305H594" marker-end="url(#si-arrow)"/>
   </g>
   <text x="198" y="150" text-anchor="end" font-size="10" class="quiet">sign in</text>
   <text x="198" y="272" text-anchor="end" font-size="10" class="quiet">every other request</text>
-  <text x="372" y="235" font-size="10" class="quiet">service binding, a closed list of calls</text>
-  <text x="502" y="100" font-size="10" class="quiet">own Hyperdrive,</text>
-  <text x="502" y="128" font-size="10" class="quiet">EU, no caching</text>
+  <text x="372" y="241" font-size="10" class="quiet">service binding: whose session? a login id</text>
+  <text x="502" y="110" font-size="10" class="quiet">own Hyperdrive,</text>
+  <text x="502" y="138" font-size="10" class="quiet">EU, no caching</text>
   <text x="502" y="295" font-size="10" class="quiet">runtime role</text>
 
   <rect x="24" y="170" width="150" height="72" rx="6" class="box"/>
@@ -142,86 +143,87 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
   <text x="99" y="212" text-anchor="middle" font-size="10.5" class="quiet">own phone or laptop;</text>
   <text x="99" y="227" text-anchor="middle" font-size="10.5" class="quiet">operator: managed laptop</text>
 
-  <rect x="234" y="50" width="260" height="162" rx="8" class="band"/>
-  <text x="364" y="72" text-anchor="middle" font-weight="600" class="ink">Sign-in Worker</text>
-  <text x="364" y="93" text-anchor="middle" font-size="11" class="quiet">its own pages: passkey, or password + code</text>
-  <text x="364" y="109" text-anchor="middle" font-size="11" class="quiet">bot check before any password hash</text>
-  <text x="364" y="125" text-anchor="middle" font-size="11" class="quiet">holds the email-hash and sign-in keys</text>
-  <text x="364" y="141" text-anchor="middle" font-size="11" class="quiet">own lockfile, CI job and deploy token</text>
-  <rect x="250" y="152" width="228" height="48" rx="6" class="box" stroke-dasharray="4 3"/>
-  <text x="364" y="172" text-anchor="middle" font-size="10.5" class="quiet">Later: email-hash key rotation job,</text>
-  <text x="364" y="188" text-anchor="middle" font-size="10.5" class="quiet">per-method switches, history screen</text>
+  <rect x="234" y="40" width="260" height="184" rx="8" class="band"/>
+  <text x="364" y="60" text-anchor="middle" font-weight="600" class="ink">Sign-in Worker</text>
+  <text x="364" y="77" text-anchor="middle" font-size="11" class="quiet">its own pages, under the app's address</text>
+  <rect x="250" y="86" width="228" height="58" rx="6" class="box"/>
+  <text x="364" y="105" text-anchor="middle" font-weight="600" class="ink">Better Auth</text>
+  <text x="364" y="121" text-anchor="middle" font-size="10.5" class="quiet">passkeys, password + code, backup codes,</text>
+  <text x="364" y="136" text-anchor="middle" font-size="10.5" class="quiet">sessions, rate limit, bot check</text>
+  <text x="364" y="160" text-anchor="middle" font-size="11" class="quiet">Vervoro policy: password rules, lockout,</text>
+  <text x="364" y="175" text-anchor="middle" font-size="11" class="quiet">session limits, recovery; holds the secret</text>
+  <rect x="250" y="186" width="228" height="28" rx="6" class="box" stroke-dasharray="4 3"/>
+  <text x="364" y="204" text-anchor="middle" font-size="10.5" class="quiet">Later: per-method switches, history screen</text>
 
   <rect x="234" y="250" width="260" height="110" rx="8" class="band"/>
   <text x="364" y="272" text-anchor="middle" font-weight="600" class="ink">App Worker</text>
-  <text x="364" y="293" text-anchor="middle" font-size="11" class="quiet">asks: session live? revoke, reset,</text>
-  <text x="364" y="309" text-anchor="middle" font-size="11" class="quiet">un-pause, incident commands</text>
-  <text x="364" y="329" text-anchor="middle" font-size="11" class="quiet">never sees a password, a hash</text>
-  <text x="364" y="345" text-anchor="middle" font-size="11" class="quiet">or a code secret; sends every email</text>
+  <text x="364" y="293" text-anchor="middle" font-size="11" class="quiet">asks: session, enrol, reset, revoke,</text>
+  <text x="364" y="309" text-anchor="middle" font-size="11" class="quiet">set email, incident commands</text>
+  <text x="364" y="329" text-anchor="middle" font-size="11" class="quiet">gets a login id; Access decides the rest;</text>
+  <text x="364" y="345" text-anchor="middle" font-size="11" class="quiet">never sees a password, code or secret</text>
 
-  <rect x="594" y="50" width="282" height="310" rx="8" class="band"/>
-  <text x="735" y="72" text-anchor="middle" font-weight="600" class="ink">Control database</text>
+  <rect x="594" y="40" width="282" height="320" rx="8" class="band"/>
+  <text x="735" y="60" text-anchor="middle" font-weight="600" class="ink">Control database</text>
 
-  <rect x="610" y="86" width="250" height="74" rx="6" class="box"/>
-  <text x="735" y="108" text-anchor="middle" font-weight="600" class="ink">Login tables</text>
-  <text x="735" y="126" text-anchor="middle" font-size="10.5" class="quiet">logins, methods, recovery codes, sessions</text>
-  <text x="735" y="142" text-anchor="middle" font-size="10.5" class="quiet">sign-in role only; values sealed</text>
+  <rect x="610" y="76" width="250" height="90" rx="6" class="box"/>
+  <text x="735" y="97" text-anchor="middle" font-weight="600" class="ink">Sign-in data</text>
+  <text x="735" y="115" text-anchor="middle" font-size="10.5" class="quiet">auth: Better Auth's tables, logins with</text>
+  <text x="735" y="130" text-anchor="middle" font-size="10.5" class="quiet">their email, sessions, methods</text>
+  <text x="735" y="145" text-anchor="middle" font-size="10.5" class="quiet">auth_policy: history, lockouts, waits</text>
+  <text x="735" y="160" text-anchor="middle" font-size="10.5" class="quiet">sign-in role only</text>
 
   <rect x="610" y="270" width="250" height="74" rx="6" class="box"/>
   <text x="735" y="292" text-anchor="middle" font-weight="600" class="ink">Access data</text>
   <text x="735" y="310" text-anchor="middle" font-size="10.5" class="quiet">memberships, operator grants,</text>
   <text x="735" y="326" text-anchor="middle" font-size="10.5" class="quiet">the platform security log</text>
 
-  <text x="24" y="388" font-size="11" class="quiet">The app's role has no right on the login tables. Which person may do what in a company is ADR-010's.</text>
+  <text x="24" y="388" font-size="11" class="quiet">The app's role has no right on the auth schemas. Better Auth says who a person is; ADR-010 says what they may do.</text>
 </svg>
 </figure>
 
-<p><strong>The sign-in Worker is a wall around the login tables.</strong> A person signs in on its pages, which set the session cookie. Every other request goes to the app Worker, which asks the sign-in Worker over the service binding whether the session is live, then checks access as <a href="../users-and-access/">ADR-010</a> decides. Dashed parts are <em>Later</em> (<a href="spec/#0-at-launch-and-later">SPEC 0</a>).</p>
+<p><strong>The sign-in Worker is a wall around Better Auth.</strong> Its pages, under the app&#39;s address, set the session cookie. The app Worker hands the cookie over the service binding, gets a login id or nothing, then checks access as <a href="../users-and-access/">ADR-010</a> decides. Dashed parts are <em>Later</em> (<a href="spec/#0-at-launch-and-later">SPEC 0</a>).</p>
 <h2 id="consequences">Consequences</h2>
 <p><strong>Gives</strong></p>
 <ul>
-<li>Multi-factor for every person by construction, not by a setting a seller can forget: one rule for every marketplace review.</li>
-<li>One fingerprint a day on the floor with a passkey; a password and app code on any device without one.</li>
-<li>No third party holds an email address, and nothing is billed per user.</li>
-<li>A poisoned package in the app cannot reach the sign-in keys, a typed password or a stored hash.</li>
-<li>Everything is stored in standard forms, so moving to another system later needs no password reset.</li>
+<li>No in-house passkey, code, password-hashing or session code: a maintained implementation with many readers.</li>
+<li>Multi-factor for every person by construction.</li>
+<li>No outside identity service holds Vervoro&#39;s users; nothing is billed per user.</li>
+<li>A poisoned app package cannot reach the sign-in secret, a password or a stored credential.</li>
+<li>Authorization stays Vervoro&#39;s, untouched by Better Auth upgrades.</li>
 </ul>
 <p><strong>Costs</strong></p>
 <ul>
-<li>Vervoro owns its sign-in code; an outside penetration test and the tests are its only second readers.</li>
-<li>Passwords bring back resets, the yearly change, lockouts and phishing; making passkeys the default reduces them.</li>
-<li>A second Worker, database role and CI job, each held to a closed list; every request reads its session in control.</li>
-<li>A poisoned app still receives session cookies and can act as a signed-in person for up to 24 hours, until everyone is signed out.</li>
+<li>Better Auth is security-critical: each upgrade, and its schema change, is reviewed and tested before it ships.</li>
+<li>The email address is stored readable in control, behind the sign-in role, not as a keyed hash.</li>
+<li>The policy hooks are still Vervoro&#39;s code: password rules and history, the second-factor rule, session limits, lockouts, recovery.</li>
+<li>A poisoned app can still act as a signed-in person for up to 24 hours, until everyone is signed out.</li>
 <li>Recovering a last Owner takes three days and needs a connected marketplace account.</li>
 </ul>
 <h2 id="alternatives-rejected">Alternatives rejected</h2>
 <ul>
-<li><strong>Passkeys only:</strong> leaves out devices that cannot hold or reach a passkey, such as an accountant on a client&#39;s desktop.</li>
-<li><strong>Codes by text message:</strong> SIM swaps, a cost per message, and not on Amazon&#39;s list of second factors.</li>
-<li><strong>Codes or links by email:</strong> email is not a sign-in factor (NIST); whoever reads the inbox would hold both.</li>
-<li><strong>Google or Microsoft sign-in:</strong> Vervoro cannot confirm the provider&#39;s second factor.</li>
-<li><strong>Hardware keys handed out:</strong> hardware to buy, issue and replace; a person may still use their own as a passkey.</li>
-<li><strong>A hosted identity provider:</strong> keeps the email address and bills per user; Vervoro would still build the same rules around it.</li>
-<li><strong>A provider fed only the keyed hash:</strong> still the bill, the residency question and hash export by support request.</li>
+<li><strong>Vervoro&#39;s own sign-in engine</strong> (this record&#39;s previous decision): security-critical protocol code a maintained library already has.</li>
+<li><strong>A hosted identity provider:</strong> an outside service would hold the users, and bill per user.</li>
 <li><strong>A self-hosted identity server:</strong> a long-running server for one operator to patch.</li>
-<li><strong>An auth framework in the app:</strong> needs a clear email, assumes members in one database, and has weaker defaults.</li>
-<li><strong>Sign-in inside the app Worker:</strong> any package in the app could read the sign-in keys.</li>
-<li><strong>An in-house passkey verifier:</strong> the part most often got wrong. <em>Later, if the pinned library becomes a risk.</em></li>
-<li><strong>PBKDF2 or Argon2:</strong> capped below the advised strength on Workers, or not offered there.</li>
-<li><strong>A pepper in the hash:</strong> cannot change without resetting every password; sealing rotates.</li>
-<li><strong>Hashing on the phone:</strong> the server must still check Amazon&#39;s rules, and a stolen hash becomes the password.</li>
-<li><strong>Re-enrolment approved by number matching:</strong> an attacker can read the number to the approver over the phone.</li>
+<li><strong>Better Auth in the app Worker:</strong> any package in the app could read its secret and tables.</li>
+<li><strong>Better Auth&#39;s organisation plugin for companies:</strong> a second tenancy and role model beside ADR-010&#39;s.</li>
+<li><strong>A custom adapter to keep the email as a keyed hash:</strong> fights the library and breaks its reset and verification mail.</li>
+<li><strong>Replacing Better Auth&#39;s password hashing:</strong> a second hashing system to keep, for no external requirement.</li>
+<li><strong>&quot;Trust this device&quot; for 30 days:</strong> a password would then sign in alone.</li>
+<li><strong>Passkeys only:</strong> leaves out devices that cannot hold or reach a passkey, such as an accountant on a client&#39;s desktop.</li>
+<li><strong>Codes by text message:</strong> SIM swaps, a cost per message, not on Amazon&#39;s list of second factors.</li>
+<li><strong>Email codes or links, Google or Microsoft sign-in:</strong> email is not a factor, and another provider&#39;s second factor cannot be confirmed.</li>
 <li><strong>Managers resetting Warehouse staff:</strong> widens who can take over a login.</li>
-<li><strong>Lockout counted per device:</strong> more state, and it stretches Amazon&#39;s &quot;10 consecutive failures&quot;. <em>Later, if one login is locked again and again.</em></li>
 <li><strong>A wait alone for the last Owner:</strong> anyone who reaches the mailbox and waits would get in.</li>
 </ul>
 <h2 id="open-items">Open items</h2>
+<p>These stay open until settled with authoritative evidence (<a href="spec/#14-checked-before-launch">SPEC 14</a>):</p>
 <ul>
-<li><strong>Launch-blocking:</strong> benchmark the scrypt setting on a deployed Worker; the number of hashes run at once is set from it (<a href="spec/#11-checked-before-launch">SPEC 11</a>).</li>
-<li><strong>Unconfirmed:</strong> HMAC with SHA-1 on a deployed Worker (the docs do not list it); the PBKDF2 cap comes from the runtime&#39;s source, not its docs.</li>
-<li><strong>Re-read from Seller Central:</strong> Amazon&#39;s wording for &quot;where passwords are used&quot; and for the lockout&#39;s length.</li>
-<li><strong>The last-Owner step proves control of the marketplace account, not ownership of the business;</strong> Shopify staff with app rights can approve too. The wait and the notices cover the rest.</li>
-<li><strong>An outside penetration test,</strong> with a retest of any finding, is agreed before launch.</li>
+<li><strong>Does a passkey with its fingerprint, face or PIN check meet Amazon&#39;s multi-factor rule for every user?</strong> No Amazon text says yes or no; only Amazon can settle it (<a href="spec/#3-sign-in-methods">SPEC 3</a>). If it says no, the fallback in decision 4 applies, and nothing else changes.</li>
+<li><strong>Cloudflare&#39;s Email Service is in beta,</strong> with a starting daily quota that grows with reputation; confirm it is generally available, or the quota enough, before launch.</li>
+<li><strong>Conflicts with Better Auth</strong> (<a href="spec/#1-better-auth-and-what-is-switched-on">SPEC 1</a>): passkey sign-in does not itself require the fingerprint check; a code is accepted twice within its window; backup codes exist only with an authenticator app.</li>
+<li><strong>Integration checks:</strong> the pinned version on a deployed Worker through Hyperdrive; passkey site name and domains; the cookie across Vervoro&#39;s addresses; how sensitive fields are stored; secret rotation; schema migrations.</li>
+<li><strong>The last-Owner step proves control of the marketplace account, not ownership of the business;</strong> the wait and the notices cover the rest.</li>
+<li><strong>An outside penetration test,</strong> with a retest of any finding, before launch.</li>
 </ul>
 
 <footer>Vervoro</footer>

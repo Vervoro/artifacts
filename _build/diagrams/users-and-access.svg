@@ -1,4 +1,4 @@
-<svg class="diagram" viewBox="0 0 900 385" role="img" aria-label="A seller's user, a warehouse worker or an operator signs in on the sign-in Worker's own pages, with a password and an authenticator app code or with a passkey. Only the sign-in Worker holds the sign-in keys and writes the login tables in the control database. Every other request goes to the app Worker, which asks the sign-in Worker over a service binding whether the session is live, checks the membership or the operator's grant in control, then opens a transaction fixed to one company in its cell, where the person's role, scope and status decide the action. The app Worker never sees a typed password." xmlns="http://www.w3.org/2000/svg" font-size="13">
+<svg class="diagram" viewBox="0 0 900 385" role="img" aria-label="A seller's user, a warehouse worker or an operator signs in on the sign-in Worker's own pages, with a password and an authenticator app code or with a passkey. Only the sign-in Worker, running Better Auth, holds its secret and writes the sign-in tables in the control database's auth schema. Every other request goes to the app Worker, which asks the sign-in Worker over a service binding whose session it carries and gets a login id, checks the membership or the operator's grant in control, then opens a transaction fixed to one company in its cell, where the person's role, scope and status decide the action. The app Worker never sees a typed password." xmlns="http://www.w3.org/2000/svg" font-size="13">
   <defs>
     <marker id="ua-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="edge-fill"/></marker>
   </defs>
@@ -34,8 +34,8 @@
   <text x="334" y="72" text-anchor="middle" font-weight="600" class="ink">Sign-in Worker</text>
   <text x="334" y="93" text-anchor="middle" font-size="11" class="quiet">its own pages: password + code,</text>
   <text x="334" y="108" text-anchor="middle" font-size="11" class="quiet">or passkey</text>
-  <text x="334" y="124" text-anchor="middle" font-size="11" class="quiet">only holder of the sign-in keys</text>
-  <text x="334" y="139" text-anchor="middle" font-size="11" class="quiet">only writer of the login tables</text>
+  <text x="334" y="124" text-anchor="middle" font-size="11" class="quiet">Better Auth: who is it?</text>
+  <text x="334" y="139" text-anchor="middle" font-size="11" class="quiet">only writer of the auth schema</text>
 
   <rect x="234" y="190" width="200" height="130" rx="8" class="band"/>
   <text x="334" y="212" text-anchor="middle" font-weight="600" class="ink">App Worker</text>
@@ -46,9 +46,9 @@
 
   <rect x="474" y="50" width="176" height="270" rx="8" class="band"/>
   <text x="562" y="72" text-anchor="middle" font-weight="600" class="ink">Control database</text>
-  <text x="562" y="96" text-anchor="middle" font-size="11" class="quiet">login: email hash, methods,</text>
-  <text x="562" y="112" text-anchor="middle" font-size="11" class="quiet">recovery codes (sign-in role only)</text>
-  <text x="562" y="138" text-anchor="middle" font-size="11" class="quiet">session: token hash, end time</text>
+  <text x="562" y="96" text-anchor="middle" font-size="11" class="quiet">auth schema: logins, email,</text>
+  <text x="562" y="112" text-anchor="middle" font-size="11" class="quiet">methods (sign-in role only)</text>
+  <text x="562" y="138" text-anchor="middle" font-size="11" class="quiet">sessions: Better Auth's only</text>
   <text x="562" y="230" text-anchor="middle" font-size="11" class="quiet">memberships</text>
   <text x="562" y="250" text-anchor="middle" font-size="11" class="quiet">operator grants: company,</text>
   <text x="562" y="266" text-anchor="middle" font-size="11" class="quiet">reason, read-only, end time</text>

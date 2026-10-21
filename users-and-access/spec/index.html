@@ -129,7 +129,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Operators</strong></td>
-<td>The operator console only, never the app (<a href="../../sign-in/spec/#9-operators">ADR-013 SPEC 9</a>)</td>
+<td>The operator console only, never the app (<a href="../../sign-in/spec/#10-operators">ADR-013 SPEC 10</a>)</td>
 <td>Platform work, and grants to look inside a company. No standing access</td>
 </tr>
 <tr>
@@ -146,12 +146,12 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p>Buyers and suppliers sign in to nothing. Every login belongs to one person, identified by their own email address; generic logins (&quot;packing desk&quot;) do not exist. The customer terms forbid sharing, and the audit log makes it visible: one name packing at two benches at once.</p>
 <h2 id="2-logins-and-member-rows">2. Logins and member rows</h2>
 <ol>
-<li><strong>The login</strong> is in control and belongs to <a href="../../sign-in/spec/#1-the-login">ADR-013</a>: it holds no name and no clear email address.</li>
-<li><strong>The membership</strong> (login, company) is in control, written by the app&#39;s runtime role.</li>
+<li><strong>The login</strong> is a Better Auth user in control&#39;s auth schema and belongs to <a href="../../sign-in/spec/#2-the-login-and-its-data">ADR-013</a>. Its id is the only thing this record takes from it: Better Auth establishes who the person is; memberships, roles, scope, permissions and grants are decided here. Nothing here reads Better Auth&#39;s tables.</li>
+<li><strong>The membership</strong> (login id, company) is in control, written by the app&#39;s runtime role. It holds the login id with no foreign key into the auth schema, so a Better Auth upgrade never touches it.</li>
 <li><strong>The member row</strong> is in the company&#39;s own users table, in its cell: email address, name, role, warehouse scope, status (<code>invited</code>, <code>active</code>, <code>removed</code>) and when each changed. It alone decides what the person may do in that company, and it is exported, restored and erased with the company.</li>
-<li><strong>Switching company</strong> is a menu. The session belongs to the login, and every request names its company, so two tabs can work in two companies. Switching asks for no new sign-in; account changes still ask for a fresh check (<a href="../../sign-in/spec/#3-sessions">ADR-013 SPEC 3</a>).</li>
-<li><strong>Email to a person</strong> reads their address from any company where they are active. Recovery and invitation mail goes to the address the person types, once its hash matches.</li>
-<li><strong>Changing email</strong> changes the address in every company where the person is a member, then asks the sign-in Worker to change the hash in control, retried from the outbox (<a href="../../database-architecture/spec/#7-control-database-and-routing">ADR-001 SPEC 7</a>). Both the old and the new address are told.</li>
+<li><strong>Switching company</strong> is a menu. The session belongs to the login, and every request names its company, so two tabs can work in two companies. Switching asks for no new sign-in; account changes still ask for a fresh check (<a href="../../sign-in/spec/#5-sessions">ADR-013 SPEC 5</a>).</li>
+<li><strong>Email to a person</strong> from the app reads their address from any company where they are active. Sign-in mail (address proofs, resets, sign-in notices) is the sign-in Worker&#39;s, to the login&#39;s own address (<a href="../../sign-in/spec/#8-the-sign-in-worker">ADR-013 SPEC 8</a>).</li>
+<li><strong>Changing email</strong> proves the new address, changes it in every company where the person is a member, then asks the sign-in Worker to set the login&#39;s address, retried from the outbox (<a href="../../database-architecture/spec/#7-control-database-and-routing">ADR-001 SPEC 7</a>). Both the old and the new address are told.</li>
 </ol>
 <h2 id="3-roles-and-warehouse-scope">3. Roles and warehouse scope</h2>
 <div class="table-wrap"><table>
@@ -783,7 +783,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>A grant needs every condition:</strong> the module is on for the company, the role holds the action, the scope covers the warehouse, and the person is <code>active</code>.</li>
 <li><strong>Every refusal carries its reason</strong> (&quot;needs a manager&quot;, &quot;outside your warehouses&quot;), so the screen can show it.</li>
 <li><strong>A role or scope change applies to the next request,</strong> because it is read in the request&#39;s own transaction.</li>
-<li><strong>Account changes need a fresh check</strong> (<a href="../../sign-in/spec/#3-sessions">ADR-013 SPEC 3</a>): inviting, removing or changing anyone&#39;s role or scope; resetting anyone&#39;s sign-in; connecting, disconnecting, going live on or switching off a marketplace account; an export with buyer data; switching on buyer data for an operator grant; closing the company or changing an Owner; the billing steps ADR-012 names. Picking, packing, printing and counting never ask.</li>
+<li><strong>Account changes need a fresh check</strong> (<a href="../../sign-in/spec/#5-sessions">ADR-013 SPEC 5</a>): inviting, removing or changing anyone&#39;s role or scope; resetting anyone&#39;s sign-in; connecting, disconnecting, going live on or switching off a marketplace account; an export with buyer data; switching on buyer data for an operator grant; closing the company or changing an Owner; the billing steps ADR-012 names. Picking, packing, printing and counting never ask.</li>
 </ol>
 <p><strong>Who manages whom:</strong></p>
 <ol>
@@ -795,25 +795,25 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2 id="6-invitations-sign-up-and-removal">6. Invitations, sign-up and removal</h2>
 <p><strong>Sign-up:</strong></p>
 <ol>
-<li>The person enters their email address and passes the bot check; a link valid for 24 hours proves the address.</li>
-<li>The sign-in Worker creates the login with its first sign-in method and recovery codes (<a href="../../sign-in/spec/#2-sign-in-methods">ADR-013 SPEC 2</a>). The login exists before the company does.</li>
+<li>The person enters their email address on the sign-in Worker&#39;s page and passes the bot check; a link valid for 24 hours proves the address.</li>
+<li>The sign-in Worker creates the login, a Better Auth user, with its first sign-in method: a passkey, or a password with a confirmed authenticator and its backup codes (<a href="../../sign-in/spec/#3-sign-in-methods">ADR-013 SPEC 3</a>). The login exists before the company does.</li>
 <li>The person names their company. One cell transaction in the newest open shared cell opens the company as a trial and writes its member row (Owner) and an outbox note; then control gets the registry row and the membership (<a href="../../database-architecture/spec/#adding-a-company">ADR-001 SPEC 8</a>). A failed control write is repaired from the outbox.</li>
-<li>An address whose hash is already a login makes no second login: the person signs in, and the new company becomes another membership.</li>
+<li>An address that is already a login makes no second login: the person signs in, and the new company becomes another membership.</li>
 </ol>
 <p><strong>Invitations:</strong></p>
 <ol>
 <li>An Owner, or an Admin for roles below Admin, invites by the person&#39;s own email address, with a role and, where it applies, a scope.</li>
 <li>The link is single-use, valid for 7 days, and works only for the address it names. Accepting proves the address.</li>
-<li>A new person sets up sign-in on their own device; a person with a login signs in, and the company joins their memberships.</li>
+<li>A new person sets up sign-in on their own device, from a one-time link the app gets from the sign-in Worker&#39;s <code>enrol</code> call; a person with a login signs in, and the company joins their memberships.</li>
 <li>An invitation can be withdrawn until accepted. Acceptance, expiry and withdrawal are logged.</li>
 </ol>
 <p><strong>Trials and paying.</strong> Paying changes the plan and nothing moves, so nobody signs in again (<a href="../../database-architecture/">ADR-001</a>). If a company moves cell, its member rows move with it; logins, memberships and sessions stay in control.</p>
 <p><strong>Removing a person</strong> (an Owner, or an Admin for roles below Admin, with a fresh check):</p>
 <ol>
 <li>The member row becomes <code>removed</code> and its email address is cleared; the name stays, because the ledger, the audit log and every record they made name them.</li>
-<li>Their sessions in that company end.</li>
+<li>Their next request in that company is refused, because the membership check fails; if they have no membership left, the sign-in Worker revokes every session of the login.</li>
 <li>Their membership in control is removed, through the outbox if that write fails.</li>
-<li>A login left with no membership, by removal or by the company&#39;s erasure, is deleted after 30 days with its sign-in methods; the security log keeps only its id.</li>
+<li>A login left with no membership, by removal or by the company&#39;s erasure, is deleted after 30 days with its sign-in methods, email address and sessions, by the sign-in Worker through Better Auth; the security log keeps only its id.</li>
 </ol>
 <p>All of it happens within minutes, inside ADR-009&#39;s 24 hours.</p>
 <h2 id="7-operator-access-to-a-company">7. Operator access to a company</h2>
@@ -850,7 +850,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td><strong>Records</strong></td>
 <td>Invitations; role, scope and status changes; resets and recoveries; every view of buyer data; exports; connections connected, gone live, stopped or disconnected; operator grants with every request under them; operator repairs; privacy requests; billing actions</td>
-<td>Every sign-in attempt and its result; methods added or removed; password changes; recovery codes used; recoveries; resets, paused and un-paused memberships, bursts of resets; sessions revoked; sign-in frozen; lockouts; bot-check failures; operator sign-ins; grants opened and ended; use of the database owner role</td>
+<td>Every sign-in attempt and its result; methods added or removed; password changes; backup codes used; recoveries; resets, paused and un-paused memberships, bursts of resets; sessions revoked; sign-in frozen; lockouts; bot-check failures; operator sign-ins; grants opened and ended; use of the database owner role</td>
 </tr>
 <tr>
 <td><strong>Each entry</strong></td>
@@ -974,7 +974,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><input disabled="" type="checkbox"> <strong>Self-change:</strong> the role-change, scope-change and reset commands refuse the actor&#39;s own login; the last-Owner guard runs in the same transaction as the change.</li>
 <li><input disabled="" type="checkbox"> <strong>Fresh check:</strong> each account-change command asks the sign-in Worker for the fresh check; none trusts a flag from the client.</li>
 <li><input disabled="" type="checkbox"> <strong>Sign-up order:</strong> the login is created by the sign-in Worker before the cell transaction; control writes go through the outbox repair path.</li>
-<li><input disabled="" type="checkbox"> <strong>Removal:</strong> removing clears the email address, ends the sessions in that company and removes the membership; the revocation test is green.</li>
+<li><input disabled="" type="checkbox"> <strong>Hand-off:</strong> the Access resolver takes only the login id from the sign-in Worker&#39;s answer; no code here reads or writes the auth schema or uses Better Auth&#39;s organisation or role features.</li>
+<li><input disabled="" type="checkbox"> <strong>Removal:</strong> removing clears the email address and removes the membership, and the next request there is refused; a login with no membership left loses every session; the revocation test is green.</li>
 <li><input disabled="" type="checkbox"> <strong>Grants:</strong> operator code reaches a company only through the request guard with a live grant; the actor (operator, grant) is set on the transaction; no operator route writes business data.</li>
 <li><input disabled="" type="checkbox"> <strong>Buyer fields:</strong> the decrypting code checks the grant&#39;s buyer-data flag for an operator actor.</li>
 <li><input disabled="" type="checkbox"> <strong>Seller notice:</strong> opening a grant notifies every Owner and Admin and writes the audit entry before the control row.</li>
