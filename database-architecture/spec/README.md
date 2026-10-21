@@ -75,12 +75,13 @@ A move or restore changes the source row first, so a stale route to the old data
 
 Rules:
 
-1. No other role may log in. A role created in the Neon console, CLI or API joins `neon_superuser`, so no role is ever created there.
+1. No other role may log in, except Neon's own internal roles (rule 7). A role created in the Neon console, CLI or API joins `neon_superuser`, so no role is ever created there.
 2. The runtime role logs in as itself. No login switches role with `SET ROLE` (owner ruling, 20 October 2026).
 3. A serving connection refuses to start if its login is a superuser, has `BYPASSRLS`, owns a table, or is a member of the owner, of `neon_superuser` or of any role with those rights.
 4. The owner's emergency use goes through the CI migration job, records the reason first and alerts the operator ([ADR-009](../../buyer-data/spec/#7-who-can-see-it)). See the [runbook](../../runbooks/use-the-owner-role/).
 5. The runtime role has a `statement_timeout` and an `idle_in_transaction_session_timeout`.
 6. **Staging** (owner ruling, 22 October 2026). Until launch, staging may be migrated and deployed from the owner's laptop, by the same deploy script the CI job runs, with staging-only credentials passed in at run time and synthetic data only. Staging keeps production's roles, row-level security, migration order and EU placement, so its tests prove production. Production is migrated and deployed only by the CI job.
+7. **Neon's internal roles** (owner ruling, 22 October 2026). Neon creates and manages roles of its own on every project, today `neon_service`, which can log in and is in `neon_superuser`, and acts on Neon's behalf. These are the one exception to rules 1 and 3 and to the audit's role checks: the catalogue lint and the audit name them exactly, refuse any other unknown role, and alert the operator when Neon's list changes. Vervoro never uses their credentials.
 
 ## 4. Functions
 
@@ -170,7 +171,7 @@ It also fails on:
 6. raw `CREATE TABLE`, `serial` or identity columns, `ON CONFLICT` without `company_id`, or session-level `SET` in module source;
 7. `SECURITY DEFINER` outside the allow-list, views without `security_invoker`, or materialized views;
 8. default privileges for the runtime role;
-9. a runtime or lifecycle role with `BYPASSRLS`, or any role but the owner in `neon_superuser`;
+9. a runtime or lifecycle role with `BYPASSRLS`, or any role but the owner and Neon's named internal roles ([section 3](#3-roles), rule 7) in `neon_superuser`;
 10. `app.company()` not `STABLE` and `PARALLEL SAFE`, or labelled `SECURITY DEFINER`;
 11. an extension that runs SQL given as text, such as `dblink`. The runtime role still able to execute a function in [section 4](#4-functions)'s list, or to read `pg_stats`, is a **warning**, not a failure, where the platform refused the revoke (owner ruling, 21 October 2026).
 
@@ -179,6 +180,8 @@ Named exceptions: the `tenant` table, keyed by its own `id`; the definer owner's
 ## 7. Control database and routing
 
 Control is its own database on its own compute. A cell credential can never read sign-in data, and restoring a cell can never rewind control.
+
+**One Neon project per database** (owner ruling, 22 October 2026). Control and every cell are each a Neon project of their own, never a branch of another project's database: each has its own storage, compute, history, restore and credentials, and is deleted on its own. A dedicated database is the same. A Neon branch is only a short-lived copy of one database (a migration or restore rehearsal, a preview), never holds a company's live data, and is deleted after use.
 
 **Three kinds of data, kept apart:** sign-in data (the `auth` and `auth_policy` schemas, the sign-in role only), platform data (everything else in control, the runtime role), and company data (the cells). Sign-in data is never copied into a cell; a company's users table keeps its own copy of the person's address and name.
 
@@ -253,7 +256,7 @@ Sign-up never runs a migration and never registers a database.
 
 ### Adding a dedicated database
 
-`dedicated:add` is `cell:add` with `kind = dedicated` and a cap of 1, in a Neon project of its own. Steps: [runbook](../../runbooks/add-a-dedicated-database/).
+`dedicated:add` is `cell:add` with `kind = dedicated` and a cap of 1, in a Neon project of its own, like every database ([section 7](#7-control-database-and-routing)). Steps: [runbook](../../runbooks/add-a-dedicated-database/).
 
 ### Dedicated databases and residency
 
@@ -401,10 +404,10 @@ Monthly at launch, a random real company and each cell's largest company are res
 
 CI proves the schema it builds. These prove the databases running, because a console role, a partition made after deploy or a hand-edited configuration is invisible to CI. Each failure pages the operator and closes egress for the affected database.
 
-**Audit, at every deploy and every night,** over every database and branch in the Neon project and every Hyperdrive configuration in the account:
+**Audit, at every deploy and every night,** over every Neon project and branch in the account and every Hyperdrive configuration in the account:
 
 1. The only login roles are the owner, runtime and lifecycle roles, plus the sign-in role on control.
-2. The runtime role has no usage on the `auth` and `auth_policy` schemas; the sign-in role has no right outside them but its insert on the security log. No role but the owner may hold `BYPASSRLS` or be in `neon_superuser`. No runtime or lifecycle role owns a table.
+2. The runtime role has no usage on the `auth` and `auth_policy` schemas; the sign-in role has no right outside them but its insert on the security log. No role but the owner and Neon's named internal roles may hold `BYPASSRLS` or be in `neon_superuser`; a change to Neon's list alerts. No runtime or lifecycle role owns a table.
 3. The definer owner cannot log in, is not in `neon_superuser`, has no members, and has only the rights in [section 3](#3-roles).
 4. Every Hyperdrive configuration has caching off.
 5. The catalogue lint passes on the live catalogue, and the next two months' partitions exist.
@@ -513,7 +516,7 @@ For someone reviewing code an AI wrote. Each line says where to look, and when i
 - [ ] **[Skeleton]** **Cell catalogue:** every policy's expression is exactly `company_id = app.company()`, in both `qual` and `with_check` (`pg_policies`).
 - [ ] **[Skeleton]** **Cell catalogue:** every primary key, unique key, foreign key and index starts with `company_id` (`pg_index`, `pg_constraint`).
 - [ ] **[Skeleton]** **Cell catalogue:** every foreign key to `tenant` is `ON DELETE CASCADE`; no other foreign key is single-column.
-- [ ] **[Skeleton]** **Roles:** only the owner, runtime and lifecycle roles can log in, plus sign-in on control; no role but the owner has `rolbypassrls` (`pg_roles`, `pg_auth_members`).
+- [ ] **[Skeleton]** **Roles:** only the owner, runtime and lifecycle roles can log in, plus sign-in on control and Neon's named internal roles ([section 3](#3-roles), rule 7); no other role has `rolbypassrls` (`pg_roles`, `pg_auth_members`).
 - [ ] **[Skeleton]** **Roles:** the runtime role is not a member of any role (`pg_auth_members`), and the app connects as it directly, with no `SET ROLE` anywhere in the data layer.
 - [ ] **[Skeleton]** **Grants:** the runtime role has no `UPDATE`, `DELETE` or `TRUNCATE` on the stock ledger, order holds, outbox or `audit_log` (`information_schema.role_table_grants`).
 - [ ] **[Skeleton]** **Grants:** no partition has a grant; no `dblink` or similar extension is installed (`pg_extension`). Where `has_function_privilege` shows the runtime role can still execute `query_to_xml`, the query check's tests must refuse it.
