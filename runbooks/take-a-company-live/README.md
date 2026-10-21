@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Built** | At launch |
-| **Record** | [ADR-008](../../inventory-sync/), rules in [SPEC 14](../../inventory-sync/spec/#14-shadow-and-going-live); shadow mode in [ADR-004](../../channel-connectors/#testing-sandboxes-and-shadow-mode) |
+| **Record** | [ADR-008](../../inventory-sync/), rules in [SPEC 14](../../inventory-sync/spec/#14-shadow-and-going-live); shadow mode in [ADR-004](../../channel-connectors/spec/#11-shadow-mode-and-launch-gates) |
 | **Who runs it** | The seller's Owner or Admin confirms; the operator watches a company's first go-live. A later account follows steps 4–7 only |
 | **Role or credential** | Owner or Admin in the app. The operator console to watch the sends |
 

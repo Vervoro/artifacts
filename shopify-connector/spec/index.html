@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ADR-004.3 SPEC: Shopify connector</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono&display=swap">
+<style>
+:root {
+  --bg: #f6f6f8; --surface: #ffffff; --sunken: #ededf1; --text: #16161a; --muted: #5c5c66; --border: #e0e0e6;
+  --accent: #4338ca; --accent-soft: #eef0ff; --edge: #8a8a96; --tint: #f0f0f4;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #111114; --surface: #1a1a1f; --sunken: #23232a; --text: #ececf1; --muted: #a2a2ad; --border: #2d2d35;
+  --accent: #a5b4fc; --accent-soft: #23264a; --edge: #74747f; --tint: #202027; color-scheme: dark; } }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 var(--sans); }
+main { max-width: 860px; margin: 0 auto; padding: 48px max(20px, env(safe-area-inset-left)) 80px; }
+header.site { max-width: 860px; margin: 0 auto; padding: 20px max(20px, env(safe-area-inset-left)) 0; font-size: 14px; }
+header.site a { color: var(--muted); text-decoration: none; }
+header.site a:hover { color: var(--accent); }
+h1, h2, h3 { line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(28px, 4vw, 38px); letter-spacing: -0.02em; margin: 0 0 20px; }
+h2 { font-size: 23px; margin: 48px 0 12px; padding-top: 20px; border-top: 1px solid var(--border); }
+h3 { font-size: 18px; margin: 32px 0 8px; }
+p, li { max-width: 72ch; }
+a { color: var(--accent); }
+code { font-family: var(--mono); font-size: 0.86em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--sunken); padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 13.5px; line-height: 1.5; }
+pre code { background: none; padding: 0; overflow-wrap: normal; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 16px 0; background: var(--surface); }
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+.table-wrap table { margin: 0; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+th { background: var(--sunken); font-weight: 600; font-size: 13px; color: var(--muted); }
+tr:last-child td { border-bottom: none; }
+ul, ol { padding-left: 22px; }
+li + li { margin-top: 4px; }
+figure { margin: 20px 0; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; }
+svg.diagram { display: block; width: 100%; min-width: 640px; height: auto; font-family: var(--sans); }
+svg .ink { fill: var(--text); } svg .quiet { fill: var(--muted); }
+svg .edge { stroke: var(--edge); } svg .edge-fill { fill: var(--edge); }
+svg .accent { stroke: var(--accent); } svg .accent-fill { fill: var(--accent); }
+svg .box { fill: none; stroke: var(--edge); stroke-width: 1.25; }
+svg .box-main { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+svg .band { fill: var(--tint); stroke: var(--edge); stroke-width: 1.25; }
+.cards { list-style: none; padding: 0; display: grid; gap: 12px; }
+.cards a { display: block; padding: 18px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; text-decoration: none; color: var(--text); }
+.cards a:hover, .cards a:focus-visible { border-color: var(--accent); outline: none; }
+.cards.sub { margin: 12px 0 0 24px; padding-left: 16px; border-left: 2px solid var(--border); }
+.parts { margin: 6px 0 0 20px; font-size: 14px; color: var(--muted); } .cards .parts a { display: inline; padding: 0; background: none; border: none; border-radius: 0; color: var(--accent); font-weight: 600; text-decoration: none; } .cards .parts a:hover { text-decoration: underline; }
+.cards b { display: block; font-size: 17px; } .cards span { color: var(--muted); font-size: 14px; }
+.order li { margin-top: 10px; } .order span { color: var(--muted); font-size: 14px; }
+footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header class="site"><a href="../../">← Vervoro artifacts</a> / <a href="../">ADR-004.3: Shopify connector</a></header>
+<main>
+<h1 id="adr-0043-spec-shopify-connector">ADR-004.3 SPEC: Shopify connector</h1>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Decision</strong></td>
+<td><a href="../">ADR-004.3: Shopify connector</a></td>
+</tr>
+<tr>
+<td><strong>Procedures</strong></td>
+<td><a href="../../runbooks/rotate-a-marketplace-app-secret/">Rotate a marketplace app secret</a></td>
+</tr>
+<tr>
+<td><strong>Date</strong></td>
+<td>21 October 2026</td>
+</tr>
+<tr>
+<td><strong>For</strong></td>
+<td>The developer and coding agents building it, and the person reviewing their work</td>
+</tr>
+</tbody></table></div>
+<p>Only what is particular to Shopify. Everything the host does (credentials, HTTP, outcomes, notices in, the completeness check, shadow mode) is <a href="../../channel-connectors/spec/">ADR-004 SPEC</a> and is not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed.</p>
+<h2 id="0-at-launch-and-later">0. At launch and later</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Later part</th>
+<th>Trigger</th>
+<th>Rules</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>The whole Shopify connector</td>
+<td>A seller needs Shopify (owner ruling, 21 October 2026)</td>
+<td>All</td>
+</tr>
+</tbody></table></div>
+<h2 id="1-connecting">1. Connecting</h2>
+<ol>
+<li><strong>Installing.</strong> The seller gives their shop&#39;s address and approves on Shopify&#39;s install screen. Shopify signs its redirect with the app&#39;s secret; the host checks that signature and its own single-use state.</li>
+<li><strong>Scopes:</strong> read orders, products, inventory and locations; write inventory; read and write the seller&#39;s own fulfilment orders; read a fulfilment partner&#39;s (so Vervoro sees an order is theirs to ship).</li>
+<li><strong>The shop&#39;s address is claimed</strong> in the external directory; installing again on the same shop renews that account.</li>
+<li><strong>Tokens.</strong> Each refresh returns a new access and refresh token; the host seals both before using either. Lifetimes come from Shopify&#39;s reply. <code>invalid_grant</code> means the app was uninstalled or the grant ran out: the account is disconnected, even if the uninstall webhook never arrived.</li>
+<li><strong>The app&#39;s secret</strong> is checked against the current and previous value, because Shopify takes a while to switch (<a href="../../runbooks/rotate-a-marketplace-app-secret/">runbook</a>).</li>
+<li><strong>Picking the warehouse:</strong> one of the shop&#39;s active locations that fulfil online orders. It cannot change while the account is live.</li>
+</ol>
+<h2 id="2-locations">2. Locations</h2>
+<ol>
+<li><strong>Vervoro writes one location:</strong> the available quantity at the warehouse location. Other locations are never touched.</li>
+<li><strong>Orders follow Shopify&#39;s assignment.</strong> An order assigned to the warehouse reserves Vervoro&#39;s stock. One assigned entirely elsewhere is recorded and reserves nothing. One assigned to a location that no longer exists is held for a person.</li>
+<li><strong>Only orders assigned wholly to the warehouse</strong> count as sales out of the figure Vervoro sent (<a href="../../inventory-sync/">ADR-008</a>).</li>
+</ol>
+<h2 id="3-webhooks-and-orders">3. Webhooks and orders</h2>
+<ol>
+<li><strong>Declared once in the app&#39;s configuration,</strong> all to one address.</li>
+<li><strong>Checked with the app&#39;s secret</strong> (current or previous) before any database read. The shop is named in a header the signature does not cover, so it is used only to find the account; a genuine body replayed under another shop&#39;s name can at most cause a fetch that finds nothing.</li>
+<li><strong>Topics:</strong> order created, updated, edited and cancelled; fulfilment order moved, placed on hold and released; a new risk assessment; inventory changed at the warehouse location; app uninstalled; the privacy topics. Moves, holds and risk assessments do not reliably raise the order-updated topic, so each has its own (<a href="../../order-ingestion/">ADR-007</a>).</li>
+<li><strong>The body is not imported.</strong> Only the order id, the topic, and what changed (cancelled, or shipped outside Vervoro, with the time) are queued; the order is fetched.</li>
+<li><strong>Backup read</strong> every 10 minutes, early reads at least 30 seconds apart. Without the older-orders scope only the last 60 days are readable, longer than Vervoro keeps buyer data.</li>
+<li><strong>Lines without a SKU.</strong> A gift card, a tip or a line that needs no shipping is left out. A line that needs shipping with no SKU and no variant stays unmatched, so the order cannot be dispatched until a person looks.</li>
+</ol>
+<h2 id="4-orders-other-marketplaces-put-into-the-shop">4. Orders other marketplaces put into the shop</h2>
+<ol>
+<li><strong>Each order names the app that created it.</strong> When that is a marketplace&#39;s app, the order is marked as sold on that marketplace, so a marketplace also connected directly reaches Vervoro one way only.</li>
+<li><strong>Unattributable:</strong> imported as an ordinary sale, never dropped; the seller is warned when any marketplace is also connected directly.</li>
+<li><strong>Possible duplicate:</strong> when its SKUs and quantities match a direct order placed within 30 minutes, it is held for a manager. No buyer data is compared. ADR-007 keeps a mirror&#39;s units off every figure until its direct order arrives.</li>
+</ol>
+<h2 id="5-stock">5. Stock</h2>
+<ol>
+<li><strong>Compare-and-set on every write,</strong> with the available figure Vervoro believes Shopify shows. If a sale got there first, the connector reads the figure again and answers <code>compare_mismatch</code> with it.</li>
+<li><strong>Batches of up to 250,</strong> each item with its own expected figure, so decreases may travel in a batch on either lane.</li>
+<li><strong>One stale entry may fail the whole call.</strong> The connector reads the stale entries again (<code>compare_mismatch</code> each) and sends the others once more. If that call is refused too, the batch is <code>unknown</code> and is read back (<a href="../../channel-connectors/spec/#5-retries-and-outcomes">ADR-004 SPEC 5</a>).</li>
+<li><strong>Idempotency key</strong> per call, made from the gate&#39;s key and what the call holds, so a repeat replays Shopify&#39;s answer and new figures are a new send.</li>
+<li><strong>Synchronous:</strong> <code>applied</code>, <code>compare_mismatch</code> or refused, never <code>accepted</code>.</li>
+<li><strong>Read back</strong> reads the available quantity at the warehouse location for the listing&#39;s inventory item.</li>
+</ol>
+<h2 id="6-the-cost-budget">6. The cost budget</h2>
+<ol>
+<li><strong>Stock writes cost the mutation&#39;s 10 points plus one for errors,</strong> for 1 item or 250.</li>
+<li><strong>Their share:</strong> at most two batch calls a second, and every batch leaves 55 points in the bucket, enough for five single decreases (<a href="../../inventory-sync/spec/#8-limits-and-who-goes-next">ADR-008 SPEC 8</a>).</li>
+<li><strong>Reads follow Shopify&#39;s throttle reply,</strong> which says how many points a call needs and how fast they return; the host waits exactly that long.</li>
+<li><strong>Large reads use bulk operations,</strong> which run inside Shopify and are downloaded when done (<a href="../../catalogue-sync/">ADR-005</a>).</li>
+</ol>
+<h2 id="7-variants-without-a-unique-sku">7. Variants without a unique SKU</h2>
+<p>A variant with a blank SKU, or one another variant shares, is named by its variant id as a listing and on order lines. Every other variant goes by its SKU as Shopify has it. Whether a SKU is shared is checked against the shop within a small cost cap; one the check could not settle goes by its plain SKU, and if shared its line arrives unmatched until a later check names the variant.</p>
+<h2 id="8-buyer-data-and-privacy">8. Buyer data and privacy</h2>
+<ol>
+<li><strong>Protected customer data</strong> (names, addresses, phones) is released only to approved apps. Without approval those fields arrive empty and nothing is guessed.</li>
+<li><strong>Only what is needed to ship:</strong> the delivery address with the recipient&#39;s name and phone, the order note, a gift message, each line&#39;s title. Anonymised 30 days after delivery, or after dispatch when no delivery date is known (<a href="../../buyer-data/">ADR-009</a>).</li>
+<li><strong>Privacy webhooks:</strong> a request to forget a buyer anonymises their orders at once; a buyer&#39;s data request and a request to forget a shop are recorded for a person, due within 30 days (<a href="../../channel-connectors/spec/#8-notices-in">ADR-004 SPEC 8</a>).</li>
+</ol>
+<h2 id="9-dispatch-and-the-page-inside-shopify">9. Dispatch and the page inside Shopify</h2>
+<ol>
+<li><strong>Dispatch</strong> is confirmed against the order&#39;s fulfilment orders at the warehouse location, with carrier and tracking, through the gate. A fulfilment partner&#39;s are never written.</li>
+<li><strong>The App Store needs a page in the Shopify admin:</strong> one small page showing whether the shop is connected, to which company, and a link into Vervoro. It holds no session or cookie and checks Shopify&#39;s session token on every request. Until the listing, sellers install from Vervoro&#39;s own link.</li>
+</ol>
+<h2 id="10-simulator-and-pre-launch-recordings">10. Simulator and pre-launch recordings</h2>
+<p>The simulator speaks only the GraphQL Admin calls above, with cost-point buckets and throttled replies, compare-and-set races on demand, bulk operations, the install flow, expiring tokens and signed webhooks. Development stores stand in for a sandbox. Before launch each call is recorded against a development store (<a href="../../channel-connectors/spec/#14-simulators-and-recorded-replies">ADR-004 SPEC 14</a>), including an unapproved protected field, the app names on orders other marketplaces put into a shop, and a batch with one stale entry; either answer to the last is safe.</p>
+<h2 id="11-constraints">11. Constraints</h2>
+<p>Checked against Shopify&#39;s documentation on 17 October 2026.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Constraint</th>
+<th>Figure</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Cost budget</td>
+<td>Per app and shop; 100 points a second standard, 200 Advanced, 1,000 Plus, 2,000 enterprise</td>
+<td><a href="https://shopify.dev/docs/apps/build/apis/graphql-admin/rate-limits">GraphQL Admin API rate limits</a></td>
+</tr>
+<tr>
+<td>One query</td>
+<td>At most 1,000 points; a mutation costs 10</td>
+<td>Same page</td>
+</tr>
+<tr>
+<td>Array inputs</td>
+<td>At most 250 items</td>
+<td><a href="https://shopify.dev/docs/api/usage/limits">API limits</a></td>
+</tr>
+<tr>
+<td>Webhooks</td>
+<td>Five seconds to answer; up to eight retries over four hours</td>
+<td><a href="https://shopify.dev/docs/apps/build/webhooks/troubleshooting-webhooks">Troubleshooting webhooks</a></td>
+</tr>
+<tr>
+<td>Offline tokens</td>
+<td>Expiring for public apps: access an hour, refresh 90 days, a new pair each refresh; non-expiring tokens end for existing public apps on 1 January 2027</td>
+<td><a href="https://shopify.dev/docs/apps/build/authentication-authorization/access-tokens/offline-access-tokens">Offline access tokens</a></td>
+</tr>
+<tr>
+<td>Compare-and-set</td>
+<td>A change whose expected figure no longer matches is refused; idempotency key required from 2026-04</td>
+<td><a href="https://shopify.dev/docs/api/admin-graphql/latest/mutations/inventorySetQuantities">inventorySetQuantities</a></td>
+</tr>
+<tr>
+<td>Privacy webhooks</td>
+<td>Three required for App Store apps; 30 days to act</td>
+<td><a href="https://shopify.dev/docs/apps/build/compliance/privacy-law-compliance">Privacy law compliance</a></td>
+</tr>
+</tbody></table></div>
+<h2 id="12-tests-that-prove-each-rule">12. Tests that prove each rule</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Proves</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Compare</td>
+<td>A sale between read and write ends <code>compare_mismatch</code> with Shopify&#39;s figure, never an overwrite</td>
+</tr>
+<tr>
+<td>Stale batch</td>
+<td>One stale entry: the others are resent once; a second refusal is <code>unknown</code> and read back</td>
+</tr>
+<tr>
+<td>Budget</td>
+<td>A batch never leaves fewer than 55 points</td>
+</tr>
+<tr>
+<td>One location</td>
+<td>No write names another location</td>
+</tr>
+<tr>
+<td>Assignment</td>
+<td>An order assigned elsewhere reserves nothing</td>
+</tr>
+<tr>
+<td>Token pair</td>
+<td>Both new tokens are sealed before either is used</td>
+</tr>
+<tr>
+<td>Header</td>
+<td>A body replayed under another shop&#39;s header fetches nothing that shop has</td>
+</tr>
+<tr>
+<td>Mirror</td>
+<td>An order from a marketplace&#39;s app is marked with it; a 30-minute match is held</td>
+</tr>
+<tr>
+<td>Variant id</td>
+<td>A blank or shared SKU variant is linked and written by its id</td>
+</tr>
+<tr>
+<td>Forget buyer</td>
+<td>Anonymises at once</td>
+</tr>
+</tbody></table></div>
+<h2 id="how-to-check-it-was-built-right">How to check it was built right</h2>
+<ul>
+<li><input disabled="" type="checkbox"> <strong>Compare-and-set:</strong> every inventory write carries expected figures and an idempotency key.</li>
+<li><input disabled="" type="checkbox"> <strong>Location:</strong> the warehouse location id comes from the account&#39;s setting; it cannot change while live.</li>
+<li><input disabled="" type="checkbox"> <strong>Webhook body:</strong> nothing from it but ids and the change kind reaches the queue.</li>
+<li><input disabled="" type="checkbox"> <strong>Budget:</strong> the 55-point floor is enforced before each batch.</li>
+<li><input disabled="" type="checkbox"> <strong>Admin page:</strong> no cookie, no session; the session token is checked on every request.</li>
+</ul>
+
+<footer>Vervoro</footer>
+</main>
+</body>
+</html>

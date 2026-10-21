@@ -35,6 +35,35 @@ Rules: [ADR-003 SPEC](../product-model/spec/).
 | --- | --- |
 | [Change a VAT rate](change-a-vat-rate/) | A law changes a VAT rate or sets a temporary one |
 
+## ADR-004: Channel connectors
+
+Rules: [ADR-004 SPEC](../channel-connectors/spec/).
+
+| Procedure | When |
+| --- | --- |
+| [Check a marketplace's launch gates](check-a-marketplaces-launch-gates/) | Before the first account on a marketplace goes live, or after a gate fails |
+| [Handle a marketplace outage](handle-a-marketplace-outage/) | A marketplace incident alert pages |
+| [A shared pool runs low](a-shared-pool-runs-low/) | A shared daily pool nears its limit, or an account's reserve would fall below 50 calls |
+| [Repair a notice subscription](repair-a-notice-subscription/) | An account shows "not notified", or orders arrive with no notice |
+| [Rotate a marketplace app secret](rotate-a-marketplace-app-secret/) | A marketplace app secret or the Amazon bridge's secret is due, or may have leaked |
+| [Replay dead letters](replay-dead-letters/) | The inbound dead-letter queue is not empty |
+
+## ADR-004.1: eBay connector
+
+Rules: [ADR-004.1 SPEC](../ebay-connector/spec/).
+
+| Procedure | When |
+| --- | --- |
+| [Set up eBay notices](set-up-ebay-notices/) | Once per environment, or if eBay's destination is lost |
+
+## ADR-004.2: Amazon Seller connector
+
+Rules: [ADR-004.2 SPEC](../amazon-seller-connector/spec/).
+
+| Procedure | When |
+| --- | --- |
+| [Set up the Amazon notice bridge](set-up-the-amazon-notice-bridge/) | Once per environment |
+
 ## ADR-006: Stock ledger and reservations
 
 Rules: [ADR-006 SPEC](../stock-ledger/spec/).

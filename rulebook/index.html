@@ -86,7 +86,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>An unknown write is settled before anything else is sent</td>
-<td><a href="../channel-connectors/#retries-and-outcomes">ADR-004: Retries and outcomes</a></td>
+<td><a href="../channel-connectors/spec/#5-retries-and-outcomes">ADR-004 SPEC 5: Retries and outcomes</a></td>
 </tr>
 <tr>
 <td>Tenant isolation: the security boundary and defence in depth</td>
@@ -98,7 +98,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Shadow mode</td>
-<td><a href="../channel-connectors/#testing-sandboxes-and-shadow-mode">ADR-004: Testing, sandboxes and shadow mode</a></td>
+<td><a href="../channel-connectors/spec/#11-shadow-mode-and-launch-gates">ADR-004 SPEC 11: Shadow mode and launch gates</a></td>
 </tr>
 <tr>
 <td>The egress gate</td>
@@ -115,7 +115,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tbody></table></div>
 <h2 id="1-when-in-doubt-stop">1. When in doubt, stop</h2>
 <ol>
-<li><strong>Never guess when correctness is uncertain.</strong> A wrong company, an unknown write, an incomplete order read or a broken stock rule stops the work, records what is uncertain and settles it. It never carries on with a best guess. <a href="../database-architecture/spec/#1-tenancy-inside-a-cell">ADR-001</a>, <a href="../channel-connectors/#retries-and-outcomes">ADR-004</a>, <a href="../inventory-sync/#decision">ADR-008</a></li>
+<li><strong>Never guess when correctness is uncertain.</strong> A wrong company, an unknown write, an incomplete order read or a broken stock rule stops the work, records what is uncertain and settles it. It never carries on with a best guess. <a href="../database-architecture/spec/#1-tenancy-inside-a-cell">ADR-001</a>, <a href="../channel-connectors/spec/#5-retries-and-outcomes">ADR-004</a>, <a href="../inventory-sync/#decision">ADR-008</a></li>
 <li><strong>Cross-company exposure and corrupted stock are the worst failures.</strong> A sign of cross-company exposure pages the operator and closes the database&#39;s egress. A stock difference found by the nightly check alerts the operator and holds raises on the affected listings, while decreases still go. <a href="../database-architecture/spec/#6-guard-rails">ADR-001</a>, <a href="../stock-ledger/spec/#14-the-nightly-check-and-checkpoints">ADR-006</a></li>
 </ol>
 <h2 id="2-companies-and-databases">2. Companies and databases</h2>
@@ -153,15 +153,15 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ol start="25">
 <li><strong>Nothing reaches a marketplace or a supplier except through the egress gate.</strong> Every outbound effect is recorded in the transaction with an idempotency key and sent only after commit. <a href="../system-architecture/spec/#7-the-egress-gate">ADR-000</a></li>
 <li><strong>Nothing leaves Vervoro during a database transaction.</strong> No marketplace or other outside call runs inside one, so a company&#39;s lock is held only for database work, and Postgres&#39;s transaction timeout ends a transaction that runs too long. <a href="../system-architecture/spec/#10-runtime">ADR-000</a>, <a href="../database-architecture/spec/#13-platform-constraints">ADR-001</a>, <a href="../stock-ledger/spec/#12-the-lock-keys-and-the-sequence">ADR-006</a></li>
-<li><strong>A connector only translates.</strong> It has no network access, credentials, clock or database. The host owns credentials, HTTP, retries, rate limits and shared allowances. Core code knows marketplace concepts such as listings, links and FBA, but not marketplace protocols. <a href="../channel-connectors/#decision">ADR-004</a></li>
+<li><strong>A connector only translates.</strong> It has no network access, credentials, clock or database. Channels, the host, owns credentials, HTTP, retries, rate limits, shared allowances, notice checks and the sending half of the egress gate. Core code knows marketplace concepts such as listings, links and FBA, but not marketplace protocols. <a href="../channel-connectors/#decision">ADR-004</a></li>
 <li><strong>Orders come in by notice.</strong> A notice is a hint: the order is fetched and imported. The scheduled read is only the backup, and only a complete read moves the order watermark. Amazon&#39;s notices reach the same path through an AWS bridge. <a href="../channel-connectors/#decision">ADR-004</a>, <a href="../order-ingestion/#decision">ADR-007</a></li>
 <li><strong>Each marketplace order is imported once,</strong> keyed by account and marketplace order id. A fetch older than the stored one changes nothing. An order that cannot be imported becomes a problem row; it is never dropped. <a href="../order-ingestion/#decision">ADR-007</a></li>
 <li><strong>Vervoro never sends a cancellation.</strong> The seller cancels on the marketplace, and only a confirmed cancellation releases stock. <a href="../order-ingestion/#decision">ADR-007</a></li>
-<li><strong>A timeout is <code>unknown</code>, not failed.</strong> An unknown write is settled before anything else is sent to that listing. Read-back is the default; a connector may instead resend the same absolute figure only when the write sets a value (never adds to one), repeating it cannot compound, and its record names the exception (eBay&#39;s Trading API). <a href="../channel-connectors/#retries-and-outcomes">ADR-004</a>, <a href="../ebay-connector/#listings-and-stock">ADR-004.1</a></li>
+<li><strong>A timeout is <code>unknown</code>, not failed.</strong> An unknown write is settled before anything else is sent to that listing. Read-back is the default; a connector may instead resend the same absolute figure only when the write sets a value (never adds to one), repeating it cannot compound, and its record names the exception (eBay&#39;s Trading API). <a href="../channel-connectors/spec/#5-retries-and-outcomes">ADR-004</a>, <a href="../ebay-connector/spec/#4-listings-and-stock">ADR-004.1</a></li>
 <li><strong>Figures go only to linked listings,</strong> and only the quantity and the offers the seller asks for are ever written. <a href="../catalogue-sync/#decision">ADR-005</a></li>
 <li><strong>No raise leaves before a complete order read covers the moment it became due.</strong> Near zero, every change is sent; above that, a figure is sent once it is 20 away from what the channel shows. A held raise never holds a decrease. <a href="../inventory-sync/#decision">ADR-008</a>, <a href="../catalogue-sync/#linking">ADR-005</a></li>
 <li><strong>One writer per listing, one open write at a time, and every write confirmed.</strong> Amazon&#39;s <code>accepted</code> is not applied. <a href="../inventory-sync/#decision">ADR-008</a></li>
-<li><strong>Every account starts in shadow,</strong> and returns to shadow after a restore or a reconnect. A restore raises the company&#39;s sync epoch, so no earlier write is mistaken for a later one. <a href="../channel-connectors/#testing-sandboxes-and-shadow-mode">ADR-004</a>, <a href="../inventory-sync/#decision">ADR-008</a></li>
+<li><strong>Every account starts in shadow,</strong> and returns to shadow after a restore or a reconnect. No account on a marketplace goes live until shadow there passes its launch gates (lost notices, detection delay, unreserved orders). A restore raises the company&#39;s sync epoch, so no earlier write is mistaken for a later one. <a href="../channel-connectors/spec/#11-shadow-mode-and-launch-gates">ADR-004</a>, <a href="../inventory-sync/#decision">ADR-008</a></li>
 <li><strong>Testing is layered, and development uses simulators, never a real marketplace.</strong> Pure logic runs as fast unit tests with no database; the database, row-level security, locking, routing and triggers run on real Postgres; marketplace behaviour runs on the simulators; critical flows run end to end. No simulator code reaches production. A test that protects accepted behaviour is removed or weakened only together with an accepted change to that behaviour or its SPEC. <a href="../system-architecture/spec/#15-testing-and-verification">ADR-000 SPEC 15</a></li>
 </ol>
 <h2 id="6-people-and-buyer-data">6. People and buyer data</h2>

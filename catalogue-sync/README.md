@@ -119,7 +119,7 @@ The contract test suite grows with the capability: a snapshot that stops part-wa
 | --- | --- | --- | --- | --- |
 | **Presence (full read)** | Active-listings report from eBay's Feed API | The same report: SKU, item number, variations | All-listings report per served marketplace (active and inactive, with status), from the seller's own allowance | One bulk operation over every variant |
 | **Details for unlinked listings** | Inventory API pages: title, barcodes, images | Trading API: listings started since the last read, inside the account's daily page cap | Catalogue lookup by ASIN, 20 a call, for barcodes | In the same bulk file |
-| **Notices** | None | Trading API events: listed, revised, closed | Listing status changes, through the relay | Product created, updated, deleted |
+| **Notices** | None | Trading API events: listed, revised, closed | Listing status changes, through the AWS bridge | Product created, updated, deleted |
 | **Changes since** | None | None | Search by last update time | Products by update time |
 | **Daily safety read** | Fresh report | Fresh report | Fresh report | Bulk operation |
 

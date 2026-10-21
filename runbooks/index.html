@@ -141,6 +141,68 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>A law changes a VAT rate or sets a temporary one</td>
 </tr>
 </tbody></table></div>
+<h2 id="adr-004-channel-connectors">ADR-004: Channel connectors</h2>
+<p>Rules: <a href="../channel-connectors/spec/">ADR-004 SPEC</a>.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Procedure</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="check-a-marketplaces-launch-gates/">Check a marketplace&#39;s launch gates</a></td>
+<td>Before the first account on a marketplace goes live, or after a gate fails</td>
+</tr>
+<tr>
+<td><a href="handle-a-marketplace-outage/">Handle a marketplace outage</a></td>
+<td>A marketplace incident alert pages</td>
+</tr>
+<tr>
+<td><a href="a-shared-pool-runs-low/">A shared pool runs low</a></td>
+<td>A shared daily pool nears its limit, or an account&#39;s reserve would fall below 50 calls</td>
+</tr>
+<tr>
+<td><a href="repair-a-notice-subscription/">Repair a notice subscription</a></td>
+<td>An account shows &quot;not notified&quot;, or orders arrive with no notice</td>
+</tr>
+<tr>
+<td><a href="rotate-a-marketplace-app-secret/">Rotate a marketplace app secret</a></td>
+<td>A marketplace app secret or the Amazon bridge&#39;s secret is due, or may have leaked</td>
+</tr>
+<tr>
+<td><a href="replay-dead-letters/">Replay dead letters</a></td>
+<td>The inbound dead-letter queue is not empty</td>
+</tr>
+</tbody></table></div>
+<h2 id="adr-0041-ebay-connector">ADR-004.1: eBay connector</h2>
+<p>Rules: <a href="../ebay-connector/spec/">ADR-004.1 SPEC</a>.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Procedure</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="set-up-ebay-notices/">Set up eBay notices</a></td>
+<td>Once per environment, or if eBay&#39;s destination is lost</td>
+</tr>
+</tbody></table></div>
+<h2 id="adr-0042-amazon-seller-connector">ADR-004.2: Amazon Seller connector</h2>
+<p>Rules: <a href="../amazon-seller-connector/spec/">ADR-004.2 SPEC</a>.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Procedure</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="set-up-the-amazon-notice-bridge/">Set up the Amazon notice bridge</a></td>
+<td>Once per environment</td>
+</tr>
+</tbody></table></div>
 <h2 id="adr-006-stock-ledger-and-reservations">ADR-006: Stock ledger and reservations</h2>
 <p>Rules: <a href="../stock-ledger/spec/">ADR-006 SPEC</a>.</p>
 <div class="table-wrap"><table>

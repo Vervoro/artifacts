@@ -31,15 +31,27 @@ Architecture decisions and plans, published with GitHub Pages.
   - [Runbook: Hold raises or pause an account](runbooks/hold-raises-or-pause-an-account/README.md)
   - [Runbook: Take a company live](runbooks/take-a-company-live/README.md)
   - [Runbook: Recover stock sync after a restore](runbooks/recover-stock-sync-after-a-restore/README.md)
+  - [Runbook: Check a marketplace's launch gates](runbooks/check-a-marketplaces-launch-gates/README.md)
+  - [Runbook: Handle a marketplace outage](runbooks/handle-a-marketplace-outage/README.md)
+  - [Runbook: A shared pool runs low](runbooks/a-shared-pool-runs-low/README.md)
+  - [Runbook: Repair a notice subscription](runbooks/repair-a-notice-subscription/README.md)
+  - [Runbook: Rotate a marketplace app secret](runbooks/rotate-a-marketplace-app-secret/README.md)
+  - [Runbook: Replay dead letters](runbooks/replay-dead-letters/README.md)
+  - [Runbook: Set up eBay notices](runbooks/set-up-ebay-notices/README.md)
+  - [Runbook: Set up the Amazon notice bridge](runbooks/set-up-the-amazon-notice-bridge/README.md)
 - [ADR-001: Multi-tenant database architecture](database-architecture/README.md)
   - [ADR-001 SPEC: Multi-tenant database architecture](database-architecture/spec/README.md)
 - [ADR-002: Data retention and archiving](data-retention/README.md)
 - [ADR-003: Product model](product-model/README.md)
   - [ADR-003 SPEC: Product model](product-model/spec/README.md)
 - [ADR-004: Channel connectors](channel-connectors/README.md)
+  - [ADR-004 SPEC: Channel connectors](channel-connectors/spec/README.md)
   - [ADR-004.1: eBay connector](ebay-connector/README.md)
+  - [ADR-004.1 SPEC: eBay connector](ebay-connector/spec/README.md)
   - [ADR-004.2: Amazon Seller connector](amazon-seller-connector/README.md)
+  - [ADR-004.2 SPEC: Amazon Seller connector](amazon-seller-connector/spec/README.md)
   - [ADR-004.3: Shopify connector](shopify-connector/README.md)
+  - [ADR-004.3 SPEC: Shopify connector](shopify-connector/spec/README.md)
 - [ADR-005: Catalogue sync and linking](catalogue-sync/README.md)
 - [ADR-006: Stock ledger and reservations](stock-ledger/README.md)
   - [ADR-006 SPEC: Stock ledger and reservations](stock-ledger/spec/README.md)
@@ -64,7 +76,7 @@ The order to build in. Each step needs the ones before it.
 2. **[ADR-010: Users, roles and access](users-and-access/README.md), [ADR-013: Sign-in](sign-in/README.md).** Users, roles and sign-in are part of the skeleton: every later module names its actions, and ADR-010 decides who holds them. Sign-in, sessions and operator grants exist before any screen shows a buyer's address. Sign-in is its own Worker running Better Auth, with its own build, deploy and auth schema in control, so it is set up with the skeleton; Better Auth hands ADR-010 a login id and decides nothing about access.
 3. **[ADR-003: Product model](product-model/README.md).** Products come first; listings, stock and orders all point at them.
 4. **[ADR-006: Stock ledger and reservations](stock-ledger/README.md).** Stock is recorded and reserved inside Vervoro before any marketplace sees a figure. Only Inventory writes it.
-5. **[ADR-004: Channel connectors](channel-connectors/README.md), [ADR-004.1: eBay connector](ebay-connector/README.md), [ADR-004.2: Amazon Seller connector](amazon-seller-connector/README.md), [ADR-004.3: Shopify connector](shopify-connector/README.md).** The connector host first, then eBay and Amazon Seller side by side, then Shopify. Each runs against its simulator in shadow mode. Amazon Vendor (ADR-004.4, planned) comes later.
+5. **[ADR-004: Channel connectors](channel-connectors/README.md), [ADR-004.1: eBay connector](ebay-connector/README.md), [ADR-004.2: Amazon Seller connector](amazon-seller-connector/README.md), [ADR-004.3: Shopify connector](shopify-connector/README.md).** The connector host first, then eBay and Amazon Seller side by side. Shopify (ADR-004.3) is Later, built when a seller needs it. Each runs against its simulator in shadow mode. Amazon Vendor (ADR-004.4, planned) comes later.
 6. **[ADR-005: Catalogue sync and linking](catalogue-sync/README.md).** Needs the connectors' listing reads and the products to link them to.
 7. **[ADR-009: Buyer data and privacy](buyer-data/README.md).** Before any real order stores a buyer's address; the marketplaces' data reviews ask for it. Buyer anonymisation from ADR-002 is built here.
 8. **[ADR-007: Order ingestion](order-ingestion/README.md), [ADR-014: Fulfilment](fulfilment/README.md).** Orders need links, reservations and the buyer-data rules. Fulfilment then picks, packs and ships them, and takes returns, through Inventory's and Orders' ports.

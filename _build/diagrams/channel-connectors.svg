@@ -41,13 +41,13 @@
   <text x="143" y="348" text-anchor="middle" font-size="11.5" class="quiet">shadow records, live sends</text>
 
   <rect x="266" y="308" width="206" height="52" rx="8" class="box"/>
-  <text x="369" y="330" text-anchor="middle" font-weight="600" class="ink">Send rules</text>
-  <text x="369" y="348" text-anchor="middle" font-size="11.5" class="quiet">what to send, and when</text>
+  <text x="369" y="330" text-anchor="middle" font-weight="600" class="ink">Stock sync</text>
+  <text x="369" y="348" text-anchor="middle" font-size="11.5" class="quiet">each listing's figure</text>
 
   <text x="256" y="400" text-anchor="middle" font-size="11.5" class="ink">Platform host: names no marketplace</text>
 
   <rect x="528" y="134" width="192" height="42" rx="8" class="box"/>
-  <text x="624" y="152" text-anchor="middle" font-weight="600" class="ink">Relay in AWS</text>
+  <text x="624" y="152" text-anchor="middle" font-weight="600" class="ink">AWS bridge, EU region</text>
   <text x="624" y="168" text-anchor="middle" font-size="11.5" class="quiet">queue and event bus to HTTPS</text>
 
   <rect x="528" y="210" width="192" height="54" rx="8" class="box"/>
@@ -63,8 +63,8 @@
   <text x="624" y="402" text-anchor="middle" font-size="11.5" class="quiet">parse, fetch the order, import</text>
 
   <rect x="24" y="440" width="464" height="52" rx="8" class="box"/>
-  <text x="256" y="462" text-anchor="middle" font-weight="600" class="ink">Foundation</text>
-  <text x="256" y="480" text-anchor="middle" font-size="11.5" class="quiet">only writer of stock, order status and desired state</text>
+  <text x="256" y="462" text-anchor="middle" font-weight="600" class="ink">Orders and Listings, the core</text>
+  <text x="256" y="480" text-anchor="middle" font-size="11.5" class="quiet">imports through their ports; no marketplace named</text>
 
   <text x="24" y="526" font-size="11.5" class="quiet">In development and tests a simulator stands in for every marketplace; only the base address changes.</text>
 </svg>

@@ -75,238 +75,78 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>17 October 2026; the Trading API exception to the unknown-write rule, 21 October 2026</td>
+<td>17 October 2026; Trading API exception, 21 October 2026; split into ADR, SPEC and RUNBOOK, 21 October 2026</td>
 </tr>
 <tr>
 <td><strong>Scope</strong></td>
-<td>What eBay forces us to decide beyond the shared connector design: how a seller connects, how orders arrive, which API carries each listing&#39;s stock, the shared Trading API pool, the seller&#39;s out-of-stock option, and privacy notices</td>
+<td>What eBay adds to <a href="../channel-connectors/">ADR-004</a></td>
 </tr>
 <tr>
 <td><strong>Builds on</strong></td>
-<td><a href="../channel-connectors/">ADR-004: Channel connectors</a>, <a href="../product-model/">ADR-003: Product model</a>, <a href="../database-architecture/">ADR-001: Multi-tenant database architecture</a></td>
+<td><a href="../channel-connectors/">ADR-004</a>, <a href="../product-model/">ADR-003</a>, <a href="../catalogue-sync/">ADR-005</a>, <a href="../inventory-sync/">ADR-008</a></td>
+</tr>
+<tr>
+<td><strong>SPEC</strong></td>
+<td><a href="spec/">The eBay rules, limits and checks</a></td>
+</tr>
+<tr>
+<td><strong>RUNBOOK</strong></td>
+<td><a href="../runbooks/#adr-0041-ebay-connector">The operator&#39;s procedures for this record</a></td>
 </tr>
 </tbody></table></div>
 <h2 id="context">Context</h2>
-<p>ADR-004 decided the connector contract and everything the host does around it. This record covers only what is particular to eBay.</p>
-<p>eBay shapes the design in five ways:</p>
 <ul>
-<li><strong>Two kinds of listing.</strong> Listings made through eBay&#39;s Inventory API are inventory items, named by SKU. Listings made in eBay&#39;s own seller tools (Seller Hub, and most listing tools) are not; they live in the older Trading API and are named by item number. A seller usually has both, and one SKU can sit on several listings of either kind.</li>
-<li><strong>Daily limits per application.</strong> eBay&#39;s limits are calls per day for Vervoro&#39;s application as a whole, shared by every seller. The Trading API allows 5,000 a day by default, the order resource 100,000, the Inventory API 2 million.</li>
-<li><strong>No compare-and-set.</strong> eBay sets the quantity it is given, whatever it showed before.</li>
-<li><strong>A listing that reaches zero can end.</strong> Unless the seller has turned on eBay&#39;s out-of-stock option, a Seller Hub listing whose quantity reaches 0 ends, and a variation set to 0 is removed.</li>
-<li><strong>Notices exist for orders,</strong> through eBay&#39;s Notification API, but delivery is not guaranteed.</li>
+<li><strong>Two kinds of listing:</strong> Inventory API listings named by SKU, and Seller Hub listings in the older Trading API named by item number. Most sellers have both.</li>
+<li><strong>Limits belong to Vervoro&#39;s application:</strong> 5,000 Trading calls and 100,000 order calls a day, shared by every seller.</li>
+<li><strong>No compare-and-set,</strong> and a Seller Hub listing that reaches zero ends unless the seller has turned on eBay&#39;s out-of-stock option.</li>
+<li><strong>Order notices are not guaranteed.</strong></li>
 </ul>
 <h2 id="decision">Decision</h2>
 <ol>
-<li><strong>One Vervoro application, approved by each seller</strong> on eBay&#39;s own consent page. Nobody pastes keys.</li>
-<li><strong>Orders arrive by eBay&#39;s Notification API:</strong> one signed destination for the whole application, and a subscription per seller to order confirmations, cancellation activity and items marked shipped. Each notice is answered by fetching the order.</li>
-<li><strong>The backup read runs hourly,</strong> because eBay&#39;s order allowance is shared by every seller; an account whose notices look broken is read every 10 minutes. The read goes from the last page of its window back to the first.</li>
-<li><strong>Every linked listing gets the figure:</strong> inventory items through the Inventory API, Seller Hub listings through the Trading API by item number. A listing nobody linked gets none: finding every listing a SKU is on only finds listings for <a href="../catalogue-sync/">ADR-005</a> to suggest.</li>
-<li><strong>The Trading API is spent only where nothing else will do,</strong> from the shared pool of ADR-004, with a daily page cap per account.</li>
-<li><strong>Vervoro never changes a seller&#39;s eBay settings.</strong> A Seller Hub listing is not updated while the seller&#39;s out-of-stock option is off, and the account cannot go live until the seller turns it on.</li>
+<li><strong>One Vervoro application, approved by each seller</strong> on eBay&#39;s consent page.</li>
+<li><strong>Orders arrive by eBay&#39;s Notification API:</strong> one destination per environment, three order topics per seller, each notice answered by fetching the order.</li>
+<li><strong>The backup read runs hourly,</strong> every 10 minutes while an account&#39;s notices look broken, and reads each window from its last page back, so no order slips past.</li>
+<li><strong>Every linked listing gets the figure:</strong> inventory items through the Inventory API, Seller Hub listings through the Trading API by item number. A listing nobody linked gets none (<a href="../catalogue-sync/">ADR-005</a>).</li>
+<li><strong>The Trading API is spent only where nothing else will do,</strong> from ADR-004&#39;s shared pool, with a daily page cap per account; full reads prefer the Feed API&#39;s daily report.</li>
+<li><strong>An unknown Trading API write is settled by sending the figure again,</strong> the exception <a href="../channel-connectors/spec/#5-retries-and-outcomes">ADR-004&#39;s rule</a> allows: the call sets a quantity, and a read costs the same pool call.</li>
+<li><strong>Vervoro never changes a seller&#39;s eBay settings.</strong> A Seller Hub listing is not written while the out-of-stock option is off, and the account cannot go live until the seller turns it on.</li>
 <li><strong>A variation with no SKU cannot be updated.</strong> Its orders still come in, and the seller is told to add a SKU.</li>
-<li><strong>eBay&#39;s account deletion notices are received</strong> for every eBay user, as eBay requires. A connected seller&#39;s is a privacy request. A buyer&#39;s is matched against a keyed hash stored with that buyer&#39;s orders, and a match anonymises them (<a href="../buyer-data/">ADR-009</a>). The notice itself is never kept.</li>
+<li><strong>eBay&#39;s account deletion notices are received,</strong> as eBay requires; a buyer&#39;s anonymises their orders (<a href="../buyer-data/">ADR-009</a>).</li>
+<li><strong>eBay goes live only after its shadow launch gates pass</strong> (<a href="../channel-connectors/spec/#11-shadow-mode-and-launch-gates">ADR-004 SPEC 11</a>); if not, the backup read is shortened, then live stock sync stays off for eBay.</li>
 </ol>
-<h2 id="connecting">Connecting</h2>
-<ul>
-<li><strong>One application, one consent.</strong> The seller is sent to eBay&#39;s consent page (only eBay&#39;s own address is allowed) with the scopes Vervoro needs: inventory, fulfilment, account (read only), identity (read only), notification subscriptions and cancellations. A scope eBay does not know refuses every seller&#39;s approval, so the list changes only after the scope is confirmed on Vervoro&#39;s keyset.</li>
-<li><strong>The redirect is not signed by eBay.</strong> The host&#39;s signed, single-use state is what proves the redirect belongs to the approval it started.</li>
-<li><strong>Who approved.</strong> The token reply names no user, so the host asks eBay&#39;s Identity API with the new token. The seller&#39;s stable user id is claimed in the external directory, for one company at a time. Approving again from the same eBay account renews that account&#39;s token; it never makes a second account.</li>
-<li><strong>One account is one eBay site.</strong> The site the seller registered on (such as the UK site) is kept as the account&#39;s site, and decides which site the Trading API calls name.</li>
-<li><strong>Tokens.</strong> The credential is the seller&#39;s refresh token. eBay&#39;s token reply says how long it and each access token last, so the host keeps the date eBay gives rather than a figure of its own, refreshes access tokens before they lapse, and warns the seller 30 days before the refresh token ends. A refresh that eBay refuses as an invalid grant means the seller removed Vervoro, and the account is disconnected.</li>
-</ul>
-<h2 id="orders">Orders</h2>
-<p><strong>Notices first.</strong> eBay&#39;s Notification API posts signed JSON to one destination for Vervoro&#39;s application.</p>
-<ul>
-<li><strong>The destination is made once per environment</strong> by the operator, because making it needs the endpoint&#39;s verification token, a secret no hook sees. eBay also wants an alert address for the application before it accepts a destination, and checks the endpoint&#39;s challenge before it keeps it.</li>
-<li><strong>Each seller is subscribed on connect</strong> to three topics: order confirmation (the buyer finished checkout and payment cleared), order cancellation activity (a cancellation requested, declined or completed) and item marked shipped (the seller shipped an item outside Vervoro). The disconnect hook removes the subscriptions. A subscription that fails is retried and alerts, and the account shows as &quot;not notified&quot; until it works.</li>
-<li><strong>A notice is verified with eBay&#39;s public key</strong> before any database read, and handed on only for a seller someone holds, as a minimal message: the topic, the notice id, the seller&#39;s user id and the order ids. No user name and no buyer details.</li>
-<li><strong>The order is fetched at once</strong> (one call on the order resource) and imported. A cancellation notice makes the host fetch the order again; the fetched order&#39;s own cancellation state decides, so a declined request needs nothing of its own. A reminder to answer a cancellation is ignored.</li>
-</ul>
-<p><strong>The backup read.</strong> It reads orders changed in a window, hourly by default (24 order calls a day for a quiet seller, against the application&#39;s 100,000; at 1,000 sellers, 24,000). A read every 10 minutes would be 144 a seller, more than the whole allowance at 1,000 sellers. An account whose notices look broken is read every 10 minutes, and any complete read, including one a raise asks for, resets the timer (ADR-004). Early reads are never closer than one minute apart. The window ends 10 seconds before now, so an order eBay is still writing is read next time.</p>
-<p><strong>A window is read backwards.</strong> eBay pages orders by offset. An order that changes while its window is being paged leaves the window, and every order after it moves up one place. Read forwards, an order at the edge of the next page would slip onto a page already read, and no later window would read it, because its change date did not move. So the first call reads offset 0; if more pages exist, the read goes from the last page back to offset 0. A departure can then only move an order onto a page still to come, where it is read twice, and imports are idempotent. Only the final read of offset 0 proves the window complete. A window of n pages costs n + 1 calls; a window of one page costs one.</p>
-<p><strong>Items marked shipped on eBay</strong> (outside Vervoro) come by the item-marked-shipped notice, which fetches the order. The scope it needs is read with <code>getTopics</code> on Vervoro&#39;s production keyset before it is asked of sellers; until then, and for any notice that is lost, the backup read finds them. Vervoro&#39;s own shipments come back on the same topic and are not fetched again (ADR-007).</p>
-<p>How an imported order is mapped to statuses and reservations is ADR-007.</p>
-<h2 id="listings-and-stock">Listings and stock</h2>
-<p><strong>Every linked listing a SKU is on.</strong> A read names, for each SKU, every listing it is on: the inventory item, each Seller Hub listing by item number, and each variation by item number and its own SKU. Only the listings a person linked (ADR-005) are written to; the host hands their item numbers back on every write and read back. Another listing that carries a linked SKU but is not linked itself gets no figure: it is suggested for linking and treated as shared stock (ADR-005). One SKU on several linked listings shows the highest figure any of them shows, so a listing showing more than Vervoro&#39;s figure is always corrected, and the seller sees a note that each linked listing gets the same figure.</p>
-<p><strong>Writes.</strong></p>
-<div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Listing kind</th>
-<th>Call</th>
-<th>Per call</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Inventory item</td>
-<td>Inventory API, bulk price and quantity update</td>
-<td>One SKU, up to 25 of its offers</td>
-</tr>
-<tr>
-<td>Seller Hub listing</td>
-<td>Trading API, inventory status revision</td>
-<td>Up to 4 listings or variations</td>
-</tr>
-</tbody></table></div>
-<ul>
-<li><strong>Every linked listing gets the figure even when another fails.</strong> A refused inventory update does not keep the figure from the Seller Hub listings, nor one Trading batch from the next.</li>
-<li><strong>eBay is synchronous.</strong> A write is <code>applied</code> or refused at once, never <code>accepted</code>.</li>
-<li><strong>&quot;Identical quantity&quot; is applied.</strong> eBay refuses to revise a listing to the figure it already shows; that is the listing being right.</li>
-<li><strong>When eBay refuses a batch,</strong> the listings its reply does not name as revised are sent again one by one, to learn which one it refused.</li>
-<li><strong>A SKU no read has met</strong> goes to the Inventory API first, for a linked inventory item. If eBay does not know it there, the Trading API finds its Seller Hub listings by SKU. They get no figure: they come back to the catalogue as new listings, to be suggested and linked (ADR-005).</li>
-<li><strong>A listing that has gone</strong> (ended, relisted under a new number, SKU removed) makes the connector look the SKU up afresh. The listings that now carry it come back to the catalogue; a relist eBay declares carries the link, and any other is suggested (ADR-005). Only a linked listing is sent the figure. A SKU on no listing any more is <code>rejected</code>, with eBay&#39;s reason.</li>
-<li><strong>No compare-and-set.</strong> The order watermark is the guard against selling the same unit twice (ADR-007, ADR-008).</li>
-<li><strong>250 revisions a day per listing.</strong> eBay caps how often one listing can be revised in a calendar day. Inventory sync keeps room for decreases under that cap (ADR-008).</li>
-</ul>
-<p><strong>Read back</strong> uses the API that took the write: the inventory item by SKU, each Seller Hub listing by item number. A listing eBay will not show is looked up afresh by SKU before anything is concluded.</p>
-<p><strong>An unknown Trading API write is settled by resending, not reading back.</strong> This is the exception <a href="../channel-connectors/#retries-and-outcomes">ADR-004</a> allows a connector to name. The Trading API&#39;s inventory status revision sets the quantity it is given and never adds to it, so sending the same figure twice cannot compound, and a read costs the same shared pool call as a write. The figure Vervoro wants now is sent again instead, at the time <a href="../inventory-sync/spec/#6-confirming-every-write">ADR-008</a> sets. An unknown Inventory API write is read back as usual.</p>
-<p><strong>Variations without a SKU.</strong> eBay names a variation in the Trading API only by its own SKU. A variation without one is read and its orders still come in, keyed by item number and variation id, but it can be neither linked for stock nor updated. The seller is told to add a SKU in Seller Hub, after which it links like any other.</p>
-<h2 id="the-trading-api-pool">The Trading API pool</h2>
-<p>The Trading API&#39;s 5,000 calls a day belong to Vervoro&#39;s application, so they are an ADR-004 shared pool with a safety lane and a bulk lane, and a reserve per account. At the default size, a tenth of the pool split at 50 calls each serves 10 accounts with Seller Hub listings; more need the limit raised through eBay&#39;s Application Growth Check, after which the operator sets the new size. Until then, a new account with Seller Hub listings waits in shadow. Accounts whose listings are all inventory items do not use this pool. Three rules keep the spend low:</p>
-<ul>
-<li><strong>Seller Hub listings are read only when a linked SKU needs them.</strong> A seller whose linked SKUs are all inventory items spends none of the pool on reads. The trade-off: a Seller Hub listing that shares such a SKU is not found until the SKU needs the Trading API for another reason.</li>
-<li><strong>A daily page cap per account</strong> (50 pages of 200 listings) bounds what one seller&#39;s reads can take. A read that runs out resumes the next day from the page it reached, and nothing is taken as gone from a read that did not run from the first page to the last.</li>
-<li><strong>The catalogue&#39;s full read prefers eBay&#39;s daily report</strong> of active listings (from the Feed API, outside the Trading pool), and uses the Trading API only for listings new since the previous report, and only while that costs fewer calls than reading the seller&#39;s listings page by page. How the catalogue is read and matched is ADR-005.</li>
-</ul>
-<p>When eBay answers that the application has used its day&#39;s calls, the pool is <code>throttled</code> for 15 minutes at a time and the operator is alerted. If the Trading API cannot be read at all, inventory items are still read and written, and each Seller Hub SKU says why it waits.</p>
-<h2 id="the-out-of-stock-option">The out-of-stock option</h2>
-<ul>
-<li><strong>Asked, never changed.</strong> When a read finds Seller Hub listings, the connector asks the seller&#39;s selling preferences. While the out-of-stock option is off (eBay&#39;s default), every SKU on a Seller Hub listing is left out of the read with a plain note: turn on eBay&#39;s out-of-stock option, or eBay ends a listing whose quantity reaches 0 and removes a variation.</li>
-<li><strong>It blocks going live.</strong> A linked listing that cannot be read blocks activation (ADR-004), so the account stays in shadow until the seller turns the option on.</li>
-<li><strong>Turned off later,</strong> sends still go, zero included: selling stock that is gone is worse than an ended listing. The next read shows the note again.</li>
-</ul>
-<p>Changing the preference for the seller was rejected: it changes how all of their listings behave, including those Vervoro does not manage.</p>
-<h2 id="cancellations">Cancellations</h2>
-<p>Vervoro sends no cancellation and no answer to a buyer&#39;s request (<a href="../order-ingestion/">ADR-007</a>). The seller cancels, approves or rejects in Seller Hub, and the result comes back by the cancellation notice. No Post-Order call is made, so no cancellation pool is shared. The cancellations scope is still asked for, because the cancellation notice needs it. eBay gives the seller 3 calendar days to answer a buyer&#39;s request; ADR-007 fetches the order again when that window closes.</p>
-<h2 id="dispatch">Dispatch</h2>
-<p>A shipment is confirmed on the order with its carrier and tracking number, through the fulfilment API, one call per shipment, through the egress gate.</p>
-<h2 id="account-deletion-notices">Account deletion notices</h2>
-<p>eBay requires every application to receive marketplace account deletion notices for all eBay users. The endpoint answers eBay&#39;s challenge with the verification token, verifies each notice&#39;s signature, and:</p>
-<ul>
-<li>for a seller connected to Vervoro, records a privacy request with its due date (ADR-004);</li>
-<li>for anyone else, looks up a keyed hash of the user id in each cell; a buyer found there has their orders anonymised at once (<a href="../buyer-data/">ADR-009</a>). Nothing from the notice is kept.</li>
-</ul>
-<h2 id="simulator-and-sandbox">Simulator and sandbox</h2>
-<p>The eBay simulator speaks the Inventory, Fulfillment, Feed, Notification and Identity APIs and the Trading API&#39;s XML calls used here, including the consent page, token exchange, signed notices, daily usage limits and the out-of-stock preference. Before launch, each call is recorded against eBay&#39;s sandbox or a real account and the simulator is corrected where it differs. The recordings include a check that the order list keeps a stable order for one filter across calls, which the backwards read relies on. Before launch, eBay&#39;s topic list (<code>getTopics</code>) is also read with Vervoro&#39;s production keyset: it must show the three order topics available to Vervoro, with the scopes Vervoro asks for. eBay says some topics are open only to approved partners, so a topic that is not available is requested from eBay before any seller connects.</p>
-<h2 id="ebay-constraints">eBay constraints</h2>
-<p>Checked against eBay&#39;s documentation on 17 October 2026; the order topics row on 18 October 2026.</p>
-<div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Constraint</th>
-<th>Figure</th>
-<th>Source</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Trading API, per application</td>
-<td>5,000 calls a day by default</td>
-<td><a href="https://developer.ebay.com/develop/api/sell/api_call_limits">API call limits</a></td>
-</tr>
-<tr>
-<td>Fulfillment API order resource, per application</td>
-<td>100,000 calls a day</td>
-<td><a href="https://developer.ebay.com/develop/api/sell/api_call_limits">API call limits</a></td>
-</tr>
-<tr>
-<td>Inventory API, per application</td>
-<td>2 million calls a day</td>
-<td><a href="https://developer.ebay.com/develop/api/sell/api_call_limits">API call limits</a></td>
-</tr>
-<tr>
-<td>Notification API, per application</td>
-<td>10,000 calls a day</td>
-<td><a href="https://developer.ebay.com/develop/api/sell/api_call_limits">API call limits</a></td>
-</tr>
-<tr>
-<td>Feed API, per application</td>
-<td>100,000 calls a day; 400 a day per seller for each feed type</td>
-<td><a href="https://developer.ebay.com/develop/api/sell/api_call_limits">API call limits</a></td>
-</tr>
-<tr>
-<td>Raising the limits</td>
-<td>After eBay&#39;s Application Growth Check</td>
-<td><a href="https://developer.ebay.com/develop/api/sell/api_call_limits">API call limits</a></td>
-</tr>
-<tr>
-<td>Bulk price and quantity update</td>
-<td>One SKU, up to 25 offers; up to 250 revisions per listing per calendar day</td>
-<td><a href="https://developer.ebay.com/api-docs/sell/inventory/resources/inventory_item/methods/bulkUpdatePriceQuantity">bulkUpdatePriceQuantity</a></td>
-</tr>
-<tr>
-<td>Trading API inventory status revision</td>
-<td>Up to 4 listings or variations per call; a variation is named by its SKU</td>
-<td><a href="https://developer.ebay.com/devzone/xml/docs/Reference/eBay/ReviseInventoryStatus.html">ReviseInventoryStatus</a></td>
-</tr>
-<tr>
-<td>Notices</td>
-<td>Destinations, per-topic subscriptions, public keys to verify signatures</td>
-<td><a href="https://developer.ebay.com/develop/api/sell/notification_api">Notification API</a></td>
-</tr>
-<tr>
-<td>Order topics</td>
-<td><code>ORDER_CONFIRMATION</code> (the buyer completed checkout), <code>ORDER_CANCELLATION_ACTIVITY</code> (a cancellation started) and <code>ITEM_MARKED_SHIPPED</code> (an item marked shipped, with tracking and the shipped date); some topics are restricted to approved partners, and <code>getTopics</code> gives each topic&#39;s scopes</td>
-<td><a href="https://developer.ebay.com/develop/api/buy/notification_events">Notification topics</a></td>
-</tr>
-</tbody></table></div>
 <h2 id="consequences">Consequences</h2>
-<p><strong>What this gives us</strong></p>
+<p><strong>Gives</strong></p>
 <ul>
-<li>Orders arrive as they happen, and the backup read spends a small share of the order allowance.</li>
-<li>Every listing a seller has gets Vervoro&#39;s figure, whichever tool made it.</li>
+<li>Every linked listing gets Vervoro&#39;s figure, whichever eBay tool made it.</li>
 <li>The Trading pool goes where it protects sellers, and one large catalogue cannot use it up.</li>
-<li>No seller loses a listing because Vervoro sent a zero to a listing that would end.</li>
+<li>No seller loses a listing because Vervoro sent zero to a listing that would end.</li>
+<li>Lost notices are measured before any seller depends on them.</li>
 </ul>
-<p><strong>What it costs</strong></p>
+<p><strong>Costs</strong></p>
 <ul>
-<li>Two APIs for one job, with two ways to name a listing, and links the host must keep current.</li>
+<li>Two APIs for one job, with two ways to name a listing.</li>
 <li>Sellers with Seller Hub listings must turn on the out-of-stock option before going live.</li>
 <li>Variations without a SKU stay outside stock sync until the seller adds one.</li>
-<li>The destination and alert address are an operator step per environment.</li>
-<li>At eBay&#39;s default limit only 10 accounts with Seller Hub listings can go live; more depend on eBay&#39;s Growth Check.</li>
+<li>The notice destination is an operator step per environment.</li>
+<li>At eBay&#39;s default limit, about 10 accounts with Seller Hub listings can go live; more depend on eBay.</li>
 </ul>
-<h2 id="alternatives-considered">Alternatives considered</h2>
-<div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Option</th>
-<th>Why not</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>The Trading API for every listing</td>
-<td>Spends the 5,000-a-day pool on listings the Inventory API serves at no shared cost</td>
-</tr>
-<tr>
-<td>The Inventory API only, after migrating the seller&#39;s listings</td>
-<td>Migration changes the seller&#39;s own listings; Vervoro does not change what it does not own</td>
-</tr>
-<tr>
-<td>eBay&#39;s Platform Notifications in the Trading API</td>
-<td>The Notification API covers the order topics with signed JSON and per-topic subscriptions</td>
-</tr>
-<tr>
-<td>Polling orders as the main path</td>
-<td>Spends the shared order allowance and brings orders late</td>
-</tr>
-<tr>
-<td>Reading an order window forwards</td>
-<td>An order that changes during the read can slip past every window</td>
-</tr>
-<tr>
-<td>Turning on the out-of-stock option for the seller</td>
-<td>Changes the behaviour of all their listings, including those Vervoro does not manage</td>
-</tr>
-<tr>
-<td>Sending zero while the option is off</td>
-<td>eBay would end the listing or drop the variation, losing its history</td>
-</tr>
-<tr>
-<td>Reading each Seller Hub listing one by one</td>
-<td>One call per listing per read; the daily report and page reads cost far less</td>
-</tr>
-</tbody></table></div>
+<h2 id="alternatives-rejected">Alternatives rejected</h2>
+<ul>
+<li><strong>The Trading API for every listing:</strong> spends the shared pool on listings the Inventory API serves at no shared cost.</li>
+<li><strong>Migrating the seller&#39;s listings to the Inventory API:</strong> changes listings Vervoro does not own.</li>
+<li><strong>Reading an order window forwards:</strong> an order that changes during the read can slip past every window.</li>
+<li><strong>Turning on the out-of-stock option for the seller:</strong> changes all their listings, including ones Vervoro does not manage.</li>
+<li><strong>Sending zero while the option is off:</strong> eBay would end the listing or drop the variation.</li>
+</ul>
+<h2 id="open-items">Open items</h2>
+<ul>
+<li><strong>The shared Trading pool is a business dependency.</strong> About 10 live accounts with Seller Hub listings fit before each one&#39;s reserve falls below 50 calls. Request eBay&#39;s Application Growth Check before the first pilot seller; until it is granted, further accounts wait in shadow (<a href="../runbooks/a-shared-pool-runs-low/">runbook</a>).</li>
+<li><strong>Lost notices.</strong> The launch gate figures in <a href="../channel-connectors/spec/#11-shadow-mode-and-launch-gates">ADR-004 SPEC 11</a> are proposals and need the owner&#39;s numbers.</li>
+<li><strong>The order allowance also carries every order fetch,</strong> so hundreds of sellers, or a shortened backup read, need the Growth Check too.</li>
+<li><strong>Topics and scopes</strong> are confirmed with <code>getTopics</code> on the production keyset before any seller connects.</li>
+<li><strong>Unknown Inventory API writes</strong> are read back; the resend exception covers the Trading API only.</li>
+<li><strong>Recorded replies,</strong> including a stable order across pages, are a pre-launch task.</li>
+</ul>
 
 <footer>Vervoro</footer>
 </main>

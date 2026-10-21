@@ -668,12 +668,12 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ol>
 <h2 id="7-the-egress-gate">7. The egress gate</h2>
 <p>This section owns the egress gate; other records link here. The gate has two halves: the kernel records an effect in the caller&#39;s transaction, and Channels sends it after commit. No other code sends.</p>
-<p>An <strong>egress effect</strong> is a call that changes something on a marketplace or at a supplier: figures, dispatch, confirmations, messages. Notice subscriptions made by a connector&#39;s connect and disconnect hooks are set-up calls, not egress effects: they run in shadow mode too, through the host&#39;s HTTP and rate budgets (<a href="../../channel-connectors/#notices-in">ADR-004</a>).</p>
+<p>An <strong>egress effect</strong> is a call that changes something on a marketplace or at a supplier: figures, dispatch, confirmations, messages. Notice subscriptions made by a connector&#39;s connect and disconnect hooks are set-up calls, not egress effects: they run in shadow mode too, through the host&#39;s HTTP and rate budgets (<a href="../../channel-connectors/spec/#8-notices-in">ADR-004</a>).</p>
 <ol>
 <li>An effect is recorded inside the transaction with an idempotency key and sent only after commit. A repeat with the same key cannot send twice.</li>
-<li>For every send the gate reads the account&#39;s mode from the database, never from a cache. Only <code>live</code> sends; <code>shadow</code> records what it would have sent. The modes and the stop choice are <a href="../../channel-connectors/#testing-sandboxes-and-shadow-mode">ADR-004</a>.</li>
+<li>For every send the gate reads the account&#39;s mode from the database, never from a cache. Only <code>live</code> sends; <code>shadow</code> records what it would have sent. The modes and the stop choice are <a href="../../channel-connectors/spec/#11-shadow-mode-and-launch-gates">ADR-004</a>.</li>
 <li>Channels opens the account&#39;s credentials, takes a token from its rate budget and calls the connector. No connector, handler or screen ever sees an opened credential.</li>
-<li>Every answer becomes one outcome: <code>applied</code>, <code>accepted</code> (awaiting processing), <code>throttled</code>, <code>compare_mismatch</code>, <code>rejected</code> or <code>unknown</code>. A timeout is <code>unknown</code>, and is settled before anything else is sent to that listing (<a href="../../channel-connectors/#retries-and-outcomes">ADR-004</a>).</li>
+<li>Every answer becomes one outcome: <code>applied</code>, <code>accepted</code> (awaiting processing), <code>throttled</code>, <code>compare_mismatch</code>, <code>rejected</code> or <code>unknown</code>. A timeout is <code>unknown</code>, and is settled before anything else is sent to that listing (<a href="../../channel-connectors/spec/#5-retries-and-outcomes">ADR-004</a>).</li>
 <li>Work is claimed with leases, never open-ended locks. A crash costs one lease period, and a result is written only if the claim is still its own.</li>
 <li>Where a marketplace offers compare-and-set, the gate uses it.</li>
 <li>When a figure is sent, and the read-back deadline, are <a href="../../inventory-sync/spec/#3-when-a-figure-is-sent">ADR-008</a>.</li>
@@ -681,9 +681,9 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2 id="8-connectors-and-orders-in">8. Connectors and orders in</h2>
 <ol>
 <li>Each marketplace is its own module that contributes one connector definition. The host, the gate, the server and the screens name no marketplace, so removing the module removes the marketplace.</li>
-<li>What a connector declares and what the host does with it: <a href="../../channel-connectors/#what-a-connector-declares">ADR-004</a>.</li>
+<li>What a connector declares and what the host does with it: <a href="../../channel-connectors/spec/#2-what-a-connector-declares">ADR-004</a>.</li>
 <li>A connector has no network access of its own. A lint rule refuses any network call in a connector.</li>
-<li>Orders arrive by notice: verified before any database read, queued, answered at once; the consumer fetches and imports. A failed delivery is retried with growing delays for about 40 minutes, then goes to the dead-letter queue, which alerts the operator. The completeness check and its intervals are <a href="../../channel-connectors/#notices-in">ADR-004</a>. A queue message carries ids only (the account, the topic, and the marketplace&#39;s notice and resource ids), never the notice&#39;s body.</li>
+<li>Orders arrive by notice: verified before any database read, queued, answered at once; the consumer fetches and imports. A failed delivery is retried with growing delays for about 40 minutes, then goes to the dead-letter queue, which alerts the operator. The completeness check and its intervals are <a href="../../channel-connectors/spec/#9-the-completeness-check">ADR-004</a>. A queue message carries ids only (the account, the topic, and the marketplace&#39;s notice and resource ids), never the notice&#39;s body.</li>
 <li><strong>Amazon&#39;s notices</strong> arrive only through an AWS queue or event bus. A small AWS bridge, built once with no code (queue, pipe, API destination) in an EU region, posts them to the app&#39;s webhook like any other notice.</li>
 </ol>
 <h2 id="9-simulators">9. Simulators</h2>
@@ -691,7 +691,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>Every outside service has a simulator: each marketplace, the parcel carriers, mail and the AI provider. It is a real HTTP server that speaks the real API shapes.</li>
 <li>Each has a control interface to change its world (orders, stock, the clock) and its behaviour (latency, failures, throttling, late or repeated notices), and a typed log of every request.</li>
 <li>Code is written against the real APIs; only the base address differs. Production refuses a simulator address.</li>
-<li>Recorded real replies keep simulators honest (<a href="../../channel-connectors/#testing-sandboxes-and-shadow-mode">ADR-004</a>).</li>
+<li>Recorded real replies keep simulators honest (<a href="../../channel-connectors/spec/#14-simulators-and-recorded-replies">ADR-004</a>).</li>
 <li>A build check refuses any simulator code in the production bundle.</li>
 </ol>
 <h2 id="10-runtime">10. Runtime</h2>
@@ -968,7 +968,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><input disabled="" type="checkbox"> <strong>Stock:</strong> every stock command&#39;s first statement takes the company lock. The round-trip count test, and the race where many orders want the last unit and exactly one gets it, are green on real Postgres.</li>
 <li><input disabled="" type="checkbox"> <strong>Results:</strong> ports return <code>Result</code>; no empty or logging-only catch block anywhere (lint).</li>
 <li><input disabled="" type="checkbox"> <strong>Outbox:</strong> every commit path, request and background job, delivers its notes after commit; the background-delivery test is green; handlers write a receipt in their own transaction.</li>
-<li><input disabled="" type="checkbox"> <strong>Gate:</strong> every marketplace or supplier write goes through it; mode read from the database on each send; no credential opened outside it; a timeout is <code>unknown</code> and settled by <a href="../../channel-connectors/#retries-and-outcomes">ADR-004&#39;s rule</a> before anything else is sent.</li>
+<li><input disabled="" type="checkbox"> <strong>Gate:</strong> every marketplace or supplier write goes through it; mode read from the database on each send; no credential opened outside it; a timeout is <code>unknown</code> and settled by <a href="../../channel-connectors/spec/#5-retries-and-outcomes">ADR-004&#39;s rule</a> before anything else is sent.</li>
 <li><input disabled="" type="checkbox"> <strong>Connectors:</strong> set-up calls run through the host&#39;s HTTP, in shadow too; the shadow set-up test shows a new account subscribes and sends no figure.</li>
 <li><input disabled="" type="checkbox"> <strong>Host HTTP:</strong> the transaction guard test shows a call made while a transaction is open is refused; no route calls a marketplace.</li>
 <li><input disabled="" type="checkbox"> <strong>Sweeper:</strong> no background code loops over every company (search for loops over the company registry).</li>

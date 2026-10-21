@@ -71,7 +71,7 @@ The design has to meet these requirements:
 | --- | --- | --- |
 | Cloudflare | Runs the application, the inbound queue, the per-company live updates and object storage; the application is placed in the EU, and requests pass through Cloudflare's global network | All of it, while serving requests; label files at rest |
 | Neon | Runs the Postgres databases in the EU | All of it, at rest and encrypted field by field |
-| Amazon Web Services | The small relay that receives Amazon's notices and posts them to Vervoro | Amazon's order notices, which carry a destination postcode and no name or address; nothing is stored beyond the queue's own retries |
+| Amazon Web Services | The small bridge, in an EU region, that receives Amazon's notices and posts them to Vervoro | Amazon's order notices, which carry a destination postcode and no name or address; nothing is stored beyond the queue's own retries |
 | Email delivery provider | Sends emails to the seller's users, so it receives their addresses. Sign-in mail goes through Cloudflare's Email Service, already listed above (owner ruling, 21 October 2026, [ADR-013](../sign-in/)) | None: emails name an order, never a buyer |
 | AI provider | Answers the seller's users' questions and proposals | None: buyer fields are masked before any call (ADR-001's field tags) |
 
@@ -294,7 +294,7 @@ Amazon's schedule is the strictest of the three marketplaces, so it is the sched
 - **Restricted Data Tokens.** A call that still needs one (an older operation, or a shipping label bought through Amazon) gets a token for that one order's path and only the data elements it needs. The token is held in memory for its lifetime, never stored and never logged.
 - **Use.** Amazon buyer data is used only for shipping the seller's order and for tax, as Amazon's Acceptable Use Policy allows. It is never combined across sellers, never used for marketing or reviews, and never shared beyond the sub-processors listed.
 - **Retention and deletion.** Thirty days after delivery. Everything about a seller is deleted within 30 days of the seller removing Vervoro's access, Amazon's notice, or the end of Vervoro's participation, except what the law requires to be kept.
-- **Notices.** Amazon's order notices carry a destination postcode. The relay does not store notices, and the queue message carries only ids (ADR-004).
+- **Notices.** Amazon's order notices carry a destination postcode. The AWS bridge does not store notices, and the queue message carries only ids (ADR-004).
 
 ### Shopify
 

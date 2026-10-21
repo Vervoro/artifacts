@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ADR-004.2 SPEC: Amazon Seller connector</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono&display=swap">
+<style>
+:root {
+  --bg: #f6f6f8; --surface: #ffffff; --sunken: #ededf1; --text: #16161a; --muted: #5c5c66; --border: #e0e0e6;
+  --accent: #4338ca; --accent-soft: #eef0ff; --edge: #8a8a96; --tint: #f0f0f4;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #111114; --surface: #1a1a1f; --sunken: #23232a; --text: #ececf1; --muted: #a2a2ad; --border: #2d2d35;
+  --accent: #a5b4fc; --accent-soft: #23264a; --edge: #74747f; --tint: #202027; color-scheme: dark; } }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 var(--sans); }
+main { max-width: 860px; margin: 0 auto; padding: 48px max(20px, env(safe-area-inset-left)) 80px; }
+header.site { max-width: 860px; margin: 0 auto; padding: 20px max(20px, env(safe-area-inset-left)) 0; font-size: 14px; }
+header.site a { color: var(--muted); text-decoration: none; }
+header.site a:hover { color: var(--accent); }
+h1, h2, h3 { line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(28px, 4vw, 38px); letter-spacing: -0.02em; margin: 0 0 20px; }
+h2 { font-size: 23px; margin: 48px 0 12px; padding-top: 20px; border-top: 1px solid var(--border); }
+h3 { font-size: 18px; margin: 32px 0 8px; }
+p, li { max-width: 72ch; }
+a { color: var(--accent); }
+code { font-family: var(--mono); font-size: 0.86em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--sunken); padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 13.5px; line-height: 1.5; }
+pre code { background: none; padding: 0; overflow-wrap: normal; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 16px 0; background: var(--surface); }
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+.table-wrap table { margin: 0; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+th { background: var(--sunken); font-weight: 600; font-size: 13px; color: var(--muted); }
+tr:last-child td { border-bottom: none; }
+ul, ol { padding-left: 22px; }
+li + li { margin-top: 4px; }
+figure { margin: 20px 0; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; }
+svg.diagram { display: block; width: 100%; min-width: 640px; height: auto; font-family: var(--sans); }
+svg .ink { fill: var(--text); } svg .quiet { fill: var(--muted); }
+svg .edge { stroke: var(--edge); } svg .edge-fill { fill: var(--edge); }
+svg .accent { stroke: var(--accent); } svg .accent-fill { fill: var(--accent); }
+svg .box { fill: none; stroke: var(--edge); stroke-width: 1.25; }
+svg .box-main { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+svg .band { fill: var(--tint); stroke: var(--edge); stroke-width: 1.25; }
+.cards { list-style: none; padding: 0; display: grid; gap: 12px; }
+.cards a { display: block; padding: 18px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; text-decoration: none; color: var(--text); }
+.cards a:hover, .cards a:focus-visible { border-color: var(--accent); outline: none; }
+.cards.sub { margin: 12px 0 0 24px; padding-left: 16px; border-left: 2px solid var(--border); }
+.parts { margin: 6px 0 0 20px; font-size: 14px; color: var(--muted); } .cards .parts a { display: inline; padding: 0; background: none; border: none; border-radius: 0; color: var(--accent); font-weight: 600; text-decoration: none; } .cards .parts a:hover { text-decoration: underline; }
+.cards b { display: block; font-size: 17px; } .cards span { color: var(--muted); font-size: 14px; }
+.order li { margin-top: 10px; } .order span { color: var(--muted); font-size: 14px; }
+footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header class="site"><a href="../../">← Vervoro artifacts</a> / <a href="../">ADR-004.2: Amazon Seller connector</a></header>
+<main>
+<h1 id="adr-0042-spec-amazon-seller-connector">ADR-004.2 SPEC: Amazon Seller connector</h1>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Decision</strong></td>
+<td><a href="../">ADR-004.2: Amazon Seller connector</a></td>
+</tr>
+<tr>
+<td><strong>Procedures</strong></td>
+<td><a href="../../runbooks/#adr-0042-amazon-seller-connector">RUNBOOK</a></td>
+</tr>
+<tr>
+<td><strong>Date</strong></td>
+<td>21 October 2026</td>
+</tr>
+<tr>
+<td><strong>For</strong></td>
+<td>The developer and coding agents building it, and the person reviewing their work</td>
+</tr>
+</tbody></table></div>
+<p>Only what is particular to Amazon. Everything the host does (credentials, HTTP, outcomes, notices in, the completeness check, shadow mode) is <a href="../../channel-connectors/spec/">ADR-004 SPEC</a> and is not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed.</p>
+<h2 id="0-at-launch-and-later">0. At launch and later</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Later part</th>
+<th>Trigger</th>
+<th>Rules</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Listings feeds for many raises</td>
+<td>Single patches fall short (<a href="../../inventory-sync/spec/#0-at-launch-and-later">ADR-008</a>)</td>
+<td><a href="#5-stock">5</a></td>
+</tr>
+<tr>
+<td>Selling to Amazon as a vendor</td>
+<td>ADR-004.4 is written</td>
+<td>None here</td>
+</tr>
+</tbody></table></div>
+<h2 id="1-connecting-and-renewing">1. Connecting and renewing</h2>
+<ol>
+<li><strong>Two ways in, one flow.</strong> From Vervoro (the seller picks a marketplace) or from Amazon&#39;s app store. The seller is sent only to Seller Central&#39;s consent or confirm page; Amazon does not sign its redirect, so the host&#39;s single-use state proves it. The code is exchanged for a refresh token at Amazon&#39;s login service.</li>
+<li><strong>Proof before the claim.</strong> One read with the new token for that seller id; a seller id changed on the way is refused.</li>
+<li><strong>Marketplaces.</strong> The seller&#39;s marketplaces are read with the new token. The account starts on the one picked (refused with a message if they do not sell there); others of the region are a setup choice.</li>
+<li><strong>Tokens.</strong> Access tokens last as long as Amazon&#39;s reply says (an hour today).</li>
+<li><strong>Renewal.</strong> Amazon cannot be asked when an approval ends, so the host records approval plus 365 days, reminds the seller 30 days ahead, and a new approval writes a fresh date. <code>invalid_grant</code> means the seller removed the app: the account is disconnected.</li>
+<li><strong>Client secret.</strong> Lasts 180 days; the operator is reminded from day 150 (<a href="../../runbooks/rotate-a-marketplace-app-secret/">runbook</a>).</li>
+</ol>
+<h2 id="2-regions-and-marketplaces">2. Regions and marketplaces</h2>
+<ol>
+<li><strong>The region decides</strong> the API address and the notice destination the seller is subscribed to.</li>
+<li><strong>One figure for the account&#39;s marketplaces.</strong> A listing update names every marketplace the account serves, and Amazon applies one quantity to all.</li>
+<li><strong>Which marketplace a sale lowers</strong> depends on a seller setting Vervoro cannot see. An order counts as coming out of Vervoro&#39;s figure only when the account serves exactly one marketplace (<a href="../../inventory-sync/spec/#12-amazon-accounts-on-several-marketplaces">ADR-008 SPEC 12</a>).</li>
+<li><strong>Orders from every marketplace of the region are imported.</strong> The first order the seller ships from a marketplace the account was not set up for asks who ships that marketplace&#39;s orders (<a href="../../order-ingestion/">ADR-007</a>).</li>
+</ol>
+<h2 id="3-notices-and-the-bridge">3. Notices and the bridge</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Notice</th>
+<th>Amazon delivers to</th>
+<th>The bridge</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Order change; Amazon-held stock change</td>
+<td>An SQS queue only</td>
+<td>A pipe reads the queue and posts each message</td>
+</tr>
+<tr>
+<td>Listing quantity and status change</td>
+<td>An EventBridge bus only</td>
+<td>A rule posts each event</td>
+</tr>
+</tbody></table></div>
+<ol>
+<li><strong>One bridge for every Amazon region,</strong> in an EU AWS region, with no code: a queue, a pipe and an API destination (<a href="../../system-architecture/spec/#8-connectors-and-orders-in">ADR-000 SPEC 8</a>). It keeps nothing and decides nothing.</li>
+<li><strong>A shared secret</strong> on every post; the endpoint accepts the current or previous one (<a href="../../channel-connectors/spec/#8-notices-in">ADR-004 SPEC 8</a>). Rotated yearly, or at once if it may have leaked.</li>
+<li><strong>The notice must be ours.</strong> Any application can name our queue as its destination, so the endpoint also checks Vervoro&#39;s application id. Anything else is answered and dropped.</li>
+<li><strong>Failures are visible.</strong> A post the endpoint refuses is retried by AWS, then lands in the bridge&#39;s dead-letter queue, whose alarm pages the operator.</li>
+<li><strong>Subscriptions on connect,</strong> with the seller&#39;s token, to order, listing and Amazon-held stock notices at the region&#39;s destination. One already at our destination is kept; one at another destination is an error. Disconnect deletes them without the seller&#39;s token, so it works after the seller removed the app.</li>
+<li><strong>What each leads to.</strong> An order change fetches the order (<code>getOrder</code>); a forged or replayed notice can at most cause a fetch. A listing change reads that listing back. An Amazon-held stock change reads that stock for the SKUs it names (<a href="#7-stock-amazon-holds">7</a>).</li>
+</ol>
+<p>Procedure: <a href="../../runbooks/set-up-the-amazon-notice-bridge/">Set up the Amazon notice bridge</a>.</p>
+<h2 id="4-orders">4. Orders</h2>
+<ol>
+<li><strong>Every 10 minutes,</strong> on every marketplace of the region in one search (up to 50). An early read is never closer than three minutes, because the search refills that slowly.</li>
+<li><strong>Each page carries its orders&#39; items,</strong> so nothing is fetched per order.</li>
+<li><strong>Amazon stops a search two minutes before its own clock</strong> and says where it stopped; that bound is the window&#39;s completeness.</li>
+</ol>
+<h2 id="5-stock">5. Stock</h2>
+<ol>
+<li><strong>Single writes:</strong> one listing at a time, a Listings Items patch of the merchant-fulfilled quantity across the account&#39;s marketplaces.</li>
+</ol>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Amazon answers</th>
+<th>Outcome</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Accepted</td>
+<td><code>accepted</code>; read back</td>
+</tr>
+<tr>
+<td>Invalid, 400, 404</td>
+<td><code>rejected</code>, with Amazon&#39;s issue codes</td>
+</tr>
+<tr>
+<td>429</td>
+<td><code>throttled</code>, with Amazon&#39;s wait if given</td>
+</tr>
+<tr>
+<td>5xx, timeout, unreadable</td>
+<td><code>unknown</code>; read back before anything is sent again</td>
+</tr>
+</tbody></table></div>
+<ol start="2">
+<li><strong>Read back</strong> with <code>getListingsItem</code>: the quantity sent is <code>applied</code>; an error issue on the quantity, or a listing that has gone, is <code>rejected</code>; anything else is still pending. When the reads happen is <a href="../../inventory-sync/spec/#6-confirming-every-write">ADR-008 SPEC 6</a>.</li>
+<li><strong>No compare-and-set.</strong> The order watermark is the guard (<a href="../../inventory-sync/">ADR-008</a>).</li>
+<li><em>Later:</em> <strong>listings feeds for raises only.</strong> A feed is uploaded, then named; its report names refused messages by position, so the host keeps the order it sent them in. A feed never carries a decrease: it lands when Amazon processes it, and could undo a later single decrease.</li>
+<li><strong>Reading every listing</strong> uses the merchant listings report, one per marketplace (<a href="../../catalogue-sync/">ADR-005</a>).</li>
+</ol>
+<h2 id="6-listings-amazon-ships">6. Listings Amazon ships</h2>
+<p>A SKU Amazon fulfils on any of the account&#39;s marketplaces is Amazon&#39;s and is never sent a figure: one update names every marketplace. Its orders are recorded for reports (<a href="../../product-model/">ADR-003</a>).</p>
+<h2 id="7-stock-amazon-holds">7. Stock Amazon holds</h2>
+<ol>
+<li><strong>A reading, not stock.</strong> Read with <code>getInventorySummaries</code>, kept by Inventory as a dated reading per product beside its four numbers (<a href="../../stock-ledger/">ADR-006</a>). It moves no stock and sends no figure.</li>
+<li><strong>What is read,</strong> per marketplace, with details: units Amazon can ship, reserved or in transfer, unsellable, under investigation, inbound. A summary reaches the product through the listing&#39;s link; a pack&#39;s units are multiplied by its units per sale. A SKU with no link is kept on the listing until linked.</li>
+<li><strong>When:</strong> a full read daily, and after each <code>FBA_INVENTORY_AVAILABILITY_CHANGES</code> notice for the SKUs it names. A change read misses inbound units, so the daily read is always full.</li>
+<li><strong>Paging:</strong> up to 50 SKUs a filtered call; a page token lasts 30 seconds, so a read pages straight through and restarts if it stalls.</li>
+<li><strong>Role:</strong> Product Listing or Amazon Fulfillment, neither restricted; Product Listing is already asked for.</li>
+</ol>
+<h2 id="8-buyer-data">8. Buyer data</h2>
+<ol>
+<li><strong>The restricted role</strong> releases names, addresses and phones only for orders the seller ships, while unshipped or shipped.</li>
+<li><strong>Only what is needed to ship:</strong> name, address, phone, gift message. What Amazon withholds or masks is left out, never stored blank, so it never erases an earlier value.</li>
+<li><strong>Orders Amazon ships carry no buyer data.</strong></li>
+<li><strong>Anonymised 30 days after delivery</strong> (<a href="../../buyer-data/">ADR-009</a>). Amazon&#39;s policy also asks for multi-factor sign-in on every user account (<a href="../../sign-in/">ADR-013</a>).</li>
+</ol>
+<h2 id="9-dispatch">9. Dispatch</h2>
+<p>A shipment is confirmed with Amazon&#39;s carrier code, or &quot;Other&quot; with the carrier&#39;s name. Amazon requires a tracking number, so one without it goes to a person. A confirmation whose outcome is unknown is never sent twice: a person checks the order in Seller Central.</p>
+<h2 id="10-limits">10. Limits</h2>
+<ol>
+<li><strong>Buckets per seller and application</strong> for most operations, from Amazon&#39;s figures, with the live limit from <code>x-amzn-RateLimit-Limit</code> when present.</li>
+<li><strong>The slow buckets</strong> (order search, report requests, feed creation) refill in minutes; nothing a notice or single call can do is spent from them.</li>
+</ol>
+<h2 id="11-simulator-and-pre-launch-recordings">11. Simulator and pre-launch recordings</h2>
+<p>The simulator speaks only the calls above: consent and tokens, orders, listings, reports, notifications, FBA inventory, Amazon&#39;s buckets, and an SQS-style queue the host reads directly in development. Before launch each call is recorded against the sandbox or a real account (<a href="../../channel-connectors/spec/#14-simulators-and-recorded-replies">ADR-004 SPEC 14</a>), including the approval pages&#39; paths and an Amazon-held stock notice.</p>
+<h2 id="12-constraints">12. Constraints</h2>
+<p>Checked against Amazon&#39;s documentation on 17 October 2026; Amazon-held stock rows on 18 October 2026.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Constraint</th>
+<th>Figure</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Rate limits</td>
+<td>Token bucket, usually per seller and application; live limit header when present, not to be relied on; 429 retryable</td>
+<td><a href="https://developer-docs.amazon/sp-api/docs/usage-plans-and-rate-limits">Usage plans and rate limits</a></td>
+</tr>
+<tr>
+<td><code>patchListingsItem</code></td>
+<td>5 a second per seller and application, burst 5; 500 a second per application</td>
+<td><a href="https://developer-docs.amazon/sp-api/docs/listings-items-api-rate-limits">Listings Items API rate limits</a></td>
+</tr>
+<tr>
+<td>Order and Amazon-held stock notices</td>
+<td>SQS only</td>
+<td><a href="https://developer-docs.amazon/sp-api/docs/notification-type-values">Notification type values</a></td>
+</tr>
+<tr>
+<td>Listing quantity and status notices</td>
+<td>EventBridge only</td>
+<td>Same page</td>
+</tr>
+<tr>
+<td>Missed notices</td>
+<td>Amazon advises a way to recover from late or missing notices</td>
+<td><a href="https://developer-docs.amazon/sp-api/docs/notifications-api-v1-use-case-guide">Notifications API</a></td>
+</tr>
+<tr>
+<td><code>getInventorySummaries</code></td>
+<td>2 a second, burst 2; one marketplace a call; 50 SKUs a filtered call; page token 30 seconds; a change read misses inbound changes</td>
+<td><a href="https://github.com/amzn/selling-partner-api-models/blob/main/models/fba-inventory-api-model/fbaInventory.json">FBA Inventory API model</a></td>
+</tr>
+<tr>
+<td>Roles for Amazon-held stock</td>
+<td>Product Listing or Amazon Fulfillment</td>
+<td><a href="https://developer-docs.amazon/sp-api/docs/fba-inventory-api-v1-use-case-guide">FBA Inventory API use case guide</a></td>
+</tr>
+<tr>
+<td>Seller approval</td>
+<td>Re-authorised every 365 days; no expiry date through the API</td>
+<td><a href="https://developer-docs.amazon/sp-api/docs/renew-authorizations">Renew authorizations</a></td>
+</tr>
+<tr>
+<td>Client secret</td>
+<td>Rotated every 180 days</td>
+<td><a href="https://developer-docs.amazon.com/sp-api/docs/rotate-your-application-client-secret">Rotate your application&#39;s client secret</a></td>
+</tr>
+</tbody></table></div>
+<h2 id="13-tests-that-prove-each-rule">13. Tests that prove each rule</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Proves</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Not ours</td>
+<td>A notice naming another application id is answered and dropped</td>
+</tr>
+<tr>
+<td>Accepted</td>
+<td>An accepted write is not applied until a read shows it; an issue found later is <code>rejected</code></td>
+</tr>
+<tr>
+<td>Unknown</td>
+<td>A timed-out patch is read back before any other write to it</td>
+</tr>
+<tr>
+<td>Amazon ships</td>
+<td>No write names a SKU Amazon fulfils on any of the account&#39;s marketplaces</td>
+</tr>
+<tr>
+<td>One figure</td>
+<td>A patch names every marketplace the account serves</td>
+</tr>
+<tr>
+<td>Early read</td>
+<td>No order search runs within three minutes of the last</td>
+</tr>
+<tr>
+<td>Window</td>
+<td>The watermark moves only to the bound Amazon names</td>
+</tr>
+<tr>
+<td>Masked fields</td>
+<td>A masked field never overwrites a stored value</td>
+</tr>
+<tr>
+<td>Held stock</td>
+<td>A reading changes no ledger entry and sends no figure</td>
+</tr>
+<tr>
+<td>Renewal</td>
+<td>The reminder date is approval plus 365 days less 30</td>
+</tr>
+<tr>
+<td>Dispatch</td>
+<td>No tracking number, or an unknown confirmation, goes to a person and is never resent</td>
+</tr>
+</tbody></table></div>
+<h2 id="how-to-check-it-was-built-right">How to check it was built right</h2>
+<ul>
+<li><input disabled="" type="checkbox"> <strong>Bridge:</strong> the endpoint checks the shared secret and the application id before any database read.</li>
+<li><input disabled="" type="checkbox"> <strong>No AWS credentials</strong> in any Worker; nothing reads SQS in production.</li>
+<li><input disabled="" type="checkbox"> <strong>Accepted:</strong> no code path marks an Amazon write applied without a read or notice.</li>
+<li><input disabled="" type="checkbox"> <strong>Amazon ships:</strong> the write path refuses a fulfilled-by-Amazon SKU.</li>
+<li><input disabled="" type="checkbox"> <strong>Buyer data:</strong> restricted fields read only under the restricted role and only for seller-shipped orders.</li>
+<li><input disabled="" type="checkbox"> <strong>Held stock:</strong> the reading lives beside the ledger and is never summed into it.</li>
+<li><input disabled="" type="checkbox"> <strong>Later parts:</strong> no feed path at launch.</li>
+</ul>
+
+<footer>Vervoro</footer>
+</main>
+</body>
+</html>

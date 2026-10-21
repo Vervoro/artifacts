@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ADR-004.1 SPEC: eBay connector</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono&display=swap">
+<style>
+:root {
+  --bg: #f6f6f8; --surface: #ffffff; --sunken: #ededf1; --text: #16161a; --muted: #5c5c66; --border: #e0e0e6;
+  --accent: #4338ca; --accent-soft: #eef0ff; --edge: #8a8a96; --tint: #f0f0f4;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #111114; --surface: #1a1a1f; --sunken: #23232a; --text: #ececf1; --muted: #a2a2ad; --border: #2d2d35;
+  --accent: #a5b4fc; --accent-soft: #23264a; --edge: #74747f; --tint: #202027; color-scheme: dark; } }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 var(--sans); }
+main { max-width: 860px; margin: 0 auto; padding: 48px max(20px, env(safe-area-inset-left)) 80px; }
+header.site { max-width: 860px; margin: 0 auto; padding: 20px max(20px, env(safe-area-inset-left)) 0; font-size: 14px; }
+header.site a { color: var(--muted); text-decoration: none; }
+header.site a:hover { color: var(--accent); }
+h1, h2, h3 { line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(28px, 4vw, 38px); letter-spacing: -0.02em; margin: 0 0 20px; }
+h2 { font-size: 23px; margin: 48px 0 12px; padding-top: 20px; border-top: 1px solid var(--border); }
+h3 { font-size: 18px; margin: 32px 0 8px; }
+p, li { max-width: 72ch; }
+a { color: var(--accent); }
+code { font-family: var(--mono); font-size: 0.86em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--sunken); padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 13.5px; line-height: 1.5; }
+pre code { background: none; padding: 0; overflow-wrap: normal; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 16px 0; background: var(--surface); }
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+.table-wrap table { margin: 0; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+th { background: var(--sunken); font-weight: 600; font-size: 13px; color: var(--muted); }
+tr:last-child td { border-bottom: none; }
+ul, ol { padding-left: 22px; }
+li + li { margin-top: 4px; }
+figure { margin: 20px 0; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; }
+svg.diagram { display: block; width: 100%; min-width: 640px; height: auto; font-family: var(--sans); }
+svg .ink { fill: var(--text); } svg .quiet { fill: var(--muted); }
+svg .edge { stroke: var(--edge); } svg .edge-fill { fill: var(--edge); }
+svg .accent { stroke: var(--accent); } svg .accent-fill { fill: var(--accent); }
+svg .box { fill: none; stroke: var(--edge); stroke-width: 1.25; }
+svg .box-main { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+svg .band { fill: var(--tint); stroke: var(--edge); stroke-width: 1.25; }
+.cards { list-style: none; padding: 0; display: grid; gap: 12px; }
+.cards a { display: block; padding: 18px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; text-decoration: none; color: var(--text); }
+.cards a:hover, .cards a:focus-visible { border-color: var(--accent); outline: none; }
+.cards.sub { margin: 12px 0 0 24px; padding-left: 16px; border-left: 2px solid var(--border); }
+.parts { margin: 6px 0 0 20px; font-size: 14px; color: var(--muted); } .cards .parts a { display: inline; padding: 0; background: none; border: none; border-radius: 0; color: var(--accent); font-weight: 600; text-decoration: none; } .cards .parts a:hover { text-decoration: underline; }
+.cards b { display: block; font-size: 17px; } .cards span { color: var(--muted); font-size: 14px; }
+.order li { margin-top: 10px; } .order span { color: var(--muted); font-size: 14px; }
+footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header class="site"><a href="../../">← Vervoro artifacts</a> / <a href="../">ADR-004.1: eBay connector</a></header>
+<main>
+<h1 id="adr-0041-spec-ebay-connector">ADR-004.1 SPEC: eBay connector</h1>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Decision</strong></td>
+<td><a href="../">ADR-004.1: eBay connector</a></td>
+</tr>
+<tr>
+<td><strong>Procedures</strong></td>
+<td><a href="../../runbooks/#adr-0041-ebay-connector">RUNBOOK</a></td>
+</tr>
+<tr>
+<td><strong>Date</strong></td>
+<td>21 October 2026</td>
+</tr>
+<tr>
+<td><strong>For</strong></td>
+<td>The developer and coding agents building it, and the person reviewing their work</td>
+</tr>
+</tbody></table></div>
+<p>Only what is particular to eBay. Everything the host does (credentials, HTTP, outcomes, pools, notices in, the completeness check, shadow mode) is <a href="../../channel-connectors/spec/">ADR-004 SPEC</a> and is not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed.</p>
+<h2 id="0-at-launch-and-later">0. At launch and later</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Later part</th>
+<th>Trigger</th>
+<th>Rules</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>eBay item-change notices for Seller Hub listings</td>
+<td>Hand edits near zero are seen too late in shadow (<a href="../../inventory-sync/spec/#0-at-launch-and-later">ADR-008</a>)</td>
+<td><a href="#4-listings-and-stock">4</a></td>
+</tr>
+<tr>
+<td>Moving Seller Hub listings to the Inventory API</td>
+<td>The Growth Check grants less than the reserve rule needs (<a href="../../inventory-sync/spec/#0-at-launch-and-later">ADR-008</a>)</td>
+<td><a href="#5-the-trading-pool">5</a></td>
+</tr>
+</tbody></table></div>
+<h2 id="1-connecting">1. Connecting</h2>
+<ol>
+<li><strong>Consent.</strong> The seller is sent only to eBay&#39;s consent page with Vervoro&#39;s scopes: inventory, fulfilment, account and identity (read only), notification subscriptions, cancellations. A scope eBay does not know refuses every seller, so the list changes only after the scope is confirmed on Vervoro&#39;s keyset.</li>
+<li><strong>eBay does not sign its redirect;</strong> the host&#39;s single-use state proves it (<a href="../../channel-connectors/spec/#3-credentials-and-approval">ADR-004 SPEC 3</a>).</li>
+<li><strong>Who approved.</strong> The token reply names no user, so the connector asks eBay&#39;s Identity API with the new token. The stable user id is claimed in the external directory. Approving again from the same eBay account renews it.</li>
+<li><strong>One account is one eBay site</strong> (such as the UK site), which the Trading API calls name.</li>
+<li><strong>Tokens.</strong> The credential is the refresh token. Its lifetime and each access token&#39;s come from eBay&#39;s reply. An <code>invalid_grant</code> refusal means the seller removed Vervoro: the account is disconnected.</li>
+</ol>
+<h2 id="2-notices">2. Notices</h2>
+<ol>
+<li><strong>One destination per environment,</strong> made by the operator, because it needs the endpoint&#39;s verification token, which no hook sees. eBay also needs the application&#39;s alert address and checks the endpoint&#39;s challenge first. Procedure: <a href="../../runbooks/set-up-ebay-notices/">Set up eBay notices</a>.</li>
+<li><strong>Three topics per seller,</strong> subscribed on connect and removed on disconnect: <code>ORDER_CONFIRMATION</code>, <code>ORDER_CANCELLATION_ACTIVITY</code>, <code>ITEM_MARKED_SHIPPED</code>.</li>
+<li><strong>Checked with eBay&#39;s public key</strong> before any database read. The queue message holds the topic, the notice id, the seller&#39;s user id and the order ids.</li>
+<li><strong>What each leads to.</strong> A confirmation fetches the order. A cancellation notice fetches it again, and the fetched order&#39;s own cancellation state decides; a reminder to answer is ignored. An item marked shipped outside Vervoro fetches the order; Vervoro&#39;s own shipments return on the same topic and are not fetched again (<a href="../../order-ingestion/">ADR-007</a>).</li>
+</ol>
+<h2 id="3-orders">3. Orders</h2>
+<ol>
+<li><strong>Hourly backup read,</strong> 10 minutes while notices look broken; early reads at least one minute apart. The window ends 10 seconds before now.</li>
+<li><strong>Cost.</strong> Hourly is 24 order calls a day for a quiet seller; every 15 minutes, the first step if a launch gate fails, is 96. Order fetches draw on the same allowance, so the operator checks its room before shortening.</li>
+<li><strong>Read backwards.</strong> eBay pages orders by offset. The first call reads offset 0; if more pages exist, the read goes from the last page back to offset 0. An order that leaves the window during the read can then only move another onto a page still to come, where it is read twice, and imports are idempotent. Only the final read of offset 0 proves the window complete. A window of n pages costs n + 1 calls.</li>
+</ol>
+<h2 id="4-listings-and-stock">4. Listings and stock</h2>
+<ol>
+<li><strong>Every linked listing a SKU is on.</strong> A read names, per SKU, the inventory item, each Seller Hub listing by item number, and each variation by item number and its SKU. Only linked listings are written (<a href="../../catalogue-sync/">ADR-005</a>); the host hands their item numbers back on every write and read back. One SKU on several linked listings shows the highest figure any of them shows, so an over-showing listing is always corrected.</li>
+</ol>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Listing kind</th>
+<th>Call</th>
+<th>Per call</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Inventory item</td>
+<td>Inventory API, bulk price and quantity update</td>
+<td>One SKU, up to 25 offers</td>
+</tr>
+<tr>
+<td>Seller Hub listing</td>
+<td>Trading API, <code>ReviseInventoryStatus</code></td>
+<td>Up to 4 listings or variations</td>
+</tr>
+</tbody></table></div>
+<ol start="2">
+<li><strong>One failure does not stop the rest:</strong> a refused inventory update does not keep the figure from Seller Hub listings, nor one Trading batch from the next.</li>
+<li><strong>Synchronous.</strong> A write is <code>applied</code> or refused, never <code>accepted</code>. &quot;Identical quantity&quot; is <code>applied</code>.</li>
+<li><strong>A refused batch</strong> is resent one listing at a time for the listings its reply does not name as revised, to learn which one eBay refused.</li>
+<li><strong>An unknown SKU</strong> goes to the Inventory API first. If eBay does not know it there, the Trading API finds its Seller Hub listings, which get no figure and come back to the catalogue to be linked.</li>
+<li><strong>A listing that has gone</strong> (ended, relisted, SKU removed) makes the connector look the SKU up afresh. A relist eBay declares carries the link; any other is suggested. A SKU on no listing is <code>rejected</code> with eBay&#39;s reason.</li>
+<li><strong>No compare-and-set.</strong> The order watermark is the guard (<a href="../../inventory-sync/">ADR-008</a>). eBay&#39;s 250 revisions per listing per day are counted by <a href="../../inventory-sync/spec/#8-limits-and-who-goes-next">ADR-008 SPEC 8</a>.</li>
+<li><strong>Read back</strong> uses the API that took the write. A listing eBay will not show is looked up afresh by SKU first.</li>
+<li><strong>The unknown-write exception.</strong> An unknown Trading API write is settled by sending the figure Vervoro wants now again, at the time <a href="../../inventory-sync/spec/#6-confirming-every-write">ADR-008 SPEC 6</a> sets, because <code>ReviseInventoryStatus</code> sets the quantity and never adds to it, and a read costs the same pool call. An unknown Inventory API write is read back as usual (<a href="../../channel-connectors/spec/#5-retries-and-outcomes">ADR-004 SPEC 5</a>).</li>
+<li><strong>A variation without a SKU</strong> is read and its orders come in by item number and variation id, but it is neither linked nor written. The seller is told to add a SKU in Seller Hub.</li>
+</ol>
+<h2 id="5-the-trading-pool">5. The Trading pool</h2>
+<ol>
+<li><strong>ADR-004&#39;s pool, with its lanes and reserve</strong> (<a href="../../channel-connectors/spec/#7-shared-daily-pools">ADR-004 SPEC 7</a>). Accounts whose listings are all inventory items do not use it. At 5,000 a day, a tenth split at 50 calls each serves 10 accounts with Seller Hub listings; more wait in shadow until the Growth Check raises it.</li>
+<li><strong>Seller Hub listings are read only when a linked SKU needs them.</strong> A Seller Hub listing that shares a SKU otherwise served by the Inventory API is found only when that SKU needs the Trading API.</li>
+<li><strong>A daily page cap per account:</strong> 50 pages of 200 listings. A read that runs out resumes the next day from where it stopped; nothing is taken as gone from a read that did not run first page to last.</li>
+<li><strong>Full catalogue reads prefer the Feed API&#39;s daily active listings report</strong> (outside the Trading pool), and use the Trading API only for listings new since that report, and only while that costs fewer calls than page reads (<a href="../../catalogue-sync/">ADR-005</a>).</li>
+<li><strong>When eBay says the day is spent,</strong> the pool is <code>throttled</code> for 15 minutes at a time and the operator is alerted. If the Trading API cannot be read at all, inventory items are still read and written, and each Seller Hub SKU says why it waits.</li>
+</ol>
+<h2 id="6-the-out-of-stock-option">6. The out-of-stock option</h2>
+<ol>
+<li><strong>Asked, never changed.</strong> When a read finds Seller Hub listings, the connector reads the seller&#39;s selling preferences. While the option is off (eBay&#39;s default), every SKU on a Seller Hub listing is left out with a note: turn it on, or eBay ends a listing at 0 and removes a variation.</li>
+<li><strong>It blocks going live:</strong> a linked listing that cannot be read blocks the shadow check.</li>
+<li><strong>Turned off later,</strong> sends still go, zero included: selling stock that is gone is worse than an ended listing. The next read shows the note again.</li>
+</ol>
+<h2 id="7-cancellations-and-dispatch">7. Cancellations and dispatch</h2>
+<ol>
+<li><strong>Vervoro sends no cancellation and no answer to a buyer&#39;s request</strong> (<a href="../../order-ingestion/#decision">ADR-007 decision 9</a>). No Post-Order call is made. The cancellations scope is still asked for, because the cancellation notice needs it. ADR-007 fetches the order again when eBay&#39;s 3-day answer window closes.</li>
+<li><strong>Dispatch:</strong> one Fulfillment API call per shipment, with carrier and tracking, through the gate.</li>
+</ol>
+<h2 id="8-account-deletion-notices">8. Account deletion notices</h2>
+<ol>
+<li>eBay requires every application to receive account deletion notices for all eBay users. The endpoint answers eBay&#39;s challenge with the verification token and checks each notice&#39;s signature.</li>
+<li><strong>A connected seller:</strong> a privacy request with its due date (<a href="../../channel-connectors/spec/#8-notices-in">ADR-004 SPEC 8</a>).</li>
+<li><strong>Anyone else:</strong> a keyed hash of the user id is looked up in each cell; a buyer found there has their orders anonymised at once (<a href="../../buyer-data/">ADR-009</a>). Nothing from the notice is kept.</li>
+</ol>
+<h2 id="9-simulator-and-pre-launch-recordings">9. Simulator and pre-launch recordings</h2>
+<p>The simulator speaks only the calls above: Inventory, Fulfillment, Feed, Notification and Identity APIs, the Trading calls used here, the consent page and token exchange, signed notices, daily usage limits and the out-of-stock preference. Before launch each call is recorded against the sandbox or a real account (<a href="../../channel-connectors/spec/#14-simulators-and-recorded-replies">ADR-004 SPEC 14</a>). The recordings include that the order list keeps a stable order for one filter across calls, which the backwards read relies on. <code>getTopics</code> is read on the production keyset: the three topics must be available to Vervoro with the scopes it asks for; any restricted one is requested from eBay before a seller connects.</p>
+<h2 id="10-constraints">10. Constraints</h2>
+<p>Checked against eBay&#39;s documentation on 17 October 2026; the order topics row on 18 October 2026.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Constraint</th>
+<th>Figure</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Trading API, per application</td>
+<td>5,000 calls a day by default</td>
+<td><a href="https://developer.ebay.com/develop/api/sell/api_call_limits">API call limits</a></td>
+</tr>
+<tr>
+<td>Fulfillment API order resource</td>
+<td>100,000 calls a day</td>
+<td>Same page</td>
+</tr>
+<tr>
+<td>Inventory API</td>
+<td>2 million calls a day</td>
+<td>Same page</td>
+</tr>
+<tr>
+<td>Notification API</td>
+<td>10,000 calls a day</td>
+<td>Same page</td>
+</tr>
+<tr>
+<td>Feed API</td>
+<td>100,000 calls a day; 400 a day per seller for each feed type</td>
+<td>Same page</td>
+</tr>
+<tr>
+<td>Raising the limits</td>
+<td>After eBay&#39;s Application Growth Check</td>
+<td>Same page</td>
+</tr>
+<tr>
+<td>Bulk price and quantity update</td>
+<td>One SKU, up to 25 offers; up to 250 revisions per listing per calendar day</td>
+<td><a href="https://developer.ebay.com/api-docs/sell/inventory/resources/inventory_item/methods/bulkUpdatePriceQuantity">bulkUpdatePriceQuantity</a></td>
+</tr>
+<tr>
+<td>Trading inventory status revision</td>
+<td>Up to 4 listings or variations; a variation is named by its SKU</td>
+<td><a href="https://developer.ebay.com/devzone/xml/docs/Reference/eBay/ReviseInventoryStatus.html">ReviseInventoryStatus</a></td>
+</tr>
+<tr>
+<td>Notices</td>
+<td>Destinations, per-topic subscriptions, public keys to check signatures</td>
+<td><a href="https://developer.ebay.com/develop/api/sell/notification_api">Notification API</a></td>
+</tr>
+<tr>
+<td>Order topics</td>
+<td>The three above; some topics restricted to approved partners; <code>getTopics</code> gives each topic&#39;s scopes</td>
+<td><a href="https://developer.ebay.com/develop/api/buy/notification_events">Notification topics</a></td>
+</tr>
+</tbody></table></div>
+<h2 id="11-tests-that-prove-each-rule">11. Tests that prove each rule</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Proves</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Backwards read</td>
+<td>An order that changes mid-read is still read; only offset 0&#39;s final read completes the window</td>
+</tr>
+<tr>
+<td>Every linked listing</td>
+<td>One failed write leaves the other listings of the SKU written</td>
+</tr>
+<tr>
+<td>Unlinked</td>
+<td>A listing carrying a linked SKU but not linked gets no figure</td>
+</tr>
+<tr>
+<td>Identical quantity</td>
+<td>eBay&#39;s &quot;identical&quot; reply is <code>applied</code></td>
+</tr>
+<tr>
+<td>Batch refusal</td>
+<td>Unnamed listings are resent singly</td>
+</tr>
+<tr>
+<td>Trading unknown</td>
+<td>A timed-out Trading write is resent with the current figure, never read first; an Inventory API timeout is read back</td>
+</tr>
+<tr>
+<td>Option off</td>
+<td>No Seller Hub write while the option is off; the account cannot go live</td>
+</tr>
+<tr>
+<td>No SKU</td>
+<td>A variation without a SKU is never written; its order imports</td>
+</tr>
+<tr>
+<td>Page cap</td>
+<td>A read stops at 50 pages and resumes; nothing is marked gone</td>
+</tr>
+<tr>
+<td>Pool spent</td>
+<td>eBay&#39;s &quot;day spent&quot; throttles the pool 15 minutes and alerts</td>
+</tr>
+<tr>
+<td>Deletion notice</td>
+<td>A buyer match anonymises; nothing is stored from the notice</td>
+</tr>
+<tr>
+<td>Settings</td>
+<td>No call changes a seller preference</td>
+</tr>
+</tbody></table></div>
+<h2 id="how-to-check-it-was-built-right">How to check it was built right</h2>
+<ul>
+<li><input disabled="" type="checkbox"> <strong>Two APIs:</strong> the write path chooses by what the read learned; inventory items never go through the Trading API.</li>
+<li><input disabled="" type="checkbox"> <strong>Pool:</strong> every Trading call names the shared pool; the page cap is a setting.</li>
+<li><input disabled="" type="checkbox"> <strong>Backwards:</strong> the order read pages from last to first; the completion mark is set only after offset 0.</li>
+<li><input disabled="" type="checkbox"> <strong>Exception:</strong> the resend path exists only for <code>ReviseInventoryStatus</code>.</li>
+<li><input disabled="" type="checkbox"> <strong>No settings writes:</strong> no <code>SetUserPreferences</code> call anywhere.</li>
+<li><input disabled="" type="checkbox"> <strong>Notices:</strong> signature checked with eBay&#39;s key before any database read; the queue message has no user name or buyer field.</li>
+<li><input disabled="" type="checkbox"> <strong>No cancellation sent:</strong> no Post-Order call in the connector.</li>
+<li><input disabled="" type="checkbox"> <strong>Later parts:</strong> no item-change notice subscription, no listing migration.</li>
+</ul>
+
+<footer>Vervoro</footer>
+</main>
+</body>
+</html>

@@ -75,268 +75,77 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>17 October 2026</td>
+<td>17 October 2026; split into ADR, SPEC and RUNBOOK, 21 October 2026</td>
 </tr>
 <tr>
 <td><strong>Scope</strong></td>
-<td>What Amazon&#39;s Selling Partner API forces us to decide beyond the shared connector design: how a seller connects and renews, regions and marketplaces, the notice relay, single writes and listings feeds, listings Amazon ships, the stock Amazon holds, buyer data, and limits</td>
+<td>What Amazon&#39;s Selling Partner API adds to <a href="../channel-connectors/">ADR-004</a>, for a seller who ships their own orders and may also use Amazon&#39;s fulfilment</td>
 </tr>
 <tr>
 <td><strong>Builds on</strong></td>
-<td><a href="../channel-connectors/">ADR-004: Channel connectors</a>, <a href="../product-model/">ADR-003: Product model</a>, <a href="../database-architecture/">ADR-001: Multi-tenant database architecture</a></td>
+<td><a href="../channel-connectors/">ADR-004</a>, <a href="../product-model/">ADR-003</a>, <a href="../stock-ledger/">ADR-006</a>, <a href="../inventory-sync/">ADR-008</a>, <a href="../buyer-data/">ADR-009</a></td>
+</tr>
+<tr>
+<td><strong>SPEC</strong></td>
+<td><a href="spec/">The Amazon rules, limits and checks</a></td>
+</tr>
+<tr>
+<td><strong>RUNBOOK</strong></td>
+<td><a href="../runbooks/#adr-0042-amazon-seller-connector">The operator&#39;s procedures for this record</a></td>
 </tr>
 </tbody></table></div>
 <h2 id="context">Context</h2>
-<p>ADR-004 decided the connector contract and everything the host does around it. This record covers only what is particular to Amazon, for a seller who ships their own orders (merchant-fulfilled) and may also use Amazon&#39;s own fulfilment (FBA). Selling to Amazon as a vendor is a different shape and is not covered here.</p>
-<p>Amazon shapes the design in six ways:</p>
 <ul>
-<li><strong>Notices land only in Amazon&#39;s cloud.</strong> Order changes are delivered only to an SQS queue, listing changes only to an EventBridge event bus. Amazon calls no HTTPS address of ours.</li>
-<li><strong>One seller, many marketplaces.</strong> A seller id covers a region (Europe, North America, the Far East), and one listing can sell in several marketplaces of that region.</li>
-<li><strong>Writes are processed later.</strong> A listing update is accepted and applied a little afterwards, and can still fail after it was accepted.</li>
-<li><strong>Limits are per seller and application,</strong> as token buckets, some very slow (the order search refills about once every three minutes), with per-application ceilings above them.</li>
-<li><strong>Approvals expire.</strong> A public application must be re-authorised by each seller every 365 days, and Amazon gives no expiry date through the API.</li>
-<li><strong>Buyer data is restricted.</strong> Addresses need a restricted role, and Amazon&#39;s data protection policy limits how long they are kept.</li>
+<li><strong>Notices land only in Amazon&#39;s cloud.</strong> Order changes go only to an AWS queue, listing changes only to an AWS event bus. Amazon calls no address of ours.</li>
+<li><strong>One seller, many marketplaces.</strong> A seller id covers a region, and one listing can sell in several of its marketplaces.</li>
+<li><strong>Writes are processed later,</strong> and can still fail after Amazon accepted them.</li>
+<li><strong>Limits are each seller&#39;s own,</strong> some very slow: the order search refills about once every three minutes.</li>
+<li><strong>Approvals expire yearly, and buyer data is restricted.</strong></li>
 </ul>
 <h2 id="decision">Decision</h2>
 <ol>
-<li><strong>The seller approves Vervoro in Seller Central,</strong> from Vervoro&#39;s own page or from Amazon&#39;s app store. Nobody pastes keys.</li>
-<li><strong>One account is one seller id in one region,</strong> serving the marketplaces the seller picks there.</li>
-<li><strong>Notices come through a small relay in AWS</strong> that posts each one to Vervoro&#39;s single endpoint, signed with a relay secret. The endpoint checks that the notice names Vervoro&#39;s application.</li>
-<li><strong>Each order notice is answered by fetching the order.</strong> The backup read runs every 10 minutes, because Amazon&#39;s order limit is per seller and costs no other seller anything, and never closer than three minutes apart.</li>
-<li><strong>Every stock write is one listing at a time at launch</strong> (ADR-008). Listings feeds stay possible for many raises later; a feed never carries a decrease.</li>
-<li><strong>Every write is <code>accepted</code> and read back</strong> before Vervoro counts it as applied.</li>
+<li><strong>The seller approves Vervoro in Seller Central,</strong> from Vervoro or from Amazon&#39;s app store. One read with the new token proves the seller id before it is claimed.</li>
+<li><strong>One account is one seller id in one region,</strong> serving the marketplaces the seller picks there. One figure goes to all of them.</li>
+<li><strong>Notices come through a small no-code AWS bridge in an EU region</strong> (<a href="../system-architecture/spec/#8-connectors-and-orders-in">ADR-000 SPEC 8</a>), which posts each one to the notice endpoint with a shared secret. The endpoint also checks the notice names Vervoro&#39;s application.</li>
+<li><strong>Each order notice is answered by fetching the order.</strong> The backup read runs every 10 minutes, because the order limit is the seller&#39;s own, and never closer than three minutes apart.</li>
+<li><strong>Every stock write is one listing at a time.</strong> <em>Later: listings feeds for many raises if single writes fall short; a feed never carries a decrease.</em></li>
+<li><strong>Amazon&#39;s <code>accepted</code> does not mean applied.</strong> Every write is read back before Vervoro counts it as applied.</li>
 <li><strong>A listing Amazon ships on any of the account&#39;s marketplaces is never sent a figure.</strong></li>
-<li><strong>Buyer data is read only under the restricted role,</strong> only for orders the seller ships, and anonymised 30 days after delivery.</li>
-<li><strong>Stock in Amazon&#39;s warehouses is read daily and on Amazon&#39;s notice,</strong> as a reading beside Vervoro&#39;s figures, never added to them.</li>
+<li><strong>Buyer data is read only under the restricted role,</strong> only for orders the seller ships, and anonymised 30 days after delivery (<a href="../buyer-data/">ADR-009</a>).</li>
+<li><strong>Stock in Amazon&#39;s warehouses is read daily and on Amazon&#39;s notice,</strong> as a reading beside Vervoro&#39;s figures, never added to them (<a href="../stock-ledger/">ADR-006</a>).</li>
+<li><strong>Approval lasts 365 days from the day the seller gives it,</strong> because Amazon gives no expiry date. The seller is reminded 30 days ahead, and the operator rotates the app&#39;s client secret every 180 days.</li>
 </ol>
-<h2 id="connecting-and-renewing">Connecting and renewing</h2>
-<ul>
-<li><strong>Two ways in, one flow.</strong> A seller starts from Vervoro (picking their marketplace) or from Amazon&#39;s app store. Either way, the host sends the seller only to Seller Central&#39;s own consent or confirm page, checks the single-use state on the way back (Amazon does not sign its redirect), and exchanges the code for a refresh token at Amazon&#39;s login service.</li>
-<li><strong>Proof before the claim.</strong> Before the seller id is claimed in the external directory, the host makes one read with the new token for that seller id. A seller id changed on the way is refused.</li>
-<li><strong>Marketplaces.</strong> The seller&#39;s marketplaces are read with the new token. The account starts on the one the seller picked (refused, with a message, if they do not sell there), and the seller may add others of the same region afterwards as a setup choice.</li>
-<li><strong>Access tokens</strong> last an hour and are refreshed by the host under the account&#39;s lock.</li>
-<li><strong>Renewal every 365 days.</strong> Amazon cannot be asked when an approval ends, so the host records the moment of approval plus 365 days and reminds the seller 30 days ahead. Approving again writes a fresh date. A refresh refused as an invalid grant means the seller removed the app, and the account is disconnected.</li>
-<li><strong>The app&#39;s client secret</strong> lasts 180 days. The host reminds the operator from day 150. Rotation is an operator step, not a seller one.</li>
-</ul>
-<h2 id="regions-and-marketplaces">Regions and marketplaces</h2>
-<ul>
-<li><strong>One account, one region.</strong> The region decides the API address and which notice destination the seller is subscribed to.</li>
-<li><strong>One figure across the account&#39;s marketplaces.</strong> A listing update names every marketplace the account serves, and Amazon applies one quantity to all of them.</li>
-<li><strong>Whether a sale on one marketplace lowers the others</strong> depends on a seller setting Vervoro cannot see (Amazon&#39;s international listings tool). So an order counts as coming out of Vervoro&#39;s figure only when the account serves exactly one marketplace; with several, Vervoro assumes the cautious case. ADR-008 decides how that shapes the figure.</li>
-<li><strong>Orders from every marketplace of the region are imported.</strong> Amazon&#39;s notices cover the whole region, so the backup read asks for all of the region&#39;s marketplaces in one search (it takes up to 50), and every such order stays up to date at no extra cost. The first order the seller ships from a marketplace the account was not set up for asks who ships that marketplace&#39;s orders: this warehouse, or someone else (ADR-007).</li>
-</ul>
-<h2 id="notices-and-the-relay">Notices and the relay</h2>
-<p><strong>The relay.</strong> One AWS stack, in one AWS region next to the databases, serves sellers in every Amazon region: each regional destination points at the same queue and event bus.</p>
-<div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Notice</th>
-<th>Amazon delivers to</th>
-<th>The relay</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Order change, and Amazon-held stock change</td>
-<td>An SQS queue only</td>
-<td>A pipe reads the queue and posts each message to Vervoro&#39;s endpoint</td>
-</tr>
-<tr>
-<td>Listing quantity and status changes</td>
-<td>An EventBridge event bus only</td>
-<td>A rule posts each event to the same endpoint</td>
-</tr>
-</tbody></table></div>
-<ul>
-<li><strong>Signed with a relay secret.</strong> The relay sends a shared secret on every call; the endpoint accepts the current or the previous one, compared in constant time, so the secret rotates without a gap. It is rotated yearly, or at once if it may have leaked.</li>
-<li><strong>The notice must be ours.</strong> Any Selling Partner application can name our queue as its destination, so the endpoint also checks that the notice names Vervoro&#39;s application id. Anything else is answered and dropped.</li>
-<li><strong>Failures are visible.</strong> A post the endpoint refuses is retried by AWS and then lands in a dead-letter queue whose alarm alerts the operator, as the inbound queue&#39;s does on Vervoro&#39;s side.</li>
-<li><strong>Subscriptions on connect.</strong> The connect hook subscribes the seller, with their own token, to the order, listing and Amazon-held stock notices at their region&#39;s destinations. A subscription that already exists at our destination is kept; one at another destination is an error. The disconnect hook deletes them without the seller&#39;s token, so it works after the seller removed the app.</li>
-<li><strong>Without the relay,</strong> orders still arrive through the backup read, only without the instant stock hold.</li>
-</ul>
-<p><strong>What a notice leads to.</strong></p>
-<ul>
-<li><strong>An order change</strong> names the order and what changed: a new order, a cancellation, a buyer&#39;s cancellation request, or an order shipped outside Vervoro. The order is fetched (<code>getOrder</code>) and imported. A forged or replayed notice can at most make Vervoro fetch an order; it cannot change stock by itself.</li>
-<li><strong>A listing change</strong> makes the host read that listing back, which catches a figure changed in Seller Central.</li>
-<li><strong>An Amazon-held stock change</strong> makes the connector read Amazon&#39;s stock for the SKUs it names (below).</li>
-</ul>
-<p><strong>The backup read</strong> searches orders changed since the watermark, on every marketplace of the account&#39;s region, every 10 minutes: the limit is the seller&#39;s own, so a short interval costs no other seller anything (ADR-004). Any complete read, including one a raise asks for, resets the timer. The order search refills only about once every three minutes, so an early check is never closer than that. Each page carries its orders&#39; items, so nothing is fetched per order. Amazon stops a search two minutes before its own clock and says where it stopped; that bound is the window&#39;s completeness. How orders are imported is ADR-007.</p>
-<h2 id="stock">Stock</h2>
-<p><strong>Single writes.</strong> One listing at a time through the Listings Items API: a patch of the merchant-fulfilled quantity across the account&#39;s marketplaces.</p>
-<div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Amazon answers</th>
-<th>Outcome</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Accepted</td>
-<td><code>accepted</code>; the listing is read back</td>
-</tr>
-<tr>
-<td>Invalid, 400, 404</td>
-<td><code>rejected</code>, with Amazon&#39;s issue codes</td>
-</tr>
-<tr>
-<td>429</td>
-<td><code>throttled</code>, with Amazon&#39;s wait if it gives one</td>
-</tr>
-<tr>
-<td>5xx, timeout, unreadable</td>
-<td><code>unknown</code>; read back before anything is sent again</td>
-</tr>
-</tbody></table></div>
-<p><strong>Read back.</strong> The listing is read (<code>getListingsItem</code>). The quantity sent is <code>applied</code>; an error issue on the quantity, or a listing that has gone, is <code>failed</code>; anything else is still pending. An accepted change can fail minutes later, and its issues appear on that read.</p>
-<p><strong>Listings feeds, for raises only, not used at launch.</strong> ADR-008 sends every figure as a single patch, because a feed can take hours and Amazon processes its records out of order. If single patches ever fall short, many raises can go as one listings feed: a document uploaded to Amazon, then a feed that names it. The feed is <code>accepted</code> at once and read back when Amazon has processed it; its report names only the messages Amazon refused, by their position, so the host keeps the order it submitted them in.</p>
-<ul>
-<li><strong>A feed never carries a decrease.</strong> A feed is applied when Amazon processes it, not when it is made. A decrease in a feed could land after a later single decrease and put back a figure that is too high. Decreases always go one by one, on the safety lane.</li>
-<li><strong>No compare-and-set</strong> either way. The order watermark is the guard against selling the same unit twice (ADR-007, ADR-008).</li>
-</ul>
-<p><strong>Listings Amazon ships.</strong> A SKU that Amazon fulfils on any of the account&#39;s marketplaces is read as Amazon&#39;s and never sent a figure: one update names every marketplace, and would put a merchant figure on Amazon&#39;s own listing. Its orders are recorded for reports (ADR-003).</p>
-<p><strong>Reading every listing</strong> uses Amazon&#39;s merchant listings report, one per marketplace. How the catalogue is read and matched is ADR-005.</p>
-<h2 id="stock-amazon-holds">Stock Amazon holds</h2>
-<p>Stock in Amazon&#39;s warehouses is not in Vervoro&#39;s ledger. ADR-006 keeps Amazon&#39;s figure for it as a dated reading per product, shown beside the four numbers and never added to them. The connector reads it with the FBA Inventory API (<code>getInventorySummaries</code>).</p>
-<ul>
-<li><strong>What is read.</strong> Per marketplace the account serves, with details: units Amazon can ship, units reserved for its customers&#39; orders or moving between its warehouses, units it cannot sell (damaged, expired, defective), units under investigation, and units on their way in. Each summary names the SKU, so it reaches the product through the listing&#39;s link; a pack&#39;s units are multiplied by its units per sale (ADR-003). A SKU with no link is kept on the listing until it is linked.</li>
-<li><strong>When.</strong> A full read once a day, and after each notice that Amazon&#39;s stock changed (<code>FBA_INVENTORY_AVAILABILITY_CHANGES</code>, delivered to the same queue as order changes and posted by the relay). The notice is a hint: the connector reads the SKUs it names. A change read (<code>startDateTime</code>) misses changes to units on their way in, so the daily read is always a full one.</li>
-<li><strong>Limits.</strong> 2 calls a second per seller, burst 2, on the seller&#39;s own bucket; up to 50 SKUs in one filtered call. A page token expires after 30 seconds, so a read pages straight through and starts again if it stalls.</li>
-<li><strong>It never moves stock or a figure.</strong> A reading changes nothing in the ledger and sends nothing to any listing. A shipment to Amazon is ADR-006&#39;s transfer, and a listing Amazon ships still gets no figure.</li>
-<li><strong>The role it needs</strong> is Product Listing or Amazon Fulfillment, neither of them restricted. Writing listings already needs Product Listing, so the seller approves nothing more.</li>
-</ul>
-<h2 id="buyer-data">Buyer data</h2>
-<ul>
-<li><strong>The restricted role.</strong> Names, addresses and phone numbers of buyers are visible only under Amazon&#39;s direct-to-consumer shipping role, for orders the seller ships, while they are unshipped or shipped.</li>
-<li><strong>Only what is needed to ship.</strong> Name, address, phone and gift message ride on the order. What Amazon withholds or masks is left out, never stored as blank, so it never erases what an earlier read kept.</li>
-<li><strong>Orders Amazon ships carry no buyer data.</strong></li>
-<li><strong>Thirty days after delivery</strong> the foundation anonymises the order&#39;s buyer data, as Amazon&#39;s data protection policy asks. The policy also asks for multi-factor sign-in on every user account.</li>
-</ul>
-<h2 id="dispatch">Dispatch</h2>
-<p>A shipment is confirmed with Amazon&#39;s carrier code where the carrier is on Amazon&#39;s list, or as &quot;Other&quot; with the carrier&#39;s name. Amazon requires a tracking number, so a shipment without one is not sent and goes to a person. A confirmation whose outcome is unknown is never sent twice: it goes to a person, who checks the order in Seller Central.</p>
-<h2 id="limits">Limits</h2>
-<ul>
-<li><strong>A token bucket per seller and application</strong> for most operations, declared from Amazon&#39;s published figures, with the live figure from Amazon&#39;s header when it is present.</li>
-<li><strong>Per-application ceilings</strong> sit above them (for example 500 listing updates a second for the whole application). They are not counted centrally: each seller&#39;s bucket keeps Vervoro far below them, and an application-wide throttle is waited on and alerts the operator (ADR-004).</li>
-<li><strong>The slow ones</strong> set the rhythm: the order search, report requests and feed creation each refill in minutes, not seconds. Their buckets are never spent on anything a notice or a single call can do.</li>
-</ul>
-<h2 id="simulator-and-sandbox">Simulator and sandbox</h2>
-<p>The Amazon simulator speaks the consent and token flow, the order, listing, report, feed and notification APIs used here, its token buckets, and an SQS-style queue the host reads directly in development. Before launch, each call is recorded against Amazon&#39;s sandbox or a real seller account and the simulator is corrected where it differs. The recordings include the listings feed&#39;s message and report shape, the approval pages&#39; paths, and an Amazon-held stock notice, to confirm which SKUs and quantities it carries.</p>
-<h2 id="amazon-constraints">Amazon constraints</h2>
-<p>Checked against Amazon&#39;s documentation on 17 October 2026; the rows on Amazon-held stock on 18 October 2026.</p>
-<div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Constraint</th>
-<th>Figure</th>
-<th>Source</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Rate limits</td>
-<td>Token bucket, usually per seller and application; live limit in <code>x-amzn-RateLimit-Limit</code> when present, not to be relied on; 429 is retryable</td>
-<td><a href="https://developer-docs.amazon/sp-api/docs/usage-plans-and-rate-limits">Usage plans and rate limits</a></td>
-</tr>
-<tr>
-<td>Listing update (<code>patchListingsItem</code>)</td>
-<td>5 a second per seller and application, burst 5; 500 a second per application</td>
-<td><a href="https://developer-docs.amazon/sp-api/docs/listings-items-api-rate-limits">Listings Items API rate limits</a></td>
-</tr>
-<tr>
-<td>Order change notices</td>
-<td>SQS only</td>
-<td><a href="https://developer-docs.amazon/sp-api/docs/notification-type-values">Notification type values</a></td>
-</tr>
-<tr>
-<td>Amazon-held stock (<code>getInventorySummaries</code>)</td>
-<td>2 a second per seller and application, burst 2; one marketplace a call; up to 50 SKUs a filtered call; page token valid 30 seconds; a change read reaches back at most 18 months and misses inbound changes</td>
-<td><a href="https://github.com/amzn/selling-partner-api-models/blob/main/models/fba-inventory-api-model/fbaInventory.json">FBA Inventory API model</a></td>
-</tr>
-<tr>
-<td>Amazon-held stock notices</td>
-<td><code>FBA_INVENTORY_AVAILABILITY_CHANGES</code>, SQS only</td>
-<td><a href="https://developer-docs.amazon/sp-api/docs/notification-type-values">Notification type values</a></td>
-</tr>
-<tr>
-<td>Roles for Amazon-held stock</td>
-<td>Product Listing or Amazon Fulfillment</td>
-<td><a href="https://developer-docs.amazon/sp-api/docs/fba-inventory-api-v1-use-case-guide">FBA Inventory API use case guide</a></td>
-</tr>
-<tr>
-<td>Listing quantity and status notices</td>
-<td>EventBridge only</td>
-<td><a href="https://developer-docs.amazon/sp-api/docs/notification-type-values">Notification type values</a></td>
-</tr>
-<tr>
-<td>Missed notices</td>
-<td>Amazon advises a way to recover from late or missing notices</td>
-<td><a href="https://developer-docs.amazon/sp-api/docs/notifications-api-v1-use-case-guide">Notifications API</a></td>
-</tr>
-<tr>
-<td>Seller approval</td>
-<td>A public application is re-authorised every 365 days; no expiry date through the API</td>
-<td><a href="https://developer-docs.amazon/sp-api/docs/renew-authorizations">Renew authorizations</a></td>
-</tr>
-<tr>
-<td>Client secret</td>
-<td>Rotated every 180 days</td>
-<td><a href="https://developer-docs.amazon.com/sp-api/docs/rotate-your-application-client-secret">Rotate your application&#39;s client secret</a></td>
-</tr>
-</tbody></table></div>
 <h2 id="consequences">Consequences</h2>
-<p><strong>What this gives us</strong></p>
+<p><strong>Gives</strong></p>
 <ul>
 <li>Amazon&#39;s notices reach the same endpoint, queue and consumer as every other marketplace&#39;s.</li>
-<li>A slow order search is spent only as a backup, and decreases never wait behind a feed.</li>
+<li>A slow order search is spent only as a backup, and no decrease waits behind a feed.</li>
 <li>A listing Amazon ships can never be given a merchant figure.</li>
 <li>Buyer data is held only as long as Amazon allows, and only for orders the seller ships.</li>
+<li>A lost bridge costs speed, not orders: the 10-minute read still finds them.</li>
 </ul>
-<p><strong>What it costs</strong></p>
+<p><strong>Costs</strong></p>
 <ul>
-<li>An AWS stack to deploy, watch and keep a secret for, in a second cloud.</li>
-<li>Every write is two steps, the write and its read back, and feeds take minutes to land.</li>
-<li>With several marketplaces on one account, Vervoro must assume the cautious case for which marketplace a sale came out of.</li>
-<li>Sellers must re-approve Vervoro every year, and the operator must rotate the client secret twice a year.</li>
+<li>An AWS bridge in a second cloud, with its own alarm and secret.</li>
+<li>Every write is two steps, the write and its read back.</li>
+<li>With several marketplaces on one account, Vervoro assumes the cautious case for which marketplace a sale came out of.</li>
+<li>Sellers re-approve every year, and the operator rotates the client secret twice a year.</li>
+<li>A raise can wait up to a few minutes for the slow order search.</li>
 </ul>
-<h2 id="alternatives-considered">Alternatives considered</h2>
-<div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Option</th>
-<th>Why not</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Reading the SQS queue from Vervoro directly</td>
-<td>A Worker would hold AWS credentials and poll a queue; a relay that posts to the endpoint keeps one inbound path</td>
-</tr>
-<tr>
-<td>Polling orders as the main path</td>
-<td>The order search refills about once every three minutes; notices are the only way to see orders as they happen</td>
-</tr>
-<tr>
-<td>Feeds for every write</td>
-<td>A feed lands late, so a decrease in it can put back a figure that is too high</td>
-</tr>
-<tr>
-<td>Single writes only</td>
-<td>Raising thousands of listings one call at a time takes too long at five a second</td>
-</tr>
-<tr>
-<td>Treating <code>accepted</code> as applied</td>
-<td>An accepted change can still fail minutes later</td>
-</tr>
-<tr>
-<td>One account per marketplace</td>
-<td>Amazon applies one quantity across the marketplaces a listing names, so separate accounts would fight over one figure</td>
-</tr>
-<tr>
-<td>Pushing to a SKU that Amazon fulfils on one marketplace and the seller on another</td>
-<td>One update names every marketplace and would put a merchant figure on Amazon&#39;s listing</td>
-</tr>
-<tr>
-<td>Keeping buyer data with the order indefinitely</td>
-<td>Amazon&#39;s data protection policy limits it to 30 days after delivery</td>
-</tr>
-</tbody></table></div>
+<h2 id="alternatives-rejected">Alternatives rejected</h2>
+<ul>
+<li><strong>Reading the queue from Vervoro directly:</strong> a Worker would hold AWS credentials; the bridge keeps one inbound path.</li>
+<li><strong>Feeds for every write:</strong> a decrease in a late feed can put back a figure that is too high.</li>
+<li><strong>Treating <code>accepted</code> as applied:</strong> an accepted change can fail minutes later.</li>
+<li><strong>Sending a figure to a SKU Amazon ships on one marketplace and the seller on another:</strong> it would put a merchant figure on Amazon&#39;s listing.</li>
+<li><strong>Keeping buyer data with the order:</strong> Amazon&#39;s policy limits it to 30 days after delivery.</li>
+</ul>
+<h2 id="open-items">Open items</h2>
+<ul>
+<li><strong>Recorded replies</strong> before launch: approval page paths, the Amazon-held stock notice&#39;s contents, and every call the connector makes.</li>
+<li><strong>Accounts on several marketplaces:</strong> whether Amazon keeps them in step is measured in shadow (<a href="../inventory-sync/">ADR-008</a>).</li>
+<li><strong>Limits</strong> were checked on 17 and 18 October 2026; recheck before launch.</li>
+</ul>
 
 <footer>Vervoro</footer>
 </main>

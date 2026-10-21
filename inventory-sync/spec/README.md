@@ -108,7 +108,7 @@ This section owns the rule that Stock sync alone writes each listing's figure (o
 | `throttled` | Unchanged | The marketplace's wait, capped at an hour, or 5 s × 2ⁿ up to 15 minutes |
 | `compare_mismatch` (Shopify) | The figure Shopify reports | The rules run again |
 | `rejected` | Unchanged | The seller sees the reason; no retry until D or the listing changes |
-| `unknown` | Unknown | Settled before anything else is sent, by [ADR-004's rule](../../channel-connectors/#retries-and-outcomes), with its eBay Trading exception ([ADR-004.1](../../ebay-connector/#listings-and-stock)) |
+| `unknown` | Unknown | Settled before anything else is sent, by [ADR-004's rule](../../channel-connectors/spec/#5-retries-and-outcomes), with its eBay Trading exception ([ADR-004.1](../../ebay-connector/spec/#4-listings-and-stock)) |
 
 1. **A read-back that does not match** after the deadline closes the write as "send again".
 2. **Drift** (a figure Vervoro did not send) is found by notices where they exist (Amazon's listing-quantity notices, Shopify's inventory webhook), eBay inventory item reads every 6 hours from the Inventory API's own allowance, and the daily safety read ([ADR-005](../../catalogue-sync/)). A reading replaces B and the rules decide.
@@ -175,7 +175,7 @@ One patch sets one quantity for every marketplace the account serves ([ADR-004.2
 
 ## 14. Shadow and going live
 
-Every account starts in shadow by [ADR-004's rule](../../channel-connectors/#testing-sandboxes-and-shadow-mode). This section adds what going live needs.
+Every account starts in shadow by [ADR-004's rule](../../channel-connectors/spec/#11-shadow-mode-and-launch-gates). This section adds what going live needs.
 
 1. **The listing check.** D is compared with what each marketplace shows. A listing showing more than D is never accepted as explained; going live sends the decrease. One showing less can be accepted in bulk; a ratio of 3 or more either way is listed first and needs its own tap ([ADR-005](../../catalogue-sync/)).
 2. **A company's first go-live** needs two on-hand imports from the old system, one when shadow starts and one at going live. A product that fell by more than its imported orders explain is listed for the seller. The second import sets on hand outright to the old system's figure as one adjustment ([ADR-006](../../stock-ledger/)). It also needs one complete order read, every linked listing read, and every account the old system syncs going live in one step, after the seller confirms the old system's sync is off. After that, on-hand imports are refused, a restore included.

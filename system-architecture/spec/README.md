@@ -133,12 +133,12 @@ The rules are [ADR-001 SPEC 9](../../database-architecture/spec/#the-outbox): th
 
 This section owns the egress gate; other records link here. The gate has two halves: the kernel records an effect in the caller's transaction, and Channels sends it after commit. No other code sends.
 
-An **egress effect** is a call that changes something on a marketplace or at a supplier: figures, dispatch, confirmations, messages. Notice subscriptions made by a connector's connect and disconnect hooks are set-up calls, not egress effects: they run in shadow mode too, through the host's HTTP and rate budgets ([ADR-004](../../channel-connectors/#notices-in)).
+An **egress effect** is a call that changes something on a marketplace or at a supplier: figures, dispatch, confirmations, messages. Notice subscriptions made by a connector's connect and disconnect hooks are set-up calls, not egress effects: they run in shadow mode too, through the host's HTTP and rate budgets ([ADR-004](../../channel-connectors/spec/#8-notices-in)).
 
 1. An effect is recorded inside the transaction with an idempotency key and sent only after commit. A repeat with the same key cannot send twice.
-2. For every send the gate reads the account's mode from the database, never from a cache. Only `live` sends; `shadow` records what it would have sent. The modes and the stop choice are [ADR-004](../../channel-connectors/#testing-sandboxes-and-shadow-mode).
+2. For every send the gate reads the account's mode from the database, never from a cache. Only `live` sends; `shadow` records what it would have sent. The modes and the stop choice are [ADR-004](../../channel-connectors/spec/#11-shadow-mode-and-launch-gates).
 3. Channels opens the account's credentials, takes a token from its rate budget and calls the connector. No connector, handler or screen ever sees an opened credential.
-4. Every answer becomes one outcome: `applied`, `accepted` (awaiting processing), `throttled`, `compare_mismatch`, `rejected` or `unknown`. A timeout is `unknown`, and is settled before anything else is sent to that listing ([ADR-004](../../channel-connectors/#retries-and-outcomes)).
+4. Every answer becomes one outcome: `applied`, `accepted` (awaiting processing), `throttled`, `compare_mismatch`, `rejected` or `unknown`. A timeout is `unknown`, and is settled before anything else is sent to that listing ([ADR-004](../../channel-connectors/spec/#5-retries-and-outcomes)).
 5. Work is claimed with leases, never open-ended locks. A crash costs one lease period, and a result is written only if the claim is still its own.
 6. Where a marketplace offers compare-and-set, the gate uses it.
 7. When a figure is sent, and the read-back deadline, are [ADR-008](../../inventory-sync/spec/#3-when-a-figure-is-sent).
@@ -146,9 +146,9 @@ An **egress effect** is a call that changes something on a marketplace or at a s
 ## 8. Connectors and orders in
 
 1. Each marketplace is its own module that contributes one connector definition. The host, the gate, the server and the screens name no marketplace, so removing the module removes the marketplace.
-2. What a connector declares and what the host does with it: [ADR-004](../../channel-connectors/#what-a-connector-declares).
+2. What a connector declares and what the host does with it: [ADR-004](../../channel-connectors/spec/#2-what-a-connector-declares).
 3. A connector has no network access of its own. A lint rule refuses any network call in a connector.
-4. Orders arrive by notice: verified before any database read, queued, answered at once; the consumer fetches and imports. A failed delivery is retried with growing delays for about 40 minutes, then goes to the dead-letter queue, which alerts the operator. The completeness check and its intervals are [ADR-004](../../channel-connectors/#notices-in). A queue message carries ids only (the account, the topic, and the marketplace's notice and resource ids), never the notice's body.
+4. Orders arrive by notice: verified before any database read, queued, answered at once; the consumer fetches and imports. A failed delivery is retried with growing delays for about 40 minutes, then goes to the dead-letter queue, which alerts the operator. The completeness check and its intervals are [ADR-004](../../channel-connectors/spec/#9-the-completeness-check). A queue message carries ids only (the account, the topic, and the marketplace's notice and resource ids), never the notice's body.
 5. **Amazon's notices** arrive only through an AWS queue or event bus. A small AWS bridge, built once with no code (queue, pipe, API destination) in an EU region, posts them to the app's webhook like any other notice.
 
 ## 9. Simulators
@@ -156,7 +156,7 @@ An **egress effect** is a call that changes something on a marketplace or at a s
 1. Every outside service has a simulator: each marketplace, the parcel carriers, mail and the AI provider. It is a real HTTP server that speaks the real API shapes.
 2. Each has a control interface to change its world (orders, stock, the clock) and its behaviour (latency, failures, throttling, late or repeated notices), and a typed log of every request.
 3. Code is written against the real APIs; only the base address differs. Production refuses a simulator address.
-4. Recorded real replies keep simulators honest ([ADR-004](../../channel-connectors/#testing-sandboxes-and-shadow-mode)).
+4. Recorded real replies keep simulators honest ([ADR-004](../../channel-connectors/spec/#14-simulators-and-recorded-replies)).
 5. A build check refuses any simulator code in the production bundle.
 
 ## 10. Runtime
@@ -271,7 +271,7 @@ For someone reviewing code an AI wrote. Each line says where to look and which t
 - [ ] **Stock:** every stock command's first statement takes the company lock. The round-trip count test, and the race where many orders want the last unit and exactly one gets it, are green on real Postgres.
 - [ ] **Results:** ports return `Result`; no empty or logging-only catch block anywhere (lint).
 - [ ] **Outbox:** every commit path, request and background job, delivers its notes after commit; the background-delivery test is green; handlers write a receipt in their own transaction.
-- [ ] **Gate:** every marketplace or supplier write goes through it; mode read from the database on each send; no credential opened outside it; a timeout is `unknown` and settled by [ADR-004's rule](../../channel-connectors/#retries-and-outcomes) before anything else is sent.
+- [ ] **Gate:** every marketplace or supplier write goes through it; mode read from the database on each send; no credential opened outside it; a timeout is `unknown` and settled by [ADR-004's rule](../../channel-connectors/spec/#5-retries-and-outcomes) before anything else is sent.
 - [ ] **Connectors:** set-up calls run through the host's HTTP, in shadow too; the shadow set-up test shows a new account subscribes and sends no figure.
 - [ ] **Host HTTP:** the transaction guard test shows a call made while a transaction is open is refused; no route calls a marketplace.
 - [ ] **Sweeper:** no background code loops over every company (search for loops over the company registry).
