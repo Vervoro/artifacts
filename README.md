@@ -18,6 +18,7 @@ Architecture decisions and plans, published with GitHub Pages.
   - [Runbook: Restore a whole cell](runbooks/restore-a-whole-cell/README.md)
   - [Runbook: Drills](runbooks/drills/README.md)
   - [Runbook: Use the owner role](runbooks/use-the-owner-role/README.md)
+  - [Runbook: Check an archive month](runbooks/check-an-archive-month/README.md)
   - [Runbook: Change a VAT rate](runbooks/change-a-vat-rate/README.md)
   - [Runbook: Open an operator grant](runbooks/open-an-operator-grant/README.md)
   - [Runbook: Sign-in incident commands](runbooks/sign-in-incident-commands/README.md)
@@ -54,6 +55,7 @@ Architecture decisions and plans, published with GitHub Pages.
 - [ADR-001: Multi-tenant database architecture](database-architecture/README.md)
   - [ADR-001 SPEC: Multi-tenant database architecture](database-architecture/spec/README.md)
 - [ADR-002: Data retention and archiving](data-retention/README.md)
+  - [ADR-002 SPEC: Data retention and archiving](data-retention/spec/README.md)
 - [ADR-003: Product model](product-model/README.md)
   - [ADR-003 SPEC: Product model](product-model/spec/README.md)
 - [ADR-004: Channel connectors](channel-connectors/README.md)
@@ -98,4 +100,4 @@ The order to build in. Each step needs the ones before it.
 9. **[ADR-011: Invoicing and VAT](invoicing-and-vat/README.md).** Invoices follow orders: needs order lines, refunds, the buyer-data rules and the roles. Built before any real sale, so every sale line has its VAT record from the first day.
 10. **[ADR-012: Billing and plans](billing-and-plans/README.md).** Before any connection goes live: going live needs a payment method, the stop choice (leave the figures or send zero) and a stock contact, even in a trial. It is beside the stock path, never in it: nothing in it stops orders or stock.
 11. **[ADR-008: Inventory sync](inventory-sync/README.md).** Last before launch: figures go to marketplaces only once links, the ledger, orders and the go-live checks are proven in shadow mode.
-12. **[ADR-002: Data retention and archiving](data-retention/README.md).** Archiving is switched on by its trigger (a cell past 500 GB, or the start of year 2), not at launch.
+12. **[ADR-002: Data retention and archiving](data-retention/README.md).** The log drops run from launch; archiving is switched on by its trigger (a cell past 500 GB, or the start of year 2).

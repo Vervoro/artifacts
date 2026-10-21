@@ -27,6 +27,14 @@ Rules: [ADR-001 SPEC](../database-architecture/spec/).
 | [Drills](drills/) | Weekly, monthly and nightly, unattended |
 | [Use the owner role](use-the-owner-role/) | An emergency that no other role can fix |
 
+## ADR-002: Data retention and archiving
+
+Rules: [ADR-002 SPEC](../data-retention/spec/).
+
+| Procedure | When |
+| --- | --- |
+| [Check an archive month](check-an-archive-month/) | The monthly run leaves a month attached because a company's archive files are not verified (*Later*) |
+
 ## ADR-003: Product model
 
 Rules: [ADR-003 SPEC](../product-model/spec/).

@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ADR-002 SPEC: Data retention and archiving</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono&display=swap">
+<style>
+:root {
+  --bg: #f6f6f8; --surface: #ffffff; --sunken: #ededf1; --text: #16161a; --muted: #5c5c66; --border: #e0e0e6;
+  --accent: #4338ca; --accent-soft: #eef0ff; --edge: #8a8a96; --tint: #f0f0f4;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #111114; --surface: #1a1a1f; --sunken: #23232a; --text: #ececf1; --muted: #a2a2ad; --border: #2d2d35;
+  --accent: #a5b4fc; --accent-soft: #23264a; --edge: #74747f; --tint: #202027; color-scheme: dark; } }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 var(--sans); }
+main { max-width: 860px; margin: 0 auto; padding: 48px max(20px, env(safe-area-inset-left)) 80px; }
+header.site { max-width: 860px; margin: 0 auto; padding: 20px max(20px, env(safe-area-inset-left)) 0; font-size: 14px; }
+header.site a { color: var(--muted); text-decoration: none; }
+header.site a:hover { color: var(--accent); }
+h1, h2, h3 { line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(28px, 4vw, 38px); letter-spacing: -0.02em; margin: 0 0 20px; }
+h2 { font-size: 23px; margin: 48px 0 12px; padding-top: 20px; border-top: 1px solid var(--border); }
+h3 { font-size: 18px; margin: 32px 0 8px; }
+p, li { max-width: 72ch; }
+a { color: var(--accent); }
+code { font-family: var(--mono); font-size: 0.86em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--sunken); padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 13.5px; line-height: 1.5; }
+pre code { background: none; padding: 0; overflow-wrap: normal; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 16px 0; background: var(--surface); }
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+.table-wrap table { margin: 0; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+th { background: var(--sunken); font-weight: 600; font-size: 13px; color: var(--muted); }
+tr:last-child td { border-bottom: none; }
+ul, ol { padding-left: 22px; }
+li + li { margin-top: 4px; }
+figure { margin: 20px 0; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; }
+svg.diagram { display: block; width: 100%; min-width: 640px; height: auto; font-family: var(--sans); }
+svg .ink { fill: var(--text); } svg .quiet { fill: var(--muted); }
+svg .edge { stroke: var(--edge); } svg .edge-fill { fill: var(--edge); }
+svg .accent { stroke: var(--accent); } svg .accent-fill { fill: var(--accent); }
+svg .box { fill: none; stroke: var(--edge); stroke-width: 1.25; }
+svg .box-main { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+svg .band { fill: var(--tint); stroke: var(--edge); stroke-width: 1.25; }
+.cards { list-style: none; padding: 0; display: grid; gap: 12px; }
+.cards a { display: block; padding: 18px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; text-decoration: none; color: var(--text); }
+.cards a:hover, .cards a:focus-visible { border-color: var(--accent); outline: none; }
+.cards.sub { margin: 12px 0 0 24px; padding-left: 16px; border-left: 2px solid var(--border); }
+.parts { margin: 6px 0 0 20px; font-size: 14px; color: var(--muted); } .cards .parts a { display: inline; padding: 0; background: none; border: none; border-radius: 0; color: var(--accent); font-weight: 600; text-decoration: none; } .cards .parts a:hover { text-decoration: underline; }
+.cards b { display: block; font-size: 17px; } .cards span { color: var(--muted); font-size: 14px; }
+.order li { margin-top: 10px; } .order span { color: var(--muted); font-size: 14px; }
+footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header class="site"><a href="../../">← Vervoro artifacts</a> / <a href="../">ADR-002: Data retention and archiving</a></header>
+<main>
+<h1 id="adr-002-spec-data-retention-and-archiving">ADR-002 SPEC: Data retention and archiving</h1>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Decision</strong></td>
+<td><a href="../">ADR-002: Data retention and archiving</a></td>
+</tr>
+<tr>
+<td><strong>Procedures</strong></td>
+<td><a href="../../runbooks/#adr-002-data-retention-and-archiving">RUNBOOK</a></td>
+</tr>
+<tr>
+<td><strong>Date</strong></td>
+<td>21 October 2026</td>
+</tr>
+<tr>
+<td><strong>For</strong></td>
+<td>The developer and coding agents building it, and the person reviewing their work</td>
+</tr>
+</tbody></table></div>
+<p>The rules to build ADR-002 from: how long a company&#39;s data stays in its cell, the archive, and deletion. Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the <a href="../../guide/">map and glossary</a>.</p>
+<h2 id="0-at-launch-and-later">0. At launch and later</h2>
+<p>At launch only the drops in <a href="#2-the-retention-schedule">section 2</a> run (<code>event_log</code> at 90 days; outbound sends, sync attempts and operational state at 30 days), and buyer anonymisation runs by <a href="../../buyer-data/spec/#8-retention-and-anonymisation">ADR-009</a>. Every other month stays in the cell.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Later part</th>
+<th>Trigger</th>
+<th>Rules</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>The archiver, the archive bucket and its catalogue, checkpoints, the older-history report, archive files in exports</td>
+<td>A cell passes 500 GB, or the start of year 2, whichever comes first</td>
+<td><a href="#3-archiving-a-month">3</a>–<a href="#6-the-company-lifecycle">6</a></td>
+</tr>
+<tr>
+<td>Deleting archived months, and the 90-day notice before it</td>
+<td>The first archived month reaches 7 years after its end</td>
+<td><a href="#7-deleting-a-month">7</a></td>
+</tr>
+</tbody></table></div>
+<h2 id="1-who-does-what">1. Who does what</h2>
+<ol>
+<li><strong>The archiver</strong> exports, verifies and catalogues a month, and writes the stock checkpoints through Inventory&#39;s rules (<a href="../../stock-ledger/spec/#14-the-nightly-check-and-checkpoints">ADR-006 SPEC 14</a>). It reads through parent tables only, never a partition (<a href="../../database-architecture/spec/#the-slice-operation">ADR-001 SPEC 10</a>).</li>
+<li><strong>The monthly migration run</strong> detaches and drops a month, as the owner role (<a href="../../database-architecture/spec/#12-operations">ADR-001 SPEC 12</a>).</li>
+</ol>
+<h2 id="2-the-retention-schedule">2. The retention schedule</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Data</th>
+<th>In the cell</th>
+<th>Archive</th>
+<th>Then</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Products, listings, stock levels, open orders and purchase orders, settings, users</td>
+<td>Always</td>
+<td>Never</td>
+<td>Deleted with the company</td>
+</tr>
+<tr>
+<td>Closed orders and their lines</td>
+<td>24 months</td>
+<td>Until 7 years after the month ends</td>
+<td>Deleted</td>
+</tr>
+<tr>
+<td>Invoices, credit notes, VAT records, export evidence and payments (<a href="../../invoicing-and-vat/">ADR-011</a>)</td>
+<td>24 months</td>
+<td>Until 7 years after the month ends</td>
+<td>Deleted</td>
+</tr>
+<tr>
+<td>Stock ledger entries</td>
+<td>24 months, then a checkpoint</td>
+<td>Until 7 years after the month ends</td>
+<td>Deleted</td>
+</tr>
+<tr>
+<td>Batches with no stock left</td>
+<td>24 months after the last movement</td>
+<td>Until 7 years after the month ends</td>
+<td>Deleted</td>
+</tr>
+<tr>
+<td><code>audit_log</code> (security and access)</td>
+<td>At least a year (<a href="../../database-architecture/spec/#5-declaring-tables">ADR-001 SPEC 5</a>)</td>
+<td>6 years</td>
+<td>Deleted</td>
+</tr>
+<tr>
+<td><code>event_log</code> (module activity)</td>
+<td>90 days</td>
+<td>Never</td>
+<td>Dropped</td>
+</tr>
+<tr>
+<td>Outbound sends, sync attempts, operational state</td>
+<td>30 days</td>
+<td>Never</td>
+<td>Dropped</td>
+</tr>
+<tr>
+<td>Buyer personal data</td>
+<td>30 days after delivery, dispatch as the fallback (<a href="../../buyer-data/spec/#8-retention-and-anonymisation">ADR-009 SPEC 8</a>)</td>
+<td>Only anonymised, except on issued invoices</td>
+<td>Deleted with the order or the invoice</td>
+</tr>
+</tbody></table></div>
+<p>Every period applies while the company exists. A closed company is erased by <a href="../../billing-and-plans/">ADR-012</a>, archive included.</p>
+<h2 id="3-archiving-a-month">3. Archiving a month</h2>
+<ol>
+<li><strong>Pick the month</strong> that has just passed 24 months.</li>
+<li><strong>Checkpoint the stock ledger</strong> for every company in the cell (<a href="../../stock-ledger/spec/#14-the-nightly-check-and-checkpoints">ADR-006 SPEC 14</a>).</li>
+<li><strong>Export the month</strong> per company: one file per table per company, encrypted with the company&#39;s data key (<a href="../../database-architecture/spec/#encryption">ADR-001 SPEC 10</a>).</li>
+<li><strong>Verify:</strong> row counts and checksums of each file match the partition, per company and table.</li>
+<li><strong>Record</strong> each file in the archive catalogue: company, table, month, object key, row count, checksum.</li>
+<li><strong>Detach and drop the partition</strong> only when every company&#39;s files for that month are verified. Detaching is instant and rewrites no rows.</li>
+</ol>
+<p>A run that stops part way resumes from the catalogue. A month left unverified stays attached; the operator follows <a href="../../runbooks/check-an-archive-month/">Check an archive month</a>.</p>
+<h2 id="4-storage">4. Storage</h2>
+<ol>
+<li>One private object-storage bucket per region. Versioning or a 30-day soft delete; a key is never overwritten (<a href="../../database-architecture/spec/#backups">ADR-001 SPEC 10</a>).</li>
+<li>Object keys are <code>company/&lt;company_id&gt;/&lt;table&gt;/&lt;yyyy-mm&gt;.&lt;format&gt;</code>. No personal data in a key.</li>
+<li>A compressed columnar format, so a report reads only the columns it needs.</li>
+</ol>
+<h2 id="5-reading-archived-data">5. Reading archived data</h2>
+<ol>
+<li><strong>Export:</strong> a company&#39;s full export includes its archive files, decrypted for that company (<a href="../../database-architecture/spec/#export">ADR-001 SPEC 10</a>).</li>
+<li><strong>Older-history report:</strong> reads the requested months on demand, within a time and size limit, and says it is slower.</li>
+<li><strong>Lot trace:</strong> includes archived months (<a href="../../stock-ledger/spec/#10-lot-trace-and-recalls">ADR-006 SPEC 10</a>).</li>
+</ol>
+<p>Nothing else reads the archive.</p>
+<h2 id="6-the-company-lifecycle">6. The company lifecycle</h2>
+<ol>
+<li><strong>Erase</strong> deletes the company&#39;s archive files and their versioned copies, and destroys its data key (<a href="../../database-architecture/spec/#erase">ADR-001 SPEC 10</a>).</li>
+<li><strong>Move</strong> does not move the archive; the catalogue is keyed by company, not by cell.</li>
+<li><strong>Restore</strong> needs no archive restore: archive files never change.</li>
+<li><strong>Residency:</strong> the archive bucket is in the company&#39;s region, like the rest of its data (<a href="../../database-architecture/spec/#dedicated-databases-and-residency">ADR-001 SPEC 8</a>).</li>
+</ol>
+<h2 id="7-deleting-a-month">7. Deleting a month</h2>
+<ol>
+<li>A company&#39;s files for a month are deleted 7 years after the month ends.</li>
+<li>The company&#39;s owners are told 90 days before, with the month&#39;s export. Longer cases (<a href="#8-constraints">section 8</a>) depend on facts only the seller has.</li>
+</ol>
+<h2 id="8-constraints">8. Constraints</h2>
+<p>Checked against GOV.UK and the Companies Act on 18 October 2026.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Record</th>
+<th>Keep for</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>VAT records</td>
+<td>At least 6 years</td>
+<td><a href="https://www.gov.uk/guidance/record-keeping-for-vat-notice-70021">VAT Notice 700/21, 2.4</a></td>
+</tr>
+<tr>
+<td>A limited company&#39;s tax records</td>
+<td>6 years from the end of the financial year; longer for a transaction across periods, an asset kept over 6 years, a late return or an open compliance check</td>
+<td><a href="https://www.gov.uk/running-a-limited-company/company-and-accounting-records">Company and accounting records</a></td>
+</tr>
+<tr>
+<td>A sole trader&#39;s records</td>
+<td>5 years after the 31 January filing deadline, within the 6 years above</td>
+<td><a href="https://www.gov.uk/self-employed-records/how-long-to-keep-your-records">Self-employed records</a></td>
+</tr>
+<tr>
+<td>A company&#39;s accounting records under company law</td>
+<td>3 years from when made for a private company, 6 for a public one</td>
+<td><a href="https://www.legislation.gov.uk/ukpga/2006/46/section/388">Companies Act 2006, section 388(4)</a></td>
+</tr>
+</tbody></table></div>
+<h2 id="9-tests-that-prove-each-rule">9. Tests that prove each rule</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Test or check</th>
+<th>Where</th>
+<th>Proves</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Drops</td>
+<td>CI</td>
+<td><code>event_log</code> rows older than 90 days, and outbound sends, sync attempts and operational state older than 30 days, are gone after the sweep; nothing else is</td>
+</tr>
+<tr>
+<td>Detach waits for verification</td>
+<td>CI</td>
+<td>A month with one company&#39;s file missing or its checksum wrong stays attached</td>
+</tr>
+<tr>
+<td>Resume</td>
+<td>CI</td>
+<td>An archiver stopped after some companies resumes from the catalogue and writes no file twice</td>
+</tr>
+<tr>
+<td>Checkpoint</td>
+<td>CI</td>
+<td>After a ledger month is archived, the nightly check still passes for every company</td>
+</tr>
+<tr>
+<td>Deletion date</td>
+<td>CI</td>
+<td>Files are deleted 7 years after the month ends, and the notice goes 90 days before</td>
+</tr>
+<tr>
+<td>Keys</td>
+<td>CI</td>
+<td>No object key holds anything but the company id, table and month</td>
+</tr>
+<tr>
+<td>Everyday paths</td>
+<td>CI</td>
+<td>Lists, searches, stock figures and sync make no archive read</td>
+</tr>
+<tr>
+<td>Erase</td>
+<td>CI</td>
+<td>Erasing a company leaves no archive file or version for it</td>
+</tr>
+</tbody></table></div>
+<h2 id="how-to-check-it-was-built-right">How to check it was built right</h2>
+<p>For someone reviewing code an AI wrote. Each line says where to look.</p>
+<ul>
+<li><input disabled="" type="checkbox"> <strong>Later parts:</strong> no archiver, bucket or catalogue at launch; the drops run from day one.</li>
+<li><input disabled="" type="checkbox"> <strong>Parent tables:</strong> the archiver&#39;s reads name parent tables, never a partition.</li>
+<li><input disabled="" type="checkbox"> <strong>Detach:</strong> only the monthly migration run detaches, and only after its catalogue query shows every company verified.</li>
+<li><input disabled="" type="checkbox"> <strong>Encryption:</strong> each file is encrypted with the company&#39;s data key before upload.</li>
+<li><input disabled="" type="checkbox"> <strong>Bucket:</strong> versioning or soft delete is on in its configuration; uploads never overwrite.</li>
+<li><input disabled="" type="checkbox"> <strong>Checkpoint:</strong> written through Inventory&#39;s code under the company&#39;s lock, not by the archiver directly.</li>
+<li><input disabled="" type="checkbox"> <strong>Reads:</strong> only the export, the older-history report and the lot trace import the archive reader.</li>
+<li><input disabled="" type="checkbox"> <strong>Deletion:</strong> the deletion job computes the date from the month, never from a seller setting.</li>
+</ul>
+
+<footer>Vervoro</footer>
+</main>
+</body>
+</html>

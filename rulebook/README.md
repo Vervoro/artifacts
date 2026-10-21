@@ -18,6 +18,7 @@ Load this page with any task. Load the linked record before changing the area it
 | Shadow mode | [ADR-004 SPEC 11: Shadow mode and launch gates](../channel-connectors/spec/#11-shadow-mode-and-launch-gates) |
 | The egress gate | [ADR-000 SPEC 7](../system-architecture/spec/#7-the-egress-gate) |
 | Schema changes expand, then contract | [ADR-000 SPEC 11](../system-architecture/spec/#11-deploying) |
+| How long each kind of company data is kept, the archive, and deletion | [ADR-002 decisions 1–9](../data-retention/#decision) and [SPEC 2](../data-retention/spec/#2-the-retention-schedule) |
 | Buyer data: what is kept, where it lives, who sees it | [ADR-009 decisions 2–4](../buyer-data/#decision) and [SPEC 4, 5 and 7](../buyer-data/spec/#4-what-is-kept) |
 | Buyer data anonymised 30 days after delivery, and erasure through backups and restores | [ADR-009 SPEC 8](../buyer-data/spec/#8-retention-and-anonymisation) and [SPEC 11](../buyer-data/spec/#11-erasure-backups-and-restores) |
 | Who is told of an incident, and when | [ADR-009 SPEC 13](../buyer-data/spec/#13-incidents) |

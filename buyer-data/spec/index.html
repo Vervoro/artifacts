@@ -322,7 +322,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2 id="9-invoices-and-export-evidence">9. Invoices and export evidence</h2>
 <ol>
 <li><strong>Invoices</strong> follow <a href="../../invoicing-and-vat/">ADR-011</a>: to a consumer only on request or where the law or marketplace requires, simplified without buyer details wherever allowed (<a href="#19-constraints">HMRC</a>); a full invoice carries the name and address the law requires.</li>
-<li><strong>An issued invoice is kept unchanged for the statutory period</strong> (7 years from the end of its month, <a href="../../data-retention/">ADR-002</a>). After the order is anonymised it is shown only to owners, admins and accountants, each view logged, not searchable by buyer, and archived with its month encrypted under the company&#39;s key.</li>
+<li><strong>An issued invoice is kept unchanged for the statutory period</strong> (7 years from the end of its month, <a href="../../data-retention/spec/#2-the-retention-schedule">ADR-002 SPEC 2</a>). After the order is anonymised it is shown only to owners, admins and accountants, each view logged, not searchable by buyer, and archived with its month encrypted under the company&#39;s key.</li>
 <li><strong>An order delivered outside the UK</strong> keeps its carrier, tracking number, dispatch date and the carrier&#39;s delivery event (date and country) as export evidence for the statutory period (<a href="../../invoicing-and-vat/">ADR-011</a>).</li>
 </ol>
 <h2 id="10-buyers-requests">10. Buyers&#39; requests</h2>

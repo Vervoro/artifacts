@@ -194,7 +194,7 @@ All of it happens within minutes, inside ADR-009's 24 hours.
 | **Each entry** | Time, actor (person, operator with grant, or system actor), action, the ids it named, result | Time, login or operator id, event, network address and device kind, result |
 | **Never holds** | Buyer data (a view records which fields were shown, not their values) | Buyer data, email addresses, names, passwords or codes |
 | **Read by** | Owner, Admin, Accountant | The operator; each person sees their own sign-ins |
-| **Kept** | At least a year in the cell, then 6 years in the archive ([ADR-002](../../data-retention/)); erased with the company | 12 months ([ADR-009](../../buyer-data/spec/#14-security-controls)) |
+| **Kept** | At least a year in the cell, then 6 years in the archive ([ADR-002 SPEC 2](../../data-retention/spec/#2-the-retention-schedule)); erased with the company | 12 months ([ADR-009](../../buyer-data/spec/#14-security-controls)) |
 | **Protected** | Append-only: the runtime role cannot update, delete or truncate it ([ADR-001 SPEC 5](../../database-architecture/spec/#5-declaring-tables)) | The same |
 
 ADR-009's alerts read these trails: every grant, every use of the owner role, a burst of failed sign-ins, a last-Owner recovery, and a person viewing far more buyers than their packing explains.

@@ -111,6 +111,7 @@ const docs: Doc[] = [
     ["restore-a-whole-cell", "Restore a whole cell"],
     ["drills", "Drills"],
     ["use-the-owner-role", "Use the owner role"],
+    ["check-an-archive-month", "Check an archive month"],
     ["change-a-vat-rate", "Change a VAT rate"],
     ["open-an-operator-grant", "Open an operator grant"],
     ["sign-in-incident-commands", "Sign-in incident commands"],
@@ -147,7 +148,8 @@ const docs: Doc[] = [
   ].map(([dir, title]) => ({ dir: `runbooks/${dir}`, partOf: "runbooks", title: `Runbook: ${title}`, blurb: "" })),
   { dir: "database-architecture", title: "ADR-001: Multi-tenant database architecture", blurb: "Control database, shared-table customer databases with forced row-level security, a wrong-database check on every transaction, dedicated databases, trials as a state. Proposed 17 October 2026, revised 18 October 2026; split into ADR, SPEC and RUNBOOK 20 October 2026.", links: [{ label: "SPEC", href: "database-architecture/spec/" }, { label: "RUNBOOK", href: "runbooks/#adr-001-multi-tenant-database-architecture" }] },
   { dir: "database-architecture/spec", partOf: "database-architecture", title: "ADR-001 SPEC: Multi-tenant database architecture", blurb: "The rules to build ADR-001 from, the tests that prove them, and a checklist for reviewing the code." },
-  { dir: "data-retention", title: "ADR-002: Data retention and archiving", blurb: "24 months of history in each cell, older months archived per company in object storage, statutory retention, then deletion. Proposed, 17 October 2026." },
+  { dir: "data-retention", title: "ADR-002: Data retention and archiving", blurb: "24 months of history in each cell, older months archived per company in object storage once every company's files are verified, stock checkpoints, 7 years from the end of each month then deletion with 90 days' notice, logs on their own clocks. Later: archiving switched on at 500 GB or the start of year 2. Proposed 17 October 2026; split into ADR, SPEC and RUNBOOK 21 October 2026.", links: [{ label: "SPEC", href: "data-retention/spec/" }, { label: "RUNBOOK", href: "runbooks/#adr-002-data-retention-and-archiving" }] },
+  { dir: "data-retention/spec", partOf: "data-retention", title: "ADR-002 SPEC: Data retention and archiving", blurb: "The rules to build ADR-002 from, the retention schedule, statutory periods with sources, the tests that prove them, and a checklist for reviewing the code." },
   { dir: "product-model", title: "ADR-003: Product model", blurb: "A product is what the warehouse counts, in whole base units; charges that are not stock are charge lines. A permanent SKU, simple products, packs with their own stock and bundles from components, barcodes of any GTIN length, box sizes that never hold stock, size and colour families, VAT classes with one rate table, best-before, lot and serial tracking, the link from a listing, measures in grams and millimetres shown metric or imperial, and three ways to create products. Proposed 17 October 2026; split into ADR, SPEC and RUNBOOK 21 October 2026.", links: [{ label: "SPEC", href: "product-model/spec/" }, { label: "RUNBOOK", href: "runbooks/#adr-003-product-model" }] },
   { dir: "product-model/spec", partOf: "product-model", title: "ADR-003 SPEC: Product model", blurb: "The rules to build ADR-003 from, the tests that prove them, and a checklist for reviewing the code." },
   { dir: "channel-connectors", title: "ADR-004: Channel connectors", blurb: "The Channels module and the connector contract: each marketplace a translator only; the host owns credentials, HTTP, rate budgets, shared daily pools counted exactly with a reserve per account, notice checks and the sending half of the egress gate; orders by notice with a completeness check behind (hourly where the order limit is shared, every 10 minutes where it is the seller's own); an unknown write settled before anything else; shadow first, with launch gates per marketplace; simulators with recorded replies. Proposed 17 October 2026; split into ADR, SPEC and RUNBOOK 21 October 2026.", links: [{ label: "SPEC", href: "channel-connectors/spec/" }, { label: "RUNBOOK", href: "runbooks/#adr-004-channel-connectors" }] },
@@ -191,7 +193,7 @@ const buildOrder: { adrs: string[]; why: string }[] = [
   { adrs: ["invoicing-and-vat"], why: "Invoices follow orders: needs order lines, refunds, the buyer-data rules and the roles. Built before any real sale, so every sale line has its VAT record from the first day." },
   { adrs: ["billing-and-plans"], why: "Before any connection goes live: going live needs a payment method, the stop choice (leave the figures or send zero) and a stock contact, even in a trial. It is beside the stock path, never in it: nothing in it stops orders or stock." },
   { adrs: ["inventory-sync"], why: "Last before launch: figures go to marketplaces only once links, the ledger, orders and the go-live checks are proven in shadow mode." },
-  { adrs: ["data-retention"], why: "Archiving is switched on by its trigger (a cell past 500 GB, or the start of year 2), not at launch." },
+  { adrs: ["data-retention"], why: "The log drops run from launch; archiving is switched on by its trigger (a cell past 500 GB, or the start of year 2)." },
 ];
 const titleOf = (a: string) => docs.find((d) => d.dir === a)?.title ?? a;
 const orderHtml = `<h2>Build order</h2>

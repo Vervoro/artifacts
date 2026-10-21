@@ -170,7 +170,7 @@ Each port is a command under the company's lock with its key (section 12). The f
 
 ## 10. Lot trace and recalls
 
-1. **One search by lot** returns every demand that received a batch of that lot (bundles included), the lines marked "batch assumed" that may have received it (apart), the stock of that lot on hand per warehouse, and archived months read from the archive ([ADR-002](../../data-retention/)). Entries marked "lot not traced" are listed as unknown.
+1. **One search by lot** returns every demand that received a batch of that lot (bundles included), the lines marked "batch assumed" that may have received it (apart), the stock of that lot on hand per warehouse, and archived months read from the archive ([ADR-002 SPEC 5](../../data-retention/spec/#5-reading-archived-data)). Entries marked "lot not traced" are listed as unknown.
 2. **The recall list** joins those demands with order details; it is a Fulfilment screen ([ADR-014 SPEC 7](../../fulfilment/spec/#7-the-recall-list)). A manager blocks the lot from it at once.
 3. Procedure: [Run a recall](../../runbooks/run-a-recall/).
 
@@ -234,7 +234,7 @@ The sweeper runs it per company, outside the lock, on a consistent snapshot ([AD
 
 A difference in 1–5 alerts the operator and the company's managers, and Stock sync holds raises on every listing of the affected products while decreases go ([ADR-008 SPEC 7](../../inventory-sync/spec/#7-held-raises)). The operator rebuilds the balance from the ledger: [Settle a stock check difference](../../runbooks/settle-a-stock-check-difference/). The operator never writes a seller's ledger.
 
-**Checkpoints** ([ADR-002](../../data-retention/)): before a ledger month leaves the database, the archiver writes under the lock one `opening_balance` per spot balance and batch position with entries up to then, carrying each total and the last sequence covered, and each open reservation's totals. Open reservations are never archived.
+**Checkpoints** ([ADR-002 SPEC 3](../../data-retention/spec/#3-archiving-a-month)): before a ledger month leaves the database, the archiver writes under the lock one `opening_balance` per spot balance and batch position with entries up to then, carrying each total and the last sequence covered, and each open reservation's totals. Open reservations are never archived.
 
 ## 15. Storage
 

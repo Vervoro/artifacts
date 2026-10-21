@@ -3,122 +3,64 @@
 | | |
 | --- | --- |
 | **Status** | Proposed |
-| **Date** | 17 October 2026 |
-| **Scope** | How long each kind of data stays in a cell, where older data goes, and when it is deleted |
-| **Builds on** | [ADR-001: Multi-tenant database architecture](../database-architecture/) |
+| **Date** | 17 October 2026; split into ADR, SPEC and RUNBOOK 21 October 2026 |
+| **Scope** | How long each kind of a company's data stays in its cell, where older months go, and when they are deleted |
+| **Builds on** | [ADR-001](../database-architecture/), [ADR-006](../stock-ledger/), [ADR-009](../buyer-data/); used by [ADR-010](../users-and-access/), [ADR-011](../invoicing-and-vat/) and [ADR-012](../billing-and-plans/) |
+| **SPEC** | [The rules to build from, the evidence and how to check them](spec/) |
+| **RUNBOOK** | [The procedures for this record](../runbooks/#adr-002-data-retention-and-archiving) |
 
 ## Context
 
-Each cell ([ADR-001](../database-architecture/)) holds many companies in shared tables. Order and stock history only grows. A company at 1,000 orders a day adds about 150 MB a month, about 1.8 GB a year, so a cell of 300 such companies grows about 540 GB a year and reaches 1.5–2 TB after three years.
-
-Storage itself is cheap and has no hard cap. What degrades with old data is everything else:
-
-- **Speed:** indexes outgrow memory, so everyday queries slow down although almost nobody reads data older than two years.
-- **Company operations:** the slice copy that moves, exports or restores a company takes longer the more history the company has.
-- **Housekeeping:** vacuum, index maintenance and every database branch carry the full history.
-
-Two rules limit what can be deleted:
-
-- **Accounting records** (invoices, payments, the orders behind them) must be kept for the statutory period. In the UK the longest general rule is 6 years from the end of the financial year they belong to (see "Statutory periods" below). Vervoro keeps them 7 years from the end of the month they belong to, which covers any financial year without asking when the seller's ends.
-- **Buyer personal data** is anonymised 30 days after delivery, or after dispatch when no delivery date is known ([ADR-009 SPEC 8](../buyer-data/spec/#8-retention-and-anonymisation)), so old order history holds almost no personal data. Issued VAT invoices keep the buyer details the law requires.
+- **History only grows.** A company at 1,000 orders a day adds about 150 MB a month. A cell of 300 such companies grows about 540 GB a year and reaches 1.5–2 TB after three years.
+- **Storage is cheap; old data slows everything else.** Indexes outgrow memory, and exporting, moving or restoring a company ([ADR-001](../database-architecture/spec/#10-company-lifecycle)), vacuum and every database branch carry the full history. Almost nobody reads data older than two years.
+- **Accounting records must be kept.** In the UK the longest general rule is 6 years from the end of the financial year they belong to ([SPEC 8](spec/#8-constraints)). Only the seller knows their year-end, and only the seller knows when HMRC needs longer.
+- **Old orders hold almost no personal data.** Buyer data is anonymised 30 days after delivery ([ADR-009](../buyer-data/spec/#8-retention-and-anonymisation)); only issued VAT invoices keep the buyer details the law requires.
+- **Append-only rows leave only in whole months,** detached after the archiver verified them ([ADR-001 SPEC 5](../database-architecture/spec/#5-declaring-tables)).
 
 ## Decision
 
-1. **Hot data stays in the cell for 24 months:** orders, stock movements and logs from the last 24 months. That covers year-on-year reports.
-2. **Current state is never archived:** products, listings, stock levels, open orders, open purchase orders, settings and users.
-3. **Older months move to an archive in object storage,** as compressed files per company per month, then leave the cell.
-4. **The archive is kept for 7 years from the end of each month,** then that month is deleted per company. Any financial year ends within 12 months of the month, so this is never shorter than the statutory 6 years from the year's end, and no year-end setting is needed. The seller is told 90 days before a month is deleted, with its export, because only the seller knows when HMRC needs it kept longer.
-5. **Archived data is read only on request:** through an export or an "older history" report, never by everyday screens.
-6. **Archiving is switched on by a trigger,** not at launch: when a cell passes 500 GB, or at the start of year 2, whichever comes first.
+1. **History stays in the cell for 24 months:** closed orders and their lines, invoices, credit notes, VAT records, export evidence, payments, stock ledger entries, and batches with no stock left (counted from their last movement). That covers year-on-year reports.
+2. **Current state is never archived:** products, listings, stock levels, open orders, open purchase orders, settings and users. It is deleted only with the company.
+3. **Older months move to an archive, then leave the cell.** The archive is object storage: compressed files, one per table per company per month, encrypted with the company's key. A month is archived for the whole cell at once, because partitions are shared. It leaves the cell only after every company's files are verified against it ([SPEC 3](spec/#3-archiving-a-month)).
+4. **Stock still proves itself after its history leaves.** Before a ledger month is archived, the archiver writes a checkpoint (an opening balance) so the nightly check sums from it ([ADR-006 SPEC 14](../stock-ledger/spec/#14-the-nightly-check-and-checkpoints)).
+5. **The archive is kept 7 years from the end of each month, then that month is deleted** per company. Any financial year ends within 12 months of the month, so this always covers the statutory 6 years and needs no year-end setting. The seller is told 90 days before a month is deleted, with its export, and keeps what a longer case needs.
+6. **Archived data is read only on request:** a company's export, the older-history report, and a lot trace ([ADR-006](../stock-ledger/spec/#10-lot-trace-and-recalls)). Everyday screens, searches, stock figures and marketplace sync use the cell only.
+7. **Logs and working data keep their own clocks.** `audit_log` (security and access) stays at least a year in the cell, then 6 years in the archive; `event_log` (module activity) 90 days; outbound sends, sync attempts and operational state 30 days. The last three are dropped, never archived ([ADR-001](../database-architecture/spec/#5-declaring-tables)).
+8. **The archive follows the company, not the cell.** Erasing a company deletes its archive files; moving it leaves them where they are; restoring it needs no archive restore, because the files never change; the bucket sits in the company's region ([SPEC 6](spec/#6-the-company-lifecycle)).
+9. **Archiving is switched on by a trigger.** *Later: when a cell passes 500 GB, or at the start of year 2, whichever comes first.* Until then every month stays in the cell; only decision 7's drops run at launch.
 
-## How data moves to the archive
-
-The large append-only tables are already partitioned by month with `company_id` leading every index (ADR-001), so archiving works on whole months:
-
-1. **Pick the month** that has just passed 24 months.
-2. **Checkpoint the stock ledger** (below) for every company in the cell.
-3. **Export the month** per company to object storage as compressed files, reading through the parent table, never the partition (ADR-001): one file per table per company per month. Each file is encrypted with that company's data key.
-4. **Verify:** row counts and checksums of the files match the partition, per company and table.
-5. **Record the month** in an archive catalogue: company, table, month, object key, row count, checksum.
-6. **Detach and drop the partition.** Detaching is instant and rewrites no rows. The monthly migration run does it, as the database owner, only after every company's files are verified (ADR-001).
-
-A month is archived for the whole cell at once, because partitions are shared by every company in it. A run that stops part way resumes from the archive catalogue; a partition is dropped only after every company's files are verified.
-
-## Stock ledger checkpoints
-
-Every stock balance must equal the sum of its ledger entries, and a nightly check proves it. Old entries cannot simply leave.
-
-- Before a ledger month is archived, the archiver writes one **opening-balance entry** per company, product, batch and spot, and per batch in each warehouse, dated the first day of the next month, equal to the sum of all entries up to then. It also carries each open reservation's totals, so reservations are still proved from the checkpoint (ADR-006).
-- The nightly check then sums from the latest checkpoint, and still proves balances equal entries.
-- The archived entries stay available for traceability (where a batch went) through the archive.
-
-## What is archived, and for how long
-
-| Data | In the cell | Archive | Then |
-| --- | --- | --- | --- |
-| Products, listings, stock levels, open orders and purchase orders, settings, users | Always | Never | Deleted with the company |
-| Closed orders and their lines | 24 months | Until 7 years after the month ends | Deleted |
-| Invoices, credit notes, VAT records, export evidence and payments | 24 months | Until 7 years after the month ends | Deleted |
-| Stock ledger entries | 24 months, then a checkpoint | Until 7 years after the month ends | Deleted |
-| Batches with no stock left | 24 months after the last movement | Until 7 years after the month ends | Deleted |
-| `audit_log` (security and access) | At least 1 year | 6 years | Deleted |
-| `event_log` (module activity) | 90 days | Never | Dropped |
-| Outbound sends, sync attempts, operational state | 30 days | Never | Dropped |
-| Buyer personal data | 30 days after delivery (or dispatch when no delivery date is known), then anonymised | Archived only anonymised, except on issued invoices | Deleted with the order, or with the invoice |
-
-## Statutory periods
-
-Checked against GOV.UK and the Companies Act on 18 October 2026.
-
-| Record | Keep for | Source |
-| --- | --- | --- |
-| VAT records | At least 6 years | [VAT Notice 700/21, 2.4](https://www.gov.uk/guidance/record-keeping-for-vat-notice-70021) |
-| A limited company's tax records | 6 years from the end of the last financial year they relate to; longer if a transaction covers more than one accounting period, an asset is expected to last more than 6 years, the tax return was sent late, or HMRC has opened a compliance check | [Company and accounting records](https://www.gov.uk/running-a-limited-company/company-and-accounting-records) |
-| A sole trader's records | At least 5 years after the 31 January filing deadline of the tax year, which ends before the 6 years above | [Self-employed records](https://www.gov.uk/self-employed-records/how-long-to-keep-your-records) |
-| A company's accounting records under company law | 3 years from when they are made for a private company, 6 for a public one | [Companies Act 2006, section 388(4)](https://www.legislation.gov.uk/ukpga/2006/46/section/388) |
-
-So 6 years from the end of the financial year meets every general rule, and 7 years from the end of the month always reaches it. The cost is up to a year more of archived data than the law needs. The longer cases depend on facts only the seller has (a late return, an open check), so Vervoro does not guess them: the seller is told 90 days before a month is deleted and keeps what they need from the export.
-
-## Reading archived data
-
-- **Export:** a company's full export includes its archive files, decrypted for that company.
-- **Older-history report:** reads the requested months from the archive on demand, within a time and size limit, and shows that it is slower.
-- **Never in everyday screens:** lists, searches, stock figures and marketplace sync use the cell only.
-
-## Archive and the company lifecycle
-
-- **Erase:** the company's archive files are deleted with the company, and destroying the company's data key makes any remaining copy (in backups or object-storage versions) unreadable.
-- **Move:** moving a company between cells does not move its archive; the archive catalogue is keyed by company, not by cell.
-- **Restore one company:** restores the cell data as in ADR-001; archive files are immutable, so they need no restore.
-- **Dedicated databases and residency:** the archive bucket follows the company's region, like the rest of its data.
-
-## Storage
-
-- One object-storage bucket per region, private, with versioning or a 30-day soft delete, and keys never overwritten.
-- Object keys: `company/<company_id>/<table>/<yyyy-mm>.<format>`; no personal data in keys.
-- A compressed columnar format for the files, so an older-history report can read only the columns it needs.
+**Retention owned by other records:** backups, 7 days of point-in-time history and 30 days of snapshots ([ADR-001 SPEC 10](../database-architecture/spec/#backups)); sign-in data in the control database ([ADR-013 SPEC 2](../sign-in/spec/#2-the-login-and-its-data)); the platform security log, 12 months ([ADR-010 SPEC 8](../users-and-access/spec/#8-audit)); a closed company and Vervoro's own billing records ([ADR-012](../billing-and-plans/)); what an invoice must hold ([ADR-011](../invoicing-and-vat/)). The full schedule is [SPEC 2](spec/#2-the-retention-schedule).
 
 ## Consequences
 
-**What this gives us**
+**Gives**
 
-- A cell's size is bounded by about 24 months of activity, so speed, moves, restores and housekeeping stay predictable as the platform ages.
-- Statutory records are kept for as long as required and deleted when that ends.
-- Erasure still reaches everything, through per-company files and per-company keys.
+- A cell's size is bounded by about 24 months of activity, so speed, moves, restores and upkeep stay predictable as the platform ages.
+- Statutory records are kept as long as the law asks, and deleted when that ends.
+- Erasure still reaches everything, through per-company files and the company's key.
+- No seller setting to ask for or keep right.
 
-**What it costs**
+**Costs**
 
-- A second store to run: the archive bucket, its catalogue and the archiver job.
-- History older than 24 months is slower to read and is not in everyday screens.
-- The stock ledger gains checkpoint entries, and the nightly check sums from the latest one.
-- Archiving runs per cell and must finish for every company before a partition is dropped.
+- A second store to run: the archive bucket, its catalogue and the archiver.
+- History older than 24 months is slower to read and absent from everyday screens.
+- The stock ledger gains checkpoint entries.
+- A month is archived per cell, and must finish for every company before its partition is dropped.
+- Up to a year more archived data than the law needs.
 
-## Alternatives considered
+## Alternatives rejected
 
-| Option | Why not |
-| --- | --- |
-| Keep everything in the cell | Simple, but speed, moves, restores and housekeeping degrade every year |
-| Delete after 3 years | Breaks the statutory retention of accounting records |
-| Ask each seller's financial year-end and delete exactly 6 years after it | A setting to ask for and keep right; a wrong or changed year-end deletes records too early |
-| A separate archive database | Still a database to run, size and back up; object storage is cheaper and immutable |
-| Archive at launch | Not needed until a cell is large; the trigger avoids running a second store before it pays off |
+- **Keep everything in the cell:** simple, but speed, moves, restores and upkeep degrade every year.
+- **Delete after 3 years:** breaks the statutory retention of accounting records.
+- **Ask each seller's year-end and delete exactly 6 years after it:** a setting to keep right; a wrong or changed year-end deletes records too early.
+- **A separate archive database:** still a database to run, size and back up; object storage is cheaper and its files never change.
+- **Archive at launch:** not needed until a cell is large; the trigger avoids running a second store before it pays off.
+
+## Open items
+
+- **Where the archive catalogue lives** (control or the cell) is not stated. "Moving a company leaves its files" implies control, which holds no company business data.
+- **Which job and role runs the archiver** is not stated. The detach is the monthly migration run, as the owner role ([ADR-001 SPEC 12](../database-architecture/spec/#12-operations)).
+- **When `audit_log` months move**, and what its 6 years count from, are not stated.
+- **Dropping logs against ADR-001:** [ADR-001 SPEC 12](../database-architecture/spec/#12-operations) drops a month only after the archiver verified it, but decision 7 drops `event_log` and outbound sends without archiving, from launch. Not settled here.
+- **Order holds and the outbox have no clock:** [ADR-001 SPEC 5](../database-architecture/spec/#5-declaring-tables) makes them append-only and not partitioned, so their rows leave only with the company. Not settled here.
+- **Statutory periods** were checked on 18 October 2026; recheck before archiving is switched on.

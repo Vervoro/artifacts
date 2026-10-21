@@ -121,7 +121,7 @@ Each field only for its purpose, and only from the marketplaces that send it.
 ## 9. Invoices and export evidence
 
 1. **Invoices** follow [ADR-011](../../invoicing-and-vat/): to a consumer only on request or where the law or marketplace requires, simplified without buyer details wherever allowed ([HMRC](#19-constraints)); a full invoice carries the name and address the law requires.
-2. **An issued invoice is kept unchanged for the statutory period** (7 years from the end of its month, [ADR-002](../../data-retention/)). After the order is anonymised it is shown only to owners, admins and accountants, each view logged, not searchable by buyer, and archived with its month encrypted under the company's key.
+2. **An issued invoice is kept unchanged for the statutory period** (7 years from the end of its month, [ADR-002 SPEC 2](../../data-retention/spec/#2-the-retention-schedule)). After the order is anonymised it is shown only to owners, admins and accountants, each view logged, not searchable by buyer, and archived with its month encrypted under the company's key.
 3. **An order delivered outside the UK** keeps its carrier, tracking number, dispatch date and the carrier's delivery event (date and country) as export evidence for the statutory period ([ADR-011](../../invoicing-and-vat/)).
 
 ## 10. Buyers' requests

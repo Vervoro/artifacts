@@ -382,7 +382,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ol>
 <h2 id="10-lot-trace-and-recalls">10. Lot trace and recalls</h2>
 <ol>
-<li><strong>One search by lot</strong> returns every demand that received a batch of that lot (bundles included), the lines marked &quot;batch assumed&quot; that may have received it (apart), the stock of that lot on hand per warehouse, and archived months read from the archive (<a href="../../data-retention/">ADR-002</a>). Entries marked &quot;lot not traced&quot; are listed as unknown.</li>
+<li><strong>One search by lot</strong> returns every demand that received a batch of that lot (bundles included), the lines marked &quot;batch assumed&quot; that may have received it (apart), the stock of that lot on hand per warehouse, and archived months read from the archive (<a href="../../data-retention/spec/#5-reading-archived-data">ADR-002 SPEC 5</a>). Entries marked &quot;lot not traced&quot; are listed as unknown.</li>
 <li><strong>The recall list</strong> joins those demands with order details; it is a Fulfilment screen (<a href="../../fulfilment/spec/#7-the-recall-list">ADR-014 SPEC 7</a>). A manager blocks the lot from it at once.</li>
 <li>Procedure: <a href="../../runbooks/run-a-recall/">Run a recall</a>.</li>
 </ol>
@@ -516,7 +516,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>Each open order&#39;s status, worked out again, equals the stored one (<a href="../../order-ingestion/spec/#6-statuses">ADR-007</a>); a difference here alerts the operator only.</li>
 </ol>
 <p>A difference in 1–5 alerts the operator and the company&#39;s managers, and Stock sync holds raises on every listing of the affected products while decreases go (<a href="../../inventory-sync/spec/#7-held-raises">ADR-008 SPEC 7</a>). The operator rebuilds the balance from the ledger: <a href="../../runbooks/settle-a-stock-check-difference/">Settle a stock check difference</a>. The operator never writes a seller&#39;s ledger.</p>
-<p><strong>Checkpoints</strong> (<a href="../../data-retention/">ADR-002</a>): before a ledger month leaves the database, the archiver writes under the lock one <code>opening_balance</code> per spot balance and batch position with entries up to then, carrying each total and the last sequence covered, and each open reservation&#39;s totals. Open reservations are never archived.</p>
+<p><strong>Checkpoints</strong> (<a href="../../data-retention/spec/#3-archiving-a-month">ADR-002 SPEC 3</a>): before a ledger month leaves the database, the archiver writes under the lock one <code>opening_balance</code> per spot balance and batch position with entries up to then, carrying each total and the last sequence covered, and each open reservation&#39;s totals. Open reservations are never archived.</p>
 <h2 id="15-storage">15. Storage</h2>
 <p>Every table is Inventory&#39;s, a tenant table with the <code>stock_</code> prefix, declared through <code>tenantTable()</code> and queried through the typed query builder (<a href="../../database-architecture/spec/#5-declaring-tables">ADR-001 SPEC 5</a>). No foreign key crosses modules.</p>
 <div class="table-wrap"><table>
