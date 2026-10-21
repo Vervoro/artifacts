@@ -23,6 +23,7 @@ Everything below is built at launch except these parts, which keep their rules h
 | Creating a family as a grid, a SKU pattern, "add a size", and editing members together | Sellers with ranges ask for faster creation than the spreadsheet | [10](#10-sizes-and-colours) |
 | Creating a product from a pasted Amazon link or ASIN | Sellers ask for it beyond "make product" from their own listings | [13](#13-creating-products) |
 | Dangerous goods (`un_number`, `battery`) and age-restricted goods (`min_age`) on the product | The shipping record, when carriers and labels need them | [2](#2-fields) |
+| Serial tracking (`tracks_serial`): a serial recorded at packing and checked on return (owner ruling, 21 October 2026) | A first customer needs it | [12](#12-best-before-lot-and-serial-numbers), rules 7–8 |
 
 ## 1. What a product is
 
@@ -56,7 +57,7 @@ Owner ruling, 21 October 2026: non-stock charges are charge lines, not a product
 | `pack_of`, `units_per_pack` | product id, integer | Pack only | Section 6.2 |
 | `family_id`, `option_1`–`option_3` | family id, text | In a family | Section 10. Values up to 50 characters |
 | `tracks_best_before`, `date_kind`, `tracks_lot` | boolean, `best_before` or `use_by`, boolean | Yes | Section 12. Defaults from the company setting |
-| `tracks_serial` | boolean | Yes | Default off. Section 12 |
+| `tracks_serial` | boolean | Yes | *Later* ([section 0](#0-at-launch-and-later)). Default off. Section 12 |
 | `min_days_on_receipt` | integer | No | 1–3,650 |
 | `min_days_to_sell` | integer | No; required for `use_by` | 0–3,650. Section 12 |
 | `weight_g` | integer | No | Gross weight of one unit, 1–1,000,000 |
@@ -236,6 +237,8 @@ Batches, dates and lots live on stock ([ADR-006](../../stock-ledger/#the-four-nu
 4. **A pack follows its content product:** a six-pack of a dated product is dated too. Repacking keeps the batch, date and lot.
 5. **Switching on while stock is on hand** flags that stock for a count to fill in the dates or lots. Until then it stays sellable, shown as missing them.
 6. A company setting gives new products their defaults, so a food seller starts with both on.
+Rules 7 and 8 are *Later* ([section 0](#0-at-launch-and-later)): kept here, built when a first customer needs serial tracking.
+
 7. **`tracks_serial` on** (electronics, tools, bikes): each unit's serial number is recorded when it is packed, by a scan, and stored with the order line. A serial is unique per product among units shipped and not returned. A return of that product asks for the serial and checks it against the order's; a mismatch puts the return in front of a manager. Serials are not recorded at receipt or counted on the shelf. The stock side belongs to [ADR-006](../../stock-ledger/), which takes it when it is split.
 8. Serial and lot tracking may both be on. A bundle records the serial of each serial-tracked component.
 
@@ -301,7 +304,7 @@ Database tests run on real Postgres under the runtime role ([ADR-000 SPEC 15](..
 | Charge lines | A manual order with only charge lines reserves nothing and never reaches the pick list; a not-stock listing's order line imports as a charge line, gets a VAT record and never waits |
 | Units | Imperial entry rounds half up to whole grams and millimetres; saving a form without touching a measure leaves it unchanged; an imperial-headed column imports for a metric company |
 | Spreadsheet | A blank cell and a missing column change nothing; `(clear)` empties; a file with errors writes only its valid rows, all at once; a SKU twice in a file is refused |
-| Serials | A serial-tracked unit cannot be packed without a serial; a serial already shipped and not returned is refused; a return with a different serial goes to a manager |
+| Serials (*Later*) | A serial-tracked unit cannot be packed without a serial; a serial already shipped and not returned is refused; a return with a different serial goes to a manager |
 | Concurrent edits | An edit on an older `version` is refused |
 | VAT | A rate change writes no past line; a class with no rate in a country is not offered there |
 
@@ -324,5 +327,4 @@ For someone reviewing code an AI wrote. Each line says where to look.
 - [ ] **Spreadsheet:** blank means unchanged in the parser, `(clear)` is the only way to empty; the preview and the write share one validation; the write is one transaction.
 - [ ] **Activity:** every product command writes an activity entry with old and new values.
 - [ ] **Images:** one per product; marketplace images are copied to object storage; no key is overwritten.
-- [ ] **Serials:** the pack command refuses a serial-tracked unit without a serial; no receipt or count screen asks for one.
-- [ ] **Later parts:** no `product_vat` table, Vendor link, second cost currency, `un_number`, `battery` or `min_age`, category tree, second image, family grid or ASIN lookup at launch.
+- [ ] **Later parts:** no `product_vat` table, Vendor link, second cost currency, `tracks_serial`, `un_number`, `battery` or `min_age`, category tree, second image, family grid or ASIN lookup at launch.

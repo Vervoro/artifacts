@@ -378,6 +378,27 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Secrets:</strong> one table, <code>secrets(company_id, purpose)</code>.</li>
 </ol>
 <h2 id="6-guard-rails">6. Guard rails</h2>
+<p>This section and <a href="#1-tenancy-inside-a-cell">section 1</a> own tenant isolation; other records link here. Isolation has two tiers.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>What it is</th>
+<th>Guards</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>The security boundary</strong></td>
+<td>What keeps one company from another&#39;s rows. Each part must hold; a failure in any is a cross-company exposure</td>
+<td>Forced row-level security (<a href="#1-tenancy-inside-a-cell">1</a>); the runtime role without <code>BYPASSRLS</code>, and restricted roles (<a href="#3-roles">3</a>); entering one company per transaction (<a href="#1-tenancy-inside-a-cell">1</a>); the commit check (below); correct routing (<a href="#7-control-database-and-routing">7</a>); composite keys (<a href="#2-keys-and-identifiers">2</a>)</td>
+</tr>
+<tr>
+<td><strong>Defence in depth</strong></td>
+<td>What stops a mistake before it reaches the boundary, and finds one that got through</td>
+<td>The typed query builder and its function allow-list, the run-time query check, the catalogue lint (<a href="#61-catalogue-lint">6.1</a>), the catalogue audit and the canary (<a href="#11-production-checks">11</a>)</td>
+</tr>
+</tbody></table></div>
+<p><strong>Why the commit check is part of the boundary.</strong> Row-level security fences rows by the company setting, but it does not fence the setting itself: any SQL that runs inside a transaction could change it. The code review of the first implementation reproduced exactly that, as its most serious finding: module SQL switched its transaction to another company. Row-level security alone therefore does not fence the company context. The commit check does: it compares the setting and the role with what the transaction entered, before anything commits, and refuses the commit if either changed.</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -433,8 +454,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>cannot begin, commit or roll back: the data layer owns the transaction.</li>
 </ol>
 <p><strong>The query check</strong> runs on every module query at run time, because types and lint can be bypassed (a cast, a name built at run time). A plugin on the builder walks each query&#39;s tree before it reaches the database and refuses, failing closed, any raw-SQL node, any function off the allow-list and any table or view outside the module&#39;s set. A refusal pages the operator.</p>
-<p>Raw SQL exists only in the kernel&#39;s data layer (entering, the commit check, the lock) and in migrations, both under change control. A query the builder cannot express is solved by extending the builder or adding a view by migration, never by raw SQL in a module.</p>
-<p>The commit check stays as the second fence, and SQL-executing functions are revoked where the platform allows (<a href="#4-functions">section 4</a>). The foundation&#39;s stock ledger trigger is not module SQL: a migration defines it, and it only applies a ledger entry to its balances.</p>
+<p>Raw SQL exists only in the kernel&#39;s data layer (entering, the commit check, the lock) and in migrations, both under change control. Modules still never write SQL. A query the builder cannot express has one escape route: a reviewed view added by migration, or a reviewed extension of the builder, both under change control. Never raw SQL in a module.</p>
+<p>The builder, the query check and the allow-list are defence in depth; the commit check stays part of the boundary, and SQL-executing functions are revoked where the platform allows (<a href="#4-functions">section 4</a>). The foundation&#39;s stock ledger trigger is not module SQL: a migration defines it, and it only applies a ledger entry to its balances.</p>
 <h3 id="61-catalogue-lint">6.1 Catalogue lint</h3>
 <p>Fails if any table or partition in a cell has:</p>
 <ol>
@@ -808,7 +829,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ol>
 <li><strong>Timeouts.</strong> Every migration sets a <code>lock_timeout</code> and retries, so a migration waiting for a lock on a shared table does not queue every seller behind it.</li>
 <li><strong>Migrations run as a ring:</strong> first on control, then the newest cell (which holds the trials and the canary), then the others. They finish everywhere before new code goes live (<a href="../../system-architecture/spec/#11-deploying">ADR-000 SPEC 11</a>).</li>
-<li><strong>Migrations only add.</strong> A migration already merged is never edited.</li>
+<li><strong>Schema changes expand, then contract,</strong> by <a href="../../system-architecture/spec/#11-deploying">ADR-000 SPEC 11</a>. A migration already merged is never edited.</li>
 <li><strong>One-time reset before launch</strong> (owner ruling, 20 October 2026). Before launch, every module&#39;s migrations were squashed into one new first migration. This was allowed once, only because no production database existed. Development databases from before the reset are recreated, and the data layer refuses to start on a database that still holds objects from before it. From then on rule 3 has no exception.</li>
 <li><strong>Migration ledger.</strong> Each database&#39;s own ledger, committed with each migration, is the authority on what it has applied. Control keeps, per database, the version the last deploy reached; the deploy writes it after reading each database&#39;s ledger.</li>
 <li><strong>Partitions.</strong> A monthly scheduled run of the CI migration job creates partitions three months ahead, so a failed run waits for the next. It detaches and drops a month only after the archiver has written and verified that month&#39;s per-company files (<a href="../../data-retention/">ADR-002</a>).</li>

@@ -3,8 +3,8 @@
 | | |
 | --- | --- |
 | **Status** | Proposed |
-| **Date** | 17 October 2026; charge lines, a units setting and barcodes without a type question (owner rulings), split into ADR, SPEC and RUNBOOK, 21 October 2026 |
-| **Scope** | What a product is and what it holds: the SKU, packs, bundles, box sizes, barcodes, size and colour families, VAT classes, best-before, lot and serial tracking, the link from a listing, units of measure, and how products are created |
+| **Date** | 17 October 2026; charge lines, a units setting and barcodes without a type question (owner rulings), split into ADR, SPEC and RUNBOOK, 21 October 2026; serial tracking deferred 21 October 2026 |
+| **Scope** | What a product is and what it holds: the SKU, packs, bundles, box sizes, barcodes, size and colour families, VAT classes, best-before and lot tracking (serial tracking *Later*), the link from a listing, units of measure, and how products are created |
 | **Builds on** | [ADR-000](../system-architecture/), [ADR-001](../database-architecture/); used by [ADR-005](../catalogue-sync/), [ADR-006](../stock-ledger/), [ADR-007](../order-ingestion/) and [ADR-011](../invoicing-and-vat/) |
 | **SPEC** | [The rules to build from, and how to check them](spec/) |
 | **RUNBOOK** | [The operator's procedures for this record](../runbooks/#adr-003-product-model) |
@@ -28,7 +28,7 @@ Parts marked *Later* keep their rules in the SPEC but are built only when their 
 5. **A listing links to exactly one product,** with the units one sale uses and who ships it. The product holds no selling price; prices belong to the channel.
 6. **Sizes and colours are product families.** Each size or colour is its own product with its own stock; the family groups up to three options, so a range is linked to one variation listing in one step. *Later: creating a range as a grid and editing it together.*
 7. **VAT is a class on the product; rates come from one table by country,** kept by the operator. Every line stores the class and rate it used. *Later: a different class per country, when selling into the EU.*
-8. **Best-before, lot and serial tracking are switched on per product.** With dates or lots on, no stock enters without them, expired stock is never sold, and every dispatch records its lot. With serials on (electronics, tools), packing records each unit's serial number and a return is checked against it. *Later: a dangerous-goods class and an age check on the product, when the shipping record needs them for carriers and labels.*
+8. **Best-before and lot tracking are switched on per product.** With dates or lots on, no stock enters without them, expired stock is never sold, and every dispatch records its lot. *Later: serial tracking (electronics, tools), when a first customer needs it; its rules stay in the [SPEC](spec/#0-at-launch-and-later).* *Later: a dangerous-goods class and an age check on the product, when the shipping record needs them for carriers and labels.*
 9. **Measures are stored in whole grams and millimetres** and shown metric or imperial by a company setting, which defaults from the country (metric for the UK), is changed in Settings and is never asked at sign-up. Values are converted only on entry and display (owner ruling, 21 October 2026).
 10. **Products are created three ways through one validation:** on screen, by spreadsheet, and from a marketplace listing. A person confirms each one. *Later: from a pasted Amazon link, a category tree and more than one image.* In a spreadsheet a blank cell changes nothing.
 
@@ -76,6 +76,6 @@ The Products module, a core module, is the only writer of these ([ADR-000](../sy
 - **SKU length.** 40 characters is Amazon's limit as reported by third parties; check it in Seller Central, including whether it counts bytes.
 - **Restricted barcode ranges** (13-digit codes starting 20–29, 12-digit codes starting 2 or 4): recheck against the GS1 General Specifications before launch, including 8-digit codes.
 - **Imperial display:** the precision shown (0.1 oz, 0.1 in) is a proposal for the product owner.
-- **Serial numbers** need ADR-006 to take the stock side (recording at packing, checking on return) when it is split.
+- **Serial tracking is deferred** (owner, 21 October 2026) until a first customer needs it. When it is built, ADR-006 takes the stock side (recording at packing, checking on return).
 - **Not covered at launch:** items shipped in several boxes (furniture) and items whose weight differs piece by piece. Free-form attributes stay on the listing.
 - **Amazon Vendor** items link like listings, but wait for the Vendor connector (ADR-004.4, not written).

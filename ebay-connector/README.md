@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Status** | Proposed |
-| **Date** | 17 October 2026 |
+| **Date** | 17 October 2026; the Trading API exception to the unknown-write rule, 21 October 2026 |
 | **Scope** | What eBay forces us to decide beyond the shared connector design: how a seller connects, how orders arrive, which API carries each listing's stock, the shared Trading API pool, the seller's out-of-stock option, and privacy notices |
 | **Builds on** | [ADR-004: Channel connectors](../channel-connectors/), [ADR-003: Product model](../product-model/), [ADR-001: Multi-tenant database architecture](../database-architecture/) |
 
@@ -76,6 +76,8 @@ How an imported order is mapped to statuses and reservations is ADR-007.
 - **250 revisions a day per listing.** eBay caps how often one listing can be revised in a calendar day. Inventory sync keeps room for decreases under that cap (ADR-008).
 
 **Read back** uses the API that took the write: the inventory item by SKU, each Seller Hub listing by item number. A listing eBay will not show is looked up afresh by SKU before anything is concluded.
+
+**An unknown Trading API write is settled by resending, not reading back.** This is the exception [ADR-004](../channel-connectors/#retries-and-outcomes) allows a connector to name. The Trading API's inventory status revision sets the quantity it is given and never adds to it, so sending the same figure twice cannot compound, and a read costs the same shared pool call as a write. The figure Vervoro wants now is sent again instead, at the time [ADR-008](../inventory-sync/#confirming-every-write) sets. An unknown Inventory API write is read back as usual.
 
 **Variations without a SKU.** eBay names a variation in the Trading API only by its own SKU. A variation without one is read and its orders still come in, keyed by item number and variation id, but it can be neither linked for stock nor updated. The seller is told to add a SKU in Seller Hub, after which it links like any other.
 

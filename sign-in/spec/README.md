@@ -237,7 +237,7 @@ Written to the platform security log ([ADR-010 SPEC 8](../../users-and-access/sp
 
 1. **No schema change at start-up.** Better Auth's `migrate` command is never run against a shared database.
 2. **An upgrade** (a Better Auth version or plugin change) goes: read its release notes and security advisories; run `generate` for the `auth` schema; review the SQL; commit it as a control migration; CI with every sign-in test; deploy and migrate through the normal release ([runbook](../../runbooks/deploy-and-roll-back/)).
-3. **Migrations only add** ([ADR-000 SPEC 11](../../system-architecture/spec/#11-deploying)). A generated change that drops or renames is split into an adding step now and a removing step a release later, or the upgrade waits.
+3. **Expand, then contract** ([ADR-000 SPEC 11](../../system-architecture/spec/#11-deploying)). Better Auth's generated changes may not be purely additive. One that drops, renames or tightens is split: the adding part ships with the upgrade, and the removing part ships in a later release, after the rollback window. If the previous sign-in Worker cannot run on the expanded schema, the upgrade waits.
 4. **Deliberate upgrades only:** no version ranges, no automatic updates, never a minor or major version without this procedure; security fixes follow the same steps faster. Dependency scanning runs on every build and monthly ([ADR-009](../../buyer-data/)).
 5. **Rehearsed:** an upgrade and a rollback of the sign-in Worker over the new schema, on a staging copy, before launch.
 
@@ -319,7 +319,7 @@ For someone reviewing code an AI wrote. Each line says where to look and which t
 - [ ] **Fresh check:** start time from Better Auth, re-checked by the sign-in Worker before any reset or method change.
 - [ ] **Lockouts and limits:** owners as section 7; rate limit stored in the database; the bot check on every password route.
 - [ ] **Recovery:** section 6's split; a reset touches only the resetter's company; the last-Owner wait cancels on any sign-in.
-- [ ] **Migrations:** the `auth` schema from reviewed, committed `generate` output; no `migrate` at start-up; only adding steps.
+- [ ] **Migrations:** the `auth` schema from reviewed, committed `generate` output; no `migrate` at start-up; a removing step ships only in a release after the one that first needs the new schema.
 - [ ] **Secrets:** `BETTER_AUTH_SECRETS` only in the sign-in Worker; the rotation was rehearsed.
 - [ ] **Logs:** the events of section 12 are written; none holds a secret, code or token.
 - [ ] **Incidents:** the four commands exist and write to the security log; the staging rehearsal is recorded.

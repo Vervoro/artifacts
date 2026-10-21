@@ -93,13 +93,13 @@ One word per concept. Where two words appear in the records, the table says whet
 
 | Term | Meaning |
 | --- | --- |
-| **Module** | A feature inside the one deployable. It owns its tables and talks to others only through typed ports and events (ADR-000) |
+| **Module** | A feature inside the main application deployable (the sign-in Worker, deployed separately, holds no module). It owns its tables and talks to others only through typed ports and events (ADR-000) |
 | **Library** | A package of shared code with no tables, manifest, state or business rule, such as the kernel. Any module may import one (ADR-000) |
-| **Foundation** | The always-on core: Products, Listings, Inventory, Orders, Buyer data and Access, each the only writer of its own data. Inventory alone changes stock; Orders alone changes order status. They share one transaction where they must (ADR-000) |
+| **Foundation** | The always-on core: Products, Listings, Inventory, Orders, Buyer data and Access, each the only writer of its own data. Inventory alone changes stock (ADR-006); Orders alone changes order status. They share one transaction where they must (ADR-000) |
 | **Always-on module** | A module outside the core that is never switched off, such as Fulfilment. It calls the foundation; the foundation never calls it (ADR-000) |
 | **Switchable module** | A module a company's plan and settings turn on or off. It calls the foundation; the foundation never calls it (ADR-000) |
 | **Outbox** | Notes written in the same transaction as a change, delivered after commit, each handled once |
-| **Egress gate** | The one door to marketplaces and suppliers. Records every outbound effect with an idempotency key and sends it only after commit |
+| **Egress gate** | The one door to marketplaces and suppliers. Records every outbound effect with an idempotency key and sends it only after commit (ADR-000 SPEC 7) |
 | **Sweeper** | One background worker per database. Finds due work through the `due` table. `due` and `buyer_ref` are the only tables read across companies, and only through two allow-listed functions that return ids and times (ADR-001) |
 
 ### Marketplaces
@@ -113,7 +113,7 @@ One word per concept. Where two words appear in the records, the table says whet
 | **Link** | A versioned tie from a listing to a product, with units per sale. An order uses the link that was valid when the buyer bought |
 | **Figure** | The number a listing should show, worked out by Stock sync after each stock change ("D" in ADR-008). The desired state |
 | **Believed figure** | What the marketplace is believed to show ("B" in ADR-008). A number, or unknown |
-| **Unknown** | An outbound write with no clear answer, a timeout included. It is read back before anything else is sent to that listing, never retried blind |
+| **Unknown** | An outbound write with no clear answer, a timeout included. It is settled before anything else is sent to that listing: read back by default, or, where the connector's record names the exception, the same absolute figure resent (ADR-004) |
 | **Order watermark** | The point up to which a complete read of a marketplace's orders has been done. A raise waits for it |
 
 ### Products

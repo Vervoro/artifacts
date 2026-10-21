@@ -111,7 +111,7 @@ When a change alters a module's contract, it re-runs the tests of:
 Solid arrows are port calls inside the caller's transaction; dashed arrows are events delivered after commit; dotted arrows are outside calls, never inside a transaction. In shadow mode the gate records what it would send and sends nothing. What the diagram leaves out:
 
 - **Set-up calls.** Connecting runs the seller's approval, seals the credentials and subscribes to notices, in shadow too ([ADR-004](../../channel-connectors/)).
-- **A cancellation the seller wants** starts in Orders; Channels sends it to the marketplace by event ([ADR-007](../../order-ingestion/#cancellations)).
+- **Cancellations.** Vervoro never sends one: the seller cancels on the marketplace, and the confirmed cancellation comes in like any other order change, as the "A buyer cancels" row shows ([ADR-007 decision 9](../../order-ingestion/#decision)).
 - **Invoices and refunds.** Orders records refunds; Invoicing hears shipped and refunded orders and acts by its own rules ([ADR-011](../../invoicing-and-vat/)).
 - *Later:* **purchase orders.** Purchasing calls Inventory's receive port when a supplier delivers; Amazon Vendor brings Amazon's purchase orders through Channels into Orders once a person approves them.
 
@@ -131,14 +131,14 @@ The rules are [ADR-001 SPEC 9](../../database-architecture/spec/#the-outbox): th
 
 ## 7. The egress gate
 
-The gate has two halves: the kernel records an effect in the caller's transaction, and Channels sends it after commit. No other code sends.
+This section owns the egress gate; other records link here. The gate has two halves: the kernel records an effect in the caller's transaction, and Channels sends it after commit. No other code sends.
 
 An **egress effect** is a call that changes something on a marketplace or at a supplier: figures, dispatch, confirmations, messages. Notice subscriptions made by a connector's connect and disconnect hooks are set-up calls, not egress effects: they run in shadow mode too, through the host's HTTP and rate budgets ([ADR-004](../../channel-connectors/#notices-in)).
 
 1. An effect is recorded inside the transaction with an idempotency key and sent only after commit. A repeat with the same key cannot send twice.
 2. For every send the gate reads the account's mode from the database, never from a cache. Only `live` sends; `shadow` records what it would have sent. The modes and the stop choice are [ADR-004](../../channel-connectors/#testing-sandboxes-and-shadow-mode).
 3. Channels opens the account's credentials, takes a token from its rate budget and calls the connector. No connector, handler or screen ever sees an opened credential.
-4. Every answer becomes one outcome: `applied`, `accepted` (awaiting processing), `throttled`, `compare_mismatch`, `rejected` or `unknown`. A timeout is `unknown`: the listing is read back before anything is sent again ([ADR-004](../../channel-connectors/#retries-and-outcomes)).
+4. Every answer becomes one outcome: `applied`, `accepted` (awaiting processing), `throttled`, `compare_mismatch`, `rejected` or `unknown`. A timeout is `unknown`, and is settled before anything else is sent to that listing ([ADR-004](../../channel-connectors/#retries-and-outcomes)).
 5. Work is claimed with leases, never open-ended locks. A crash costs one lease period, and a result is written only if the claim is still its own.
 6. Where a marketplace offers compare-and-set, the gate uses it.
 7. When a figure is sent, and the read-back deadline, are [ADR-008](../../inventory-sync/#when-a-figure-is-sent).
@@ -163,7 +163,7 @@ An **egress effect** is a call that changes something on a marketplace or at a s
 
 <!-- DIAGRAM -->
 
-1. **The app Worker,** one per environment, serves the built client as static files, the API and every webhook. **The sign-in Worker** is the only other one: it runs Better Auth, serves the sign-in pages, answers the app's "whose session is this?" over a service binding, and reaches only control's `auth` and `auth_policy` schemas, through its own Hyperdrive configuration ([ADR-013 SPEC 8](../../sign-in/spec/#8-the-sign-in-worker)). Better Auth is a pinned dependency inside it, not a module: no module imports it, and it never calls a module's port or writes a module's table. The login id it returns goes to Access, the core module that decides every permission ([ADR-010](../../users-and-access/)). Deployed code uses web-standard APIs and platform bindings only.
+1. **The app Worker,** one per environment, serves the built client as static files, the API and every webhook. **The sign-in Worker** is the only other one: it runs Better Auth, serves the sign-in pages, answers the app's "whose session is this?" over a service binding, and reaches only control's `auth` and `auth_policy` schemas, through its own Hyperdrive configuration ([ADR-013 SPEC 8](../../sign-in/spec/#8-the-sign-in-worker)). Better Auth is a pinned dependency inside it, not a module: no module imports it, and it never calls a module's port or writes a module's table. The login id it returns goes to Access; who decides what is [ADR-013 decision 3](../../sign-in/#decision). Deployed code uses web-standard APIs and platform bindings only.
 2. **Background work** runs on one sweeper per database, a Durable Object driven by its alarm, that runs only companies with work due ([ADR-001 SPEC 9](../../database-architecture/spec/#9-background-work-and-the-outbox)).
 3. **Webhooks** go through one inbound queue with retries and a dead-letter queue.
 4. **Live updates** come from one Durable Object per company that holds its open screens' connections, so a screen updates when a background job changes what it shows. They carry ids and statuses, never buyer data ([ADR-009](../../buyer-data/)).
@@ -179,7 +179,12 @@ An **egress effect** is a call that changes something on a marketplace or at a s
 ## 11. Deploying
 
 1. Deploying is one command. Migrations run first, on control and every cell in the ring of [ADR-001 SPEC 12](../../database-architecture/spec/#12-operations), and finish before new code goes live.
-2. Migrations only add, so the previous code version runs on the new schema, and a rollback is switching back to it. A migration is never rolled back.
+2. **Expand, migrate, contract.** This section owns the migration rule; other records link here. A schema change ships in steps:
+   - **Expand:** the change is first added in a backward-compatible form, so the previous code version still runs on the new schema and a rollback is switching back to it.
+   - **Migrate:** code that understands both the old and the new shape deploys, and the data is moved.
+   - **Contract:** after the rollback window, a later release removes the old shape.
+
+   A destructive change (a drop, a rename, a tighter constraint) never ships in the same release that first depends on the new schema. A migration is never rolled back, and a migration already merged is never edited ([16](#16-how-work-is-done)). Better Auth's generated changes follow the same steps ([ADR-013 SPEC 13](../../sign-in/spec/#13-upgrades-and-migrations)).
 3. A database below the version the code needs is an error that alerts, never a state the code handles.
 4. Each Worker deploys on its own, only when its code changes; when both change, the sign-in Worker goes first ([ADR-013 SPEC 8](../../sign-in/spec/#8-the-sign-in-worker)). The `auth` schema's migrations are Better Auth's reviewed `generate` output, run with control's other migrations; nothing changes a schema at start-up ([ADR-013 SPEC 13](../../sign-in/spec/#13-upgrades-and-migrations)).
 
@@ -205,16 +210,22 @@ Procedure: [Deploy and roll back](../../runbooks/deploy-and-roll-back/).
 1. Money always carries its currency. Adding amounts in different currencies is refused.
 2. A product has a VAT class; rates come from a table keyed by country and class.
 3. Every order line stores the country, class and rate it used.
-4. Country rules live only in the records that name them (ADR-006, ADR-011, ADR-012, each marketplace's sub-record). Selling into the EU (*Later*) changes nothing in stock, orders, listings or tenancy.
+4. Country rules live only in the records that name them (ADR-006, ADR-011, ADR-012, each marketplace's sub-record). Selling into the EU (*Later*) should not need an architectural rewrite of stock, orders, listings or tenancy.
 
 ## 15. Testing and verification
 
-1. Tests run on the real kernel, with real databases and the simulators. Nothing is mocked.
+1. **Testing is layered.** Each rule is proved at the cheapest layer that can prove it:
+   - **Pure logic** (VAT sums, status rules, figure calculation, permission mapping) runs as fast unit tests with no database.
+   - **The database:** row-level security, locking, routing and triggers run on real Postgres, under the runtime role.
+   - **Marketplace behaviour** runs on the simulators.
+   - **Critical flows** run end to end, on the real kernel, real Postgres and the simulators.
+
+   A test that needs the database or a marketplace uses real Postgres or the simulator, never a hand-written stand-in.
 2. **One test database: real Postgres** (owner ruling, 21 October 2026), the same major version as production, started locally by the test runner. The in-process database allows one connection and runs as a superuser, so it cannot prove locking or row-level security; it is used only by `dev` to run the app on a laptop, and no test depends on it.
 3. Concurrency, duplicate delivery, database roles and isolation are proved only on real Postgres, under the runtime role.
 4. **One verify command** means green: lint, typecheck and the tests the change can affect. Every test runs before a release.
 5. Every code example in the core packages' documentation is executed by a test.
-6. A test is never deleted, skipped or weakened to go green.
+6. A test that protects accepted behaviour is removed or weakened only together with an accepted change to that behaviour or its SPEC. A test is never removed, skipped or weakened just to go green.
 7. **A module is tested alone.** Its tests start only the kernel, the modules in its needs and the simulators. The app's own tests check the wiring only.
 8. **Dependents re-run only when a contract changes** (owner ruling, 20 October 2026). A module's contract is its exported ports, events and their types. When a change leaves the contract as it was, only the module's own tests run; when it alters the contract, the tests of every module that needs it run too. The build decides by comparing the contract with the base, never by a person's judgement.
 9. **A contract is pinned by its owner's tests.** Every port and event of a module has tests in that module's own suite that fix its behaviour, so a change behind an unchanged contract that would break a caller fails there first. Every test still runs before a release.
@@ -260,7 +271,7 @@ For someone reviewing code an AI wrote. Each line says where to look and which t
 - [ ] **Stock:** every stock command's first statement takes the company lock. The round-trip count test, and the race where many orders want the last unit and exactly one gets it, are green on real Postgres.
 - [ ] **Results:** ports return `Result`; no empty or logging-only catch block anywhere (lint).
 - [ ] **Outbox:** every commit path, request and background job, delivers its notes after commit; the background-delivery test is green; handlers write a receipt in their own transaction.
-- [ ] **Gate:** every marketplace or supplier write goes through it; mode read from the database on each send; no credential opened outside it; a timeout is `unknown` and read back, never resent.
+- [ ] **Gate:** every marketplace or supplier write goes through it; mode read from the database on each send; no credential opened outside it; a timeout is `unknown` and settled by [ADR-004's rule](../../channel-connectors/#retries-and-outcomes) before anything else is sent.
 - [ ] **Connectors:** set-up calls run through the host's HTTP, in shadow too; the shadow set-up test shows a new account subscribes and sends no figure.
 - [ ] **Host HTTP:** the transaction guard test shows a call made while a transaction is open is refused; no route calls a marketplace.
 - [ ] **Sweeper:** no background code loops over every company (search for loops over the company registry).
@@ -269,8 +280,8 @@ For someone reviewing code an AI wrote. Each line says where to look and which t
 - [ ] **Hyperdrive:** caching off on every configuration; the app Worker placed in the EU region.
 - [ ] **Telemetry:** no telemetry table in Postgres; logs carry company, account and correlation id, never buyer data.
 - [ ] **Alerts:** the four paging alerts exist and a seeded failure in staging pages.
-- [ ] **Deploy:** migrations finish everywhere before the Worker switches; the code refuses a database below its version.
+- [ ] **Deploy:** migrations finish everywhere before the Worker switches; the code refuses a database below its version; no release both removes an old shape and first depends on the new one, and the previous version's tests pass on the new schema.
 - [ ] **Client:** no raw colour or size outside the tokens; every interactive element has a test id.
 - [ ] **Languages:** no literal on-screen text outside the catalogue; formatters used for every number, amount and date.
 - [ ] **Money:** no addition of amounts without a currency check; order lines store country, class and rate.
-- [ ] **Tests:** no mocks of the kernel, the database or a marketplace; the driver contract suite runs on both drivers and agrees.
+- [ ] **Tests:** pure logic has unit tests with no database; anything that touches the database runs on real Postgres, anything that touches a marketplace on its simulator, with no stand-in for either; the driver contract suite runs on both drivers and agrees.

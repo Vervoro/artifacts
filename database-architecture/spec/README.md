@@ -122,6 +122,15 @@ Modules never write `CREATE TABLE`. They declare tables through `tenantTable()`,
 
 ## 6. Guard rails
 
+This section and [section 1](#1-tenancy-inside-a-cell) own tenant isolation; other records link here. Isolation has two tiers.
+
+| Tier | What it is | Guards |
+| --- | --- | --- |
+| **The security boundary** | What keeps one company from another's rows. Each part must hold; a failure in any is a cross-company exposure | Forced row-level security ([1](#1-tenancy-inside-a-cell)); the runtime role without `BYPASSRLS`, and restricted roles ([3](#3-roles)); entering one company per transaction ([1](#1-tenancy-inside-a-cell)); the commit check (below); correct routing ([7](#7-control-database-and-routing)); composite keys ([2](#2-keys-and-identifiers)) |
+| **Defence in depth** | What stops a mistake before it reaches the boundary, and finds one that got through | The typed query builder and its function allow-list, the run-time query check, the catalogue lint ([6.1](#61-catalogue-lint)), the catalogue audit and the canary ([11](#11-production-checks)) |
+
+**Why the commit check is part of the boundary.** Row-level security fences rows by the company setting, but it does not fence the setting itself: any SQL that runs inside a transaction could change it. The code review of the first implementation reproduced exactly that, as its most serious finding: module SQL switched its transaction to another company. Row-level security alone therefore does not fence the company context. The commit check does: it compares the setting and the role with what the transaction entered, before anything commits, and refuses the commit if either changed.
+
 | Guard | Where | Rule | On failure |
 | --- | --- | --- | --- |
 | Query builder | Data layer | See the list below | Type error at build time; the lint fails the build; at run time the query check refuses the query |
@@ -141,9 +150,9 @@ Modules never write `CREATE TABLE`. They declare tables through `tenantTable()`,
 
 **The query check** runs on every module query at run time, because types and lint can be bypassed (a cast, a name built at run time). A plugin on the builder walks each query's tree before it reaches the database and refuses, failing closed, any raw-SQL node, any function off the allow-list and any table or view outside the module's set. A refusal pages the operator.
 
-Raw SQL exists only in the kernel's data layer (entering, the commit check, the lock) and in migrations, both under change control. A query the builder cannot express is solved by extending the builder or adding a view by migration, never by raw SQL in a module.
+Raw SQL exists only in the kernel's data layer (entering, the commit check, the lock) and in migrations, both under change control. Modules still never write SQL. A query the builder cannot express has one escape route: a reviewed view added by migration, or a reviewed extension of the builder, both under change control. Never raw SQL in a module.
 
-The commit check stays as the second fence, and SQL-executing functions are revoked where the platform allows ([section 4](#4-functions)). The foundation's stock ledger trigger is not module SQL: a migration defines it, and it only applies a ledger entry to its balances.
+The builder, the query check and the allow-list are defence in depth; the commit check stays part of the boundary, and SQL-executing functions are revoked where the platform allows ([section 4](#4-functions)). The foundation's stock ledger trigger is not module SQL: a migration defines it, and it only applies a ledger entry to its balances.
 
 ### 6.1 Catalogue lint
 
@@ -401,7 +410,7 @@ CI proves the schema it builds. These prove the databases running, because a con
 
 1. **Timeouts.** Every migration sets a `lock_timeout` and retries, so a migration waiting for a lock on a shared table does not queue every seller behind it.
 2. **Migrations run as a ring:** first on control, then the newest cell (which holds the trials and the canary), then the others. They finish everywhere before new code goes live ([ADR-000 SPEC 11](../../system-architecture/spec/#11-deploying)).
-3. **Migrations only add.** A migration already merged is never edited.
+3. **Schema changes expand, then contract,** by [ADR-000 SPEC 11](../../system-architecture/spec/#11-deploying). A migration already merged is never edited.
 4. **One-time reset before launch** (owner ruling, 20 October 2026). Before launch, every module's migrations were squashed into one new first migration. This was allowed once, only because no production database existed. Development databases from before the reset are recreated, and the data layer refuses to start on a database that still holds objects from before it. From then on rule 3 has no exception.
 5. **Migration ledger.** Each database's own ledger, committed with each migration, is the authority on what it has applied. Control keeps, per database, the version the last deploy reached; the deploy writes it after reading each database's ledger.
 6. **Partitions.** A monthly scheduled run of the CI migration job creates partitions three months ahead, so a failed run waits for the next. It detaches and drops a month only after the archiver has written and verified that month's per-company files ([ADR-002](../../data-retention/)).

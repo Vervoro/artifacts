@@ -19,7 +19,7 @@
 **In the sign-in Worker** (Better Auth, its plugins or their dependencies), all of the above, and also:
 
 5. Freeze sign-in until the clean version is live.
-6. Deploy the sign-in Worker with the last good, exact-pinned version. If the bad version shipped a schema change, leave the schema: migrations only add, and the previous version runs on it.
+6. Deploy the sign-in Worker with the last good, exact-pinned version. If the bad version shipped a schema change, leave the schema: schema changes expand before they contract, so the previous version runs on it ([ADR-000 SPEC 11](../../system-architecture/spec/#11-deploying)).
 7. Rotate the Better Auth secret ([runbook](../rotate-the-better-auth-secret/)), with its compromise step: every person with an authenticator app sets it up again.
 8. Rotate the sign-in role's database credential and the Turnstile secret. Sign-in mail uses a binding, with no credential to rotate.
 9. Force a password change.

@@ -22,7 +22,7 @@
 
 ## Roll back
 
-Switch the Worker back to its previous version. Never roll back a migration: migrations only add, so the previous version runs on the new schema. If the sign-in Worker was deployed too, roll back the app Worker first.
+Switch the Worker back to its previous version. Never roll back a migration: schema changes expand before they contract, so the previous version runs on the new schema ([SPEC 11](../../system-architecture/spec/#11-deploying)). If the sign-in Worker was deployed too, roll back the app Worker first.
 
 ## If it stops halfway
 

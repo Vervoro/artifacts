@@ -596,7 +596,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ol>
 <li><strong>No schema change at start-up.</strong> Better Auth&#39;s <code>migrate</code> command is never run against a shared database.</li>
 <li><strong>An upgrade</strong> (a Better Auth version or plugin change) goes: read its release notes and security advisories; run <code>generate</code> for the <code>auth</code> schema; review the SQL; commit it as a control migration; CI with every sign-in test; deploy and migrate through the normal release (<a href="../../runbooks/deploy-and-roll-back/">runbook</a>).</li>
-<li><strong>Migrations only add</strong> (<a href="../../system-architecture/spec/#11-deploying">ADR-000 SPEC 11</a>). A generated change that drops or renames is split into an adding step now and a removing step a release later, or the upgrade waits.</li>
+<li><strong>Expand, then contract</strong> (<a href="../../system-architecture/spec/#11-deploying">ADR-000 SPEC 11</a>). Better Auth&#39;s generated changes may not be purely additive. One that drops, renames or tightens is split: the adding part ships with the upgrade, and the removing part ships in a later release, after the rollback window. If the previous sign-in Worker cannot run on the expanded schema, the upgrade waits.</li>
 <li><strong>Deliberate upgrades only:</strong> no version ranges, no automatic updates, never a minor or major version without this procedure; security fixes follow the same steps faster. Dependency scanning runs on every build and monthly (<a href="../../buyer-data/">ADR-009</a>).</li>
 <li><strong>Rehearsed:</strong> an upgrade and a rollback of the sign-in Worker over the new schema, on a staging copy, before launch.</li>
 </ol>
@@ -814,7 +814,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><input disabled="" type="checkbox"> <strong>Fresh check:</strong> start time from Better Auth, re-checked by the sign-in Worker before any reset or method change.</li>
 <li><input disabled="" type="checkbox"> <strong>Lockouts and limits:</strong> owners as section 7; rate limit stored in the database; the bot check on every password route.</li>
 <li><input disabled="" type="checkbox"> <strong>Recovery:</strong> section 6&#39;s split; a reset touches only the resetter&#39;s company; the last-Owner wait cancels on any sign-in.</li>
-<li><input disabled="" type="checkbox"> <strong>Migrations:</strong> the <code>auth</code> schema from reviewed, committed <code>generate</code> output; no <code>migrate</code> at start-up; only adding steps.</li>
+<li><input disabled="" type="checkbox"> <strong>Migrations:</strong> the <code>auth</code> schema from reviewed, committed <code>generate</code> output; no <code>migrate</code> at start-up; a removing step ships only in a release after the one that first needs the new schema.</li>
 <li><input disabled="" type="checkbox"> <strong>Secrets:</strong> <code>BETTER_AUTH_SECRETS</code> only in the sign-in Worker; the rotation was rehearsed.</li>
 <li><input disabled="" type="checkbox"> <strong>Logs:</strong> the events of section 12 are written; none holds a secret, code or token.</li>
 <li><input disabled="" type="checkbox"> <strong>Incidents:</strong> the four commands exist and write to the security log; the staging rehearsal is recorded.</li>

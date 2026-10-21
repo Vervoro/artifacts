@@ -35,7 +35,7 @@ The design has to meet these requirements:
 
 ## Decision
 
-1. **The ledger is the record of stock.** Every change is one or more append-only entries, each with a reason, a person or process, and a source. **Only the ledger insert changes a balance or a reservation:** the database applies each entry, and nothing else can write them.
+1. **The ledger is the record of stock.** Every change is one or more append-only entries, each with a reason, a person or process, and a source. **Only the ledger insert changes a balance or a reservation:** the database applies each entry, and nothing else can write them. This decision owns the rule that Inventory is the only writer of stock; other records link here.
 2. **Stock is counted per product, batch and spot,** and every balance holds four numbers: **on hand, reserved, held and sellable**. Reserved is kept per batch in each warehouse, not per spot. Sellable is on hand less reserved less held, and only sellable ever reaches a listing. Incoming stock is shown beside them, but it is not stock.
 3. **Stock never goes below zero, and is never quietly set to zero.** No number on any balance can be negative, and reserved plus held can never exceed on hand. The database refuses a change that would break this, and the command reports it. A real shortfall is recorded through a count.
 4. **One reservation for every kind of demand:** an order line, an Amazon Vendor purchase order line, a shipment to a marketplace's warehouse, a transfer between warehouses. Each reservation names its batch and warehouse, never a spot. Each kind of demand states the shelf life it needs.

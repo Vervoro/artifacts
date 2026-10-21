@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Status** | Proposed |
-| **Date** | 18 October 2026 |
+| **Date** | 18 October 2026; unknown writes settled by ADR-004's rule, 21 October 2026 |
 | **Scope** | How Vervoro keeps every linked listing's figure right on every marketplace: the figure per listing, when a figure is sent and when it may wait, what Vervoro believes each marketplace shows, the order read before a raise, confirming every write, the per-listing and shared limits, the low-stock policy, listing modes and stopping, held raises, the first figure after a link, Amazon accounts on several marketplaces, one writer per listing, shadow and going live, recovery, and what the seller and the operator are told |
 | **Builds on** | [ADR-000: System architecture](../system-architecture/), [ADR-001: Multi-tenant database architecture](../database-architecture/), [ADR-003: Product model](../product-model/), [ADR-004: Channel connectors](../channel-connectors/) with [ADR-004.1](../ebay-connector/), [ADR-004.2](../amazon-seller-connector/) and [ADR-004.3](../shopify-connector/), [ADR-005: Catalogue sync and linking](../catalogue-sync/), [ADR-006: Stock ledger and reservations](../stock-ledger/), [ADR-007: Order ingestion](../order-ingestion/) |
 
@@ -33,7 +33,7 @@ This record decides the figure and how it reaches each marketplace. The design h
 3. **Near zero, every change is sent. Above it, a figure is sent again only once it is 20 away** from what the channel shows. The zone near zero is at least 20 listing units wide, and wider for a listing that sells in large order lines.
 4. **The 20-unit tolerance applies only where a channel's own sales are known to come out of Vervoro's figure:** eBay, an Amazon account on one marketplace, and Shopify orders at Vervoro's location. Everywhere else, every change is sent.
 5. **No raise leaves before a complete order read covers the moment it became due,** with two minutes for clocks.
-6. **Every write is single, keyed and confirmed.** One writer per listing, one open write at a time (an Amazon decrease may overtake one), a deadline, and a read back after it. Amazon's `accepted` is not applied. An `unknown` write is settled before anything else is sent.
+6. **Every write is single, keyed and confirmed.** One writer per listing, one open write at a time (an Amazon decrease may overtake one), a deadline, and a read back after it. Amazon's `accepted` is not applied. An `unknown` write is settled before anything else is sent, by [ADR-004's rule](../channel-connectors/#retries-and-outcomes).
 7. **Lanes and limits follow ADR-004.** Decreases and every change near zero use the safety lane; other raises use the bulk lane. eBay's 250 revisions are counted per listing over a rolling 24 hours, with the last ones kept for a zero. Amazon stock goes by single patches.
 8. **One low-stock policy:** the last 2 units are kept for one account, and either the units kept or the account can be changed per product, until an end date. A campaign on Amazon is such a dated keep.
 9. **Every stop asks one question, at every scale:** leave the figure, or send 0. A listing is managed or not managed. A company that closes for non-payment carries out each account's answer on its closing date, and its accounts are then decrease-only until it is erased ([ADR-012](../billing-and-plans/)).
@@ -180,7 +180,7 @@ A notice can say that an order exists, never that none is missing (ADR-004). A r
 | `throttled` | Unchanged | The marketplace's wait, capped at an hour, or 5 s × 2ⁿ up to 15 minutes |
 | `compare-mismatch` (Shopify) | The figure Shopify reports | The rules run again |
 | `rejected` | Unchanged | The seller sees the reason. No retry until D or the listing changes |
-| `unknown` (a timeout, a lost lease) | Unknown | Read back before anything else is sent. On eBay's Trading API, where a read costs the same pool call as a write, D is sent again instead: at once if it is no higher than the figure last sent, after the order read if it is higher |
+| `unknown` (a timeout, a lost lease) | Unknown | Settled before anything else is sent ([ADR-004](../channel-connectors/#retries-and-outcomes)): read back by default. eBay's Trading API is the exception its record names ([ADR-004.1](../ebay-connector/#listings-and-stock)): the write sets the quantity, and a read costs the same pool call as a write, so D is sent again instead: at once if it is no higher than the figure last sent, after the order read if it is higher |
 
 - **A read back that does not match** after the deadline closes the write as "send again"; D goes again under the rules.
 - **Why Amazon's confirmation subtracts its own orders:** a busy listing keeps selling after the write lands, so a read never shows exactly the figure sent. Without the subtraction, every busy Amazon listing would look unconfirmed.
@@ -278,7 +278,7 @@ One patch sets one quantity for every marketplace the account serves (ADR-004.2)
 
 ## Shadow and going live
 
-Every account starts in shadow (ADR-004): orders reserve inside Vervoro and the gate records each figure it would send.
+Every account starts in shadow, by [ADR-004's rule](../channel-connectors/#testing-sandboxes-and-shadow-mode). This section adds only what going live needs here.
 
 **The listing check.** D is compared with what each marketplace shows, listing by listing. A listing showing more than D is never accepted as explained: going live sends the decrease. A listing showing less can be accepted in bulk. A ratio of 3 or more either way is listed first and needs its own tap (ADR-005).
 
@@ -339,7 +339,7 @@ The host and the foundation name each other's rows by plain ids, read through po
 1. Recomputing every desired row from committed state gives the stored rows. The nightly check (ADR-006) runs this too.
 2. B is never lowered without evidence: a confirmed write, a read, or a vouched own sale on the listing the order names.
 3. No raise is sent before the order watermark covers the moment it became due, plus 2 minutes. A simulated late order proves it.
-4. A write target has at most one open write, except that an Amazon decrease may overtake an open write; a crash ends in `unknown` and a settle, never a blind resend.
+4. A write target has at most one open write, except that an Amazon decrease may overtake an open write; a crash ends in `unknown`, settled by ADR-004's rule before anything else is sent.
 5. No idempotency key repeats across a restore.
 6. Every stop, at account and at listing scale, asks leave or 0, and a 0 is confirmed before the mode changes.
 7. On a simulated eBay day, no item passes 250 revisions from Vervoro, every write past 240 is a 0, and a 0 always has room; over a simulated 30 days, every write past 1,800 is a 0.

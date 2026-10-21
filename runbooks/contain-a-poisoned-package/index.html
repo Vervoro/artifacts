@@ -97,7 +97,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p><strong>In the sign-in Worker</strong> (Better Auth, its plugins or their dependencies), all of the above, and also:</p>
 <ol start="5">
 <li>Freeze sign-in until the clean version is live.</li>
-<li>Deploy the sign-in Worker with the last good, exact-pinned version. If the bad version shipped a schema change, leave the schema: migrations only add, and the previous version runs on it.</li>
+<li>Deploy the sign-in Worker with the last good, exact-pinned version. If the bad version shipped a schema change, leave the schema: schema changes expand before they contract, so the previous version runs on it (<a href="../../system-architecture/spec/#11-deploying">ADR-000 SPEC 11</a>).</li>
 <li>Rotate the Better Auth secret (<a href="../rotate-the-better-auth-secret/">runbook</a>), with its compromise step: every person with an authenticator app sets it up again.</li>
 <li>Rotate the sign-in role&#39;s database credential and the Turnstile secret. Sign-in mail uses a binding, with no credential to rotate.</li>
 <li>Force a password change.</li>

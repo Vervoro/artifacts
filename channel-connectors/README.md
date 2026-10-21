@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Status** | Proposed |
-| **Date** | 17 October 2026 |
+| **Date** | 17 October 2026; unknown-write rule and its exception, 21 October 2026 |
 | **Scope** | How each marketplace plugs into Vervoro: the connector contract, what the platform host owns instead of the connector, how notices come in, how connectors are tested, switched on and off, and kept from harming each other |
 | **Builds on** | [ADR-000: System architecture](../system-architecture/), [ADR-001: Multi-tenant database architecture](../database-architecture/), [ADR-003: Product model](../product-model/) |
 
@@ -64,7 +64,7 @@ A connector is built per account by a factory. The factory gets the account's HT
 | `throttled` | The marketplace, or our own bucket, refused it for now | Waits as long as the marketplace says, then tries again |
 | `compare-mismatch` | The marketplace's figure was not the one we expected | Reads back, then decides again |
 | `rejected` | The marketplace refused this change for a reason that will not go away by waiting | Stops, and tells the seller why |
-| `unknown` | No clear answer, including a timeout | Reads back before anything is sent again |
+| `unknown` | No clear answer, including a timeout | Settles it before anything else is sent to that listing ([Retries and outcomes](#retries-and-outcomes)) |
 
 **Orders and listings come back in contract types,** never in the marketplace's own shape. An order carries its marketplace id, its lines (SKU, quantity, the marketplace's line id), its status, its last change time, and who ships it. Buyer details ride on the order to the foundation and are not kept by the host. A connector leaves out what the marketplace withheld or masked; it never makes a value up.
 
@@ -125,7 +125,7 @@ Each connector module contributes one definition to the connector extension poin
 ### Retries and outcomes
 
 - **Reads are retried by the host** with growing delays, within the job's deadline.
-- **Writes are never retried blindly.** A write that timed out is `unknown`, and the listing is read back before anything is sent again. Repeats are safe because every write carries the gate's idempotency key (ADR-000).
+- **An unknown write is settled before anything else is sent to that listing.** A write that timed out, or got no clear answer, is `unknown`. Read-back is the default: the host asks what the marketplace now shows and decides from that. A connector may instead resend the same absolute figure only when the write sets a value (never adds to one), repeating it cannot compound, and its record names the exception. eBay's Trading API is the one exception at launch ([ADR-004.1](../ebay-connector/#listings-and-stock)). This section owns the rule; other records link here. Repeats are safe because every write carries the gate's idempotency key (ADR-000).
 - **The marketplace's own wait is honoured.** A 429, or any reply naming a wait, holds that operation for the account until then, whichever job asks next. The wait is capped at one hour; a longer one alerts.
 
 ### Rate limits per account
@@ -198,7 +198,7 @@ A connector that passes the suite works with the host. A new connector starts fr
 
 **Sandboxes check the simulators, not the code.** eBay and Amazon both offer a sandbox. They are slow, limited and not deterministic, so tests never call them. Before launch, every call the launch connectors make is made once against the sandbox or the real marketplace, the reply is recorded, and the simulator is fixed wherever it differs. Each simulator's documentation lists where it is simpler than the real service.
 
-**Shadow and live at the egress gate.** Every account starts in **shadow**: orders come in, listings are read, stock is reserved inside Vervoro, and the gate records each figure it would have sent without sending it. The shadow check compares what Vervoro would send with what the marketplace shows, listing by listing. The seller goes **live** once every difference is explained and acknowledged. Stopping a live account always asks first: leave the figures as they are, or send zero and wait until every zero is confirmed. The answer is first asked when the account goes live, and kept. A company that closes for non-payment carries it out on its closing date, and its accounts are then decrease-only until the company is erased, when they are disconnected ([ADR-012](../billing-and-plans/)). Reconnecting after a disconnect starts a new shadow period.
+**Shadow and live at the egress gate.** This paragraph owns shadow mode; other records link here. Every account starts in **shadow**: orders come in, listings are read, stock is reserved inside Vervoro, and the gate records each figure it would have sent without sending it. The shadow check compares what Vervoro would send with what the marketplace shows, listing by listing. The seller goes **live** once every difference is explained and acknowledged. Stopping a live account always asks first: leave the figures as they are, or send zero and wait until every zero is confirmed. The answer is first asked when the account goes live, and kept. A company that closes for non-payment carries it out on its closing date, and its accounts are then decrease-only until the company is erased, when they are disconnected ([ADR-012](../billing-and-plans/)). Reconnecting after a disconnect starts a new shadow period.
 
 ## Switching a marketplace on and off
 
