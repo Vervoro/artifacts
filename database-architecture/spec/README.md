@@ -185,7 +185,7 @@ Control is its own database on its own compute. A cell credential can never read
 
 | Data | Notes |
 | --- | --- |
-| Company registry | Plan (trial or paid), tombstones and `database_id`. No stored status: a company's state is computed from dates ([ADR-012](../../billing-and-plans/)), and billing adds its own fields (owner ruling, 21 October 2026) |
+| Company registry | Plan (trial or paid), tombstones and `database_id`. No stored status: a company's state is computed from dates ([ADR-012 SPEC 7](../../billing-and-plans/spec/#7-company-states)), and billing adds its own fields (owner ruling, 21 October 2026) |
 | Database registry | `database(id, region, kind shared or dedicated, state open, closed or draining, cap)` |
 | Sign-in data | Better Auth's tables in the `auth` schema (logins with their email address and name, sessions, passwords, passkeys, authenticators, backup codes, verifications, rate counts) and Vervoro's sign-in policy tables in `auth_policy` ([ADR-013 SPEC 2](../../sign-in/spec/#2-the-login-and-its-data)); only the sign-in role touches these |
 | Memberships and operator data | Memberships, operator accounts and grants. Written by the runtime role |
@@ -256,7 +256,7 @@ Sign-up never runs a migration and never registers a database.
 1. A trial lives in the newest open shared cell from sign-up. Paying changes its plan in control; nothing moves.
 2. Trials have the same backups, alerts and switch-off rules as paying companies: a trial may already sell on real marketplaces. Demo companies live in a cell like any other company.
 3. When trials together use more than 25% of a cell's compute for 7 days, the system recommends a cell for trials only. New trials then start there, and a trial that pays is moved to a paid cell by the slice operation.
-4. When a trial lapses or a company closes, retention and erasure follow [ADR-012](../../billing-and-plans/). Until erased, the data stays in its cell.
+4. When a trial lapses or a company closes, retention and erasure follow [ADR-012 SPEC 9](../../billing-and-plans/spec/#9-closing-a-company) and [SPEC 16](../../billing-and-plans/spec/#16-cancellation-export-erasure-and-refunds). Until erased, the data stays in its cell.
 
 ### When to add a database
 
@@ -301,7 +301,7 @@ Launch kinds, taken from the records:
 | Listing safety read | Channels, handing over to Listings ([ADR-005](../../catalogue-sync/)) | An account's daily read is due |
 | Nightly stock check | Inventory ([ADR-006](../../stock-ledger/)) | Once a night |
 | Buyer anonymisation | Buyer data ([ADR-009](../../buyer-data/spec/#8-retention-and-anonymisation)) | 30 days after delivery |
-| Erasure after closing | Billing ([ADR-012](../../billing-and-plans/)) | 30 days after the company closes |
+| Erasure after closing | Billing ([ADR-012 SPEC 16](../../billing-and-plans/spec/#16-cancellation-export-erasure-and-refunds)) | 30 days after the company closes |
 
 ### Fair shares
 

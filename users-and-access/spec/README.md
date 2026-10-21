@@ -111,17 +111,17 @@ A module declares each action in its manifest ([ADR-000 SPEC 1](../../system-arc
 | Change the invoicing settings | Yes | Yes | No | No | No | No | [ADR-011](../../invoicing-and-vat/) |
 | Make the accounting export | Yes | Yes | Yes | No | Yes | No | [ADR-011](../../invoicing-and-vat/) |
 | **Billing** | | | | | | | |
-| Choose, change or cancel the plan; the payment method and billing details; pay an open invoice | Yes | No | No | No | No | No | [ADR-012](../../billing-and-plans/) |
-| Set a connection's stop choice when it goes live; name the stock contact | Yes | Yes | No | No | No | No | [ADR-012](../../billing-and-plans/) |
-| Change a connection's stored stop choice | Yes | Yes | Yes | No | No | No | [ADR-012](../../billing-and-plans/) |
-| See the plan, the state, the order count and the next charge | Yes | Yes | No | No | No | No | [ADR-012](../../billing-and-plans/) |
-| Read and download Vervoro's invoices and credit notes | Yes | Yes | No | No | Yes | No | [ADR-012](../../billing-and-plans/) |
+| Choose, change or cancel the plan; the payment method and billing details; pay an open invoice | Yes | No | No | No | No | No | [ADR-012](../../billing-and-plans/spec/#19-who-may-manage-billing) |
+| Set a connection's stop choice when it goes live; name the stock contact | Yes | Yes | No | No | No | No | [ADR-012](../../billing-and-plans/spec/#19-who-may-manage-billing) |
+| Change a connection's stored stop choice | Yes | Yes | Yes | No | No | No | [ADR-012](../../billing-and-plans/spec/#19-who-may-manage-billing) |
+| See the plan, the state, the order count and the next charge | Yes | Yes | No | No | No | No | [ADR-012](../../billing-and-plans/spec/#19-who-may-manage-billing) |
+| Read and download Vervoro's invoices and credit notes | Yes | Yes | No | No | Yes | No | [ADR-012](../../billing-and-plans/spec/#19-who-may-manage-billing) |
 | **Reports and exports** | | | | | | | |
 | Reports | Yes | Yes | Yes | No | Yes | No | ADR-010 |
 | Export with buyer data | Yes | Yes | No | No | No | No | [ADR-009](../../buyer-data/spec/#12-exports) |
 | Export without buyer data | Yes | Yes | Yes | No | Yes | No | ADR-010 |
 
-While a company is restricted or closed, [ADR-012](../../billing-and-plans/#what-each-role-may-do) narrows this table. A later module adds its rows here when its record is written, in the same six roles.
+While a company is restricted or closed, [ADR-012 SPEC 8](../../billing-and-plans/spec/#8-what-runs-in-each-state) narrows this table. A later module adds its rows here when its record is written, in the same six roles.
 
 ## 5. Rules for every action
 
@@ -129,7 +129,7 @@ While a company is restricted or closed, [ADR-012](../../billing-and-plans/#what
 2. **A grant needs every condition:** the module is on for the company, the role holds the action, the scope covers the warehouse, and the person is `active`.
 3. **Every refusal carries its reason** ("needs a manager", "outside your warehouses"), so the screen can show it.
 4. **A role or scope change applies to the next request,** because it is read in the request's own transaction.
-5. **Account changes need a fresh check** ([ADR-013 SPEC 5](../../sign-in/spec/#5-sessions)): inviting, removing or changing anyone's role or scope; resetting anyone's sign-in; connecting, disconnecting, going live on or switching off a marketplace account; an export with buyer data; switching on buyer data for an operator grant; closing the company or changing an Owner; the billing steps ADR-012 names. Picking, packing, printing and counting never ask.
+5. **Account changes need a fresh check** ([ADR-013 SPEC 5](../../sign-in/spec/#5-sessions)): inviting, removing or changing anyone's role or scope; resetting anyone's sign-in; connecting, disconnecting, going live on or switching off a marketplace account; an export with buyer data; switching on buyer data for an operator grant; closing the company or changing an Owner; the billing steps [ADR-012 SPEC 19](../../billing-and-plans/spec/#19-who-may-manage-billing) names. Picking, packing, printing and counting never ask.
 
 **Who manages whom:**
 

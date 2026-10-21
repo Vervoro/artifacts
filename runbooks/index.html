@@ -367,6 +367,28 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>A VAT difference from the marketplace flags an order and blocks its invoice; run by the seller&#39;s Manager</td>
 </tr>
 </tbody></table></div>
+<h2 id="adr-012-billing-and-plans">ADR-012: Billing and plans</h2>
+<p>Rules: <a href="../billing-and-plans/spec/">ADR-012 SPEC</a>. Also: <a href="erase-a-company/">Erase a company</a>, <a href="export-a-company/">Export a company</a>, <a href="take-a-company-live/">Take a company live</a>, <a href="replay-dead-letters/">Replay dead letters</a>.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Procedure</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="work-a-failed-payment/">Work a failed payment</a></td>
+<td>A billing alert: a bounced notice, a lost dispute, a cancelled mandate, a payment that cannot settle before closing</td>
+</tr>
+<tr>
+<td><a href="close-and-reopen-a-company/">Close and reopen a company for non-payment</a></td>
+<td>A company reaches its closing date, or a closed company pays before erasure</td>
+</tr>
+<tr>
+<td><a href="refund-a-seller/">Refund a seller</a></td>
+<td>A seller was charged by Vervoro&#39;s mistake</td>
+</tr>
+</tbody></table></div>
 <h2 id="adr-013-sign-in">ADR-013: Sign-in</h2>
 <p>Rules: <a href="../sign-in/spec/">ADR-013 SPEC</a>.</p>
 <div class="table-wrap"><table>

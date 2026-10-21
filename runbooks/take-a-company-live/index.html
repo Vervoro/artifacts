@@ -90,7 +90,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2 id="steps">Steps</h2>
 <ol>
 <li><strong>When shadow starts,</strong> import on hand from the old system. Shadow then imports orders and records what it would send.</li>
-<li><strong>Before going live,</strong> check that billing is ready (a payment method, the stop choice and a stock contact, <a href="../../billing-and-plans/">ADR-012</a>), and that the account&#39;s share of every shared pool has room.</li>
+<li><strong>Before going live,</strong> check that billing is ready (a payment method, the stop choice and a stock contact, <a href="../../billing-and-plans/spec/#6-going-live">ADR-012 SPEC 6</a>), and that the account&#39;s share of every shared pool has room.</li>
 <li><strong>Import on hand again</strong> from the old system. Vervoro lists every product that fell by more than its imported orders explain. The seller ticks each one off: it usually shows an order type Vervoro does not see. This import sets on hand to the old system&#39;s figure as one adjustment per product.</li>
 <li>Run one complete order read and read every linked listing. Every shared-stock listing must be answered first (<a href="../link-a-catalogue-at-onboarding/">Link a catalogue at onboarding</a>).</li>
 <li>Work through the listing check. Every listing showing more than Vervoro&#39;s figure will get the decrease. Listings showing less can be accepted in bulk; a ratio of 3 or more either way needs its own tap.</li>

@@ -144,7 +144,7 @@ This section owns shadow mode; other records link here.
 
 1. **Every account starts in shadow.** Orders come in, listings are read, stock is reserved inside Vervoro, and the gate records each figure it would have sent without sending it.
 2. **The shadow check** compares, listing by listing, what Vervoro would send with what the marketplace shows. The seller goes live once every difference is explained and acknowledged ([ADR-008 SPEC 14](../../inventory-sync/spec/#14-shadow-and-going-live)).
-3. **The stop choice.** Stopping a live account always asks: leave the figures, or send zero and wait until every zero is confirmed. It is first asked at going live, and kept. A company closed for non-payment carries it out on its closing date; its accounts are then decrease-only until erasure, when they are disconnected ([ADR-012](../../billing-and-plans/)).
+3. **The stop choice.** Stopping a live account always asks: leave the figures, or send zero and wait until every zero is confirmed. It is first asked at going live, and kept. A company closed for non-payment carries it out on its closing date; its accounts are then decrease-only until erasure, when they are disconnected ([ADR-012 SPEC 9](../../billing-and-plans/spec/#9-closing-a-company)).
 4. **Reconnecting** after a disconnect, or a restore, starts a new shadow period.
 5. **Launch gates.** No account on a marketplace goes live until shadow on that marketplace has run at least 14 days and 500 orders across its accounts, and passes every gate. The figures are proposals waiting for the owner.
 

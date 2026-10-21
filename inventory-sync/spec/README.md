@@ -154,7 +154,7 @@ This section owns the rule that Stock sync alone writes each listing's figure (o
 
 1. **A listing is managed or not managed,** optionally until a date. Not managed sends no figure; its orders still reserve. One that shows more than the stock is flagged to the seller.
 2. **Every stop asks: leave the figure, or send 0.** It applies to stopping an account, stepping it back to shadow, disconnecting, switching a marketplace off, setting a listing to not managed, and unlinking a listing, where the closed link carries the seller's answer ([ADR-005 SPEC 11.6](../../catalogue-sync/spec/#116-unlinking)). A 0 is confirmed applied before the mode changes.
-3. **Decrease-only** is an account mode for a company closed under [ADR-012](../../billing-and-plans/), from its closing date until erasure. D is worked out as usual, but a figure is sent only when it is lower than B.
+3. **Decrease-only** is an account mode for a company closed under [ADR-012](../../billing-and-plans/spec/#9-closing-a-company), from its closing date until erasure. D is worked out as usual, but a figure is sent only when it is lower than B.
 
 ## 11. The first figure after a link
 
@@ -191,7 +191,7 @@ Every account starts in shadow by [ADR-004's rule](../../channel-connectors/spec
 | The operator's hold on a marketplace ([ADR-004](../../channel-connectors/)) | Figures wait as rows; on release, `unknown` writes are settled first |
 | A restore ([ADR-001](../../database-architecture/)) | The sync epoch rises; every account returns to shadow; every B is unknown; listings are read by reports and bulk reads; eBay revisions count at their worst for 24 hours; the operator signs off before anything is sent ([runbook](../../runbooks/recover-stock-sync-after-a-restore/)) |
 | An account reconnects | A new shadow period with B unknown; it goes live on the listing check |
-| A closed company reopens ([ADR-012](../../billing-and-plans/)) | Every account returns to shadow with B unknown; goods received while closed are recorded first |
+| A closed company reopens ([ADR-012 SPEC 10](../../billing-and-plans/spec/#10-reopening-a-closed-company)) | Every account returns to shadow with B unknown; goods received while closed are recorded first |
 
 ## 16. What the seller and the operator see
 

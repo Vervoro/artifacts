@@ -488,7 +488,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </thead>
 <tbody><tr>
 <td>Company registry</td>
-<td>Plan (trial or paid), tombstones and <code>database_id</code>. No stored status: a company&#39;s state is computed from dates (<a href="../../billing-and-plans/">ADR-012</a>), and billing adds its own fields (owner ruling, 21 October 2026)</td>
+<td>Plan (trial or paid), tombstones and <code>database_id</code>. No stored status: a company&#39;s state is computed from dates (<a href="../../billing-and-plans/spec/#7-company-states">ADR-012 SPEC 7</a>), and billing adds its own fields (owner ruling, 21 October 2026)</td>
 </tr>
 <tr>
 <td>Database registry</td>
@@ -576,7 +576,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>A trial lives in the newest open shared cell from sign-up. Paying changes its plan in control; nothing moves.</li>
 <li>Trials have the same backups, alerts and switch-off rules as paying companies: a trial may already sell on real marketplaces. Demo companies live in a cell like any other company.</li>
 <li>When trials together use more than 25% of a cell&#39;s compute for 7 days, the system recommends a cell for trials only. New trials then start there, and a trial that pays is moved to a paid cell by the slice operation.</li>
-<li>When a trial lapses or a company closes, retention and erasure follow <a href="../../billing-and-plans/">ADR-012</a>. Until erased, the data stays in its cell.</li>
+<li>When a trial lapses or a company closes, retention and erasure follow <a href="../../billing-and-plans/spec/#9-closing-a-company">ADR-012 SPEC 9</a> and <a href="../../billing-and-plans/spec/#16-cancellation-export-erasure-and-refunds">SPEC 16</a>. Until erased, the data stays in its cell.</li>
 </ol>
 <h3 id="when-to-add-a-database">When to add a database</h3>
 <p>The system recommends a new cell when any signal holds for 7 days. The operator decides.</p>
@@ -671,7 +671,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Erasure after closing</td>
-<td>Billing (<a href="../../billing-and-plans/">ADR-012</a>)</td>
+<td>Billing (<a href="../../billing-and-plans/spec/#16-cancellation-export-erasure-and-refunds">ADR-012 SPEC 16</a>)</td>
 <td>30 days after the company closes</td>
 </tr>
 </tbody></table></div>

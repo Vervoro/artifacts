@@ -37,7 +37,7 @@ At launch only the drops in [section 2](#2-the-retention-schedule) run (`event_l
 | Outbound sends, sync attempts, operational state | 30 days | Never | Dropped |
 | Buyer personal data | 30 days after delivery, dispatch as the fallback ([ADR-009 SPEC 8](../../buyer-data/spec/#8-retention-and-anonymisation)) | Only anonymised, except on issued invoices | Deleted with the order or the invoice |
 
-Every period applies while the company exists. A closed company is erased by [ADR-012](../../billing-and-plans/), archive included.
+Every period applies while the company exists. A closed company is erased by [ADR-012](../../billing-and-plans/spec/#16-cancellation-export-erasure-and-refunds), archive included.
 
 ## 3. Archiving a month
 

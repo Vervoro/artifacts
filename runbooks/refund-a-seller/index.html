@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Runbook: Refund a seller</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono&display=swap">
+<style>
+:root {
+  --bg: #f6f6f8; --surface: #ffffff; --sunken: #ededf1; --text: #16161a; --muted: #5c5c66; --border: #e0e0e6;
+  --accent: #4338ca; --accent-soft: #eef0ff; --edge: #8a8a96; --tint: #f0f0f4;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #111114; --surface: #1a1a1f; --sunken: #23232a; --text: #ececf1; --muted: #a2a2ad; --border: #2d2d35;
+  --accent: #a5b4fc; --accent-soft: #23264a; --edge: #74747f; --tint: #202027; color-scheme: dark; } }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 var(--sans); }
+main { max-width: 860px; margin: 0 auto; padding: 48px max(20px, env(safe-area-inset-left)) 80px; }
+header.site { max-width: 860px; margin: 0 auto; padding: 20px max(20px, env(safe-area-inset-left)) 0; font-size: 14px; }
+header.site a { color: var(--muted); text-decoration: none; }
+header.site a:hover { color: var(--accent); }
+h1, h2, h3 { line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(28px, 4vw, 38px); letter-spacing: -0.02em; margin: 0 0 20px; }
+h2 { font-size: 23px; margin: 48px 0 12px; padding-top: 20px; border-top: 1px solid var(--border); }
+h3 { font-size: 18px; margin: 32px 0 8px; }
+p, li { max-width: 72ch; }
+a { color: var(--accent); }
+code { font-family: var(--mono); font-size: 0.86em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--sunken); padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 13.5px; line-height: 1.5; }
+pre code { background: none; padding: 0; overflow-wrap: normal; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 16px 0; background: var(--surface); }
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+.table-wrap table { margin: 0; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+th { background: var(--sunken); font-weight: 600; font-size: 13px; color: var(--muted); }
+tr:last-child td { border-bottom: none; }
+ul, ol { padding-left: 22px; }
+li + li { margin-top: 4px; }
+figure { margin: 20px 0; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; }
+svg.diagram { display: block; width: 100%; min-width: 640px; height: auto; font-family: var(--sans); }
+svg .ink { fill: var(--text); } svg .quiet { fill: var(--muted); }
+svg .edge { stroke: var(--edge); } svg .edge-fill { fill: var(--edge); }
+svg .accent { stroke: var(--accent); } svg .accent-fill { fill: var(--accent); }
+svg .box { fill: none; stroke: var(--edge); stroke-width: 1.25; }
+svg .box-main { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+svg .band { fill: var(--tint); stroke: var(--edge); stroke-width: 1.25; }
+.cards { list-style: none; padding: 0; display: grid; gap: 12px; }
+.cards a { display: block; padding: 18px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; text-decoration: none; color: var(--text); }
+.cards a:hover, .cards a:focus-visible { border-color: var(--accent); outline: none; }
+.cards.sub { margin: 12px 0 0 24px; padding-left: 16px; border-left: 2px solid var(--border); }
+.parts { margin: 6px 0 0 20px; font-size: 14px; color: var(--muted); } .cards .parts a { display: inline; padding: 0; background: none; border: none; border-radius: 0; color: var(--accent); font-weight: 600; text-decoration: none; } .cards .parts a:hover { text-decoration: underline; }
+.cards b { display: block; font-size: 17px; } .cards span { color: var(--muted); font-size: 14px; }
+.order li { margin-top: 10px; } .order span { color: var(--muted); font-size: 14px; }
+footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header class="site"><a href="../../">← Vervoro artifacts</a> / <a href="../">Runbooks</a></header>
+<main>
+<h1 id="runbook-refund-a-seller">Runbook: Refund a seller</h1>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Built</strong></td>
+<td>At launch</td>
+</tr>
+<tr>
+<td><strong>Record</strong></td>
+<td><a href="../../billing-and-plans/">ADR-012</a>, rules in <a href="../../billing-and-plans/spec/#16-cancellation-export-erasure-and-refunds">SPEC 16</a> and <a href="../../billing-and-plans/spec/#17-vervoros-invoices-and-vat">SPEC 17</a></td>
+</tr>
+<tr>
+<td><strong>Who runs it</strong></td>
+<td>The operator, when a seller reports a charge made by Vervoro&#39;s mistake (a double charge, a wrong plan)</td>
+</tr>
+<tr>
+<td><strong>Role or credential</strong></td>
+<td>Stripe&#39;s dashboard with the operator&#39;s own login and second factor; the operator console to read the company&#39;s plan history and <code>audit_log</code></td>
+</tr>
+</tbody></table></div>
+<p>Part periods are never refunded on cancellation or downgrade. A charge the seller simply regrets is not this procedure.</p>
+<h2 id="steps">Steps</h2>
+<ol>
+<li><strong>Confirm the mistake.</strong> Compare the invoice with the company&#39;s plan history and its billing entries in <code>audit_log</code>. Record the case in the platform security log: the company, the invoice number, what went wrong.</li>
+<li><strong>Choose refund or credit.</strong> A credit against the next invoice suits a seller who stays; a refund suits one who has left or asks for the money.</li>
+<li><strong>Issue a credit note at Stripe</strong> against the invoice, for the wrong amount only. Never edit or void an issued invoice.</li>
+<li><strong>For a refund to a card,</strong> refund the payment against that credit note.</li>
+<li><strong>For a refund of a Bacs payment,</strong> check that the original payment has settled. Tell the seller first, by email to the billing contact, that the refund is coming and that they should not also claim it from their bank under the Direct Debit Guarantee. Then refund against the credit note.</li>
+<li><strong>Where needed,</strong> issue a correct new invoice.</li>
+</ol>
+<h2 id="verify">Verify</h2>
+<ul>
+<li>The credit note appears in the company&#39;s invoices in Vervoro and in Vervoro&#39;s accounting software.</li>
+<li>The refund shows as succeeded at Stripe, and the security log entry is closed.</li>
+</ul>
+<h2 id="if-it-stops-halfway">If it stops halfway</h2>
+<p>A credit note without its refund leaves a credit on the account: refund against it, or leave it to the next invoice and tell the seller. A refund is never made without a credit note. If the seller also claimed under the Direct Debit Guarantee, the claim arrives as a dispute, which makes the amount owed again (<a href="../../billing-and-plans/spec/#12-payment">SPEC 12</a>); do not refund a second time, and follow <a href="../work-a-failed-payment/">Work a failed payment</a>.</p>
+
+<footer>Vervoro</footer>
+</main>
+</body>
+</html>

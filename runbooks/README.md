@@ -141,6 +141,16 @@ Rules: [ADR-011 SPEC](../invoicing-and-vat/spec/). Also: [Change a VAT rate](cha
 | [Correct or credit an issued invoice](correct-or-credit-an-issued-invoice/) | A refund is recorded on an order Vervoro invoiced, or an issued invoice is wrong; run by the seller's Manager |
 | [Settle a VAT difference](settle-a-vat-difference/) | A VAT difference from the marketplace flags an order and blocks its invoice; run by the seller's Manager |
 
+## ADR-012: Billing and plans
+
+Rules: [ADR-012 SPEC](../billing-and-plans/spec/). Also: [Erase a company](erase-a-company/), [Export a company](export-a-company/), [Take a company live](take-a-company-live/), [Replay dead letters](replay-dead-letters/).
+
+| Procedure | When |
+| --- | --- |
+| [Work a failed payment](work-a-failed-payment/) | A billing alert: a bounced notice, a lost dispute, a cancelled mandate, a payment that cannot settle before closing |
+| [Close and reopen a company for non-payment](close-and-reopen-a-company/) | A company reaches its closing date, or a closed company pays before erasure |
+| [Refund a seller](refund-a-seller/) | A seller was charged by Vervoro's mistake |
+
 ## ADR-013: Sign-in
 
 Rules: [ADR-013 SPEC](../sign-in/spec/).

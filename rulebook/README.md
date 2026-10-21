@@ -22,6 +22,7 @@ Load this page with any task. Load the linked record before changing the area it
 | Buyer data: what is kept, where it lives, who sees it | [ADR-009 decisions 2–4](../buyer-data/#decision) and [SPEC 4, 5 and 7](../buyer-data/spec/#4-what-is-kept) |
 | Buyer data anonymised 30 days after delivery, and erasure through backups and restores | [ADR-009 SPEC 8](../buyer-data/spec/#8-retention-and-anonymisation) and [SPEC 11](../buyer-data/spec/#11-erasure-backups-and-restores) |
 | Who is told of an incident, and when | [ADR-009 SPEC 13](../buyer-data/spec/#13-incidents) |
+| Nothing that moves orders or stock is refused for a billing reason | [ADR-012 decision 3](../billing-and-plans/#decision) and [SPEC 3](../billing-and-plans/spec/#3-what-billing-may-refuse) |
 | Layered testing, and when a test may change | [ADR-000 SPEC 15](../system-architecture/spec/#15-testing-and-verification) |
 | VAT on a sale: one issuer, a VAT record per line from import, what the buyer paid wins, the 1p difference flag | [ADR-011 decisions 2, 5 and 6](../invoicing-and-vat/#decision) and [SPEC 6–8](../invoicing-and-vat/spec/#6-the-vat-record) |
 | VAT rounding and splits: per line half up, bundles by cost, delivery following the goods | [ADR-011 SPEC 7](../invoicing-and-vat/spec/#7-working-out-the-vat) |
@@ -92,7 +93,7 @@ Load this page with any task. Load the linked record before changing the area it
 
 45. **Money always carries its currency,** and amounts in different currencies are never added. [ADR-000](../system-architecture/spec/#14-money-and-countries), [ADR-003](../product-model/spec/#21-numbers-and-money)
 46. **Country rules live only where the country matters:** VAT and invoices, Vervoro's billing, food law, and each marketplace's site. A product has a VAT class, and every line stores the country, class and rate it used. [ADR-000](../system-architecture/spec/#14-money-and-countries), [ADR-011 SPEC 6](../invoicing-and-vat/spec/#6-the-vat-record)
-47. **Nothing that moves orders or stock is ever refused for a billing reason.** [ADR-012](../billing-and-plans/#decision)
+47. **Nothing that moves orders or stock is ever refused for a billing reason.** A plan refuses only switching on a module it does not include. [ADR-012 decision 3](../billing-and-plans/#decision), [SPEC 3](../billing-and-plans/spec/#3-what-billing-may-refuse)
 
 ## Changing a rule
 
