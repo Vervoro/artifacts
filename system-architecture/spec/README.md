@@ -182,7 +182,7 @@ An **egress effect** is a call that changes something on a marketplace or at a s
 2. **Expand, migrate, contract.** This section owns the migration rule; other records link here. A schema change ships in steps:
    - **Expand:** the change is first added in a backward-compatible form, so the previous code version still runs on the new schema and a rollback is switching back to it.
    - **Migrate:** code that understands both the old and the new shape deploys, and the data is moved.
-   - **Contract:** after the rollback window, a later release removes the old shape.
+   - **Contract:** after the rollback window, a later release removes the old shape. The rollback window is at least 24 hours and one successful nightly cycle after the release that stopped using the old shape (owner ruling, 21 October 2026).
 
    A destructive change (a drop, a rename, a tighter constraint) never ships in the same release that first depends on the new schema. A migration is never rolled back, and a migration already merged is never edited ([16](#16-how-work-is-done)). Better Auth's generated changes follow the same steps ([ADR-013 SPEC 13](../../sign-in/spec/#13-upgrades-and-migrations)).
 3. A database below the version the code needs is an error that alerts, never a state the code handles.

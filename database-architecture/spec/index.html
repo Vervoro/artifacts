@@ -278,7 +278,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>SQL</td>
 <td>Yes</td>
 <td>No</td>
-<td><code>SELECT, INSERT, UPDATE, DELETE</code> on the <code>auth</code> schema (Better Auth&#39;s tables) and the <code>auth_policy</code> schema (Vervoro&#39;s sign-in policy tables); <code>INSERT</code> on the platform security log; nothing else (<a href="../../sign-in/spec/#8-the-sign-in-worker">ADR-013 SPEC 8</a>). Owns nothing; the owner role creates both schemas by migration</td>
+<td><code>SELECT, INSERT, UPDATE, DELETE</code> on the <code>auth</code> schema (Better Auth&#39;s tables) and the <code>auth_policy</code> schema (Vervoro&#39;s sign-in policy tables); <code>INSERT</code> on the platform security log, with <code>USAGE</code> on its schema; nothing else (owner ruling, 21 October 2026; <a href="../../sign-in/spec/#8-the-sign-in-worker">ADR-013 SPEC 8</a>). Owns nothing; the owner role creates both schemas by migration</td>
 <td>The sign-in Worker, through its own Hyperdrive configuration</td>
 </tr>
 <tr>
