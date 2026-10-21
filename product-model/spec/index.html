@@ -606,7 +606,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><p>A company setting gives new products their defaults, so a food seller starts with both on.
 Rules 7 and 8 are <em>Later</em> (<a href="#0-at-launch-and-later">section 0</a>): kept here, built when a first customer needs serial tracking.</p>
 </li>
-<li><p><strong><code>tracks_serial</code> on</strong> (electronics, tools, bikes): each unit&#39;s serial number is recorded when it is packed, by a scan, and stored with the order line. A serial is unique per product among units shipped and not returned. A return of that product asks for the serial and checks it against the order&#39;s; a mismatch puts the return in front of a manager. Serials are not recorded at receipt or counted on the shelf. The stock side belongs to <a href="../../stock-ledger/">ADR-006</a>, which takes it when it is split.</p>
+<li><p><strong><code>tracks_serial</code> on</strong> (electronics, tools, bikes): each unit&#39;s serial number is recorded when it is packed, by a scan, and stored with the order line. A serial is unique per product among units shipped and not returned. A return of that product asks for the serial and checks it against the order&#39;s; a mismatch puts the return in front of a manager. Serials are not recorded at receipt or counted on the shelf. Recording at packing and checking on return belong to <a href="../../fulfilment/">ADR-014 Fulfilment</a>, which takes them when serial tracking is built.</p>
 </li>
 <li><p>Serial and lot tracking may both be on. A bundle records the serial of each serial-tracked component.</p>
 </li>

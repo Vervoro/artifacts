@@ -239,7 +239,7 @@ Batches, dates and lots live on stock ([ADR-006](../../stock-ledger/spec/#4-date
 6. A company setting gives new products their defaults, so a food seller starts with both on.
 Rules 7 and 8 are *Later* ([section 0](#0-at-launch-and-later)): kept here, built when a first customer needs serial tracking.
 
-7. **`tracks_serial` on** (electronics, tools, bikes): each unit's serial number is recorded when it is packed, by a scan, and stored with the order line. A serial is unique per product among units shipped and not returned. A return of that product asks for the serial and checks it against the order's; a mismatch puts the return in front of a manager. Serials are not recorded at receipt or counted on the shelf. The stock side belongs to [ADR-006](../../stock-ledger/), which takes it when it is split.
+7. **`tracks_serial` on** (electronics, tools, bikes): each unit's serial number is recorded when it is packed, by a scan, and stored with the order line. A serial is unique per product among units shipped and not returned. A return of that product asks for the serial and checks it against the order's; a mismatch puts the return in front of a manager. Serials are not recorded at receipt or counted on the shelf. Recording at packing and checking on return belong to [ADR-014 Fulfilment](../../fulfilment/), which takes them when serial tracking is built.
 8. Serial and lot tracking may both be on. A bundle records the serial of each serial-tracked component.
 
 ## 13. Creating products

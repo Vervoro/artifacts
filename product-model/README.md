@@ -76,6 +76,6 @@ The Products module, a core module, is the only writer of these ([ADR-000](../sy
 - **SKU length.** 40 characters is Amazon's limit as reported by third parties; check it in Seller Central, including whether it counts bytes.
 - **Restricted barcode ranges** (13-digit codes starting 20–29, 12-digit codes starting 2 or 4): recheck against the GS1 General Specifications before launch, including 8-digit codes.
 - **Imperial display:** the precision shown (0.1 oz, 0.1 in) is a proposal for the product owner.
-- **Serial tracking is deferred** (owner, 21 October 2026) until a first customer needs it. When it is built, ADR-006 takes the stock side (recording at packing, checking on return).
+- **Serial tracking is deferred** (owner, 21 October 2026) until a first customer needs it. When it is built, [ADR-014 Fulfilment](../fulfilment/) takes the packing and returns side (recording at packing, checking on return).
 - **Not covered at launch:** items shipped in several boxes (furniture) and items whose weight differs piece by piece. Free-form attributes stay on the listing.
 - **Amazon Vendor** items link like listings, but wait for the Vendor connector (ADR-004.4, not written).
