@@ -75,50 +75,48 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>18 October 2026</td>
+<td>18 October 2026; split into ADR, SPEC and RUNBOOK, with Listings as the core module that alone writes listings and links, 21 October 2026</td>
 </tr>
 <tr>
 <td><strong>Scope</strong></td>
-<td>How Vervoro learns what each seller has listed on every marketplace (the full read on connect, change notices, a manual refresh and a daily safety read, new and ended listings), and how each listing is tied to a product: suggestions and how sure each one is, the unlinked-listings list, creating a product from a listing, creating an Amazon offer for a product, bundles and packs, link changes while orders are open, and conflicts</td>
+<td>The Listings module: what a listing is and its key, how listings are read and kept current, when a listing has ended, relists and SKU changes, suggestions, links and their versions, unlinked and not-stock listings, the shared-stock answer before going live, making a product from a listing, and offering a product on Amazon by ASIN</td>
 </tr>
 <tr>
 <td><strong>Builds on</strong></td>
-<td><a href="../database-architecture/">ADR-001: Multi-tenant database architecture</a>, <a href="../product-model/">ADR-003: Product model</a>, <a href="../channel-connectors/">ADR-004: Channel connectors</a>, with <a href="../ebay-connector/">ADR-004.1</a>, <a href="../amazon-seller-connector/">ADR-004.2</a> and <a href="../shopify-connector/">ADR-004.3</a></td>
+<td><a href="../system-architecture/">ADR-000</a>, <a href="../database-architecture/">ADR-001</a>, <a href="../product-model/">ADR-003</a>, <a href="../channel-connectors/">ADR-004</a> with <a href="../ebay-connector/">ADR-004.1</a>, <a href="../amazon-seller-connector/">ADR-004.2</a> and <a href="../shopify-connector/">ADR-004.3</a>; used by <a href="../stock-ledger/">ADR-006</a>, <a href="../order-ingestion/">ADR-007</a> and <a href="../inventory-sync/">ADR-008</a></td>
+</tr>
+<tr>
+<td><strong>SPEC</strong></td>
+<td><a href="spec/">The rules to build from, and how to check them</a></td>
+</tr>
+<tr>
+<td><strong>RUNBOOK</strong></td>
+<td><a href="../runbooks/#adr-005-catalogue-sync-and-linking">The procedures for this record</a></td>
 </tr>
 </tbody></table></div>
 <h2 id="context">Context</h2>
-<p>ADR-003 decided that a listing links to exactly one product, with the number of units one sale uses and who ships it. ADR-004 decided that each connector can read every listing on an account, and that the host owns the calls and their limits. This record decides how the listings get there, how they stay current, and how a person ties each one to a product.</p>
-<p>Vervoro is the stock master. Every figure a marketplace shows for a linked listing comes from Vervoro. So a wrong link is worse than no link: it sends one product&#39;s stock to another product&#39;s listing, or multiplies a figure by a pack size.</p>
-<p>The design has to meet these requirements:</p>
 <ul>
-<li><strong>Sellers arrive with listings.</strong> A typical seller has 100 to 5,000 listings on two or three marketplaces before they connect Vervoro. Most were made in the marketplace&#39;s own tools, years ago, by different people.</li>
-<li><strong>A SKU or barcode match says which product, never how many units a sale uses.</strong> A six-pack listing often carries the single&#39;s SKU or barcode. Linked at one unit per sale, it shows six times the real stock.</li>
-<li><strong>Vervoro manages only the listings a person links.</strong> The marketplace keeps managing the rest. An unlinked listing is not an error; it is the seller&#39;s choice, made or not yet made.</li>
-<li><strong>Marketplaces change listings without asking.</strong> A seller relists, renames a SKU, deletes and recreates, or edits in bulk. Some of it comes with a notice, much of it does not, and no notice is guaranteed.</li>
-<li><strong>Listing identity is not the SKU.</strong> eBay gives a relisted item a new item number. Amazon cannot rename a SKU, only delete it and make a new one. Shopify allows a blank SKU, or the same SKU on two variants.</li>
-<li><strong>Shared allowances are tight.</strong> eBay&#39;s Trading API allows 5,000 calls a day for the whole application, shared by every seller (ADR-004.1). Reading a catalogue must not spend what protects another seller&#39;s stock.</li>
-<li><strong>Phone first.</strong> Onboarding 5,000 listings on a phone pushes a seller to accept everything without reading. The safe path has to be the fast path.</li>
-<li><strong>Connectors stay isolated and switchable</strong> (ADR-004). One marketplace&#39;s trouble stays its own, and an account that is switched off reads nothing.</li>
+<li><strong>Sellers arrive with listings.</strong> A typical seller has 100 to 5,000 listings on two or three marketplaces, made over years in the marketplaces&#39; own tools.</li>
+<li><strong>A wrong link is worse than no link.</strong> Vervoro is the stock master, so a wrong link sends one product&#39;s stock to another product&#39;s listing. A SKU or barcode match says which product, never how many units a sale uses: a six-pack often carries the single&#39;s SKU.</li>
+<li><strong>Marketplaces change listings without asking,</strong> and the SKU is not a listing&#39;s identity. eBay gives a relist a new item number; Amazon cannot rename a SKU, only delete and recreate it. Notices are late, missing or repeated.</li>
+<li><strong>Shared allowances are tight.</strong> eBay&#39;s Trading API allows 5,000 calls a day for every seller together (<a href="../ebay-connector/">ADR-004.1</a>). Reading a catalogue must not spend what protects another seller&#39;s stock.</li>
+<li><strong>Phone first.</strong> Onboarding 5,000 listings on a phone pushes a seller to accept everything unread, so the safe path has to be the fast path.</li>
 </ul>
 <h2 id="decision">Decision</h2>
+<p>Parts marked <em>Later</em> keep their rules in the SPEC but are built only when their trigger arrives.</p>
 <ol>
-<li><strong>A listing is the smallest thing a marketplace sells and counts on its own:</strong> an eBay inventory item, a Seller Hub listing or one of its variations; an Amazon seller SKU across the account&#39;s marketplaces; a Shopify variant. Parents (an eBay listing with variations, an Amazon parent ASIN, a Shopify product) are listing groups. They are shown, never linked. A variation links to one member of a product family (ADR-003), and a whole group can be paired with a family in one step.</li>
-<li><strong>A listing&#39;s identity is a key built from the marketplace&#39;s most stable id, never the bare SKU.</strong> The SKU, item number, ASIN, barcode and variant id are attributes. The same listing gets the same key from a catalogue read and from an order line.</li>
-<li><strong>Catalogue reading is one optional connector capability:</strong> a full snapshot, changes since a time, details, catalogue lookup, and offer create. The host owns the schedule, the budget and the storage.</li>
-<li><strong>Three triggers start a full read:</strong> connecting an account, the daily safety read, and the seller&#39;s refresh. A notice, or an order that names an unknown listing, starts a read of that one listing. All of it is the lowest-priority work on the account, on the bulk lane.</li>
-<li><strong>Presence comes from the cheapest complete source; details only for listings without a link.</strong> A listing matched by its SKU needs no title or barcode fetch.</li>
-<li><strong>A notice is a hint.</strong> It causes at most one read. It never changes a listing or a link by itself.</li>
-<li><strong>A listing ends only on two proofs,</strong> and only from complete reads. A read that would end too many listings at once is held. An ended listing keeps its link, gets no figure, and still resolves late orders and returns.</li>
+<li><strong>Listings is a core module, and the only writer of listings, listing groups, versioned links and suggestions</strong> (<a href="../system-architecture/">ADR-000</a>). A listing is the smallest thing a marketplace sells and counts on its own: an eBay inventory item, Seller Hub listing or variation; an Amazon seller SKU. Parents are listing groups: shown, never linked. Channels reads the marketplaces and hands what it reads to Listings; Listings knows no marketplace protocol. <em>Later: Shopify variants, with ADR-004.3.</em></li>
+<li><strong>A listing&#39;s key is built from the marketplace&#39;s most stable id, never the bare SKU.</strong> The same listing gets the same key from a catalogue read and from an order line. Listings are never deleted.</li>
+<li><strong>Reading is one optional capability added to ADR-004&#39;s contract.</strong> A full read runs on connect, once a day and on the seller&#39;s refresh; a notice or an unknown listing on an order reads that one listing. All of it is the lowest-priority work on the account. Presence comes from the cheapest complete source, such as eBay&#39;s Feed API report and Amazon&#39;s all-listings report; details are read only for listings without a link.</li>
+<li><strong>A notice is a hint.</strong> It causes at most one read and never changes a listing or a link by itself.</li>
+<li><strong>A listing ends only on two proofs, from complete reads.</strong> A read that would end too many listings at once is held. An ended listing keeps its link, gets no figure, and still resolves late orders and returns.</li>
 <li><strong>Every link is made by a person.</strong> The one exception is an eBay relist that eBay itself declares, with nothing about the listing changed: its link carries over, and the seller is told.</li>
-<li><strong>Suggestions come in three tiers from fixed rules,</strong> with a list of vetoes that demote a match. Only the strong tier can be accepted in bulk. A veto that could not be checked counts as fired.</li>
-<li><strong>Every link shows units per sale and the figure change before it is made.</strong> Bulk accept never sets units per sale above 1. On a live account, a bulk link sends decreases at once and holds raises for one confirm.</li>
-<li><strong>Links are versioned.</strong> A change closes the current link and opens a new one. Open orders keep the link they were reserved with, and an order belongs to the link that was valid when the buyer bought. Unlinking sends the listing 0 unless the seller chooses to leave the marketplace&#39;s figure.</li>
-<li><strong>An unlinked listing is left to the marketplace.</strong> Going live needs an answer only for unlinked listings that look like they share stock with a linked product.</li>
-<li><strong>Figures go only to linked listings,</strong> on every marketplace.</li>
-<li><strong>A product can be made from a listing in one tap,</strong> and an existing product can be offered on Amazon by ASIN, through a checked write at quantity 0.</li>
-<li><strong>Vervoro writes nothing to a listing except its quantity and the offers the seller asks for.</strong></li>
+<li><strong>Suggestions come in three tiers from fixed rules, with vetoes that demote a match.</strong> Only the strong tier can be accepted in bulk. A veto that could not be checked counts as fired.</li>
+<li><strong>Every link shows units per sale and the figure change before it is made.</strong> Bulk accept never sets units per sale above 1. On a live account a bulk link&#39;s decreases go at once, and its raises wait for one confirm.</li>
+<li><strong>Links are versioned, and an order uses the link that was valid when the buyer bought.</strong> A change closes the current link and opens a new one; open orders keep the link they were reserved with. Orders waiting for a link reserve right after the link commits, when Orders hears Listings&#39; event (<a href="../stock-ledger/spec/#6-what-a-line-reserves">ADR-006</a>). A new link reaches Stock sync as an event too. Unlinking sends the listing 0 unless the seller chooses to leave the marketplace&#39;s figure.</li>
+<li><strong>An unlinked listing is left to the marketplace, and figures go only to linked listings.</strong> A listing that is not stock is marked so and never linked (<a href="../product-model/spec/#11-charge-lines-and-listings-that-are-not-stock">ADR-003</a>). Going live needs an answer only for unlinked listings that look like they share stock with a linked product. Vervoro writes nothing to a listing but its quantity and the offers the seller asks for: a product made from a listing in one tap, or an existing product offered on Amazon by ASIN at quantity 0.</li>
 </ol>
-<h2 id="how-it-works">How it works</h2>
+<h2 id="how-a-listing-gets-linked">How a listing gets linked</h2>
 <figure><svg class="diagram" viewBox="0 0 760 500" role="img" aria-label="Four triggers start one catalogue read; the read updates listings; suggestions are ranked; a person links, makes a product or leaves the listing to the marketplace; links are versioned and only linked listings get a figure" xmlns="http://www.w3.org/2000/svg" font-size="13">
   <defs>
     <marker id="cat-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="edge-fill"/></marker>
@@ -153,7 +151,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
   <text x="647" y="93" text-anchor="middle" font-size="11" class="quiet">one listing is read</text>
 
   <rect x="24" y="138" width="712" height="72" rx="8" class="box"/>
-  <text x="380" y="162" text-anchor="middle" font-weight="600" class="ink">Catalogue read, through the connector and the host's binding</text>
+  <text x="380" y="162" text-anchor="middle" font-weight="600" class="ink">Channels reads through the connector, hands each chunk to Listings</text>
   <text x="380" y="181" text-anchor="middle" font-size="11.5" class="quiet">bulk lane, lowest priority · presence from the cheapest complete source · details only for unlinked listings</text>
   <text x="380" y="198" text-anchor="middle" font-size="11.5" class="quiet">a listing ends only on two proofs · a read that would end too many is held</text>
 
@@ -178,12 +176,12 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
   <text x="632" y="397" text-anchor="middle" font-size="11.5" class="quiet">leave to the marketplace</text>
 
   <rect x="262" y="340" width="236" height="64" rx="8" class="box"/>
-  <text x="380" y="364" text-anchor="middle" font-weight="600" class="ink">Link, in the foundation</text>
+  <text x="380" y="364" text-anchor="middle" font-weight="600" class="ink">Link, written by Listings</text>
   <text x="380" y="383" text-anchor="middle" font-size="11.5" class="quiet">versioned, compare-and-set</text>
   <text x="380" y="397" text-anchor="middle" font-size="11.5" class="quiet">open orders keep the link they reserved</text>
 
   <rect x="24" y="340" width="208" height="64" rx="8" class="box"/>
-  <text x="128" y="364" text-anchor="middle" font-weight="600" class="ink">Inventory sync</text>
+  <text x="128" y="364" text-anchor="middle" font-weight="600" class="ink">Stock sync, by event</text>
   <text x="128" y="383" text-anchor="middle" font-size="11.5" class="quiet">a figure goes only to</text>
   <text x="128" y="397" text-anchor="middle" font-size="11.5" class="quiet">linked listings (ADR-008)</text>
 
@@ -192,668 +190,47 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </svg>
 </figure>
 
-<p>A trigger asks the host for a read. The host runs it through the connector and the account&#39;s HTTP binding (ADR-004), page by page or report by report, and saves each chunk with its cursor. Each listing is stored under its key. When a full read completes, the host works out which listings it no longer saw, and starts the proof that they ended.</p>
-<p>New and changed listings without a link get suggestions. They appear in the unlinked-listings list, where a person links them, makes a product from them, or leaves them to the marketplace. A link is written by the foundation, which is the only code that changes what a listing should show (ADR-000). Inventory sync then sends linked listings their figure (ADR-008).</p>
-<h2 id="listings-and-their-identity">Listings and their identity</h2>
-<p><strong>What a listing is.</strong></p>
-<div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Marketplace</th>
-<th>A listing</th>
-<th>Listing group (never linked)</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>eBay, Inventory API</td>
-<td>An inventory item, with all its offers</td>
-<td>Its inventory item group</td>
-</tr>
-<tr>
-<td>eBay, Seller Hub</td>
-<td>A single listing, or one variation of a listing</td>
-<td>The listing with variations</td>
-</tr>
-<tr>
-<td>Amazon Seller</td>
-<td>One seller SKU, across the account&#39;s marketplaces</td>
-<td>The parent ASIN</td>
-</tr>
-<tr>
-<td>Shopify</td>
-<td>One variant</td>
-<td>The product</td>
-</tr>
-</tbody></table></div>
-<p><strong>The key.</strong> The connector builds each listing&#39;s key from what the marketplace keeps stable:</p>
-<div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Listing</th>
-<th>Key</th>
-<th>The SKU is</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>eBay inventory item</td>
-<td><code>inv:{sku}</code></td>
-<td>The identity: eBay names inventory items by SKU</td>
-</tr>
-<tr>
-<td>eBay Seller Hub listing</td>
-<td><code>item:{item number}</code></td>
-<td>An attribute</td>
-</tr>
-<tr>
-<td>eBay variation with a SKU</td>
-<td><code>item:{item number}/sku:{sku}</code></td>
-<td>The identity within the listing</td>
-</tr>
-<tr>
-<td>eBay variation without a SKU</td>
-<td><code>item:{item number}/spec:{hash of its options}</code></td>
-<td>Absent. Readable, its orders resolve to it, but it cannot be linked or updated (ADR-004.1)</td>
-</tr>
-<tr>
-<td>Amazon seller SKU</td>
-<td><code>sku:{sku}</code></td>
-<td>The identity: Amazon cannot rename a SKU</td>
-</tr>
-<tr>
-<td>Shopify variant</td>
-<td><code>variant:{variant id}</code></td>
-<td>An attribute: it may be blank or shared (ADR-004.3)</td>
-</tr>
-</tbody></table></div>
-<ul>
-<li><strong>One key from both directions.</strong> An order line names its listing the same way a catalogue read does. The shared contract test suite proves it for every connector.</li>
-<li><strong>A key format is fixed.</strong> A connector that changes how it builds keys ships a mapping from old keys to new in the same change.</li>
-<li><strong>Listings are never deleted.</strong> They move through states. An order line from two years ago still resolves to its listing.</li>
-<li><strong>Identifiers are attributes.</strong> The item number, ASIN (per marketplace), Amazon&#39;s unit label (FNSKU), Shopify&#39;s inventory item, and every barcode are stored beside the listing, each indexed, so an order, a scan or a match can find the listing by any of them. Barcodes are normalised and checked as in ADR-003; restricted and internal codes are stored but never matched.</li>
-</ul>
-<p><strong>States.</strong> <code>pending</code> (an offer Vervoro asked Amazon to create, not yet confirmed), <code>active</code>, <code>inactive</code> (on the marketplace but not buyable), <code>missing</code> (one proof of ending), <code>ended</code>. An account that is disconnected keeps its listings, marked as such, and they sync nothing.</p>
-<h2 id="the-catalogue-capability">The catalogue capability</h2>
-<p>A connector that can read a catalogue declares this capability (ADR-004). Each part is optional, and the host calls only what is declared.</p>
-<div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Part</th>
-<th>What it does</th>
-<th>What it returns</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><strong>Snapshot</strong></td>
-<td>Reads every listing on the account, page by page, or as a report or bulk job the host polls</td>
-<td>Listings with their keys and attributes, the time the snapshot describes (<code>asOf</code>), and whether it is complete</td>
-</tr>
-<tr>
-<td><strong>Changes since</strong></td>
-<td>Reads the listings created, changed or ended since a time. Declared only where the marketplace has a real filter</td>
-<td>Changed listings, a cursor, and the time up to which the window is complete</td>
-</tr>
-<tr>
-<td><strong>Details</strong></td>
-<td>Reads title, barcodes, image, options, pack quantity and relist parent for up to a set number of listings</td>
-<td>Each value tagged by where it came from: entered by the seller, or from the marketplace&#39;s catalogue</td>
-</tr>
-<tr>
-<td><strong>Catalogue lookup</strong></td>
-<td>Looks up a marketplace product by its code or barcode</td>
-<td>Name, brand, barcodes, image, weight, dimensions, pack quantity, product type</td>
-</tr>
-<tr>
-<td><strong>Offer create</strong></td>
-<td>Creates an offer for an existing marketplace product. A write, so only the egress gate sends it</td>
-<td>A gate outcome (ADR-000)</td>
-</tr>
-</tbody></table></div>
-<p>Parse-notice (ADR-004) gains three results: listing created, listing changed, listing ended. A connector leaves out what the marketplace did not give. It never makes up a title, a barcode or a pack quantity.</p>
-<p>The contract test suite grows with the capability: a snapshot that stops part-way is not complete; a changes read across pages survives a throttle; a relist, a SKU-less variation and one SKU on two listings each come back as the table above says.</p>
-<h2 id="reading-the-catalogue">Reading the catalogue</h2>
-<p><strong>Three triggers start a full read.</strong></p>
-<ul>
-<li><strong>On connect.</strong> The first read starts as soon as the account is connected, in shadow (ADR-004). The seller sees its progress and can leave; a push says when it is done.</li>
-<li><strong>The daily safety read.</strong> One full read per account a day, as a <code>due</code> row (ADR-001), its time spread across the day by a hash of the account id. Any complete full read, including a refresh, resets it. Accounts that are off have no row.</li>
-<li><strong>Refresh.</strong> The seller asks. A whole-catalogue refresh runs at most once an hour and four times a day per account; a refresh of one listing at most once every 15 minutes, and at most 20 such refreshes a day per account. Both caps are platform settings. A refresh asked while a read runs joins that read. When the button is disabled, it says why and when it opens.</li>
-</ul>
-<p><strong>A single-listing read</strong> follows a notice, an order line that names a listing Vervoro does not know, or a refresh of one listing. Reads of the same listing are joined while one is waiting.</p>
-<p><strong>Catalogue work comes last.</strong> Within an account, it runs after stock writes, order fetches and read backs, under its own job key, so a long read never holds an order or a decrease (ADR-004). It uses the bulk lane, never a safety lane.</p>
-<p><strong>Reads survive crashes.</strong> A page read saves its cursor with every chunk it writes. A report read saves each step: requested, processing, downloading, applying, complete. A crash costs one lease period, never a restart from the first page.</p>
-<p><strong>Complete means complete.</strong> A read is complete only if every page, or the whole report, arrived, and the account, the company and the platform stayed switched on throughout. The read checks the switches at every chunk. The transaction that saves a chunk checks the account and its own lease again, and drops the chunk if either changed. Switching an account off or disconnecting it ends its read.</p>
-<p><strong>Only what changed is written.</strong> Each listing carries a fingerprint of its attributes; an unchanged listing is not rewritten. Every saved value carries the time the marketplace observed it, and an older observation never overwrites a newer one, so a slow full read never undoes a newer single-listing read.</p>
-<h2 id="read-plan-per-marketplace">Read plan per marketplace</h2>
-<div class="table-wrap"><table>
-<thead>
-<tr>
-<th></th>
-<th>eBay inventory items</th>
-<th>eBay Seller Hub</th>
-<th>Amazon Seller</th>
-<th>Shopify</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><strong>Presence (full read)</strong></td>
-<td>Active-listings report from eBay&#39;s Feed API</td>
-<td>The same report: SKU, item number, variations</td>
-<td>All-listings report per served marketplace (active and inactive, with status), from the seller&#39;s own allowance</td>
-<td>One bulk operation over every variant</td>
-</tr>
-<tr>
-<td><strong>Details for unlinked listings</strong></td>
-<td>Inventory API pages: title, barcodes, images</td>
-<td>Trading API: listings started since the last read, inside the account&#39;s daily page cap</td>
-<td>Catalogue lookup by ASIN, 20 a call, for barcodes</td>
-<td>In the same bulk file</td>
-</tr>
-<tr>
-<td><strong>Notices</strong></td>
-<td>None</td>
-<td>Trading API events: listed, revised, closed</td>
-<td>Listing status changes, through the AWS bridge</td>
-<td>Product created, updated, deleted</td>
-</tr>
-<tr>
-<td><strong>Changes since</strong></td>
-<td>None</td>
-<td>None</td>
-<td>Search by last update time</td>
-<td>Products by update time</td>
-</tr>
-<tr>
-<td><strong>Daily safety read</strong></td>
-<td>Fresh report</td>
-<td>Fresh report</td>
-<td>Fresh report</td>
-<td>Bulk operation</td>
-</tr>
-</tbody></table></div>
-<ul>
-<li><strong>eBay: the report, not the Trading API.</strong> The Feed API&#39;s active-listings report names every active listing with its SKU, item number and variations, and it costs nothing from the Trading pool. The Trading API is used only for the titles and barcodes of Seller Hub listings without a link. Inventory items have no listing notices at all; a new one is found by the daily read, or sooner by a refresh.</li>
-<li><strong>eBay notices.</strong> On connect, the account is subscribed to the Trading API&#39;s listed, revised and closed events, with one call. Receiving them costs no Trading call. The revised event&#39;s body carries the item, so its fingerprint is compared before anything is read, and the echo of Vervoro&#39;s own stock writes (which revise the listing) costs nothing.</li>
-<li><strong>Amazon: the report for presence, the search for changes.</strong> Amazon&#39;s listings search pages through at most 1,000 SKUs, so it cannot read a whole catalogue. The all-listings report can: it names every SKU, active and inactive, with its status, one marketplace per request. It is the full read and the daily safety read. The search, sorted by last update time, is the changes read. A changes read that finds more than 1,000 SKUs is split into shorter time windows, and if one window still finds more, the account gets a fresh report instead. Both run once per marketplace the account serves, and presence is kept per marketplace.</li>
-<li><strong>Amazon multi-marketplace accounts.</strong> A SKU is one listing across the account&#39;s marketplaces; its ASIN and status are kept per marketplace. A SKU that exists only on a marketplace the account does not serve is shown as not served and cannot be linked. A SKU Amazon ships on any served marketplace is marketplace-shipped (ADR-004.2).</li>
-<li><strong>Shopify.</strong> A bulk operation reads every variant without draining the shop&#39;s cost budget (ADR-004.3). Variants with a blank or shared SKU are keyed by variant id and can be linked; a variant Shopify does not track, or that is not stocked at Vervoro&#39;s location, is shown with the fix the seller must make.</li>
-</ul>
-<h2 id="notices">Notices</h2>
-<p>A notice is a hint, never the truth (ADR-004). It can start a read; only the read changes a listing.</p>
-<ul>
-<li><strong>Created, ended and deleted notices always cause a single-listing read.</strong></li>
-<li><strong>Changed notices</strong> cause a read only when their fingerprint differs from what is stored and they are newer than it. Quantity is left out of the fingerprint, so our own writes echo back for free.</li>
-<li><strong>Duplicates are dropped</strong> by notice id. A notice older than the <code>asOf</code> of the last complete read of its scope is ignored.</li>
-<li><strong>Bursts become one read.</strong> Only notices that would cause a read count. When more than 200 arrive for one account in 10 minutes, they become one changes read on Amazon and Shopify. On eBay they become single-listing reads within the account&#39;s daily Trading cap, and the next report covers the rest.</li>
-<li><strong>Notices that look broken are noticed.</strong> When a daily read finds more than 5 changes that no notice announced, the account&#39;s notices are marked unreliable: changes reads every hour on Amazon and Shopify, and an operator alert on eBay, where no cheap changes read exists.</li>
-</ul>
-<h2 id="new-and-ended-listings">New and ended listings</h2>
-<p><strong>New listings</strong> arrive by a notice, a changes read, a full read or an order line. A new listing gets suggestions at once. If it looks like it shares stock with a linked product, the seller is alerted (below).</p>
-<p><strong>A listing ends only on two proofs.</strong></p>
-<ol>
-<li><strong>First proof:</strong> it is missing from a complete read of its scope whose <code>asOf</code> is later than the time the listing was first seen. It becomes <code>missing</code>. It keeps its link and its figure.</li>
-<li><strong>Second proof,</strong> for a <strong>linked</strong> listing: a read of that one listing says it ended or does not exist. For an <strong>unlinked</strong> listing, that, or missing again from a complete read at least 20 hours later.</li>
-</ol>
-<p>The second proof for a linked listing is always a direct read, because eBay&#39;s report may leave out a listing sitting at zero under the out-of-stock option, and a status-filtered search leaves out inactive SKUs. Two missed reports would otherwise put a live listing to sleep, and it would never be raised again when stock returns. Linked listings rarely end, so this costs a few reads a day.</p>
-<p><strong>A read that would end too much is held.</strong> If a complete read would mark more than 10 % of a scope missing (and at least 20 listings), it is held as suspect: nothing changes, the operator is alerted, and the read is due again in an hour. An empty or cut-off report is the common real failure, and it must never unlink half a catalogue.</p>
-<p><strong>A delete notice</strong> (an Amazon status change, a Shopify product deleted, an eBay item closed) starts a single-listing read, and that read&#39;s answer is final at once.</p>
-<p><strong>An ended listing keeps its link.</strong> It gets no figure, and its late orders and returns still resolve. The seller sees it in a daily digest; it becomes an alert only if it had open orders, or if its product still has stock but no seller-shipped listing left. For ADR-003&#39;s rule that a retired product has no linked listings, an ended listing does not count, and retiring the product closes its link.</p>
-<p><strong>A listing that comes back</strong> keeps its link only if its marketplace product (ASIN, eBay item or parent, Shopify product) and its barcodes are unchanged. Otherwise its link is closed and the old product is offered as a suggestion: Amazon lets a seller delete a SKU and create it again for a different product. A listing that keeps its link holds raises until the seller has looked.</p>
-<h2 id="relists-and-sku-changes">Relists and SKU changes</h2>
-<div class="table-wrap"><table>
-<thead>
-<tr>
-<th>What happened</th>
-<th>Same key?</th>
-<th>What Vervoro does</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>A SKU edited on an eBay Seller Hub listing or a Shopify variant</td>
-<td>Yes</td>
-<td>The link stays. The seller is told &quot;SKU changed from X to Y&quot;, with a way to relink</td>
-</tr>
-<tr>
-<td>A SKU edited onto another product&#39;s SKU</td>
-<td>Yes</td>
-<td>A conflict. The link stays, decreases continue, raises wait until the seller answers</td>
-</tr>
-<tr>
-<td>An eBay relist that eBay declares (the new item names the old one), same SKU, same fulfilment, same options, no veto, title, lot size and variations unchanged</td>
-<td>No</td>
-<td>The link carries over automatically, by the same compare-and-set as a person (a person who linked first wins). The seller is told, with Undo, which returns the new listing to unlinked</td>
-</tr>
-<tr>
-<td>Any other relist, or &quot;sell similar&quot;</td>
-<td>No</td>
-<td>A successor suggestion: the old link&#39;s product and units per sale, one tap</td>
-</tr>
-<tr>
-<td>An Amazon SKU deleted and made again, or an eBay inventory item renamed</td>
-<td>No (new key)</td>
-<td>The old listing ends; the new one gets a successor suggestion</td>
-</tr>
-</tbody></table></div>
-<p>The relist carry is the one link no person makes. It is the marketplace stating that one listing continues another, not Vervoro guessing a match, and leaving it to a person would let the relisted item sell the seller&#39;s typed quantity until someone taps.</p>
-<h2 id="suggestions">Suggestions</h2>
-<p><strong>Three tiers, from fixed rules.</strong> No score for the seller to read, and no learned or fuzzy model.</p>
-<div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Tier</th>
-<th>Rule</th>
-<th>Bulk accept</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><strong>Strong</strong></td>
-<td>The listing&#39;s SKU equals a product&#39;s SKU, ignoring case, and no veto. Or a barcode the seller entered on the listing (an eBay inventory item, a Shopify variant, the seller&#39;s own Amazon offer) equals one product&#39;s unit barcode, no veto, the listing&#39;s SKU names no other product, and no other listing on the same account carries that barcode</td>
-<td>Yes</td>
-</tr>
-<tr>
-<td><strong>Medium</strong></td>
-<td>The SKU matches once a known suffix is removed (<code>-FBA</code>, <code>-6PK</code>); a barcode that comes only from the marketplace&#39;s catalogue; the same ASIN or barcode already linked on another account of the company; a successor; a strong match demoted by a veto, or by a barcode shared with another listing on the account</td>
-<td>One at a time</td>
-</tr>
-<tr>
-<td><strong>Weak</strong></td>
-<td>Similar title</td>
-<td>Shown only</td>
-</tr>
-</tbody></table></div>
-<p><strong>Vetoes.</strong> A veto demotes a strong match to medium, and the row says why:</p>
-<ul>
-<li>a pack word or count in the title or SKU (&quot;pack of 6&quot;, &quot;6 x&quot;, &quot;set of&quot;), from a fixed, tested list per language;</li>
-<li>the marketplace&#39;s own pack quantity is above 1;</li>
-<li>the barcode belongs to a pack product or a box size (the suggestion then proposes the box&#39;s units per sale);</li>
-<li>the marketplace&#39;s current figure is near a whole multiple of 2 or more of what Vervoro would send;</li>
-<li>two products match;</li>
-<li>the product is retired.</li>
-</ul>
-<p><strong>A veto that could not be checked counts as fired.</strong> A listing whose title, or whose pack quantity where the marketplace has one, has not been read yet is never strong. It stays medium, and the row says &quot;details not yet read&quot;. So a spent Trading allowance can delay a link, never let a six-pack through at one unit per sale.</p>
-<p><strong>Bundles and packs.</strong> The product picker offers simple products, packs and bundles together, each with its kind. A barcode that belongs to a sealed pack suggests the pack product. A listing of three units of one product is steered to units per sale = 3, never to a bundle (ADR-003).</p>
-<p><strong>Suggestions are tied to what they were computed from.</strong> Each one records the listing and product versions it used. Accepting it checks both again; a stale suggestion is recomputed, never applied. A dismissed suggestion stays dismissed until its evidence changes.</p>
-<h2 id="linking">Linking</h2>
-<p><strong>Every link shows what it will do.</strong> The link screen and every bulk preview show units per sale (1 written out, never assumed) and the figure change: &quot;eBay shows 40; Vervoro would send 6&quot;. A ratio of 3 or more either way is highlighted and drops the row out of bulk accept. The same ratio check runs over confirmed links during the shadow check (ADR-004), so a wrong units per sale shows up before going live.</p>
-<p><strong>Link to family.</strong> A listing group (an eBay listing with variations, an Amazon parent ASIN, a Shopify product) mirrors a product family (ADR-003): each variation is one size or colour, and each size or colour is its own product. &quot;Link to family&quot; on a group pairs each variation with the family member that has the same SKU, or else the same option values (&quot;42 / Black&quot;), matched ignoring case and spaces.</p>
-<ul>
-<li><strong>One preview, one confirm, still one link per variation.</strong> The preview lists every pair with its units per sale and figure change. Each link is an ordinary link: a pair can be unticked, and any later change is made per variation.</li>
-<li><strong>The same rules as any suggestion.</strong> A pair made only by option values is medium, so it is never applied without this preview; vetoes and the ratio check apply to each pair.</li>
-<li><strong>What does not pair stays unlinked,</strong> with its reason: no member with those options, two members match, or the variation has no SKU and no options Vervoro can read. &quot;Add a size&quot; (ADR-003, <em>Later</em>) will draft the missing members from the unpaired variations; at launch they are made with &quot;Make product&quot;.</li>
-<li><strong>The group is never linked itself.</strong> The family has no stock; each variation sells its own size.</li>
-</ul>
-<p><strong>Bulk accept.</strong></p>
-<ul>
-<li>Strong suggestions only, on &quot;all N in this filter&quot;, not only the rows on screen.</li>
-<li>Previewed in full: grouped by product, with every product that gains more than one listing first, five random rows to spot-check, and the total change in figures.</li>
-<li>Never sets units per sale above 1.</li>
-<li>One recorded batch, written in chunks of 500 links per transaction. Undo closes only the links that still belong to the batch; a link a person changed since is left alone, and the undo says how many it skipped.</li>
-<li><strong>On a live account, raises wait.</strong> A bulk link sends decreases at once. Raises wait for one &quot;send raises&quot; confirm: a single list with a total, where any row can be unticked. Raises not sent after 24 hours remind the seller once. Until then the marketplace keeps its own figure, never higher than ours would have been.</li>
-</ul>
-<p><strong>Links are versioned.</strong> A link change closes the current link and opens a new one in one transaction, compare-and-set against the link the person saw, so two people linking at once cannot both win: the second sees who changed it and to what. The link keeps ADR-003&#39;s fields and adds when it began and ended, who made it, and how (by a person, from a listing, by bulk accept, by a relist carry, by an Amazon offer).</p>
-<p><strong>Open orders keep their link.</strong> An order line records the link it was reserved with (ADR-006, ADR-007). A relink applies to orders received afterwards, and to open lines that arrived unlinked and are not yet dispatched. The link screen says both: &quot;2 open orders keep Honey 340 g. Linking reserves stock for 3 waiting orders.&quot;</p>
-<p><strong>The purchase time decides the link.</strong> An order belongs to the link that was valid when the buyer bought, not when Vervoro imported it. Links record when they began and ended, so this is a lookup. A sale at 10:00 on a listing unlinked at 10:01, whose notice arrives at 10:03, still reserves from the product. A sale after the unlink is an order for an unlinked listing.</p>
-<p><strong>Unlinking.</strong> Closing a link without a new one, by a person, by retiring the product or by an undo:</p>
-<ul>
-<li><strong>Reserved orders keep their stock.</strong> Open orders keep the product they reserved; dispatch deducts it, and a cancellation or return puts it back on that product. The unlink screen says so: &quot;2 open orders keep Honey 340 g.&quot;</li>
-<li><strong>The listing is sent 0 by default.</strong> Without a link Vervoro sends no figure, and the marketplace would keep the last one, selling stock nothing protects. The unlink screen offers &quot;Set to 0 and unlink&quot;, the default, which sends 0 at once like any decrease, or &quot;Leave eBay&#39;s figure at 6&quot;, for a seller handing the listing back to the marketplace on purpose. The choice shows the figure and is recorded on the closed link.</li>
-<li><strong>Marketplace-shipped listings</strong> never get a figure, so unlinking one sends nothing.</li>
-<li><strong>Relinking is a new link.</strong> Like any link, it reserves stock for orders that arrived while the listing was unlinked and are not yet dispatched. Orders already dispatched while unlinked stay flagged, and the seller attaches each one to a product from the order (ADR-007).</li>
-</ul>
-<p><strong>Fulfilment changes.</strong> A listing moving from seller-shipped to marketplace-shipped stops getting figures at once. One moving the other way gets no figure until the seller confirms, because it suddenly exposes warehouse stock. An order line&#39;s own fulfilment decides whether it reserves: a seller-shipped order on a listing still linked as marketplace-shipped reserves units per sale of the product, and opens a conflict (ADR-007 imports it).</p>
-<p><strong>Held raises are one set of reasons per listing:</strong> it came back after ending, its SKU was edited onto another product&#39;s, a live bulk link is not yet confirmed, a fulfilment conflict is open, its product failed the nightly check (ADR-006), or an open import problem names it (ADR-007). Raises go only when the set is empty, and each reason clears with its own answer. Decreases are never held. How a link&#39;s first figure is sent, and on which lane, is ADR-008.</p>
-<h2 id="unlinked-listings-and-going-live">Unlinked listings and going live</h2>
-<p><strong>An unlinked listing is left to the marketplace.</strong> Vervoro sends it no figure, imports its orders and flags them (ADR-003, ADR-007). Unlinked is the default and needs no mark. The account shows &quot;N listings left to the marketplace&quot;.</p>
-<p><strong>A listing that is not stock</strong> (a warranty, gift wrap) is marked &quot;not stock&quot; with a VAT class, by those who may link, instead of being linked. It is never linked to a product and gets no figure. Its order lines are imported as charge lines: they reserve nothing, never wait and never hold the order (<a href="../product-model/spec/#11-charge-lines-and-listings-that-are-not-stock">ADR-003 SPEC 1.1</a>, owner ruling, 21 October 2026). The mark can be removed, after which the listing is unlinked like any other.</p>
-<p><strong>The danger is a listing that shares stock.</strong> An unlinked listing that sells the same goods as a linked product takes stock Vervoro does not deduct, so every linked listing of that product oversells. A <strong>shared-stock listing</strong> is an unlinked, buyable, seller-shipped listing that has a strong or medium suggestion naming a product already linked to another listing, or that sits in a listing group with a linked member.</p>
-<p><strong>Going live on an account needs</strong> a complete catalogue read, no open conflict, and an answer for every shared-stock listing: link it, or &quot;separate stock, leave to the marketplace&quot;. Many can be answered at once, with a confirm that names the risk: &quot;These listings may sell the same stock as products Vervoro manages. Vervoro will not change their quantity.&quot; The answer is recorded (the listing, the evidence, who, when), creates no link, and is asked again when a new strong suggestion appears. Every other unlinked listing is a count, never a blocker. Accounts go live one at a time, so a finished Shopify account does not wait for eBay, except at a company&#39;s first go-live, when every account the old system served goes live in one step (<a href="../inventory-sync/">ADR-008</a>).</p>
-<p><strong>After going live,</strong> the seller is alerted (push) once per listing for a new shared-stock listing, and for the first order on an unlinked listing that has a strong or medium suggestion and no &quot;separate stock&quot; answer. Orders on other unlinked listings go to the daily digest and the list&#39;s open-orders filter, never to alerts, so a seller who leaves 2,000 listings to the marketplace is not flooded.</p>
-<p><strong>Figures go only to linked listings.</strong> On eBay, the lookup of every listing a SKU is on (ADR-004.1) finds listings to suggest; it is not a list of places to write. Another Seller Hub listing that carries a linked SKU but is not linked itself gets no figure; it is a strong suggestion and a shared-stock listing.</p>
-<h2 id="the-unlinked-listings-list">The unlinked-listings list</h2>
-<p><strong>Default order:</strong></p>
-<ol>
-<li>Listings an open order names, soonest dispatch deadline first.</li>
-<li>Shared-stock listings.</li>
-<li>Strong and medium suggestions that sold in the last 30 days, most sold first. The sales come from orders already imported, so they cost no calls.</li>
-<li>Other strong and medium suggestions.</li>
-<li>The rest, by account.</li>
-</ol>
-<p><strong>Each row</strong> shows the main image, title, account, listing SKU (or &quot;no SKU&quot; with the item number), options, who ships it, the figure the marketplace shows now, open orders, sales in the last 30 days, and the best suggestion with its tier, its reason (&quot;same barcode&quot;) and any veto. <strong>Buttons:</strong> Link, Make product, Leave to marketplace, Not stock, and Link to family on a variation whose group has unlinked variations. On a wide screen the same fields are columns with a select box per row.</p>
-<p><strong>Filters:</strong> account, tier, who ships it, open orders, sold recently, has a barcode, no SKU, needed for going live, ended. <strong>Search</strong> by SKU, title, barcode, item number or ASIN, or by scanning a barcode with the phone&#39;s camera.</p>
-<p><strong>The header</strong> shows each account&#39;s read: in progress (&quot;4,812 of about 5,000&quot;), or why it waits (&quot;eBay daily limit; resumes tomorrow at page 31&quot;), and when it last completed.</p>
-<p><strong>Listings that cannot be linked</strong> stay on the list with the fix the seller must make on the marketplace: an eBay variation without a SKU (&quot;add a SKU on eBay&quot;, then a one-listing refresh), a Shopify variant not tracked or not stocked at Vervoro&#39;s location, a SKU on a marketplace the account does not serve.</p>
-<h2 id="making-a-product-from-a-listing">Making a product from a listing</h2>
-<p>ADR-003 route 3, in one tap. &quot;Make product&quot; fills a draft from the listing: its SKU, title as the name, brand, barcode, main image and weight where the marketplace has them. The person checks it and saves. The product, its barcode and the link are written in one transaction. Units per sale is 1 unless the person changes it. If the SKU already belongs to a product, the draft is refused and that product is offered as a strong match.</p>
-<ul>
-<li><strong>Many at once.</strong> &quot;Make N products&quot; groups the selected listings across accounts by barcode, then by SKU, into one draft each, never two listings from the same account (ADR-003). It shows the workbook&#39;s preview and offers &quot;edit as spreadsheet&quot; for large catalogues. One confirm creates and links them all.</li>
-<li><strong>A bundle from a listing.</strong> &quot;Make a bundle&quot; opens the bundle form with the listing&#39;s name and photo; the listing is linked to the bundle on save.</li>
-</ul>
-<h2 id="offering-a-product-on-amazon-by-asin">Offering a product on Amazon by ASIN</h2>
-<p>A seller who already sells a product elsewhere can offer it on Amazon against an existing ASIN. Creating an offer changes the marketplace, so it is a write through the egress gate. In shadow it is only recorded.</p>
-<ol>
-<li><strong>Find the ASIN.</strong> From the product&#39;s barcode, or a pasted ASIN or product link, through the catalogue lookup. The screen shows the ASIN&#39;s title, image, identifiers and pack quantity.</li>
-<li><strong>Check the seller may sell it.</strong> Amazon&#39;s listing restrictions are read for the marketplace and condition first. &quot;Approval needed&quot; stops here with Amazon&#39;s link to apply; &quot;not allowed&quot; stops with the reason. Nothing is sent in the hope it is accepted.</li>
-<li><strong>Fill the offer.</strong> SKU: the product&#39;s SKU by default; refused if that SKU already exists on another ASIN on the account, and a warning if the account already sells this ASIN under another SKU. Condition, who ships it, units per sale (confirmed by the person if the ASIN&#39;s pack quantity is above 1, or if its identifiers do not include the product&#39;s barcode), and the price.</li>
-<li><strong>The price is the seller&#39;s.</strong> The seller types it. Vervoro passes it to Amazon once, keeps no price, and never proposes one (ADR-003).</li>
-<li><strong>Validate, then send.</strong> Amazon&#39;s validation preview runs first, and its issues are shown. Then the offer goes through the gate, at quantity 0.</li>
-<li><strong>Pending until Amazon confirms.</strong> The listing and its link exist at once, as pending. They get no figure until a read shows the offer buyable with no blocking issue. Issues Amazon raises later appear on the listing. A refused offer ends the pending listing and closes its link.</li>
-</ol>
-<h2 id="conflicts">Conflicts</h2>
-<p>Conflicts are solved one at a time, never in bulk.</p>
-<div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Conflict</th>
-<th>Until it is answered</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>A listing&#39;s SKU and its barcode point at different products</td>
-<td>Stays unlinked; no suggestion is strong</td>
-</tr>
-<tr>
-<td>A SKU edited onto another product&#39;s SKU</td>
-<td>Link kept, decreases continue, raises wait</td>
-</tr>
-<tr>
-<td>A seller-shipped order on a listing linked as marketplace-shipped</td>
-<td>The order reserves; the listing&#39;s figure waits for the seller&#39;s confirm</td>
-</tr>
-<tr>
-<td>A listing came back as a different marketplace product</td>
-<td>The old link is closed; the old product is suggested</td>
-</tr>
-</tbody></table></div>
-<p><strong>Duplicate listings are allowed.</strong> Several listings linked to one product, on one account or across accounts, all draw on the same stock and each gets the figure (ADR-003). The product page lists them, and same-account duplicates are flagged as a warning, not a conflict.</p>
-<h2 id="budget">Budget</h2>
-<p>eBay&#39;s Trading API is the only shared pool catalogue work touches.</p>
-<ul>
-<li><strong>Catalogue&#39;s share is capped.</strong> It may spend at most 15 % of a shared pool&#39;s bulk lane a day across the platform, inside ADR-004.1&#39;s 50 pages per account, and never a safety lane.</li>
-<li><strong>Single-listing Trading reads</strong> (after a notice, an unknown item on an order, a refresh, or a second proof) come from the account&#39;s 50-page cap, at most once per item a day. Above that, the item waits for the next report.</li>
-<li><strong>Onboarding.</strong> Seller Hub listings matched by SKU cost no Trading call. Unlinked ones cost one page per 200, so 5,000 unlinked listings cost 25 calls, and a 50,000-listing seller with nothing matched takes about five days at the page cap; the report gives presence on day one, so only details wait.</li>
-</ul>
-<div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Calls a day</th>
-<th>10 sellers</th>
-<th>100 sellers</th>
-<th>1,000 sellers</th>
-<th>Pool</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>eBay Trading, catalogue after onboarding</td>
-<td>about 10</td>
-<td>about 100</td>
-<td>about 1,000</td>
-<td>5,000 for the application by default</td>
-</tr>
-<tr>
-<td>eBay Trading, onboarding new sellers</td>
-<td>about 50</td>
-<td>about 100</td>
-<td>about 500</td>
-<td>The same</td>
-</tr>
-<tr>
-<td>eBay Inventory API</td>
-<td>about 200</td>
-<td>about 2,000</td>
-<td>about 20,000</td>
-<td>2 million for the application</td>
-</tr>
-<tr>
-<td>eBay Feed API (one report each)</td>
-<td>about 80</td>
-<td>about 800</td>
-<td>about 8,000</td>
-<td>100,000 for the application; 400 per seller per feed type</td>
-</tr>
-<tr>
-<td>Amazon, per seller</td>
-<td>about 150</td>
-<td>about 150</td>
-<td>about 150</td>
-<td>The seller&#39;s own bucket</td>
-</tr>
-<tr>
-<td>Shopify, per shop</td>
-<td>under 1 % of the cost budget</td>
-<td>the same</td>
-<td>the same</td>
-<td>The shop&#39;s own bucket</td>
-</tr>
-</tbody></table></div>
-<p>Assumptions: 2,000 listings per seller, 2 % changing a day, half of eBay sellers with Seller Hub listings. Catalogue work is a small share of every pool. What forces eBay&#39;s Growth Check is ADR-004&#39;s reserve of 50 calls per account, not the catalogue.</p>
-<h2 id="storage">Storage</h2>
-<p>The Channels host owns the listing tables; the foundation owns the link (ADR-000, ADR-003). Every table is a tenant table (ADR-001): <code>company_id</code> on every row and every key, under row-level security.</p>
-<div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Table</th>
-<th>Owner</th>
-<th>Holds</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><code>channel_listing</code></td>
-<td>Host</td>
-<td>One row per listing: account, key, SKU, title, image, the figure shown, observed fulfilment, state, whether it can be linked and why not, its group, a fingerprint, when it was observed, a version</td>
-</tr>
-<tr>
-<td><code>channel_listing_identifier</code></td>
-<td>Host</td>
-<td>Item numbers, ASINs per marketplace, unit labels, inventory items and barcodes, each indexed for lookup</td>
-</tr>
-<tr>
-<td><code>channel_listing_presence</code></td>
-<td>Host</td>
-<td>Per listing and scope (one Amazon marketplace, eBay&#39;s report, a Shopify shop): present, missing or absent, and the read that last saw it</td>
-</tr>
-<tr>
-<td><code>channel_catalogue_read</code></td>
-<td>Host</td>
-<td>Each read: account, scope, trigger, method, <code>asOf</code>, cursor, counts, and its state (running, complete, partial, suspect, failed)</td>
-</tr>
-<tr>
-<td><code>channel_link_suggestion</code></td>
-<td>Host</td>
-<td>Listing, product, rule, tier, proposed units per sale, evidence, the versions it used, and its state</td>
-</tr>
-<tr>
-<td><code>channel_listing_decision</code></td>
-<td>Host</td>
-<td>&quot;Separate stock, leave to the marketplace&quot;: listing, evidence, who, when</td>
-</tr>
-<tr>
-<td><code>channel_offer_request</code></td>
-<td>Host</td>
-<td>An Amazon offer: product, ASIN, SKU, condition, units per sale, its state and Amazon&#39;s issues. Never the price</td>
-</tr>
-<tr>
-<td><code>listing_link</code></td>
-<td>Foundation</td>
-<td>ADR-003&#39;s link, one row per version: listing, product, units per sale, fulfilment, how it was made, when it began and ended, and who</td>
-</tr>
-</tbody></table></div>
-<p><strong>Rules, each with a test:</strong></p>
-<ul>
-<li>One current link per listing, enforced by a partial unique index.</li>
-<li>A read never writes a link.</li>
-<li>Every automatic or bulk link uses the same compare-and-set as a person.</li>
-<li>The link names its listing by a plain id, checked through the host&#39;s port in the same transaction; no foreign key crosses modules.</li>
-<li>The running system never deletes a listing.</li>
-<li>An older observation never overwrites a newer one.</li>
-<li>Accepting a suggestion checks the listing and product versions again.</li>
-<li>No listing ends from an incomplete or suspect read, nor from one read alone.</li>
-<li>A listing gets the same key from a read and from an order.</li>
-<li>An order line&#39;s reservation never changes because a link changed.</li>
-</ul>
-<p>A second refresh or daily read joins the read already running, through a partial unique index on running reads per account and scope.</p>
-<h2 id="what-people-see">What people see</h2>
-<ul>
-<li><strong>The seller, per account:</strong> the last complete read and its source, a read in progress or why it waits, notices in the last day, &quot;not notified&quot; or &quot;notices unreliable&quot;, and counts of unlinked, shared-stock and missing listings.</li>
-<li><strong>The operator:</strong> catalogue&#39;s share of each shared pool, accounts with no complete read for 48 hours (an alert), held suspect reads, notice bursts turned into one read, and dead letters. Many accounts failing on one marketplace is one incident alert (ADR-004).</li>
-</ul>
-<h2 id="marketplace-constraints">Marketplace constraints</h2>
-<p>Checked against each marketplace&#39;s documentation on 18 October 2026.</p>
-<div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Constraint</th>
-<th>Figure</th>
-<th>Source</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>eBay active-listings report</td>
-<td>A Feed API task (<code>LMS_ACTIVE_INVENTORY_REPORT</code>): SKU, item number, price and quantity of active listings</td>
-<td><a href="https://developer.ebay.com/develop/api/sell/feed_api.md">Feed API</a></td>
-</tr>
-<tr>
-<td>eBay listing notices</td>
-<td>The Notification API has no general listing topic; the Trading API&#39;s platform notifications include listed, revised and closed</td>
-<td><a href="https://developer.ebay.com/develop/api/sell/notification_api">Notification API</a></td>
-</tr>
-<tr>
-<td>eBay Trading API</td>
-<td>5,000 calls a day for the application by default</td>
-<td><a href="https://developer.ebay.com/develop/api/sell/api_call_limits">API call limits</a></td>
-</tr>
-<tr>
-<td>eBay Feed API</td>
-<td>100,000 calls a day for the application; 400 requests a day per seller for each feed type, and requests beyond that count against the application</td>
-<td><a href="https://developer.ebay.com/develop/api/sell/api_call_limits">API call limits</a></td>
-</tr>
-<tr>
-<td>Amazon listings search</td>
-<td>5 a second per seller and application; at most 20 a page and 1,000 SKUs in all; filters by created and last updated time; search by up to 20 identifiers</td>
-<td><a href="https://developer-docs.amazon/sp-api/docs/listings-items-api-rate-limits">Listings Items API rate limits</a>, <a href="https://github.com/amzn/selling-partner-api-models/blob/main/models/listings-items-api-model/listingsItems_2021-08-01.json">API model</a></td>
-</tr>
-<tr>
-<td>Amazon all-listings report</td>
-<td><code>GET_MERCHANT_LISTINGS_ALL_DATA</code>: every SKU with its status; one marketplace per request; a report may be served from a cache up to a few hours old</td>
-<td><a href="https://developer-docs.amazon/sp-api/docs/report-type-values-inventory">Inventory report types</a></td>
-</tr>
-<tr>
-<td>Amazon listing notices</td>
-<td>Listing status changes (created, deleted, buyable) on the event bus only</td>
-<td><a href="https://developer-docs.amazon/sp-api/docs/set-up-notifications-with-amazon-eventbridge">EventBridge notifications</a></td>
-</tr>
-<tr>
-<td>Amazon offer on an existing ASIN</td>
-<td>A listing put with offer-only requirements; restrictions checked through the Listings Restrictions API</td>
-<td><a href="https://developer-docs.amazon/sp-api/docs/listings-items-api">Listings Items API</a></td>
-</tr>
-<tr>
-<td>Shopify product notices</td>
-<td>Product created, updated and deleted webhooks; variants arrive in product updates</td>
-<td><a href="https://shopify.dev/docs/api/webhooks/latest">Webhooks</a></td>
-</tr>
-</tbody></table></div>
+<p>A trigger asks Channels for a read. Channels runs it through the connector, page by page or report by report, and hands each chunk to Listings&#39; port, which stores each listing under its key. When a complete read ends, Listings works out which listings it no longer saw and starts the proof that they ended. New listings without a link get suggestions and appear in the unlinked-listings list, where a person links them, makes a product from them, or leaves them to the marketplace. Listings writes the link and announces it. Orders then reserves the listing&#39;s waiting lines, and Stock sync works out its figure (<a href="../inventory-sync/">ADR-008</a>).</p>
 <h2 id="consequences">Consequences</h2>
-<p><strong>What this gives us</strong></p>
+<p><strong>Gives</strong></p>
 <ul>
-<li>No link is made by a guess. A pack hidden behind a single&#39;s SKU or barcode cannot be bulk-linked at one unit per sale, even when its details have not been read.</li>
-<li>Every link shows the figure it will cause before it is made, which catches a wrong product or a wrong units per sale on sight.</li>
+<li>No link is made by a guess: a pack hidden behind a single&#39;s SKU or barcode cannot be bulk-linked at one unit per sale, even before its details are read.</li>
+<li>Every link shows the figure it will cause, so a wrong product or units per sale is caught on sight.</li>
 <li>A listing that is still selling is never put to sleep by a missed or cut-off read.</li>
-<li>Relists, renamed SKUs and recreated listings keep or regain their link without moving stock to the wrong product, and open orders keep what they reserved.</li>
-<li>Onboarding a large catalogue is mostly one reviewed bulk accept, ordered so that what is selling now comes first.</li>
-<li>Unlinked listings stay the seller&#39;s, as the owner&#39;s rule asks, and only the ones that share stock with a linked product need an answer before going live.</li>
-<li>Catalogue work costs a small share of every pool, and none of it from a safety lane.</li>
+<li>Relists and changed SKUs keep or regain their link without moving stock to the wrong product, and open orders keep what they reserved.</li>
+<li>Unlinked listings stay the seller&#39;s; only those that share stock with a linked product need an answer before going live.</li>
 </ul>
-<p><strong>What it costs</strong></p>
+<p><strong>Costs</strong></p>
 <ul>
-<li>On eBay, a new inventory item, or a change no notice announced, can wait up to a day for the daily read; a refresh is the seller&#39;s way to see it sooner.</li>
-<li>A listing whose details wait behind the Trading cap cannot be bulk-linked until they arrive.</li>
+<li>On eBay, a new inventory item or a change no notice announced can wait up to a day for the daily read, unless the seller refreshes.</li>
+<li>A listing whose details wait behind the Trading page cap cannot be bulk-linked until they arrive.</li>
 <li>On a live account, raises from a bulk link wait for the seller&#39;s confirm, so some listings show too little for a while.</li>
-<li>An eBay Seller Hub listing that carries a linked SKU but is not linked gets no figure until someone links it. ADR-004.1 is amended to match: every linked listing gets the figure.</li>
-<li>The Trading API&#39;s platform notifications are a second inbound shape on eBay, with their own signature check.</li>
-<li>Amazon&#39;s full read is a report, which is slower than a search: a new SKU no notice announced can wait for the next changes read or the daily report.</li>
-<li>Link history, listing presence per scope and suggestion versions are more tables and more tests than one listing row with a product column.</li>
+<li>An eBay Seller Hub listing that carries a linked SKU but is not linked gets no figure until someone links it.</li>
+<li>Amazon&#39;s full read is a report, slower than a search: a new SKU no notice announced can wait for the next changes read.</li>
 </ul>
-<h2 id="what-later-records-decide">What later records decide</h2>
+<h2 id="alternatives-rejected">Alternatives rejected</h2>
 <ul>
-<li><strong><a href="../stock-ledger/">ADR-006: Stock ledger and reservations</a></strong>: how an order line records the link it reserved with, and how reserving for waiting orders works when a link is made.</li>
-<li><strong><a href="../order-ingestion/">ADR-007: Order ingestion</a></strong>: importing orders for unlinked listings and flagging them, and the conflict for a seller-shipped order on a marketplace-shipped link.</li>
-<li><strong><a href="../inventory-sync/">ADR-008: Inventory sync</a></strong>: the figure each linked listing gets, the first figure after a link, which lane a bulk link&#39;s decreases use, and when held raises go.</li>
+<li><strong>Link automatically on an exact SKU match:</strong> a six-pack listing often carries the single&#39;s SKU.</li>
+<li><strong>A confidence score from a model, or fuzzy matching:</strong> not explainable to a seller, nor testable as a rule.</li>
+<li><strong>Key listings by SKU:</strong> relists, recreated Amazon SKUs and blank SKUs would move stock to the wrong listing.</li>
+<li><strong>End a listing when one read misses it:</strong> reports come back empty or cut off, and one bad read would unlink a catalogue.</li>
+<li><strong>Trust a delete notice:</strong> notices arrive late, twice, out of order or forged; a read of that listing is the proof.</li>
+<li><strong>Match an order to the link valid at import:</strong> a sale just before an unlink, with a late notice, would reserve nothing.</li>
+<li><strong>Edit a link in place:</strong> an open order would silently move to another product or units per sale.</li>
+<li><strong>Leave the marketplace&#39;s figure when a link closes:</strong> the last figure stays live with nothing behind it.</li>
+<li><strong>Make every unlinked listing block going live:</strong> it teaches sellers to tick everything without reading.</li>
+<li><strong>Send figures to every listing a linked SKU is on:</strong> it writes to listings nobody linked, perhaps another pack size.</li>
+<li><strong>Link a listing group to a family as one link:</strong> each variation sells one size, and its orders must name that size&#39;s product.</li>
+<li><strong>Leave relists to a person:</strong> the relist sells the seller&#39;s typed quantity until someone taps, though eBay states the lineage.</li>
 </ul>
-<h2 id="alternatives-considered">Alternatives considered</h2>
-<div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Option</th>
-<th>Why not</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Link automatically on an exact SKU match</td>
-<td>A six-pack listing often carries the single&#39;s SKU; a machine link at one unit per sale shows six times the stock</td>
-</tr>
-<tr>
-<td>A confidence score from a model, or fuzzy matching</td>
-<td>Not explainable to a seller, not testable as a rule, and wrong in ways nobody sees; fixed tiers and named vetoes are both</td>
-</tr>
-<tr>
-<td>Leave the marketplace&#39;s figure when a link closes</td>
-<td>The last figure stays live with nothing behind it, so the listing oversells; leaving it is an explicit choice instead</td>
-</tr>
-<tr>
-<td>Match an order to the link valid when it is imported</td>
-<td>A sale made just before an unlink, with a late notice, would reserve nothing</td>
-</tr>
-<tr>
-<td>Key listings by SKU</td>
-<td>eBay relists change the item number, Amazon cannot rename a SKU, Shopify allows blank and shared SKUs; a SKU key would move stock to the wrong listing or orphan orders</td>
-</tr>
-<tr>
-<td>End a listing when one read misses it</td>
-<td>Reports come back empty or cut off, and paged reads shift; one bad read would unlink a catalogue</td>
-</tr>
-<tr>
-<td>Trust a delete notice</td>
-<td>Notices arrive late, twice, out of order, or forged; a read of that listing is the proof</td>
-</tr>
-<tr>
-<td>Read every listing&#39;s details on every read</td>
-<td>Spends the eBay Trading pool on listings already matched by SKU</td>
-</tr>
-<tr>
-<td>Page through Seller Hub listings with the Trading API daily</td>
-<td>Up to half the default pool at 50 accounts; the Feed API report gives the same presence for no Trading calls</td>
-</tr>
-<tr>
-<td>Make every unlinked listing block going live</td>
-<td>Contradicts the owner&#39;s rule that the marketplace manages unlinked listings, and teaches sellers to mark everything without reading</td>
-</tr>
-<tr>
-<td>A row cap on bulk accept</td>
-<td>Turns 5,000 listings into ten identical confirms; holding raises on live accounts is the safety, not a number</td>
-</tr>
-<tr>
-<td>Send figures to every listing a linked SKU is on</td>
-<td>Writes to listings nobody linked, which may be a different pack size; they are suggested and treated as shared stock instead</td>
-</tr>
-<tr>
-<td>Write the product&#39;s SKU back to SKU-less eBay variations</td>
-<td>Vervoro changes nothing on a listing but its quantity and the offers the seller asks for</td>
-</tr>
-<tr>
-<td>Link a listing group to a family as one link</td>
-<td>The family holds no stock; each variation sells one size, and its orders and figure must name that size&#39;s product</td>
-</tr>
-<tr>
-<td>Edit a link in place</td>
-<td>An open order would silently move to another product or another units per sale; versions keep what was reserved</td>
-</tr>
-<tr>
-<td>Leave relists to a person</td>
-<td>The relisted item sells the seller&#39;s typed quantity until someone taps; eBay states the lineage, so carrying the link is not a guess</td>
-</tr>
-<tr>
-<td>Subscribe to eBay&#39;s revised event without a fingerprint check</td>
-<td>Every Vervoro stock write revises the listing, so each write would cause a read</td>
-</tr>
-</tbody></table></div>
+<h2 id="open-items">Open items</h2>
+<ul>
+<li><strong>eBay Feed API.</strong> Confirm with a recorded call that the active-listings report includes listings at 0 under the out-of-stock option, and the 400 requests a day per seller per feed type.</li>
+<li><strong>Amazon&#39;s all-listings report</strong> may be served from a cache a few hours old; measure the lag against notices during shadow.</li>
+<li><strong>Thresholds are proposals:</strong> a notice burst of 200 in 10 minutes, notices unreliable after 5 unannounced changes, a held read at 10 % and 20 listings, the refresh caps, and catalogue&#39;s 15 % share of a shared pool.</li>
+<li><strong>The pack-word list</strong> (English at launch) needs its first version and tests.</li>
+<li><strong>Marketplace constraints</strong> were checked on 18 October 2026; recheck them before launch.</li>
+</ul>
 
 <footer>Vervoro</footer>
 </main>

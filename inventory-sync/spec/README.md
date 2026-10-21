@@ -42,7 +42,7 @@ This section owns the rule that Stock sync alone writes each listing's figure (o
 
 **Import problems** ([ADR-007](../../order-ingestion/)): each line whose listing and quantity were read takes quantity × the units per sale of the link valid at purchase off avail for every account, never below zero, until the order imports, when its reservations replace the deduction. A line whose quantity was not read holds raises on its listing; a line whose listing was not read holds every raise on the account, and pages the operator after 60 minutes. A mirror's lines (a Shopify copy of a sale also connected directly) count the same.
 
-**No figure** (never sent as 0): marketplace-shipped listings; pending, ended and missing listings ([ADR-005](../../catalogue-sync/)); eBay variations without a SKU; eBay Seller Hub listings never read because the out-of-stock option is off ([ADR-004.1](../../ebay-connector/)); listings not managed; disconnected accounts.
+**No figure** (never sent as 0): marketplace-shipped listings; pending and ended listings ([ADR-005 SPEC 3](../../catalogue-sync/spec/#3-states)); a missing listing keeps its figure; eBay variations without a SKU; eBay Seller Hub listings never read because the out-of-stock option is off ([ADR-004.1](../../ebay-connector/)); listings not managed; disconnected accounts.
 
 ## 2. Terms
 
@@ -117,7 +117,7 @@ This section owns the rule that Stock sync alone writes each listing's figure (o
 ## 7. Held raises
 
 1. **Stock sync keeps one set of reasons per listing.** While it is not empty, D is still worked out truthfully, every decrease goes, and raises wait.
-2. **Reasons:** the listing came back after ending; its SKU was edited onto another product's; a live bulk link is not confirmed; a fulfilment conflict is open ([ADR-005](../../catalogue-sync/), [ADR-007](../../order-ingestion/)); its product failed the nightly check ([ADR-006](../../stock-ledger/spec/#14-the-nightly-check-and-checkpoints)); an open import problem names it. Each arrives by its owner's event; the operator can also hold raises by hand ([runbook](../../runbooks/hold-raises-or-pause-an-account/)).
+2. **Reasons:** the listing came back after ending; its SKU was edited onto another product's; a live bulk link is not confirmed; a fulfilment conflict is open or a fulfilment change waits for the seller ([ADR-005 SPEC 11.8](../../catalogue-sync/spec/#118-held-raise-reasons-listings-sends), [ADR-007](../../order-ingestion/)); its product failed the nightly check ([ADR-006](../../stock-ledger/spec/#14-the-nightly-check-and-checkpoints)); an open import problem names it. Each arrives by its owner's event; the operator can also hold raises by hand ([runbook](../../runbooks/hold-raises-or-pause-an-account/)).
 3. **When the last reason clears,** the raise becomes due at that moment and waits for the order read.
 
 ## 8. Limits and who goes next
@@ -153,13 +153,13 @@ This section owns the rule that Stock sync alone writes each listing's figure (o
 ## 10. Listing modes and stopping
 
 1. **A listing is managed or not managed,** optionally until a date. Not managed sends no figure; its orders still reserve. One that shows more than the stock is flagged to the seller.
-2. **Every stop asks: leave the figure, or send 0.** It applies to stopping an account, stepping it back to shadow, disconnecting, switching a marketplace off, and setting a listing to not managed. A 0 is confirmed applied before the mode changes.
+2. **Every stop asks: leave the figure, or send 0.** It applies to stopping an account, stepping it back to shadow, disconnecting, switching a marketplace off, setting a listing to not managed, and unlinking a listing, where the closed link carries the seller's answer ([ADR-005 SPEC 11.6](../../catalogue-sync/spec/#116-unlinking)). A 0 is confirmed applied before the mode changes.
 3. **Decrease-only** is an account mode for a company closed under [ADR-012](../../billing-and-plans/), from its closing date until erasure. D is worked out as usual, but a figure is sent only when it is lower than B.
 
 ## 11. The first figure after a link
 
 1. **B comes from the link's catalogue read** if it is under an hour old; otherwise the listing is read first. The raise becomes due when the link is made.
-2. **A single link** follows the rules at once. **A bulk link** on a live account sends its decreases within section 8.3; its raises wait for the seller's one confirm ([ADR-005](../../catalogue-sync/)).
+2. **A single link** follows the rules at once. **A bulk link** on a live account sends its decreases within section 8.3; its raises wait for the seller's one confirm ([ADR-005 SPEC 11.3](../../catalogue-sync/spec/#113-bulk-accept)).
 3. **A listing moving from marketplace-shipped to seller-shipped,** and a pending Amazon offer, get no figure until ADR-005's conditions clear.
 
 ## 12. Amazon accounts on several marketplaces
@@ -177,7 +177,7 @@ One patch sets one quantity for every marketplace the account serves ([ADR-004.2
 
 Every account starts in shadow by [ADR-004's rule](../../channel-connectors/spec/#11-shadow-mode-and-launch-gates). This section adds what going live needs.
 
-1. **The listing check.** D is compared with what each marketplace shows. A listing showing more than D is never accepted as explained; going live sends the decrease. One showing less can be accepted in bulk; a ratio of 3 or more either way is listed first and needs its own tap ([ADR-005](../../catalogue-sync/)).
+1. **The listing check.** D is compared with what each marketplace shows. A listing showing more than D is never accepted as explained; going live sends the decrease. One showing less can be accepted in bulk; a ratio of 3 or more either way is listed first and needs its own tap ([ADR-005 SPEC 11.1](../../catalogue-sync/spec/#111-the-preview)).
 2. **A company's first go-live** needs two on-hand imports from the old system, one when shadow starts and one at going live. A product that fell by more than its imported orders explain is listed for the seller. The second import sets on hand outright to the old system's figure as one adjustment ([ADR-006](../../stock-ledger/)). It also needs one complete order read, every linked listing read, and every account the old system syncs going live in one step, after the seller confirms the old system's sync is off. After that, on-hand imports are refused, a restore included.
 3. **Later accounts** go live on the listing check, one complete order read and every listing read.
 4. **Going live is one confirm** with the totals of decreases sent now and raises after the next order read. Procedure: [Take a company live](../../runbooks/take-a-company-live/).

@@ -32,7 +32,7 @@
   <text x="647" y="93" text-anchor="middle" font-size="11" class="quiet">one listing is read</text>
 
   <rect x="24" y="138" width="712" height="72" rx="8" class="box"/>
-  <text x="380" y="162" text-anchor="middle" font-weight="600" class="ink">Catalogue read, through the connector and the host's binding</text>
+  <text x="380" y="162" text-anchor="middle" font-weight="600" class="ink">Channels reads through the connector, hands each chunk to Listings</text>
   <text x="380" y="181" text-anchor="middle" font-size="11.5" class="quiet">bulk lane, lowest priority · presence from the cheapest complete source · details only for unlinked listings</text>
   <text x="380" y="198" text-anchor="middle" font-size="11.5" class="quiet">a listing ends only on two proofs · a read that would end too many is held</text>
 
@@ -57,12 +57,12 @@
   <text x="632" y="397" text-anchor="middle" font-size="11.5" class="quiet">leave to the marketplace</text>
 
   <rect x="262" y="340" width="236" height="64" rx="8" class="box"/>
-  <text x="380" y="364" text-anchor="middle" font-weight="600" class="ink">Link, in the foundation</text>
+  <text x="380" y="364" text-anchor="middle" font-weight="600" class="ink">Link, written by Listings</text>
   <text x="380" y="383" text-anchor="middle" font-size="11.5" class="quiet">versioned, compare-and-set</text>
   <text x="380" y="397" text-anchor="middle" font-size="11.5" class="quiet">open orders keep the link they reserved</text>
 
   <rect x="24" y="340" width="208" height="64" rx="8" class="box"/>
-  <text x="128" y="364" text-anchor="middle" font-weight="600" class="ink">Inventory sync</text>
+  <text x="128" y="364" text-anchor="middle" font-weight="600" class="ink">Stock sync, by event</text>
   <text x="128" y="383" text-anchor="middle" font-size="11.5" class="quiet">a figure goes only to</text>
   <text x="128" y="397" text-anchor="middle" font-size="11.5" class="quiet">linked listings (ADR-008)</text>
 

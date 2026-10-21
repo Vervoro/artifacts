@@ -14,7 +14,7 @@ A company's first go-live is a move from an older system. Every account the old 
 1. **When shadow starts,** import on hand from the old system. Shadow then imports orders and records what it would send.
 2. **Before going live,** check that billing is ready (a payment method, the stop choice and a stock contact, [ADR-012](../../billing-and-plans/)), and that the account's share of every shared pool has room.
 3. **Import on hand again** from the old system. Vervoro lists every product that fell by more than its imported orders explain. The seller ticks each one off: it usually shows an order type Vervoro does not see. This import sets on hand to the old system's figure as one adjustment per product.
-4. Run one complete order read and read every linked listing.
+4. Run one complete order read and read every linked listing. Every shared-stock listing must be answered first ([Link a catalogue at onboarding](../link-a-catalogue-at-onboarding/)).
 5. Work through the listing check. Every listing showing more than Vervoro's figure will get the decrease. Listings showing less can be accepted in bulk; a ratio of 3 or more either way needs its own tap.
 6. The seller turns off the old system's stock sync, and confirms it in Vervoro.
 7. The seller confirms going live, with the totals shown: decreases now, raises after the next order read.

@@ -151,7 +151,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>D = floor(avail ÷ u).</strong></li>
 </ol>
 <p><strong>Import problems</strong> (<a href="../../order-ingestion/">ADR-007</a>): each line whose listing and quantity were read takes quantity × the units per sale of the link valid at purchase off avail for every account, never below zero, until the order imports, when its reservations replace the deduction. A line whose quantity was not read holds raises on its listing; a line whose listing was not read holds every raise on the account, and pages the operator after 60 minutes. A mirror&#39;s lines (a Shopify copy of a sale also connected directly) count the same.</p>
-<p><strong>No figure</strong> (never sent as 0): marketplace-shipped listings; pending, ended and missing listings (<a href="../../catalogue-sync/">ADR-005</a>); eBay variations without a SKU; eBay Seller Hub listings never read because the out-of-stock option is off (<a href="../../ebay-connector/">ADR-004.1</a>); listings not managed; disconnected accounts.</p>
+<p><strong>No figure</strong> (never sent as 0): marketplace-shipped listings; pending and ended listings (<a href="../../catalogue-sync/spec/#3-states">ADR-005 SPEC 3</a>); a missing listing keeps its figure; eBay variations without a SKU; eBay Seller Hub listings never read because the out-of-stock option is off (<a href="../../ebay-connector/">ADR-004.1</a>); listings not managed; disconnected accounts.</p>
 <h2 id="2-terms">2. Terms</h2>
 <div class="table-wrap"><table>
 <thead>
@@ -357,7 +357,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2 id="7-held-raises">7. Held raises</h2>
 <ol>
 <li><strong>Stock sync keeps one set of reasons per listing.</strong> While it is not empty, D is still worked out truthfully, every decrease goes, and raises wait.</li>
-<li><strong>Reasons:</strong> the listing came back after ending; its SKU was edited onto another product&#39;s; a live bulk link is not confirmed; a fulfilment conflict is open (<a href="../../catalogue-sync/">ADR-005</a>, <a href="../../order-ingestion/">ADR-007</a>); its product failed the nightly check (<a href="../../stock-ledger/spec/#14-the-nightly-check-and-checkpoints">ADR-006</a>); an open import problem names it. Each arrives by its owner&#39;s event; the operator can also hold raises by hand (<a href="../../runbooks/hold-raises-or-pause-an-account/">runbook</a>).</li>
+<li><strong>Reasons:</strong> the listing came back after ending; its SKU was edited onto another product&#39;s; a live bulk link is not confirmed; a fulfilment conflict is open or a fulfilment change waits for the seller (<a href="../../catalogue-sync/spec/#118-held-raise-reasons-listings-sends">ADR-005 SPEC 11.8</a>, <a href="../../order-ingestion/">ADR-007</a>); its product failed the nightly check (<a href="../../stock-ledger/spec/#14-the-nightly-check-and-checkpoints">ADR-006</a>); an open import problem names it. Each arrives by its owner&#39;s event; the operator can also hold raises by hand (<a href="../../runbooks/hold-raises-or-pause-an-account/">runbook</a>).</li>
 <li><strong>When the last reason clears,</strong> the raise becomes due at that moment and waits for the order read.</li>
 </ol>
 <h2 id="8-limits-and-who-goes-next">8. Limits and who goes next</h2>
@@ -424,13 +424,13 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2 id="10-listing-modes-and-stopping">10. Listing modes and stopping</h2>
 <ol>
 <li><strong>A listing is managed or not managed,</strong> optionally until a date. Not managed sends no figure; its orders still reserve. One that shows more than the stock is flagged to the seller.</li>
-<li><strong>Every stop asks: leave the figure, or send 0.</strong> It applies to stopping an account, stepping it back to shadow, disconnecting, switching a marketplace off, and setting a listing to not managed. A 0 is confirmed applied before the mode changes.</li>
+<li><strong>Every stop asks: leave the figure, or send 0.</strong> It applies to stopping an account, stepping it back to shadow, disconnecting, switching a marketplace off, setting a listing to not managed, and unlinking a listing, where the closed link carries the seller&#39;s answer (<a href="../../catalogue-sync/spec/#116-unlinking">ADR-005 SPEC 11.6</a>). A 0 is confirmed applied before the mode changes.</li>
 <li><strong>Decrease-only</strong> is an account mode for a company closed under <a href="../../billing-and-plans/">ADR-012</a>, from its closing date until erasure. D is worked out as usual, but a figure is sent only when it is lower than B.</li>
 </ol>
 <h2 id="11-the-first-figure-after-a-link">11. The first figure after a link</h2>
 <ol>
 <li><strong>B comes from the link&#39;s catalogue read</strong> if it is under an hour old; otherwise the listing is read first. The raise becomes due when the link is made.</li>
-<li><strong>A single link</strong> follows the rules at once. <strong>A bulk link</strong> on a live account sends its decreases within section 8.3; its raises wait for the seller&#39;s one confirm (<a href="../../catalogue-sync/">ADR-005</a>).</li>
+<li><strong>A single link</strong> follows the rules at once. <strong>A bulk link</strong> on a live account sends its decreases within section 8.3; its raises wait for the seller&#39;s one confirm (<a href="../../catalogue-sync/spec/#113-bulk-accept">ADR-005 SPEC 11.3</a>).</li>
 <li><strong>A listing moving from marketplace-shipped to seller-shipped,</strong> and a pending Amazon offer, get no figure until ADR-005&#39;s conditions clear.</li>
 </ol>
 <h2 id="12-amazon-accounts-on-several-marketplaces">12. Amazon accounts on several marketplaces</h2>
@@ -445,7 +445,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2 id="14-shadow-and-going-live">14. Shadow and going live</h2>
 <p>Every account starts in shadow by <a href="../../channel-connectors/spec/#11-shadow-mode-and-launch-gates">ADR-004&#39;s rule</a>. This section adds what going live needs.</p>
 <ol>
-<li><strong>The listing check.</strong> D is compared with what each marketplace shows. A listing showing more than D is never accepted as explained; going live sends the decrease. One showing less can be accepted in bulk; a ratio of 3 or more either way is listed first and needs its own tap (<a href="../../catalogue-sync/">ADR-005</a>).</li>
+<li><strong>The listing check.</strong> D is compared with what each marketplace shows. A listing showing more than D is never accepted as explained; going live sends the decrease. One showing less can be accepted in bulk; a ratio of 3 or more either way is listed first and needs its own tap (<a href="../../catalogue-sync/spec/#111-the-preview">ADR-005 SPEC 11.1</a>).</li>
 <li><strong>A company&#39;s first go-live</strong> needs two on-hand imports from the old system, one when shadow starts and one at going live. A product that fell by more than its imported orders explain is listed for the seller. The second import sets on hand outright to the old system&#39;s figure as one adjustment (<a href="../../stock-ledger/">ADR-006</a>). It also needs one complete order read, every linked listing read, and every account the old system syncs going live in one step, after the seller confirms the old system&#39;s sync is off. After that, on-hand imports are refused, a restore included.</li>
 <li><strong>Later accounts</strong> go live on the listing check, one complete order read and every listing read.</li>
 <li><strong>Going live is one confirm</strong> with the totals of decreases sent now and raises after the next order read. Procedure: <a href="../../runbooks/take-a-company-live/">Take a company live</a>.</li>

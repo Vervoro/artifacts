@@ -64,6 +64,15 @@ Rules: [ADR-004.2 SPEC](../amazon-seller-connector/spec/).
 | --- | --- |
 | [Set up the Amazon notice bridge](set-up-the-amazon-notice-bridge/) | Once per environment |
 
+## ADR-005: Catalogue sync and linking
+
+Rules: [ADR-005 SPEC](../catalogue-sync/spec/).
+
+| Procedure | When |
+| --- | --- |
+| [Link a catalogue at onboarding](link-a-catalogue-at-onboarding/) | A seller has connected an account and is preparing to go live |
+| [Settle a held catalogue read](settle-a-held-catalogue-read/) | A read is held because it would mark too many listings missing, or an account has no complete read for 48 hours |
+
 ## ADR-006: Stock ledger and reservations
 
 Rules: [ADR-006 SPEC](../stock-ledger/spec/).

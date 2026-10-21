@@ -154,7 +154,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ol>
 <li><strong>A charge line</strong> is a name (1–200 characters), an amount with its currency, and a VAT class (section 11). It sits on a manual order (<a href="../../order-ingestion/#manual-orders">ADR-007</a>) and on the invoice made from it (<a href="../../invoicing-and-vat/#what-a-document-holds">ADR-011</a>). It never reserves, picks or moves stock, and never reaches a pick list.</li>
 <li><strong>Delivery is not a charge line.</strong> It stays the order&#39;s delivery charge, and its VAT follows the goods (<a href="../../invoicing-and-vat/#working-out-the-vat">ADR-011</a>).</li>
-<li><strong>A marketplace listing that is not stock</strong> (a warranty, gift wrap) is marked &quot;not stock&quot; with a VAT class instead of being linked (<a href="../../catalogue-sync/#unlinked-listings-and-going-live">ADR-005</a>). It gets no figure; its order lines import as charge lines and never wait for a link.</li>
+<li><strong>A marketplace listing that is not stock</strong> (a warranty, gift wrap) is marked &quot;not stock&quot; with a VAT class instead of being linked (<a href="../../catalogue-sync/spec/#12-unlinked-listings-and-going-live">ADR-005</a>). It gets no figure; its order lines import as charge lines and never wait for a link.</li>
 <li><strong>No product kind, flag or setting</strong> turns a product into a charge.</li>
 </ol>
 <h2 id="2-fields">2. Fields</h2>
@@ -473,7 +473,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>A box size on one delivery belongs to that delivery&#39;s batch (<a href="../../stock-ledger/">ADR-006</a>), because suppliers change them.</li>
 </ol>
 <h2 id="8-the-link-from-a-listing">8. The link from a listing</h2>
-<p>Listings and how they are read and matched are <a href="../../catalogue-sync/">ADR-005</a>. The link is defined here because it decides how much stock a sale uses; Listings writes it and versions it (<a href="../../catalogue-sync/#linking">ADR-005</a>).</p>
+<p>Listings and how they are read and matched are <a href="../../catalogue-sync/">ADR-005</a>. The link is defined here because it decides how much stock a sale uses; Listings writes it and versions it (<a href="../../catalogue-sync/spec/#11-linking">ADR-005</a>).</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -576,9 +576,9 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>The family has no stock.</strong> Its screen is a grid of members&#39; sellable figures with totals.</li>
 <li><em>Later:</em> <strong>Create as a grid:</strong> the option values give one draft product per combination, with SKUs from the pattern and shared fields copied (brand, category, VAT class, commodity code, country of origin, weight). The seller adds barcodes and confirms. Adding a value later drafts the new members the same way.</li>
 <li><em>Later:</em> <strong>Edit together:</strong> a shared field changed on the family screen is written to each ticked member as a normal product change. Members may still differ.</li>
-<li><strong>Listed as one variation listing,</strong> while each variation links to one member (<a href="../../catalogue-sync/#linking">ADR-005</a>).</li>
+<li><strong>Listed as one variation listing,</strong> while each variation links to one member (<a href="../../catalogue-sync/spec/#11-linking">ADR-005</a>).</li>
 <li>A product can move out of a family or into another; its stock and history do not change.</li>
-<li><strong>At launch</strong> members are created one at a time, by spreadsheet (family name and option values on the Products sheet), or from a variation listing (<a href="../../catalogue-sync/#linking">ADR-005</a>).</li>
+<li><strong>At launch</strong> members are created one at a time, by spreadsheet (family name and option values on the Products sheet), or from a variation listing (<a href="../../catalogue-sync/spec/#11-linking">ADR-005</a>).</li>
 </ol>
 <h2 id="11-vat">11. VAT</h2>
 <ol>
@@ -616,7 +616,7 @@ Rules 7 and 8 are <em>Later</em> (<a href="#0-at-launch-and-later">section 0</a>
 <ol>
 <li><strong>On screen.</strong> A scanned barcode is checked at once; if another product holds it, that product is shown.</li>
 <li><strong>From a spreadsheet</strong> (section 14).</li>
-<li><strong>From a marketplace listing</strong> or an unmatched order line: a draft filled from the listing, saved and linked in one step (<a href="../../catalogue-sync/#making-a-product-from-a-listing">ADR-005</a>). At first connection, drafts for every unlinked listing go into a workbook. Listings with the same barcode or SKU on different accounts become one draft; two on the same account never do, because one may be a multipack of the other.</li>
+<li><strong>From a marketplace listing</strong> or an unmatched order line: a draft filled from the listing, saved and linked in one step (<a href="../../catalogue-sync/spec/#14-making-a-product-from-a-listing">ADR-005</a>). At first connection, drafts for every unlinked listing go into a workbook. Listings with the same barcode or SKU on different accounts become one draft; two on the same account never do, because one may be a multipack of the other.</li>
 <li><em>Later:</em> <strong>From an Amazon product link or a bare 10-character ASIN:</strong> Vervoro looks it up in Amazon&#39;s catalogue and fills name, brand, barcode, main image, weight and sizes where present. The ASIN is not stored on the product.</li>
 </ol>
 <h2 id="14-spreadsheet-import-and-bulk-edit">14. Spreadsheet import and bulk edit</h2>

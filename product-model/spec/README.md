@@ -37,7 +37,7 @@ Owner ruling, 21 October 2026: non-stock charges are charge lines, not a product
 
 1. **A charge line** is a name (1–200 characters), an amount with its currency, and a VAT class (section 11). It sits on a manual order ([ADR-007](../../order-ingestion/#manual-orders)) and on the invoice made from it ([ADR-011](../../invoicing-and-vat/#what-a-document-holds)). It never reserves, picks or moves stock, and never reaches a pick list.
 2. **Delivery is not a charge line.** It stays the order's delivery charge, and its VAT follows the goods ([ADR-011](../../invoicing-and-vat/#working-out-the-vat)).
-3. **A marketplace listing that is not stock** (a warranty, gift wrap) is marked "not stock" with a VAT class instead of being linked ([ADR-005](../../catalogue-sync/#unlinked-listings-and-going-live)). It gets no figure; its order lines import as charge lines and never wait for a link.
+3. **A marketplace listing that is not stock** (a warranty, gift wrap) is marked "not stock" with a VAT class instead of being linked ([ADR-005](../../catalogue-sync/spec/#12-unlinked-listings-and-going-live)). It gets no figure; its order lines import as charge lines and never wait for a link.
 4. **No product kind, flag or setting** turns a product into a charge.
 
 ## 2. Fields
@@ -165,7 +165,7 @@ The kind can change only before first use (section 3). After it, the seller crea
 
 ## 8. The link from a listing
 
-Listings and how they are read and matched are [ADR-005](../../catalogue-sync/). The link is defined here because it decides how much stock a sale uses; Listings writes it and versions it ([ADR-005](../../catalogue-sync/#linking)).
+Listings and how they are read and matched are [ADR-005](../../catalogue-sync/). The link is defined here because it decides how much stock a sale uses; Listings writes it and versions it ([ADR-005](../../catalogue-sync/spec/#11-linking)).
 
 | Field | Rules |
 | --- | --- |
@@ -213,9 +213,9 @@ Listings and how they are read and matched are [ADR-005](../../catalogue-sync/).
 3. **The family has no stock.** Its screen is a grid of members' sellable figures with totals.
 4. *Later:* **Create as a grid:** the option values give one draft product per combination, with SKUs from the pattern and shared fields copied (brand, category, VAT class, commodity code, country of origin, weight). The seller adds barcodes and confirms. Adding a value later drafts the new members the same way.
 5. *Later:* **Edit together:** a shared field changed on the family screen is written to each ticked member as a normal product change. Members may still differ.
-6. **Listed as one variation listing,** while each variation links to one member ([ADR-005](../../catalogue-sync/#linking)).
+6. **Listed as one variation listing,** while each variation links to one member ([ADR-005](../../catalogue-sync/spec/#11-linking)).
 7. A product can move out of a family or into another; its stock and history do not change.
-8. **At launch** members are created one at a time, by spreadsheet (family name and option values on the Products sheet), or from a variation listing ([ADR-005](../../catalogue-sync/#linking)).
+8. **At launch** members are created one at a time, by spreadsheet (family name and option values on the Products sheet), or from a variation listing ([ADR-005](../../catalogue-sync/spec/#11-linking)).
 
 ## 11. VAT
 
@@ -248,7 +248,7 @@ Every route ends in the same validation and the same create command, and none cr
 
 1. **On screen.** A scanned barcode is checked at once; if another product holds it, that product is shown.
 2. **From a spreadsheet** (section 14).
-3. **From a marketplace listing** or an unmatched order line: a draft filled from the listing, saved and linked in one step ([ADR-005](../../catalogue-sync/#making-a-product-from-a-listing)). At first connection, drafts for every unlinked listing go into a workbook. Listings with the same barcode or SKU on different accounts become one draft; two on the same account never do, because one may be a multipack of the other.
+3. **From a marketplace listing** or an unmatched order line: a draft filled from the listing, saved and linked in one step ([ADR-005](../../catalogue-sync/spec/#14-making-a-product-from-a-listing)). At first connection, drafts for every unlinked listing go into a workbook. Listings with the same barcode or SKU on different accounts become one draft; two on the same account never do, because one may be a multipack of the other.
 4. *Later:* **From an Amazon product link or a bare 10-character ASIN:** Vervoro looks it up in Amazon's catalogue and fills name, brand, barcode, main image, weight and sizes where present. The ASIN is not stored on the product.
 
 ## 14. Spreadsheet import and bulk edit

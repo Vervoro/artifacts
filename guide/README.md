@@ -48,7 +48,7 @@ Each record is split into up to three documents, so that a person can review the
 | **SPEC** | The developer and coding agents, to build from | Numbered rule sets, tables and state lists, platform constraints with sources, the tests that prove each rule, and a checklist for reviewing the code |
 | **RUNBOOK** | The operator, to carry out | One page per procedure under [runbooks](../runbooks/): who runs it, with which role, numbered steps, how to verify, what to do if it stops halfway |
 
-The ADR decides, the SPEC says exactly how, and a runbook carries it out. When they disagree, the ADR wins. [ADR-000](../system-architecture/), [ADR-001](../database-architecture/), [ADR-003](../product-model/), [ADR-004](../channel-connectors/) with its three connector records, [ADR-006](../stock-ledger/), [ADR-008](../inventory-sync/), [ADR-010](../users-and-access/), [ADR-013](../sign-in/) and [ADR-014](../fulfilment/) are in this form; the others follow one at a time. The rules every change must keep are in the [engineering rulebook](../rulebook/).
+The ADR decides, the SPEC says exactly how, and a runbook carries it out. When they disagree, the ADR wins. [ADR-000](../system-architecture/), [ADR-001](../database-architecture/), [ADR-003](../product-model/), [ADR-004](../channel-connectors/) with its three connector records, [ADR-005](../catalogue-sync/), [ADR-006](../stock-ledger/), [ADR-008](../inventory-sync/), [ADR-010](../users-and-access/), [ADR-013](../sign-in/) and [ADR-014](../fulfilment/) are in this form; the others follow one at a time. The rules every change must keep are in the [engineering rulebook](../rulebook/).
 
 ## Status of a record
 

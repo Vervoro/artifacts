@@ -424,7 +424,7 @@ An unlinked listing is left to the marketplace (ADR-005), but its orders are imp
 - **An unknown listing** (the order names one Vervoro has not read yet) starts a read of that one listing (ADR-005). The line waits meanwhile.
 - **A line with no listing at all** (a Shopify line that needs shipping but has no variant and no SKU, ADR-004.3) waits too, and can only be attached.
 - **Who is told:** ADR-005 decides it. The first order on an unlinked listing with a strong or medium suggestion alerts the seller; others go to the daily digest.
-- **A listing marked not stock** (a warranty, gift wrap, [ADR-005](../catalogue-sync/#unlinked-listings-and-going-live)) is not unlinked in this sense: its lines are charge lines. They never wait, reserve nothing and never keep the order off the picking list (owner ruling, 21 October 2026).
+- **A listing marked not stock** (a warranty, gift wrap, [ADR-005](../catalogue-sync/spec/#12-unlinked-listings-and-going-live)) is not unlinked in this sense: its lines are charge lines. They never wait, reserve nothing and never keep the order off the picking list (owner ruling, 21 October 2026).
 
 **From the order, a person has two ways to resolve a waiting line:**
 
