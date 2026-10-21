@@ -1,0 +1,759 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ADR-003 SPEC: Product model</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono&display=swap">
+<style>
+:root {
+  --bg: #f6f6f8; --surface: #ffffff; --sunken: #ededf1; --text: #16161a; --muted: #5c5c66; --border: #e0e0e6;
+  --accent: #4338ca; --accent-soft: #eef0ff; --edge: #8a8a96; --tint: #f0f0f4;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #111114; --surface: #1a1a1f; --sunken: #23232a; --text: #ececf1; --muted: #a2a2ad; --border: #2d2d35;
+  --accent: #a5b4fc; --accent-soft: #23264a; --edge: #74747f; --tint: #202027; color-scheme: dark; } }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 var(--sans); }
+main { max-width: 860px; margin: 0 auto; padding: 48px max(20px, env(safe-area-inset-left)) 80px; }
+header.site { max-width: 860px; margin: 0 auto; padding: 20px max(20px, env(safe-area-inset-left)) 0; font-size: 14px; }
+header.site a { color: var(--muted); text-decoration: none; }
+header.site a:hover { color: var(--accent); }
+h1, h2, h3 { line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(28px, 4vw, 38px); letter-spacing: -0.02em; margin: 0 0 20px; }
+h2 { font-size: 23px; margin: 48px 0 12px; padding-top: 20px; border-top: 1px solid var(--border); }
+h3 { font-size: 18px; margin: 32px 0 8px; }
+p, li { max-width: 72ch; }
+a { color: var(--accent); }
+code { font-family: var(--mono); font-size: 0.86em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--sunken); padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 13.5px; line-height: 1.5; }
+pre code { background: none; padding: 0; overflow-wrap: normal; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 16px 0; background: var(--surface); }
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+.table-wrap table { margin: 0; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+th { background: var(--sunken); font-weight: 600; font-size: 13px; color: var(--muted); }
+tr:last-child td { border-bottom: none; }
+ul, ol { padding-left: 22px; }
+li + li { margin-top: 4px; }
+figure { margin: 20px 0; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; }
+svg.diagram { display: block; width: 100%; min-width: 640px; height: auto; font-family: var(--sans); }
+svg .ink { fill: var(--text); } svg .quiet { fill: var(--muted); }
+svg .edge { stroke: var(--edge); } svg .edge-fill { fill: var(--edge); }
+svg .accent { stroke: var(--accent); } svg .accent-fill { fill: var(--accent); }
+svg .box { fill: none; stroke: var(--edge); stroke-width: 1.25; }
+svg .box-main { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+svg .band { fill: var(--tint); stroke: var(--edge); stroke-width: 1.25; }
+.cards { list-style: none; padding: 0; display: grid; gap: 12px; }
+.cards a { display: block; padding: 18px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; text-decoration: none; color: var(--text); }
+.cards a:hover, .cards a:focus-visible { border-color: var(--accent); outline: none; }
+.cards.sub { margin: 12px 0 0 24px; padding-left: 16px; border-left: 2px solid var(--border); }
+.parts { margin: 6px 0 0 20px; font-size: 14px; color: var(--muted); } .cards .parts a { display: inline; padding: 0; background: none; border: none; border-radius: 0; color: var(--accent); font-weight: 600; text-decoration: none; } .cards .parts a:hover { text-decoration: underline; }
+.cards b { display: block; font-size: 17px; } .cards span { color: var(--muted); font-size: 14px; }
+.order li { margin-top: 10px; } .order span { color: var(--muted); font-size: 14px; }
+footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header class="site"><a href="../../">← Vervoro artifacts</a> / <a href="../">ADR-003: Product model</a></header>
+<main>
+<h1 id="adr-003-spec-product-model">ADR-003 SPEC: Product model</h1>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Decision</strong></td>
+<td><a href="../">ADR-003: Product model</a></td>
+</tr>
+<tr>
+<td><strong>Procedures</strong></td>
+<td><a href="../../runbooks/#adr-003-product-model">RUNBOOK</a></td>
+</tr>
+<tr>
+<td><strong>Date</strong></td>
+<td>21 October 2026</td>
+</tr>
+<tr>
+<td><strong>For</strong></td>
+<td>The developer and coding agents building it, and the person reviewing their work</td>
+</tr>
+</tbody></table></div>
+<p>The rules to build ADR-003 from. Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the <a href="../../guide/">map and glossary</a>.</p>
+<h2 id="0-at-launch-and-later">0. At launch and later</h2>
+<p>Everything below is built at launch except these parts, which keep their rules here and are built only when their trigger arrives.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Later part</th>
+<th>Trigger</th>
+<th>Rules</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>A VAT class per country that differs from the product&#39;s own</td>
+<td>Selling into the EU, in its own record (<a href="../../invoicing-and-vat/">ADR-011</a>)</td>
+<td><a href="#11-vat">11</a></td>
+</tr>
+<tr>
+<td>Amazon Vendor catalogue items linked like listings</td>
+<td>The Vendor connector (ADR-004.4, not written)</td>
+<td><a href="#8-the-link-from-a-listing">8</a></td>
+</tr>
+<tr>
+<td>A standard cost in a currency other than the company&#39;s</td>
+<td>Selling or buying in a second currency</td>
+<td><a href="#2-fields">2</a></td>
+</tr>
+<tr>
+<td>A category tree (<code>category</code>, <code>product_category</code>); tags group products at launch</td>
+<td>Sellers ask for nested grouping or reports by category</td>
+<td><a href="#22-related-tables">2.2</a></td>
+</tr>
+<tr>
+<td>More than one image per product</td>
+<td>Sellers ask for more than the main image</td>
+<td><a href="#5-images">5</a></td>
+</tr>
+<tr>
+<td>Creating a family as a grid, a SKU pattern, &quot;add a size&quot;, and editing members together</td>
+<td>Sellers with ranges ask for faster creation than the spreadsheet</td>
+<td><a href="#10-sizes-and-colours">10</a></td>
+</tr>
+<tr>
+<td>Creating a product from a pasted Amazon link or ASIN</td>
+<td>Sellers ask for it beyond &quot;make product&quot; from their own listings</td>
+<td><a href="#13-creating-products">13</a></td>
+</tr>
+<tr>
+<td>Dangerous goods (<code>un_number</code>, <code>battery</code>) and age-restricted goods (<code>min_age</code>) on the product</td>
+<td>The shipping record, when carriers and labels need them</td>
+<td><a href="#2-fields">2</a></td>
+</tr>
+</tbody></table></div>
+<h2 id="1-what-a-product-is">1. What a product is</h2>
+<ol>
+<li><strong>A product is what the warehouse counts.</strong> If a picker can pick it and a count can count it, it is a product. A way of offering or grouping products (a six-unit listing, a family, a price) is not.</li>
+<li><strong>A product does not hold:</strong> stock, batches, best-before dates or landed cost (<a href="../../stock-ledger/">ADR-006</a>); selling price, shopper-facing title, photos or marketplace codes such as an ASIN (<a href="../../catalogue-sync/">ADR-005</a>); supplier codes, pack sizes, lead times or reorder points (purchasing, a later record).</li>
+<li><strong>The Products module</strong> is the only writer of the tables in this page except the link (section 8), which Listings writes (<a href="../../system-architecture/spec/#4-the-foundation-and-the-launch-modules">ADR-000 SPEC 4</a>). Every table is declared through <code>tenantTable()</code> and queried through the typed query builder (<a href="../../database-architecture/spec/#5-declaring-tables">ADR-001 SPEC 5</a>).</li>
+</ol>
+<h3 id="11-charge-lines-and-listings-that-are-not-stock">1.1 Charge lines and listings that are not stock</h3>
+<p>Owner ruling, 21 October 2026: non-stock charges are charge lines, not a product kind.</p>
+<ol>
+<li><strong>A charge line</strong> is a name (1–200 characters), an amount with its currency, and a VAT class (section 11). It sits on a manual order (<a href="../../order-ingestion/#manual-orders">ADR-007</a>) and on the invoice made from it (<a href="../../invoicing-and-vat/#what-a-document-holds">ADR-011</a>). It never reserves, picks or moves stock, and never reaches a pick list.</li>
+<li><strong>Delivery is not a charge line.</strong> It stays the order&#39;s delivery charge, and its VAT follows the goods (<a href="../../invoicing-and-vat/#working-out-the-vat">ADR-011</a>).</li>
+<li><strong>A marketplace listing that is not stock</strong> (a warranty, gift wrap) is marked &quot;not stock&quot; with a VAT class instead of being linked (<a href="../../catalogue-sync/#unlinked-listings-and-going-live">ADR-005</a>). It gets no figure; its order lines import as charge lines and never wait for a link.</li>
+<li><strong>No product kind, flag or setting</strong> turns a product into a charge.</li>
+</ol>
+<h2 id="2-fields">2. Fields</h2>
+<p><strong><code>product</code></strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Rules</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>id</code></td>
+<td>uuidv7</td>
+<td>Yes</td>
+<td>Never shown to sellers</td>
+</tr>
+<tr>
+<td><code>sku</code></td>
+<td>text</td>
+<td>Yes</td>
+<td>Section 3</td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td>text</td>
+<td>Yes</td>
+<td>1–200 characters. The seller&#39;s working name, not a marketplace title</td>
+</tr>
+<tr>
+<td><code>kind</code></td>
+<td><code>simple</code>, <code>pack</code>, <code>bundle</code></td>
+<td>Yes</td>
+<td>Section 6</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td><code>active</code>, <code>inactive</code>, <code>retired</code></td>
+<td>Yes</td>
+<td>Default <code>active</code>. Section 9</td>
+</tr>
+<tr>
+<td><code>brand</code></td>
+<td>text</td>
+<td>No</td>
+<td>Up to 100 characters</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>text</td>
+<td>No</td>
+<td>Up to 2,000 characters. Internal; never sent to a channel</td>
+</tr>
+<tr>
+<td><code>base_unit</code></td>
+<td>text</td>
+<td>Yes</td>
+<td>What one unit is called: &quot;piece&quot; (default), &quot;jar&quot;, &quot;metre&quot;, &quot;100 g&quot;. Up to 30 characters</td>
+</tr>
+<tr>
+<td><code>pack_of</code>, <code>units_per_pack</code></td>
+<td>product id, integer</td>
+<td>Pack only</td>
+<td>Section 6.2</td>
+</tr>
+<tr>
+<td><code>family_id</code>, <code>option_1</code>–<code>option_3</code></td>
+<td>family id, text</td>
+<td>In a family</td>
+<td>Section 10. Values up to 50 characters</td>
+</tr>
+<tr>
+<td><code>tracks_best_before</code>, <code>date_kind</code>, <code>tracks_lot</code></td>
+<td>boolean, <code>best_before</code> or <code>use_by</code>, boolean</td>
+<td>Yes</td>
+<td>Section 12. Defaults from the company setting</td>
+</tr>
+<tr>
+<td><code>tracks_serial</code></td>
+<td>boolean</td>
+<td>Yes</td>
+<td>Default off. Section 12</td>
+</tr>
+<tr>
+<td><code>min_days_on_receipt</code></td>
+<td>integer</td>
+<td>No</td>
+<td>1–3,650</td>
+</tr>
+<tr>
+<td><code>min_days_to_sell</code></td>
+<td>integer</td>
+<td>No; required for <code>use_by</code></td>
+<td>0–3,650. Section 12</td>
+</tr>
+<tr>
+<td><code>weight_g</code></td>
+<td>integer</td>
+<td>No</td>
+<td>Gross weight of one unit, 1–1,000,000</td>
+</tr>
+<tr>
+<td><code>length_mm</code>, <code>width_mm</code>, <code>height_mm</code></td>
+<td>integer</td>
+<td>No</td>
+<td>Packed size of one unit, 1–10,000 each. All three or none</td>
+</tr>
+<tr>
+<td><code>hs_code</code></td>
+<td>text</td>
+<td>No</td>
+<td>Customs commodity code: 6, 8 or 10 digits, stored without dots or spaces</td>
+</tr>
+<tr>
+<td><code>country_of_origin</code></td>
+<td>text</td>
+<td>No</td>
+<td>ISO 3166-1 alpha-2, upper case</td>
+</tr>
+<tr>
+<td><code>un_number</code></td>
+<td>text</td>
+<td>No</td>
+<td><em>Later.</em> A dangerous good&#39;s UN number: <code>UN</code> and 4 digits, such as <code>UN1950</code> for aerosols</td>
+</tr>
+<tr>
+<td><code>battery</code></td>
+<td><code>none</code>, <code>in_equipment</code>, <code>with_equipment</code>, <code>alone</code></td>
+<td>No</td>
+<td><em>Later.</em> Whether and how a lithium battery travels, as carriers ask it</td>
+</tr>
+<tr>
+<td><code>min_age</code></td>
+<td>integer</td>
+<td>No</td>
+<td><em>Later.</em> 16 or 18. The buyer&#39;s age a carrier must check on delivery (alcohol, knives)</td>
+</tr>
+<tr>
+<td><code>vat_class</code></td>
+<td>Section 11</td>
+<td>Yes</td>
+<td>Default <code>standard</code></td>
+</tr>
+<tr>
+<td><code>standard_cost</code>, <code>standard_cost_currency</code></td>
+<td>decimal (4 places), ISO 4217</td>
+<td>No; together</td>
+<td>Expected cost of one unit, for planning before any batch exists. The company&#39;s currency at launch</td>
+</tr>
+<tr>
+<td><code>created_at</code>, <code>updated_at</code>, <code>version</code></td>
+<td></td>
+<td>Yes</td>
+<td>Set by the data layer. An edit based on an older <code>version</code> is refused, so two people never overwrite each other unseen</td>
+</tr>
+</tbody></table></div>
+<h3 id="21-numbers-and-money">2.1 Numbers and money</h3>
+<ol>
+<li>Every quantity is an integer of base units. No decimal quantity type exists.</li>
+<li>Weights and sizes are whole grams and millimetres, so no rounding reaches a courier label. Section 15 says how other units are entered.</li>
+<li>A unit cost is a decimal with 4 places, never a floating-point number. Totals are rounded to the currency&#39;s minor unit only when a document is written.</li>
+<li>Money always carries its currency; amounts in different currencies are never added (<a href="../../system-architecture/spec/#14-money-and-countries">ADR-000 SPEC 14</a>).</li>
+</ol>
+<h3 id="22-related-tables">2.2 Related tables</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Fields</th>
+<th>Rules</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>product_barcode</code></td>
+<td>product, box size (optional), code, kind (<code>gtin</code>, <code>internal</code>), original length, primary</td>
+<td>Section 4</td>
+</tr>
+<tr>
+<td><code>product_component</code></td>
+<td>bundle, component, quantity</td>
+<td>Section 6.3</td>
+</tr>
+<tr>
+<td><code>product_package</code></td>
+<td>product, name, units, weight, three sizes</td>
+<td>Section 7</td>
+</tr>
+<tr>
+<td><code>product_image</code></td>
+<td>product, source (<code>upload</code>, <code>marketplace</code>), source address, object key, position, width, height</td>
+<td>Section 5. One row per product at launch</td>
+</tr>
+<tr>
+<td><code>product_family</code></td>
+<td>name, brand, option names 1–3, SKU pattern (<em>Later</em>)</td>
+<td>Section 10</td>
+</tr>
+<tr>
+<td><code>category</code>, <code>product_category</code></td>
+<td>name, parent, archived; product, category</td>
+<td><em>Later.</em> A tree per company, at most 4 levels, names unique among siblings. A product may sit in several</td>
+</tr>
+<tr>
+<td><code>tag</code>, <code>product_tag</code></td>
+<td>name; product, tag</td>
+<td>Flat; names unique in the company whatever their case</td>
+</tr>
+<tr>
+<td><code>vat_rate</code></td>
+<td>country, class, rate in hundredths of a percent, valid from, valid to</td>
+<td>Platform data in control, the same for every company (section 11)</td>
+</tr>
+<tr>
+<td><code>product_vat</code></td>
+<td>product, country, class</td>
+<td><em>Later</em> (section 0)</td>
+</tr>
+</tbody></table></div>
+<h3 id="23-activity">2.3 Activity</h3>
+<p>Every change to a product, its barcodes, components or box sizes writes an activity entry: who, when, which field, the old value and the new value. A bulk change writes one per product.</p>
+<h2 id="3-sku">3. SKU</h2>
+<ol>
+<li>1–40 characters: letters, digits, <code>-</code>, <code>_</code>, <code>.</code>, <code>/</code>; no spaces at the ends. 40 fits every launch marketplace&#39;s listing SKU (section 16).</li>
+<li><strong>Unique in the company whatever its case:</strong> <code>HONEY-1</code> and <code>honey-1</code> cannot both exist, because people type SKUs and marketplaces compare them differently.</li>
+<li><strong>Editable until first use, then fixed.</strong> First use is the first ledger entry, listing link, purchase order line or order line. After it the SKU is on labels, documents and supplier emails.</li>
+<li><strong>Never reused,</strong> so old documents and reports still find their product.</li>
+<li><strong>&quot;Copy as new product&quot;</strong> copies every field except SKU and barcodes, links nothing and moves no stock. It is how a used SKU is changed: the seller relinks listings, moves stock with a recorded transfer, and retires the old product.</li>
+</ol>
+<h2 id="4-barcodes">4. Barcodes</h2>
+<ol>
+<li><strong>Many per product:</strong> the current barcode, an older one still on stock, and each box size&#39;s barcode.</li>
+<li><strong>Normalised first:</strong> spaces and hyphens are removed.</li>
+<li><strong>The kind is worked out, never asked</strong> (owner ruling, 21 October 2026). A code of only digits, 8, 12, 13 or 14 long, is a <code>gtin</code>. Anything else is <code>internal</code>: 4–40 letters and digits, with no check digit.</li>
+<li><strong>A GTIN is checked and stored as 14 digits,</strong> padded with leading zeros, so <code>5012345678900</code> and <code>05012345678900</code> are one code. The original length is kept for display. A wrong check digit (the GS1 modulo-10 check) is refused with the digit it should be, because it is almost always a typing error.</li>
+<li><strong>Restricted numbers</strong> (13-digit codes starting 20–29, 12-digit codes starting 2 or 4) are for in-store or internal use. They are accepted, marked as not unique worldwide, and never used to match a marketplace listing. Internal codes are never matched either.</li>
+<li><strong>Unique in the company:</strong> a code belongs to one product, or to one box size of one product.</li>
+<li><strong>One primary barcode per product,</strong> printed on labels and sent when a listing is created.</li>
+</ol>
+<h2 id="5-images">5. Images</h2>
+<ol>
+<li>Images are for people in the warehouse and in Vervoro. Shoppers see the listing&#39;s own photos.</li>
+<li><strong>One main image per product at launch,</strong> shown on pick lists and in search. <em>Later:</em> up to 10, position 0 being the main one.</li>
+<li><strong>Uploads</strong> go straight to object storage. Object keys are never overwritten; a replacement writes a new key.</li>
+<li><strong>Marketplace images</strong> are shown from their address at once and copied into object storage by a background job, because marketplace addresses change or vanish when a listing ends. The address is kept to show where it came from.</li>
+</ol>
+<h2 id="6-product-kinds">6. Product kinds</h2>
+<h3 id="61-the-three-kinds">6.1 The three kinds</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>Simple</th>
+<th>Pack</th>
+<th>Bundle</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>What it is</td>
+<td>One item</td>
+<td>A sealed multiple of one simple product</td>
+<td>Several products sold as one item</td>
+</tr>
+<tr>
+<td>Own stock, batches and dates</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>What a sale uses</td>
+<td>Its own stock</td>
+<td>Its own stock</td>
+<td>Its components&#39; stock</td>
+</tr>
+<tr>
+<td>Sellable</td>
+<td>Its own</td>
+<td>Its own</td>
+<td>The scarcest component decides</td>
+</tr>
+<tr>
+<td>Can be a component</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+</tbody></table></div>
+<h3 id="62-pack">6.2 Pack</h3>
+<ol>
+<li><code>pack_of</code> names one simple product; <code>units_per_pack</code> is 2–10,000. A pack of packs is refused: a case of four six-packs is a box size.</li>
+<li><strong>Stock is separate.</strong> A six-pack sale uses six-pack stock, never singles.</li>
+<li><strong>Repacking</strong> opens packs into singles or makes packs from singles. It takes one number, the packs opened or made, and the other side follows from <code>units_per_pack</code>, so base units never change. Both ledger entries are one transaction, and the new stock keeps the batch, dates, lot and landed cost per unit (<a href="../../stock-ledger/#packs-and-bundles">ADR-006</a>).</li>
+<li><strong>Assembly</strong> of a product sealed from several others (a gift set Amazon needs as one labelled unit) makes a simple product of its own, through a manager&#39;s job that states every input (<a href="../../stock-ledger/#packs-and-bundles">ADR-006</a>).</li>
+<li>Six singles shipped loose in one parcel are a listing with six units per sale, not a pack. A pack exists only when a sealed pack sits on the shelf.</li>
+</ol>
+<h3 id="63-bundle">6.3 Bundle</h3>
+<ol>
+<li><strong>Components:</strong> 1–20, each a simple product or a pack with a whole quantity of 1–1,000, and at least 2 units in all. Three of one product and nothing else is refused, with a pointer to units per sale = 3.</li>
+<li><strong>Sellable is worked out, never stored:</strong> for each component, its sellable divided by the quantity needed, rounded down; the bundle&#39;s is the smallest.</li>
+<li><strong>A sale reserves whole sets of components,</strong> in the same transaction; dispatch deducts the components (<a href="../../stock-ledger/#packs-and-bundles">ADR-006</a>). Each component reserves its own earliest qualifying batch, and the line records each component&#39;s lot.</li>
+<li><strong>Components still sell on their own,</strong> from the same stock. When a component&#39;s sellable changes, every bundle using it and every listing linked to those bundles gets a new figure.</li>
+<li><strong>Changing the components</strong> applies to orders received afterwards. An open order keeps the components it was reserved with, recorded on its line.</li>
+<li><strong>Cost</strong> is the sum of the components&#39; standard costs, worked out when read. <strong>Weight and size</strong> are entered for the packed bundle.</li>
+<li><strong>A ledger entry against a bundle is refused</strong> (<a href="../../stock-ledger/">ADR-006</a>).</li>
+</ol>
+<h3 id="64-changing-a-kind">6.4 Changing a kind</h3>
+<p>The kind can change only before first use (section 3). After it, the seller creates a new product and retires the old one.</p>
+<h2 id="7-box-and-pallet-sizes">7. Box and pallet sizes</h2>
+<ol>
+<li>A box size says how many base units one case or pallet holds. It never holds stock: five cases of 12 received is 60 units in the ledger.</li>
+<li><code>units</code> is 2–100,000 and unique per product; names are unique per product. A box size has its own weight and three sizes.</li>
+<li>Documents show &quot;4 cases (48 units)&quot; where a box size fits. Scanning a box size&#39;s barcode while receiving or counting adds its units.</li>
+<li>A box sold to shoppers and kept on the shelf as one item is a pack product. A box that is only how goods arrive or travel is a box size.</li>
+<li>A box size on one delivery belongs to that delivery&#39;s batch (<a href="../../stock-ledger/">ADR-006</a>), because suppliers change them.</li>
+</ol>
+<h2 id="8-the-link-from-a-listing">8. The link from a listing</h2>
+<p>Listings and how they are read and matched are <a href="../../catalogue-sync/">ADR-005</a>. The link is defined here because it decides how much stock a sale uses; Listings writes it and versions it (<a href="../../catalogue-sync/#linking">ADR-005</a>).</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Rules</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Listing</td>
+<td>One live link per listing</td>
+</tr>
+<tr>
+<td>Product</td>
+<td>Any kind</td>
+</tr>
+<tr>
+<td>Units per sale</td>
+<td>1–10,000 base units of the product per sale of the listing</td>
+</tr>
+<tr>
+<td>Fulfilled by</td>
+<td><code>seller</code> or <code>marketplace</code> (Amazon FBA and similar)</td>
+</tr>
+</tbody></table></div>
+<ol>
+<li><strong>One listing, one product;</strong> a product may have any number of listings. A set of different products is a bundle.</li>
+<li><strong>The listing&#39;s figure</strong> is the product&#39;s sellable divided by units per sale, rounded down (<a href="../../inventory-sync/">ADR-008</a>).</li>
+<li><strong>One sale reserves</strong> units per sale of the product; for a bundle, that many sets of its components.</li>
+<li><strong>A listing that is not linked</strong> reserves nothing; its orders are imported and flagged (<a href="../../order-ingestion/#orders-for-unlinked-listings">ADR-007</a>). A listing marked not stock is section 1.1.</li>
+</ol>
+<h3 id="81-amazon">8.1 Amazon</h3>
+<ol>
+<li><strong>Shipped by Amazon:</strong> a listing linked with <code>fulfilled_by = marketplace</code>. Vervoro reserves nothing and sends it no figure; its orders are for reports.</li>
+<li><strong>Amazon&#39;s unit label</strong> (FNSKU) identifies the listing, so it is stored on the listing. Scanning it finds the product through the link.</li>
+<li><strong>Sending stock to Amazon</strong> is a transfer, not a sale (<a href="../../stock-ledger/">ADR-006</a>), and uses the product&#39;s box sizes, weight, sizes and dates.</li>
+<li><em>Later:</em> <strong>Amazon Vendor</strong> catalogue items link like listings with <code>fulfilled_by = seller</code>; units per sale is the base units in one item of Amazon&#39;s purchase order; an unlinked item stops its purchase-order line. Carton data comes from box sizes. The price Amazon pays is never on the product.</li>
+</ol>
+<h2 id="9-status">9. Status</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Meaning</th>
+<th>Purchasing</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>active</code></td>
+<td>Bought and sold</td>
+<td>Suggested for reorder</td>
+</tr>
+<tr>
+<td><code>inactive</code></td>
+<td>Being sold off or paused</td>
+<td>Not suggested</td>
+</tr>
+<tr>
+<td><code>retired</code></td>
+<td>Finished</td>
+<td>Cannot be ordered</td>
+</tr>
+</tbody></table></div>
+<ol>
+<li><strong>Status never stops stock sync.</strong> A linked listing gets the sellable figure whatever the status, so no listing shows old stock.</li>
+<li><strong>Retiring needs an empty product:</strong> no stock, open reservations, open purchase orders or linked listings (an ended listing does not count, <a href="../../catalogue-sync/">ADR-005</a>), and no bundle that is not retired uses it. The screen names what blocks it.</li>
+<li><strong>Deleting</strong> is allowed only before first use.</li>
+</ol>
+<h2 id="10-sizes-and-colours">10. Sizes and colours</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th><code>product_family</code> field</th>
+<th>Rules</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>name</code></td>
+<td>1–200 characters</td>
+</tr>
+<tr>
+<td><code>brand</code></td>
+<td>Copied to new members</td>
+</tr>
+<tr>
+<td><code>option_1_name</code></td>
+<td>Required, up to 30 characters, such as &quot;Size&quot;</td>
+</tr>
+<tr>
+<td><code>option_2_name</code>, <code>option_3_name</code></td>
+<td>Optional; option 2 before option 3</td>
+</tr>
+<tr>
+<td><code>sku_pattern</code></td>
+<td><em>Later.</em> Optional, such as <code>{family}-{option_1}-{option_2}</code></td>
+</tr>
+</tbody></table></div>
+<ol>
+<li><strong>Members are simple products or packs;</strong> a product is in at most one family.</li>
+<li><strong>Every member has a value for every option,</strong> and no two members share a combination.</li>
+<li><strong>The family has no stock.</strong> Its screen is a grid of members&#39; sellable figures with totals.</li>
+<li><em>Later:</em> <strong>Create as a grid:</strong> the option values give one draft product per combination, with SKUs from the pattern and shared fields copied (brand, category, VAT class, commodity code, country of origin, weight). The seller adds barcodes and confirms. Adding a value later drafts the new members the same way.</li>
+<li><em>Later:</em> <strong>Edit together:</strong> a shared field changed on the family screen is written to each ticked member as a normal product change. Members may still differ.</li>
+<li><strong>Listed as one variation listing,</strong> while each variation links to one member (<a href="../../catalogue-sync/#linking">ADR-005</a>).</li>
+<li>A product can move out of a family or into another; its stock and history do not change.</li>
+<li><strong>At launch</strong> members are created one at a time, by spreadsheet (family name and option values on the Products sheet), or from a variation listing (<a href="../../catalogue-sync/#linking">ADR-005</a>).</li>
+</ol>
+<h2 id="11-vat">11. VAT</h2>
+<ol>
+<li><strong>The classes:</strong> <code>standard</code>, <code>reduced</code>, <code>second_reduced</code>, <code>super_reduced</code>, <code>zero</code>, <code>exempt</code>. They cover every kind of rate UK and EU law allows (section 16). A country with a new kind of rate gets a class in a release, never free text.</li>
+<li><strong>The rate table</strong> is platform data in control, the same for every company, changed only by the operator (<a href="../../runbooks/change-a-vat-rate/">runbook</a>). At launch it holds the UK&#39;s rows. Rows for one country and class never overlap or leave a gap, and a row whose dates have passed is never changed. A temporary rate is rows with their dates. A class a country lacks is not offered there.</li>
+<li><strong>The screen shows the class with the home rate:</strong> &quot;Standard (20%)&quot;, &quot;Zero (0%)&quot;, &quot;Exempt&quot;.</li>
+<li><strong>Zero is not exempt:</strong> a zero-rated sale is taxable at 0% and is on the VAT return; an exempt sale is outside VAT.</li>
+<li><strong>Every order line, charge line, invoice line and purchase order line</strong> stores the country, class and rate it used; a later rate change never rewrites it. Which rate applies to a sale is <a href="../../invoicing-and-vat/#vat-rates-and-classes">ADR-011</a>.</li>
+<li><strong>The class is the seller&#39;s decision.</strong> Vervoro explains each class and never guesses one.</li>
+<li><em>Later:</em> a <code>product_vat</code> row sets a different class for one country; every other country uses the product&#39;s own.</li>
+</ol>
+<h2 id="12-best-before-lot-and-serial-numbers">12. Best-before, lot and serial numbers</h2>
+<p>Batches, dates and lots live on stock (<a href="../../stock-ledger/#the-four-numbers">ADR-006</a>); the product says only that they are required. The food-law constraints are ADR-006&#39;s.</p>
+<ol>
+<li><strong><code>tracks_best_before</code> on:</strong> no stock enters (receiving, a count that finds stock, a return) without a date. Expired stock is never sellable or reserved. Stock with fewer than <code>min_days_to_sell</code> days left is held back from sale but stays on hand. Stock arriving with fewer than <code>min_days_on_receipt</code> days left needs a manager to accept it.</li>
+<li><strong><code>date_kind = use_by</code></strong> is a hard stop: <code>min_days_to_sell</code> is required and at least 1 plus the company&#39;s delivery days, and a use-by batch is never reserved, packed or dispatched on or after its date (<a href="../../stock-ledger/#decision">ADR-006</a>).</li>
+<li><strong><code>tracks_lot</code> on:</strong> no stock enters without a lot, and every dispatch records which lot went to which order line, bundles included. A recall is one search from the lot to every order, buyer country and date, and to the stock still on hand, which can be blocked at once.</li>
+<li><strong>A pack follows its content product:</strong> a six-pack of a dated product is dated too. Repacking keeps the batch, date and lot.</li>
+<li><strong>Switching on while stock is on hand</strong> flags that stock for a count to fill in the dates or lots. Until then it stays sellable, shown as missing them.</li>
+<li>A company setting gives new products their defaults, so a food seller starts with both on.</li>
+<li><strong><code>tracks_serial</code> on</strong> (electronics, tools, bikes): each unit&#39;s serial number is recorded when it is packed, by a scan, and stored with the order line. A serial is unique per product among units shipped and not returned. A return of that product asks for the serial and checks it against the order&#39;s; a mismatch puts the return in front of a manager. Serials are not recorded at receipt or counted on the shelf. The stock side belongs to <a href="../../stock-ledger/">ADR-006</a>, which takes it when it is split.</li>
+<li>Serial and lot tracking may both be on. A bundle records the serial of each serial-tracked component.</li>
+</ol>
+<h2 id="13-creating-products">13. Creating products</h2>
+<p>Every route ends in the same validation and the same create command, and none creates a product without a person confirming it.</p>
+<ol>
+<li><strong>On screen.</strong> A scanned barcode is checked at once; if another product holds it, that product is shown.</li>
+<li><strong>From a spreadsheet</strong> (section 14).</li>
+<li><strong>From a marketplace listing</strong> or an unmatched order line: a draft filled from the listing, saved and linked in one step (<a href="../../catalogue-sync/#making-a-product-from-a-listing">ADR-005</a>). At first connection, drafts for every unlinked listing go into a workbook. Listings with the same barcode or SKU on different accounts become one draft; two on the same account never do, because one may be a multipack of the other.</li>
+<li><em>Later:</em> <strong>From an Amazon product link or a bare 10-character ASIN:</strong> Vervoro looks it up in Amazon&#39;s catalogue and fills name, brand, barcode, main image, weight and sizes where present. The ASIN is not stored on the product.</li>
+</ol>
+<h2 id="14-spreadsheet-import-and-bulk-edit">14. Spreadsheet import and bulk edit</h2>
+<p>One workbook serves export, bulk edit and bulk create.</p>
+<ol>
+<li><strong>Sheets:</strong> Products (one row each, with family name and option values), Bundle components, Box sizes and Barcodes, each keyed by SKU. Only Products is required.</li>
+<li><strong>SKU is the match key,</strong> whatever its case. A known SKU updates; a new SKU creates and must carry every required field.</li>
+<li><strong>A blank cell or a missing column changes nothing.</strong> To empty a field on purpose the cell holds <code>(clear)</code>. Spreadsheet programs drop and reorder columns; a blank read as empty would wipe data.</li>
+<li><strong>Lists replace per product:</strong> a product named on Bundle components, Box sizes or Barcodes gets exactly those rows; others keep theirs.</li>
+<li><strong>Measure columns name their unit</strong> in the heading (&quot;Weight (g)&quot;, &quot;Weight (oz)&quot;). Either is read whatever the company&#39;s setting, and converted as in section 15.</li>
+<li><strong>Preview first:</strong> the whole file is checked before anything is written. The preview lists, per row, what is created, each field that changes (old and new value), and every error with its sheet, row and column.</li>
+<li><strong>Errors never apply.</strong> Rows with errors are skipped and can be downloaded with the error beside each; the valid rows are written in one transaction on confirm.</li>
+<li><strong>Refused outright:</strong> a SKU twice in one file; a component that is a bundle; a change of kind or SKU on a used product; a barcode another product holds.</li>
+<li><strong>Up to 10,000 product rows per file.</strong></li>
+</ol>
+<h2 id="15-units-of-measure">15. Units of measure</h2>
+<p>Owner ruling, 21 October 2026.</p>
+<ol>
+<li><strong>A company setting, <code>metric</code> or <code>imperial</code>,</strong> held with the company&#39;s settings (<a href="../../users-and-access/spec/#4-who-may-do-what">ADR-010</a>). It defaults from the company&#39;s country: imperial for the United States, metric everywhere else, the UK included. Owners and Admins change it in Settings. It is never asked at sign-up.</li>
+<li><strong>Storage never changes:</strong> whole grams and millimetres, whatever the setting.</li>
+<li><strong>Imperial entry:</strong> weight in pounds and ounces, size in inches. 1 oz = 28.349523125 g; 1 in = 25.4 mm.</li>
+<li><strong>Rounding on entry:</strong> the converted value is rounded half up to the nearest whole gram or millimetre, and never below 1. The screen shows the stored value back in the person&#39;s units before saving.</li>
+<li><strong>Display:</strong> imperial weights to the nearest 0.1 oz (pounds and ounces from 1 lb), sizes to the nearest 0.1 in. Documents and labels use the same setting.</li>
+<li><strong>Only a field a person changed is converted.</strong> Saving a form, or importing a row, never rewrites an unchanged measure from its displayed value, so values never drift through repeated rounding.</li>
+<li><strong>Selling by length or weight</strong> uses the base unit (a metre, 100 g) in whole units; the setting does not change quantities.</li>
+</ol>
+<h2 id="16-constraints">16. Constraints</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Constraint</th>
+<th>What it means here</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>GTIN check digit</td>
+<td>The modulo-10 check refuses a mistyped barcode</td>
+<td><a href="https://www.gs1.org/services/how-calculate-check-digit-manually">GS1: check digit calculation</a></td>
+</tr>
+<tr>
+<td>Restricted circulation numbers</td>
+<td>13-digit 20–29 and 12-digit 2 and 4 are local or in-store, not unique worldwide</td>
+<td><a href="https://www.gs1.org/standards/barcodes-epcglobal-tag-data/gs1-general-specifications">GS1 General Specifications, 2.1.11</a>, <a href="https://www.gs1.org/docs/barcodes/SummaryOfGS1MOPrefixes20-29.pdf">GS1 prefixes 20–29</a></td>
+</tr>
+<tr>
+<td>Amazon seller SKU</td>
+<td>At most 40 characters (unconfirmed with Amazon, see the ADR&#39;s open items)</td>
+<td>Seller Central upload rules</td>
+</tr>
+<tr>
+<td>VAT kinds of rate</td>
+<td>A standard rate, up to two reduced rates, a super-reduced rate, zero and exempt</td>
+<td><a href="https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32006L0112">Council Directive 2006/112/EC, Articles 98–99</a>, <a href="https://www.legislation.gov.uk/ukpga/1994/23/contents">VAT Act 1994</a></td>
+</tr>
+<tr>
+<td>Countries and currencies</td>
+<td>Two-letter country codes; three-letter currency codes</td>
+<td>ISO 3166-1, ISO 4217</td>
+</tr>
+<tr>
+<td>Commodity codes</td>
+<td>6 digits worldwide, 8 for exports, 10 for UK imports</td>
+<td><a href="https://www.trade-tariff.service.gov.uk/">UK Trade Tariff</a></td>
+</tr>
+</tbody></table></div>
+<h2 id="17-tests-that-prove-each-rule">17. Tests that prove each rule</h2>
+<p>Database tests run on real Postgres under the runtime role (<a href="../../system-architecture/spec/#15-testing-and-verification">ADR-000 SPEC 15</a>).</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Proves</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SKU</td>
+<td>Two SKUs differing only in case are refused; a used SKU and a used kind cannot change; a retired SKU is never reused</td>
+</tr>
+<tr>
+<td>Barcodes</td>
+<td>Each length normalises to 14 digits and keeps its original length; a wrong check digit is refused with the right one; restricted and internal codes never match a listing; a code held by another product or box size is refused; no input asks for a barcode type</td>
+</tr>
+<tr>
+<td>Pack</td>
+<td>A pack of a pack or of a bundle is refused; a repack changes no total of base units</td>
+</tr>
+<tr>
+<td>Bundle</td>
+<td>Sellable equals the smallest component quotient; a bundle in a bundle, a single-product bundle and a ledger entry against a bundle are refused; an open order keeps its components after an edit</td>
+</tr>
+<tr>
+<td>Box sizes</td>
+<td>Scanning a box barcode adds its units; no box size has a balance</td>
+</tr>
+<tr>
+<td>Families</td>
+<td>A missing option value and a repeated combination are refused; a variation listing pairs with members by SKU or options</td>
+</tr>
+<tr>
+<td>Status</td>
+<td>Retiring is refused while any blocker holds, and each blocker is named; a retired product&#39;s linked listing still gets its figure until unlinked</td>
+</tr>
+<tr>
+<td>Charge lines</td>
+<td>A manual order with only charge lines reserves nothing and never reaches the pick list; a not-stock listing&#39;s order line imports as a charge line, gets a VAT record and never waits</td>
+</tr>
+<tr>
+<td>Units</td>
+<td>Imperial entry rounds half up to whole grams and millimetres; saving a form without touching a measure leaves it unchanged; an imperial-headed column imports for a metric company</td>
+</tr>
+<tr>
+<td>Spreadsheet</td>
+<td>A blank cell and a missing column change nothing; <code>(clear)</code> empties; a file with errors writes only its valid rows, all at once; a SKU twice in a file is refused</td>
+</tr>
+<tr>
+<td>Serials</td>
+<td>A serial-tracked unit cannot be packed without a serial; a serial already shipped and not returned is refused; a return with a different serial goes to a manager</td>
+</tr>
+<tr>
+<td>Concurrent edits</td>
+<td>An edit on an older <code>version</code> is refused</td>
+</tr>
+<tr>
+<td>VAT</td>
+<td>A rate change writes no past line; a class with no rate in a country is not offered there</td>
+</tr>
+</tbody></table></div>
+<h2 id="how-to-check-it-was-built-right">How to check it was built right</h2>
+<p>For someone reviewing code an AI wrote. Each line says where to look.</p>
+<ul>
+<li><input disabled="" type="checkbox"> <strong>Writers:</strong> only the Products module writes the tables in section 2; the link is written only by Listings (search the other modules for inserts into them).</li>
+<li><input disabled="" type="checkbox"> <strong>No SQL:</strong> the module&#39;s queries all go through the typed query builder; no <code>sql</code> or <code>raw</code> import in the module.</li>
+<li><input disabled="" type="checkbox"> <strong>Quantities:</strong> every quantity column is an integer; no decimal or float quantity type in the schema or the domain types.</li>
+<li><input disabled="" type="checkbox"> <strong>Measures:</strong> weight and size columns are integers in grams and millimetres; conversion lives in one function used by forms, imports and display.</li>
+<li><input disabled="" type="checkbox"> <strong>No drift:</strong> the product update command writes only fields present in the change set; the units test is green.</li>
+<li><input disabled="" type="checkbox"> <strong>SKU:</strong> the unique index is on the company and the lower-cased SKU; the update command checks first use before a SKU or kind change.</li>
+<li><input disabled="" type="checkbox"> <strong>Barcodes:</strong> one normalise-and-check function used by the form, the import and the scan; no barcode type field on any form.</li>
+<li><input disabled="" type="checkbox"> <strong>Bundles:</strong> no stored sellable for a bundle; the ledger&#39;s insert refuses a bundle; component kinds checked in the same transaction as the write.</li>
+<li><input disabled="" type="checkbox"> <strong>Packs:</strong> the repack command takes one number and writes both entries in one transaction.</li>
+<li><input disabled="" type="checkbox"> <strong>Charge lines:</strong> no product kind, flag or setting for services; charge lines have no product id and no path into reservations or pick lists.</li>
+<li><input disabled="" type="checkbox"> <strong>VAT:</strong> lines store country, class and rate; nothing reads a rate from the product; the rate table is read from control, never copied into cells.</li>
+<li><input disabled="" type="checkbox"> <strong>Version:</strong> every update command compares <code>version</code> and raises it.</li>
+<li><input disabled="" type="checkbox"> <strong>Spreadsheet:</strong> blank means unchanged in the parser, <code>(clear)</code> is the only way to empty; the preview and the write share one validation; the write is one transaction.</li>
+<li><input disabled="" type="checkbox"> <strong>Activity:</strong> every product command writes an activity entry with old and new values.</li>
+<li><input disabled="" type="checkbox"> <strong>Images:</strong> one per product; marketplace images are copied to object storage; no key is overwritten.</li>
+<li><input disabled="" type="checkbox"> <strong>Serials:</strong> the pack command refuses a serial-tracked unit without a serial; no receipt or count screen asks for one.</li>
+<li><input disabled="" type="checkbox"> <strong>Later parts:</strong> no <code>product_vat</code> table, Vendor link, second cost currency, <code>un_number</code>, <code>battery</code> or <code>min_age</code>, category tree, second image, family grid or ASIN lookup at launch.</li>
+</ul>
+
+<footer>Vervoro</footer>
+</main>
+</body>
+</html>

@@ -203,7 +203,7 @@ The relist carry is the one link no person makes. It is the marketplace stating 
 
 - **One preview, one confirm, still one link per variation.** The preview lists every pair with its units per sale and figure change. Each link is an ordinary link: a pair can be unticked, and any later change is made per variation.
 - **The same rules as any suggestion.** A pair made only by option values is medium, so it is never applied without this preview; vetoes and the ratio check apply to each pair.
-- **What does not pair stays unlinked,** with its reason: no member with those options, two members match, or the variation has no SKU and no options Vervoro can read. "Add a size" (ADR-003) can draft the missing members from the unpaired variations.
+- **What does not pair stays unlinked,** with its reason: no member with those options, two members match, or the variation has no SKU and no options Vervoro can read. "Add a size" (ADR-003, *Later*) will draft the missing members from the unpaired variations; at launch they are made with "Make product".
 - **The group is never linked itself.** The family has no stock; each variation sells its own size.
 
 **Bulk accept.**
@@ -235,6 +235,8 @@ The relist carry is the one link no person makes. It is the marketplace stating 
 
 **An unlinked listing is left to the marketplace.** Vervoro sends it no figure, imports its orders and flags them (ADR-003, ADR-007). Unlinked is the default and needs no mark. The account shows "N listings left to the marketplace".
 
+**A listing that is not stock** (a warranty, gift wrap) is marked "not stock" with a VAT class, by those who may link, instead of being linked. It is never linked to a product and gets no figure. Its order lines are imported as charge lines: they reserve nothing, never wait and never hold the order ([ADR-003 SPEC 1.1](../product-model/spec/#11-charge-lines-and-listings-that-are-not-stock), owner ruling, 21 October 2026). The mark can be removed, after which the listing is unlinked like any other.
+
 **The danger is a listing that shares stock.** An unlinked listing that sells the same goods as a linked product takes stock Vervoro does not deduct, so every linked listing of that product oversells. A **shared-stock listing** is an unlinked, buyable, seller-shipped listing that has a strong or medium suggestion naming a product already linked to another listing, or that sits in a listing group with a linked member.
 
 **Going live on an account needs** a complete catalogue read, no open conflict, and an answer for every shared-stock listing: link it, or "separate stock, leave to the marketplace". Many can be answered at once, with a confirm that names the risk: "These listings may sell the same stock as products Vervoro manages. Vervoro will not change their quantity." The answer is recorded (the listing, the evidence, who, when), creates no link, and is asked again when a new strong suggestion appears. Every other unlinked listing is a count, never a blocker. Accounts go live one at a time, so a finished Shopify account does not wait for eBay, except at a company's first go-live, when every account the old system served goes live in one step ([ADR-008](../inventory-sync/)).
@@ -253,7 +255,7 @@ The relist carry is the one link no person makes. It is the marketplace stating 
 4. Other strong and medium suggestions.
 5. The rest, by account.
 
-**Each row** shows the main image, title, account, listing SKU (or "no SKU" with the item number), options, who ships it, the figure the marketplace shows now, open orders, sales in the last 30 days, and the best suggestion with its tier, its reason ("same barcode") and any veto. **Buttons:** Link, Make product, Leave to marketplace, and Link to family on a variation whose group has unlinked variations. On a wide screen the same fields are columns with a select box per row.
+**Each row** shows the main image, title, account, listing SKU (or "no SKU" with the item number), options, who ships it, the figure the marketplace shows now, open orders, sales in the last 30 days, and the best suggestion with its tier, its reason ("same barcode") and any veto. **Buttons:** Link, Make product, Leave to marketplace, Not stock, and Link to family on a variation whose group has unlinked variations. On a wide screen the same fields are columns with a select box per row.
 
 **Filters:** account, tier, who ships it, open orders, sold recently, has a barcode, no SKU, needed for going live, ended. **Search** by SKU, title, barcode, item number or ASIN, or by scanning a barcode with the phone's camera.
 

@@ -72,15 +72,16 @@ A module declares each action in its manifest ([ADR-000 SPEC 1](../../system-arc
 | Switch on buyer data for an operator grant; end a grant | Yes | Yes | No | No | No | No | ADR-010 |
 | Read the company's audit log | Yes | Yes | No | No | Yes | No | ADR-010 |
 | Handle a buyer's privacy request | Yes | Yes | No | No | No | No | [ADR-009](../../buyer-data/) |
+| Change the company's units (metric or imperial) | Yes | Yes | No | No | No | No | [ADR-003](../../product-model/spec/#15-units-of-measure) |
 | **Marketplaces and listings** | | | | | | | |
 | Connect or disconnect an account; switch a connector on or off | Yes | Yes | No | No | No | No | ADR-010; [ADR-004](../../channel-connectors/) |
 | Go live on an account | Yes | Yes | No | No | No | No | ADR-010 |
 | Stop sends on a live account (with its stop choice) | Yes | Yes | Yes | No | No | No | ADR-010; [ADR-000](../../system-architecture/) |
-| Link and unlink listings; answer shared-stock listings | Yes | Yes | Yes | No | No | No | [ADR-005](../../catalogue-sync/) |
+| Link and unlink listings; mark a listing not stock; answer shared-stock listings | Yes | Yes | Yes | No | No | No | [ADR-005](../../catalogue-sync/) |
 | Change the low-stock policy settings | Yes | Yes | Yes | No | No | No | [ADR-008](../../inventory-sync/) |
 | **Products** | | | | | | | |
 | Read products and stock | Yes | Yes | Yes | Yes | Yes | Yes | ADR-010 |
-| Create, edit, import products | Yes | Yes | Yes | No | No | No | [ADR-003](../../product-model/) |
+| Create, edit, import products | Yes | Yes | Yes | No | No | No | [ADR-003](../../product-model/spec/#13-creating-products) |
 | See costs, landed cost and margins | Yes | Yes | Yes | No | Yes | No | ADR-010 |
 | **Stock** | | | | | | | |
 | Receive, move between spots, repack between a pack and its singles, count | Yes | Yes | Yes | Yes | No | No | [ADR-006](../../stock-ledger/) |

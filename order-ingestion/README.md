@@ -161,7 +161,7 @@ Units shipped by Vervoro come from the shipments (ADR-006), so they are not stor
 | **Waiting** | No product yet: the listing is unlinked or unknown | Nothing |
 | **Reserved** | Every unit it still needs is reserved | Yes |
 | **Short** | Part reserved, the rest recorded as missing (ADR-006) | What exists |
-| **Not reserved** | The marketplace ships it, another connection handles it, or it is a mirror | Nothing, ever |
+| **Not reserved** | The marketplace ships it, another connection handles it, it is a mirror, or it is a charge line | Nothing, ever |
 | **Done** | Every unit is shipped or cancelled | Nothing left |
 
 ## Statuses
@@ -424,6 +424,7 @@ An unlinked listing is left to the marketplace (ADR-005), but its orders are imp
 - **An unknown listing** (the order names one Vervoro has not read yet) starts a read of that one listing (ADR-005). The line waits meanwhile.
 - **A line with no listing at all** (a Shopify line that needs shipping but has no variant and no SKU, ADR-004.3) waits too, and can only be attached.
 - **Who is told:** ADR-005 decides it. The first order on an unlinked listing with a strong or medium suggestion alerts the seller; others go to the daily digest.
+- **A listing marked not stock** (a warranty, gift wrap, [ADR-005](../catalogue-sync/#unlinked-listings-and-going-live)) is not unlinked in this sense: its lines are charge lines. They never wait, reserve nothing and never keep the order off the picking list (owner ruling, 21 October 2026).
 
 **From the order, a person has two ways to resolve a waiting line:**
 
@@ -502,6 +503,7 @@ A marketplace may say units shipped that no Vervoro shipment covers: the seller 
 They belong here, because they are orders: one list, one status, one way to reserve and dispatch. A seller takes them by phone or email, from a business customer, or at a counter.
 
 - **Who:** anyone who works in the warehouse, or a manager, admin or owner, creates, confirms, edits and cancels phone and email orders, and makes counter sales (below). A business order on account terms, which ships before it is paid, is confirmed by a manager, admin or owner.
+- **Charge lines** (owner ruling, 21 October 2026). Besides product lines, a manual order may carry charge lines for what is not stock, such as installation or a service fee: a name, an amount with its currency, and a VAT class ([ADR-003 SPEC 1.1](../product-model/spec/#11-charge-lines-and-listings-that-are-not-stock)). A charge line never reserves or moves stock and never reaches the pick list. Delivery is not a charge line: it stays the order's delivery charge, and its VAT follows the goods (ADR-011).
 - **A draft first.** Lines name products directly (no listing, no link), with quantities, prices and currency, a delivery address, and for a business buyer the company name, VAT number and their purchase-order reference. A draft reserves nothing, so a half-typed order or a quote never takes the last unit a marketplace order needs. A previous order can be copied into a new draft: there is no saved customer list at launch (ADR-011). A manager's copy brings everything; a warehouse user's copy brings the products, quantities and prices but not the buyer's details, which they type in from the caller, so copying never shows them an old customer's address (ADR-009).
 - **Confirming reserves,** by ADR-006's rules, in one transaction. Confirming carries a key the client makes, so a double tap confirms once. The order takes the next number from the company's counter.
 - **Payment.** A warehouse user confirms an order as paid by entering its payment reference (the card machine's receipt, a bank transfer); without one, the order is held "payment pending" (here an office hold) until a manager releases it. A manager may confirm without payment, for a business customer on account terms, and may hold any manual order until the customer pays. The server checks this on every confirm, so no order a warehouse user confirms ships unpaid.
@@ -572,7 +574,7 @@ All tables belong to the foundation and are tenant tables (ADR-001): `company_id
 | --- | --- | --- |
 | `sales_order` | One row per order: account, marketplace order id, purchase and change times, status and its function's version, who ships it, warehouse, ship-by, leave-by, sold on, arrived from, replacement mark, business fields, buyer fields, and the shipped, cancelled, delivered and anonymised times | Partitioned by month of purchase. Buyer fields tagged `pii` (ADR-009) |
 | `sales_order_key` | Company, account, marketplace order id → order id and month | Unpartitioned. Unique. Read first by every import |
-| `sales_order_line` | The line fields above and ADR-006's | Partitioned with its order. No stored stock state |
+| `sales_order_line` | The line fields above and ADR-006's. A charge line is a line with no product, link or reservation, holding its name, amount, currency and VAT class (owner ruling, 21 October 2026) | Partitioned with its order. No stored stock state |
 | `sales_order_hold` | Each hold placed and cleared: reason, kind, note, automatic or by whom, decide-by, when | Append-only |
 | `sales_order_cancellation` | Each buyer request and each change to it: lines and quantities, the marketplace's id, the answer deadline, state (requested, declined, lapsed, confirmed), times | Append-only |
 | `sales_order_refund` | Each refund: amount, currency, lines, time | |

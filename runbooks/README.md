@@ -27,6 +27,14 @@ Rules: [ADR-001 SPEC](../database-architecture/spec/).
 | [Drills](drills/) | Weekly, monthly and nightly, unattended |
 | [Use the owner role](use-the-owner-role/) | An emergency that no other role can fix |
 
+## ADR-003: Product model
+
+Rules: [ADR-003 SPEC](../product-model/spec/).
+
+| Procedure | When |
+| --- | --- |
+| [Change a VAT rate](change-a-vat-rate/) | A law changes a VAT rate or sets a temporary one |
+
 ## ADR-010: Users, roles and access
 
 Rules: [ADR-010 SPEC](../users-and-access/spec/).

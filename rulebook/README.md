@@ -37,36 +37,38 @@ Load this page with any task. Load the linked record before changing the area it
 20. **An order reserves when it is imported, in the same transaction.** Each reservation names a batch, never a spot. A bundle reserves its components in whole sets. [ADR-006](../stock-ledger/#reserving-on-order)
 21. **Stock leaves only when a shipment is confirmed,** or when the marketplace reports a line shipped outside Vervoro. A cancellation request releases nothing; only a confirmed cancellation does. [ADR-006](../stock-ledger/#deducting-on-dispatch), [ADR-007](../order-ingestion/#decision)
 22. **A use-by batch is never reserved, packed or dispatched on or after its date,** by any route, with no override. [ADR-006](../stock-ledger/#decision)
+23. **Every quantity is a whole number of base units of one product,** and weights and sizes are stored in whole grams and millimetres. Other units are converted only on entry and display. [ADR-003 SPEC 2.1](../product-model/spec/#21-numbers-and-money), [SPEC 15](../product-model/spec/#15-units-of-measure)
+24. **A charge that is not stock is a charge line, never a product.** It never reserves or moves stock; a marketplace listing that is not stock is marked so, never linked. [ADR-003 SPEC 1.1](../product-model/spec/#11-charge-lines-and-listings-that-are-not-stock)
 
 ## 5. Marketplaces
 
-23. **Nothing reaches a marketplace or a supplier except through the egress gate.** Every outbound effect is recorded in the transaction with an idempotency key and sent only after commit. [ADR-000](../system-architecture/spec/#7-the-egress-gate)
-24. **Nothing leaves Vervoro during a database transaction.** No marketplace or other outside call runs inside one, so a company's lock is held only for database work, and Postgres's transaction timeout ends a transaction that runs too long. [ADR-000](../system-architecture/spec/#10-runtime), [ADR-001](../database-architecture/spec/#13-platform-constraints), [ADR-006](../stock-ledger/#concurrency-and-repeats)
-25. **A connector only translates.** It has no network access, credentials, clock or database. The host owns credentials, HTTP, retries, rate limits and shared allowances. Core code knows marketplace concepts such as listings, links and FBA, but not marketplace protocols. [ADR-004](../channel-connectors/#decision)
-26. **Orders come in by notice.** A notice is a hint: the order is fetched and imported. The scheduled read is only the backup, and only a complete read moves the order watermark. Amazon's notices reach the same path through an AWS bridge. [ADR-004](../channel-connectors/#decision), [ADR-007](../order-ingestion/#decision)
-27. **Each marketplace order is imported once,** keyed by account and marketplace order id. A fetch older than the stored one changes nothing. An order that cannot be imported becomes a problem row; it is never dropped. [ADR-007](../order-ingestion/#decision)
-28. **Vervoro never sends a cancellation.** The seller cancels on the marketplace, and only a confirmed cancellation releases stock. [ADR-007](../order-ingestion/#decision)
-29. **A timeout is `unknown`, not failed.** An unknown write is read back and settled before anything else is sent to that listing. It is never retried blind. [ADR-004](../channel-connectors/#retries-and-outcomes), [ADR-008](../inventory-sync/#decision)
-30. **Figures go only to linked listings,** and only the quantity and the offers the seller asks for are ever written. [ADR-005](../catalogue-sync/#decision)
-31. **No raise leaves before a complete order read covers the moment it became due.** Near zero, every change is sent; above that, a figure is sent once it is 20 away from what the channel shows. A held raise never holds a decrease. [ADR-008](../inventory-sync/#decision), [ADR-005](../catalogue-sync/#linking)
-32. **One writer per listing, one open write at a time, and every write confirmed.** Amazon's `accepted` is not applied. [ADR-008](../inventory-sync/#decision)
-33. **Every account starts in shadow,** and returns to shadow after a restore or a reconnect. A restore raises the company's sync epoch, so no earlier write is mistaken for a later one. [ADR-004](../channel-connectors/#decision), [ADR-008](../inventory-sync/#decision)
-34. **Tests and development use simulators, never a real marketplace,** and database tests run on real Postgres only. No simulator code reaches production. [ADR-000](../system-architecture/#decision)
+25. **Nothing reaches a marketplace or a supplier except through the egress gate.** Every outbound effect is recorded in the transaction with an idempotency key and sent only after commit. [ADR-000](../system-architecture/spec/#7-the-egress-gate)
+26. **Nothing leaves Vervoro during a database transaction.** No marketplace or other outside call runs inside one, so a company's lock is held only for database work, and Postgres's transaction timeout ends a transaction that runs too long. [ADR-000](../system-architecture/spec/#10-runtime), [ADR-001](../database-architecture/spec/#13-platform-constraints), [ADR-006](../stock-ledger/#concurrency-and-repeats)
+27. **A connector only translates.** It has no network access, credentials, clock or database. The host owns credentials, HTTP, retries, rate limits and shared allowances. Core code knows marketplace concepts such as listings, links and FBA, but not marketplace protocols. [ADR-004](../channel-connectors/#decision)
+28. **Orders come in by notice.** A notice is a hint: the order is fetched and imported. The scheduled read is only the backup, and only a complete read moves the order watermark. Amazon's notices reach the same path through an AWS bridge. [ADR-004](../channel-connectors/#decision), [ADR-007](../order-ingestion/#decision)
+29. **Each marketplace order is imported once,** keyed by account and marketplace order id. A fetch older than the stored one changes nothing. An order that cannot be imported becomes a problem row; it is never dropped. [ADR-007](../order-ingestion/#decision)
+30. **Vervoro never sends a cancellation.** The seller cancels on the marketplace, and only a confirmed cancellation releases stock. [ADR-007](../order-ingestion/#decision)
+31. **A timeout is `unknown`, not failed.** An unknown write is read back and settled before anything else is sent to that listing. It is never retried blind. [ADR-004](../channel-connectors/#retries-and-outcomes), [ADR-008](../inventory-sync/#decision)
+32. **Figures go only to linked listings,** and only the quantity and the offers the seller asks for are ever written. [ADR-005](../catalogue-sync/#decision)
+33. **No raise leaves before a complete order read covers the moment it became due.** Near zero, every change is sent; above that, a figure is sent once it is 20 away from what the channel shows. A held raise never holds a decrease. [ADR-008](../inventory-sync/#decision), [ADR-005](../catalogue-sync/#linking)
+34. **One writer per listing, one open write at a time, and every write confirmed.** Amazon's `accepted` is not applied. [ADR-008](../inventory-sync/#decision)
+35. **Every account starts in shadow,** and returns to shadow after a restore or a reconnect. A restore raises the company's sync epoch, so no earlier write is mistaken for a later one. [ADR-004](../channel-connectors/#decision), [ADR-008](../inventory-sync/#decision)
+36. **Tests and development use simulators, never a real marketplace,** and database tests run on real Postgres only. No simulator code reaches production. [ADR-000](../system-architecture/#decision)
 
 ## 6. People and buyer data
 
-35. **Every request is checked on the server** against the person's role, warehouse scope and status in that company, read in the same transaction as the work. [ADR-010 SPEC 5](../users-and-access/spec/#5-rules-for-every-action)
-36. **Operators have no standing access.** They use a grant with a reason and an end time, which the seller sees and can end. [ADR-010 SPEC 7](../users-and-access/spec/#7-operator-access-to-a-company)
-37. **Sign-in lives only in the sign-in Worker.** Only it holds the sign-in keys, writes the login tables and shows a password field. The app asks it whether a session is live and never records a fresh check itself. Its pages and calls are a closed list. [ADR-013 SPEC 6](../sign-in/spec/#6-the-sign-in-worker)
-38. **Buyer data comes only from the fetched order,** only the fields ADR-009 allows, encrypted per field under the company's key. It never goes to control, queues, logs, URLs, caches, emails, client storage or the AI provider. [ADR-009](../buyer-data/#decision)
-39. **Every view of buyer data is logged.** It is anonymised 30 days after delivery. [ADR-009](../buyer-data/#decision)
-40. **No real buyer data outside production.** Tests, fixtures and demos use synthetic buyers. [ADR-009](../buyer-data/#decision)
+37. **Every request is checked on the server** against the person's role, warehouse scope and status in that company, read in the same transaction as the work. [ADR-010 SPEC 5](../users-and-access/spec/#5-rules-for-every-action)
+38. **Operators have no standing access.** They use a grant with a reason and an end time, which the seller sees and can end. [ADR-010 SPEC 7](../users-and-access/spec/#7-operator-access-to-a-company)
+39. **Sign-in lives only in the sign-in Worker.** Only it holds the sign-in keys, writes the login tables and shows a password field. The app asks it whether a session is live and never records a fresh check itself. Its pages and calls are a closed list. [ADR-013 SPEC 6](../sign-in/spec/#6-the-sign-in-worker)
+40. **Buyer data comes only from the fetched order,** only the fields ADR-009 allows, encrypted per field under the company's key. It never goes to control, queues, logs, URLs, caches, emails, client storage or the AI provider. [ADR-009](../buyer-data/#decision)
+41. **Every view of buyer data is logged.** It is anonymised 30 days after delivery. [ADR-009](../buyer-data/#decision)
+42. **No real buyer data outside production.** Tests, fixtures and demos use synthetic buyers. [ADR-009](../buyer-data/#decision)
 
 ## 7. Money and countries
 
-41. **Money always carries its currency,** and amounts in different currencies are never added. [ADR-000](../system-architecture/spec/#14-money-and-countries), [ADR-003](../product-model/#product-fields)
-42. **Country rules live only where the country matters:** VAT and invoices, Vervoro's billing, food law, and each marketplace's site. A product has a VAT class, and every line stores the country, class and rate it used. [ADR-000](../system-architecture/spec/#14-money-and-countries), [ADR-011](../invoicing-and-vat/#decision)
-43. **Nothing that moves orders or stock is ever refused for a billing reason.** [ADR-012](../billing-and-plans/#decision)
+43. **Money always carries its currency,** and amounts in different currencies are never added. [ADR-000](../system-architecture/spec/#14-money-and-countries), [ADR-003](../product-model/spec/#21-numbers-and-money)
+44. **Country rules live only where the country matters:** VAT and invoices, Vervoro's billing, food law, and each marketplace's site. A product has a VAT class, and every line stores the country, class and rate it used. [ADR-000](../system-architecture/spec/#14-money-and-countries), [ADR-011](../invoicing-and-vat/#decision)
+45. **Nothing that moves orders or stock is ever refused for a billing reason.** [ADR-012](../billing-and-plans/#decision)
 
 ## Changing a rule
 

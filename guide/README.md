@@ -17,7 +17,7 @@ ADR-000  System architecture: modules, the foundation, outbox, egress gate, simu
 │   └── ADR-013  Sign-in: passkeys, sessions, recovery, the sign-in Worker
 │
 ├── Products and stock
-│   ├── ADR-003  Product model: SKU, packs, bundles, VAT class
+│   ├── ADR-003  Product model: SKU, packs, bundles, VAT class, charge lines
 │   └── ADR-006  Stock ledger and reservations
 │
 ├── Marketplaces
@@ -47,7 +47,7 @@ Each record is split into up to three documents, so that a person can review the
 | **SPEC** | The developer and coding agents, to build from | Numbered rule sets, tables and state lists, platform constraints with sources, the tests that prove each rule, and a checklist for reviewing the code |
 | **RUNBOOK** | The operator, to carry out | One page per procedure under [runbooks](../runbooks/): who runs it, with which role, numbered steps, how to verify, what to do if it stops halfway |
 
-The ADR decides, the SPEC says exactly how, and a runbook carries it out. When they disagree, the ADR wins. [ADR-001](../database-architecture/) and [ADR-000](../system-architecture/) are in this form; the others follow one at a time. The rules every change must keep are in the [engineering rulebook](../rulebook/).
+The ADR decides, the SPEC says exactly how, and a runbook carries it out. When they disagree, the ADR wins. [ADR-000](../system-architecture/), [ADR-001](../database-architecture/), [ADR-003](../product-model/), [ADR-010](../users-and-access/) and [ADR-013](../sign-in/) are in this form; the others follow one at a time. The rules every change must keep are in the [engineering rulebook](../rulebook/).
 
 ## Status of a record
 
@@ -107,6 +107,20 @@ One word per concept. Where two words appear in the records, the table says whet
 | **Believed figure** | What the marketplace is believed to show ("B" in ADR-008). A number, or unknown |
 | **Unknown** | An outbound write with no clear answer, a timeout included. It is read back before anything else is sent to that listing, never retried blind |
 | **Order watermark** | The point up to which a complete read of a marketplace's orders has been done. A raise waits for it |
+
+### Products
+
+| Term | Meaning |
+| --- | --- |
+| **Product** | One thing the warehouse counts, in whole base units. Simple, pack or bundle (ADR-003) |
+| **Base unit** | What one unit of a product is called: a piece, a jar, or a metre or 100 g for goods sold by length or weight |
+| **Pack** | A sealed multiple of one simple product, with its own stock. Opened or made by a repack |
+| **Bundle** | Several products sold as one item, with no stock of its own; its sellable comes from its scarcest component |
+| **Box size** | How many base units one case or pallet holds. Used on documents and scans; never stock |
+| **Family** | Products that are one design in several sizes or colours, linked to one variation listing in one step |
+| **Charge line** | Something charged that is not stock (a service fee, gift wrap): a name, an amount and a VAT class on an order or invoice. Never reserves or moves stock |
+| **Not stock** | A mark on a marketplace listing that sells no stock (a warranty). It is never linked; its order lines are charge lines (ADR-005) |
+| **Units setting** | A company's choice of metric or imperial for showing weights and sizes. Storage is always grams and millimetres |
 
 ### Stock
 
