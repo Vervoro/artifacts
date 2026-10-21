@@ -19,15 +19,15 @@
 
 ## Decision
 
-1. **History stays in the cell for 24 months:** closed orders and their lines, invoices, credit notes, VAT records, export evidence, payments, stock ledger entries, and batches with no stock left (counted from their last movement). That covers year-on-year reports.
+1. **History stays in the cell for 24 months:** closed orders with their lines and holds, invoices, credit notes, VAT records, export evidence, payments, stock ledger entries, and batches with no stock left (counted from their last movement). That covers year-on-year reports.
 2. **Current state is never archived:** products, listings, stock levels, open orders, open purchase orders, settings and users. It is deleted only with the company.
 3. **Older months move to an archive, then leave the cell.** The archive is object storage: compressed files, one per table per company per month, encrypted with the company's key. A month is archived for the whole cell at once, because partitions are shared. It leaves the cell only after every company's files are verified against it ([SPEC 3](spec/#3-archiving-a-month)).
 4. **Stock still proves itself after its history leaves.** Before a ledger month is archived, the archiver writes a checkpoint (an opening balance) so the nightly check sums from it ([ADR-006 SPEC 14](../stock-ledger/spec/#14-the-nightly-check-and-checkpoints)).
 5. **The archive is kept 7 years from the end of each month, then that month is deleted** per company. Any financial year ends within 12 months of the month, so this always covers the statutory 6 years and needs no year-end setting. The seller is told 90 days before a month is deleted, with its export, and keeps what a longer case needs.
 6. **Archived data is read only on request:** a company's export, the older-history report, and a lot trace ([ADR-006](../stock-ledger/spec/#10-lot-trace-and-recalls)). Everyday screens, searches, stock figures and marketplace sync use the cell only.
-7. **Logs and working data keep their own clocks.** `audit_log` (security and access) stays at least a year in the cell, then 6 years in the archive; `event_log` (module activity) 90 days; outbound sends, sync attempts and operational state 30 days. The last three are dropped, never archived ([ADR-001](../database-architecture/spec/#5-declaring-tables)).
+7. **Logs and working data keep their own clocks.** `audit_log` (security and access) stays at least a year in the cell, then 6 years in the archive; `event_log` (module activity) 90 days; outbound sends, sync attempts, operational state and outbox notes every handler has received, 30 days. These are deleted when their time is up, never archived, from launch (owner ruling, 21 October 2026).
 8. **The archive follows the company, not the cell.** Erasing a company deletes its archive files; moving it leaves them where they are; restoring it needs no archive restore, because the files never change; the bucket sits in the company's region ([SPEC 6](spec/#6-the-company-lifecycle)).
-9. **Archiving is switched on by a trigger.** *Later: when a cell passes 500 GB, or at the start of year 2, whichever comes first.* Until then every month stays in the cell; only decision 7's drops run at launch.
+9. **Archiving is switched on by a trigger.** *Later: when a cell passes 500 GB, or at the start of year 2, whichever comes first.* Until then every month stays in the cell; only decision 7's deletions run at launch.
 
 **Retention owned by other records:** backups, 7 days of point-in-time history and 30 days of snapshots ([ADR-001 SPEC 10](../database-architecture/spec/#backups)); sign-in data in the control database ([ADR-013 SPEC 2](../sign-in/spec/#2-the-login-and-its-data)); the platform security log, 12 months ([ADR-010 SPEC 8](../users-and-access/spec/#8-audit)); a closed company ([ADR-012 SPEC 16](../billing-and-plans/spec/#16-cancellation-export-erasure-and-refunds)) and Vervoro's own billing records ([ADR-012 SPEC 18](../billing-and-plans/spec/#18-records-kept)); what an invoice must hold ([ADR-011](../invoicing-and-vat/)). The full schedule is [SPEC 2](spec/#2-the-retention-schedule).
 
@@ -61,6 +61,4 @@
 - **Where the archive catalogue lives** (control or the cell) is not stated. "Moving a company leaves its files" implies control, which holds no company business data.
 - **Which job and role runs the archiver** is not stated. The detach is the monthly migration run, as the owner role ([ADR-001 SPEC 12](../database-architecture/spec/#12-operations)).
 - **When `audit_log` months move**, and what its 6 years count from, are not stated.
-- **Dropping logs against ADR-001:** [ADR-001 SPEC 12](../database-architecture/spec/#12-operations) drops a month only after the archiver verified it, but decision 7 drops `event_log` and outbound sends without archiving, from launch. Not settled here.
-- **Order holds and the outbox have no clock:** [ADR-001 SPEC 5](../database-architecture/spec/#5-declaring-tables) makes them append-only and not partitioned, so their rows leave only with the company. Not settled here.
 - **Statutory periods** were checked on 18 October 2026; recheck before archiving is switched on.

@@ -88,7 +88,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tbody></table></div>
 <p>The rules to build ADR-002 from: how long a company&#39;s data stays in its cell, the archive, and deletion. Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the <a href="../../guide/">map and glossary</a>.</p>
 <h2 id="0-at-launch-and-later">0. At launch and later</h2>
-<p>At launch only the drops in <a href="#2-the-retention-schedule">section 2</a> run (<code>event_log</code> at 90 days; outbound sends, sync attempts and operational state at 30 days), and buyer anonymisation runs by <a href="../../buyer-data/spec/#8-retention-and-anonymisation">ADR-009</a>. Every other month stays in the cell.</p>
+<p>At launch only the deletions in <a href="#2-the-retention-schedule">section 2</a> run (<code>event_log</code> at 90 days; outbound sends, sync attempts, operational state and delivered outbox notes at 30 days), and buyer anonymisation runs by <a href="../../buyer-data/spec/#8-retention-and-anonymisation">ADR-009</a>. Every other month stays in the cell.</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -111,7 +111,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2 id="1-who-does-what">1. Who does what</h2>
 <ol>
 <li><strong>The archiver</strong> exports, verifies and catalogues a month, and writes the stock checkpoints through Inventory&#39;s rules (<a href="../../stock-ledger/spec/#14-the-nightly-check-and-checkpoints">ADR-006 SPEC 14</a>). It reads through parent tables only, never a partition (<a href="../../database-architecture/spec/#the-slice-operation">ADR-001 SPEC 10</a>).</li>
-<li><strong>The monthly migration run</strong> detaches and drops a month, as the owner role (<a href="../../database-architecture/spec/#12-operations">ADR-001 SPEC 12</a>).</li>
+<li><strong>The monthly migration run</strong> detaches and drops a month of an archived table, and drops a month of <code>event_log</code> when its 90 days end, as the owner role (<a href="../../database-architecture/spec/#12-operations">ADR-001 SPEC 12</a>).</li>
 </ol>
 <h2 id="2-the-retention-schedule">2. The retention schedule</h2>
 <div class="table-wrap"><table>
@@ -130,7 +130,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Deleted with the company</td>
 </tr>
 <tr>
-<td>Closed orders and their lines</td>
+<td>Closed orders, their lines and holds</td>
 <td>24 months</td>
 <td>Until 7 years after the month ends</td>
 <td>Deleted</td>
@@ -170,6 +170,12 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>30 days</td>
 <td>Never</td>
 <td>Dropped</td>
+</tr>
+<tr>
+<td>Outbox notes every handler has received (<a href="../../database-architecture/spec/#the-outbox">ADR-001 SPEC 9</a>)</td>
+<td>30 days after the last receipt</td>
+<td>Never</td>
+<td>Deleted (owner ruling, 21 October 2026)</td>
 </tr>
 <tr>
 <td>Buyer personal data</td>
@@ -255,9 +261,9 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </thead>
 <tbody><tr>
-<td>Drops</td>
+<td>Deletions</td>
 <td>CI</td>
-<td><code>event_log</code> rows older than 90 days, and outbound sends, sync attempts and operational state older than 30 days, are gone after the sweep; nothing else is</td>
+<td><code>event_log</code> older than 90 days, and outbound sends, sync attempts, operational state and delivered outbox notes older than 30 days, are gone; an undelivered note and everything else stay</td>
 </tr>
 <tr>
 <td>Detach waits for verification</td>
@@ -298,7 +304,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2 id="how-to-check-it-was-built-right">How to check it was built right</h2>
 <p>For someone reviewing code an AI wrote. Each line says where to look.</p>
 <ul>
-<li><input disabled="" type="checkbox"> <strong>Later parts:</strong> no archiver, bucket or catalogue at launch; the drops run from day one.</li>
+<li><input disabled="" type="checkbox"> <strong>Later parts:</strong> no archiver, bucket or catalogue at launch; the deletions run from day one.</li>
 <li><input disabled="" type="checkbox"> <strong>Parent tables:</strong> the archiver&#39;s reads name parent tables, never a partition.</li>
 <li><input disabled="" type="checkbox"> <strong>Detach:</strong> only the monthly migration run detaches, and only after its catalogue query shows every company verified.</li>
 <li><input disabled="" type="checkbox"> <strong>Encryption:</strong> each file is encrypted with the company&#39;s data key before upload.</li>
