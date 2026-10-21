@@ -80,6 +80,7 @@ Rules:
 3. A serving connection refuses to start if its login is a superuser, has `BYPASSRLS`, owns a table, or is a member of the owner, of `neon_superuser` or of any role with those rights.
 4. The owner's emergency use goes through the CI migration job, records the reason first and alerts the operator ([ADR-009](../../buyer-data/spec/#7-who-can-see-it)). See the [runbook](../../runbooks/use-the-owner-role/).
 5. The runtime role has a `statement_timeout` and an `idle_in_transaction_session_timeout`.
+6. **Staging** (owner ruling, 22 October 2026). Until launch, staging may be migrated and deployed from the owner's laptop, by the same deploy script the CI job runs, with staging-only credentials passed in at run time and synthetic data only. Staging keeps production's roles, row-level security, migration order and EU placement, so its tests prove production. Production is migrated and deployed only by the CI job.
 
 ## 4. Functions
 
