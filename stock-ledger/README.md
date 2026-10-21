@@ -29,7 +29,7 @@ Parts marked *Later* keep their rules in the SPEC but are built only when their 
 6. **A dated batch is use-by or best-before.** A use-by batch is never reserved, packed or dispatched on or after its date, by any route and with no override. A batch past its sell-by date, or of a blocked lot, is held. A nightly date pass moves reservations that are not yet packed off such batches. A recall starts from one search by lot. *Later: serial numbers, when ADR-003's serial tracking is built.*
 7. **Received stock is sellable as soon as the receipt is confirmed.** Put-away is a move between spots and changes nothing a channel sees. A receipt that needs a manager enters the ledger at once, quarantined, until a manager accepts or refuses it.
 8. **Counts are blind and need a role; adjustments need a manager and a reason.** A count is compared with the ledger at the moment its figure was saved, and allows for units being picked from that spot. Any shortfall beyond that leaves sale at once, and is written off when a manager approves.
-9. **One stock writer per company at a time, and every command is safe to repeat.** The company's lock is the first statement of every stock command. Each command carries a key, and a repeat returns the first answer. The decision is revisited only when measured command time or lock wait for the busiest company passes its threshold for 7 days running.
+9. **One stock writer per company at a time, and every command is safe to repeat.** The company's lock is the first statement of every stock command. Each command carries a key, and a repeat returns the first answer; an order import is made safe to repeat by its targets instead, so a newer state of the order still moves the difference ([ADR-007](../order-ingestion/spec/#3-one-order-per-marketplace-order)). The decision is revisited only when measured command time or lock wait for the busiest company passes its threshold for 7 days running.
 10. **Every night a check proves the ledger, and every change tells Stock sync.** Each stock change commits with its ledger sequence and an outbox note; Stock sync works out each listing's figure after the commit ([ADR-008](../inventory-sync/)). Inventory never writes a listing's figure. The check proves that every balance equals its entries and every reserved number equals its open reservations. A difference alerts the operator and the seller, and holds raises on that product's listings.
 
 The floor work that calls these ports (picking, packing, dispatch, put-back and returns inspection) is the Fulfilment module's, in [ADR-014](../fulfilment/).
@@ -77,7 +77,7 @@ Units arrive by receiving or by a return. Received units are sellable, unless th
 
 ## Open items
 
-- **Lock thresholds.** The target command time and the lock-wait share that trigger a revisit are set from the load test before launch.
+- **Lock thresholds.** The target command time and the lock-wait share that trigger a revisit are set from the load test before launch; until then [SPEC 12.3](spec/#12-the-lock-keys-and-the-sequence) holds proposals.
 - **Amazon's 90 days at check-in** binds only shipments into Amazon's warehouses, which are *Later*. Recheck it when that record is written.
 - **Serial tracking is deferred** ([ADR-003](../product-model/)). When it is built, ADR-014 takes recording a serial at packing and checking it on return; this record takes no serial rules.
 - **"Batch assumed" at most 1 % of lines** on a simulated day is a target, measured in shadow before launch.

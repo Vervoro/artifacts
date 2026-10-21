@@ -48,7 +48,7 @@ Each record is split into up to three documents, so that a person can review the
 | **SPEC** | The developer and coding agents, to build from | Numbered rule sets, tables and state lists, platform constraints with sources, the tests that prove each rule, and a checklist for reviewing the code |
 | **RUNBOOK** | The operator, to carry out | One page per procedure under [runbooks](../runbooks/): who runs it, with which role, numbered steps, how to verify, what to do if it stops halfway |
 
-The ADR decides, the SPEC says exactly how, and a runbook carries it out. When they disagree, the ADR wins. [ADR-000](../system-architecture/), [ADR-001](../database-architecture/), [ADR-003](../product-model/), [ADR-004](../channel-connectors/) with its three connector records, [ADR-005](../catalogue-sync/), [ADR-006](../stock-ledger/), [ADR-007](../order-ingestion/), [ADR-008](../inventory-sync/), [ADR-010](../users-and-access/), [ADR-013](../sign-in/) and [ADR-014](../fulfilment/) are in this form; the others follow one at a time. The rules every change must keep are in the [engineering rulebook](../rulebook/).
+The ADR decides, the SPEC says exactly how, and a runbook carries it out. When they disagree, the ADR wins. Every record is in this form. The rules every change must keep are in the [engineering rulebook](../rulebook/).
 
 ## Status of a record
 
@@ -60,7 +60,7 @@ The ADR decides, the SPEC says exactly how, and a runbook carries it out. When t
 | **Superseded** | Replaced by a named later record, which is linked from it |
 | **Deprecated** | No longer applies, and nothing replaces it |
 
-Every record is **Proposed** today. A record becomes Accepted only after the developer's review and the owner's sign-off.
+Every record is **Proposed** today. A record becomes Accepted only after the developer's review and the owner's sign-off, as the build reaches it: [ADR-000](../system-architecture/), [ADR-001](../database-architecture/), [ADR-010](../users-and-access/) and [ADR-013](../sign-in/) before the foundation is built; [ADR-006](../stock-ledger/), [ADR-007](../order-ingestion/) and [ADR-008](../inventory-sync/) before their phases begin; each other record before the work that follows it.
 
 ## Glossary
 

@@ -116,7 +116,7 @@ Modules never write `CREATE TABLE`. They declare tables through `tenantTable()`,
 2. **Append-only tables** have `UPDATE`, `DELETE` and `TRUNCATE` revoked from the runtime role. At launch: the stock ledger, the order hold table (every hold and release is a row; the current set is read from it, [ADR-007](../../order-ingestion/spec/#11-holds)), the outbox and `audit_log`. Rows leave only through the slice operation, as the lifecycle role, by a whole month detached after the archiver verified it ([ADR-002 SPEC 3](../../data-retention/spec/#3-archiving-a-month)), or, for outbox notes every handler has received, deleted 30 days after the last receipt by the lifecycle role ([ADR-002 SPEC 2](../../data-retention/spec/#2-the-retention-schedule), owner ruling, 21 October 2026).
 3. **Partitions.** A partition named directly ignores its parent's policies and grants, because partitions follow Postgres's inheritance rules ([inheritance](https://www.postgresql.org/docs/17/ddl-inherit.html), [partitioning](https://www.postgresql.org/docs/17/ddl-partitioning.html)). So every partition gets its own `ENABLE`, `FORCE` and policy, and no grant to the runtime or lifecycle role. No default privileges grant the runtime role anything. Only the monthly migration run names a partition.
 4. **Partitioned by month:** `audit_log`, `event_log`, orders, order holds and order cancellations (by their order's month, so they leave with it; owner rulings, 21 October 2026), the stock ledger and outbound sends. A unique index on a partitioned table must hold the partition column, so outbound sends keep their idempotency keys in an unpartitioned `(company_id, key)` table kept for the retention window. Until that table exists, outbound sends are unpartitioned (owner ruling, 21 October 2026).
-5. **Logs:** one table per retention class. `audit_log` holds security and access events, kept at least a year for live companies. `event_log` holds module activity, kept 90 days.
+5. **Logs:** one table per retention class. `audit_log` holds security and access events, kept at least a year for live companies. `event_log` holds module activity, kept 90 days by whole months ([ADR-002 SPEC 2](../../data-retention/spec/#2-the-retention-schedule)).
 6. **Operational state** (rate buckets, leases, nonces, staging) lives in tenant tables like everything else.
 7. **Secrets:** one table, `secrets(company_id, purpose)`.
 
@@ -211,6 +211,14 @@ Control is its own database on its own compute. A cell credential can never read
 3. If the second write fails, the sweeper retries the note until it succeeds. The note is an ordinary outbox note whose handler writes control ([section 9](#the-outbox)).
 4. No transaction spans two databases.
 5. Repairs run as the runtime role and only rewrite memberships, directory and registry rows. Sign-in data is written only by the sign-in Worker. At sign-up the login exists before the company does.
+
+**When control is unreachable** (owner, 21 October 2026). Every session check, route, shared pool token and sync epoch comes from control, so work stops safely and waits rather than guessing:
+
+1. **People:** a session check needs control ([ADR-013 SPEC 1](../../sign-in/spec/#1-better-auth-and-what-is-switched-on), cookie cache off), so screens say Vervoro is unavailable. A tap that got no answer shows "not sure" ([ADR-000 SPEC 12](../../system-architecture/spec/#12-the-client)).
+2. **Background work and sends:** a job that needs control waits and retries. Nothing is sent to a marketplace, a decrease included, without its pool token and the sync epoch read from control. Inbound notices wait in the inbound queue; any that reach the dead-letter queue are replayed ([Replay dead letters](../../runbooks/replay-dead-letters/)).
+3. **Nothing is trusted from a cache** in its place: no session, pool count or epoch. A stale route is still harmless (rule 2 above).
+4. **Paging:** control unreachable for 2 minutes pages the operator (*proposed*, until shadow measures how often it blips).
+5. **Recovered** when sign-in works, every account's order watermark has caught up, the dead-letter queue is empty, and every `unknown` write is settled before new sends ([ADR-004 SPEC 5](../../channel-connectors/spec/#5-retries-and-outcomes)).
 
 ## 8. Adding companies and databases
 

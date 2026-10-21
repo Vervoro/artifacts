@@ -199,6 +199,7 @@ Procedure: [Deploy and roll back](../../runbooks/deploy-and-roll-back/).
 5. Every status has an icon and a word, never colour alone. Every control is at least one touch target. Focus is always visible.
 6. Every interactive element has a stable test id.
 7. No screen waits for a marketplace ([section 10](#10-runtime), rule 8).
+8. **A tap that changes something shows sending, done or not sure,** and shows done only on the server's answer. Not sure (no answer, or the connection dropped) retries with the same key ([ADR-006 SPEC 12.4](../../stock-ledger/spec/#12-the-lock-keys-and-the-sequence)) and holds that item's next step until it settles, so a worker never repeats the physical step to find out. There is no offline queue at launch.
 
 ## 13. Languages and formats
 

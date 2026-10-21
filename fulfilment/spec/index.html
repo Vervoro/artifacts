@@ -169,7 +169,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2 id="7-the-recall-list">7. The recall list</h2>
 <ol>
 <li>From a lot number, Inventory&#39;s lot trace gives the demands that received it (<a href="../../stock-ledger/spec/#10-lot-trace-and-recalls">ADR-006 SPEC 10</a>). Fulfilment joins each with its order: the order id, the date and the buyer&#39;s country, never the buyer&#39;s name or address (<a href="../../buyer-data/spec/#1-who-does-what">ADR-009 SPEC 1</a>).</li>
-<li>Lines marked &quot;batch assumed&quot; or &quot;lot not traced&quot; are listed apart, as &quot;may have received it&quot;.</li>
+<li>The lines that may have received it, as the lot trace defines them (<a href="../../stock-ledger/spec/#10-lot-trace-and-recalls">ADR-006 SPEC 10.1</a>), are listed apart.</li>
 <li>The stock of that lot on hand is shown per warehouse, with a button to block the lot (a manager).</li>
 <li>The seller reaches buyers through the marketplace&#39;s own messaging, with the order id. Procedure: <a href="../../runbooks/run-a-recall/">Run a recall</a>.</li>
 </ol>

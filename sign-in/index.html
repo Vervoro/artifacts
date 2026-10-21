@@ -220,7 +220,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ul>
 <li><strong>Does a passkey with its fingerprint, face or PIN check meet Amazon&#39;s multi-factor rule for every user?</strong> No Amazon text says yes or no; only Amazon can settle it (<a href="spec/#3-sign-in-methods">SPEC 3</a>). If it says no, the fallback in decision 4 applies, and nothing else changes.</li>
 <li><strong>Cloudflare&#39;s Email Service is in beta,</strong> with a starting daily quota that grows with reputation; confirm it is generally available, or the quota enough, before launch.</li>
-<li><strong>Conflicts with Better Auth</strong> (<a href="spec/#1-better-auth-and-what-is-switched-on">SPEC 1</a>): passkey sign-in does not itself require the fingerprint check; a code is accepted twice within its window; backup codes exist only with an authenticator app.</li>
+<li><strong>Conflicts with Better Auth</strong> (<a href="spec/#1-better-auth-and-what-is-switched-on">SPEC 1</a>): passkey sign-in does not itself require the fingerprint check; backup codes exist only with an authenticator app. A code accepted twice within its window is closed by a hook (owner, 21 October 2026).</li>
 <li><strong>Integration checks:</strong> the pinned version on a deployed Worker through Hyperdrive; passkey site name and domains; the cookie across Vervoro&#39;s addresses; how sensitive fields are stored; secret rotation; schema migrations.</li>
 <li><strong>The last-Owner step proves control of the marketplace account, not ownership of the business;</strong> the wait and the notices cover the rest.</li>
 <li><strong>An outside penetration test,</strong> with a retest of any finding, before launch.</li>

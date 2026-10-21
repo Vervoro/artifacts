@@ -111,7 +111,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2 id="1-who-does-what">1. Who does what</h2>
 <ol>
 <li><strong>The archiver</strong> exports, verifies and catalogues a month, and writes the stock checkpoints through Inventory&#39;s rules (<a href="../../stock-ledger/spec/#14-the-nightly-check-and-checkpoints">ADR-006 SPEC 14</a>). It reads through parent tables only, never a partition (<a href="../../database-architecture/spec/#the-slice-operation">ADR-001 SPEC 10</a>).</li>
-<li><strong>The monthly migration run</strong> detaches and drops a month of an archived table, and drops a month of <code>event_log</code> when its 90 days end, as the owner role (<a href="../../database-architecture/spec/#12-operations">ADR-001 SPEC 12</a>).</li>
+<li><strong>The monthly migration run</strong> detaches and drops a month of an archived table, and drops a month of <code>event_log</code> once its newest row is 90 days old, as the owner role (<a href="../../database-architecture/spec/#12-operations">ADR-001 SPEC 12</a>).</li>
 </ol>
 <h2 id="2-the-retention-schedule">2. The retention schedule</h2>
 <div class="table-wrap"><table>
@@ -161,7 +161,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><code>event_log</code> (module activity)</td>
-<td>90 days</td>
+<td>90 days, by whole months: a month is dropped once its newest row is 90 days old, so a row stays 90 to about 121 days</td>
 <td>Never</td>
 <td>Dropped</td>
 </tr>
@@ -187,7 +187,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p>Every period applies while the company exists. A closed company is erased by <a href="../../billing-and-plans/spec/#16-cancellation-export-erasure-and-refunds">ADR-012</a>, archive included.</p>
 <h2 id="3-archiving-a-month">3. Archiving a month</h2>
 <ol>
-<li><strong>Pick the month</strong> that has just passed 24 months.</li>
+<li><strong>Pick the month</strong> that has just passed 24 months. A month that still holds an open order is not archived: its open orders are shown to the seller and the operator, and the month waits until they close. Later months go ahead.</li>
 <li><strong>Checkpoint the stock ledger</strong> for every company in the cell (<a href="../../stock-ledger/spec/#14-the-nightly-check-and-checkpoints">ADR-006 SPEC 14</a>).</li>
 <li><strong>Export the month</strong> per company: one file per table per company, encrypted with the company&#39;s data key (<a href="../../database-architecture/spec/#encryption">ADR-001 SPEC 10</a>).</li>
 <li><strong>Verify:</strong> row counts and checksums of each file match the partition, per company and table.</li>
@@ -263,12 +263,17 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tbody><tr>
 <td>Deletions</td>
 <td>CI</td>
-<td><code>event_log</code> older than 90 days, and outbound sends, sync attempts, operational state and delivered outbox notes older than 30 days, are gone; an undelivered note and everything else stay</td>
+<td><code>event_log</code> months whose newest row is older than 90 days, and outbound sends, sync attempts, operational state and delivered outbox notes older than 30 days, are gone; an undelivered note and everything else stay</td>
 </tr>
 <tr>
 <td>Detach waits for verification</td>
 <td>CI</td>
 <td>A month with one company&#39;s file missing or its checksum wrong stays attached</td>
+</tr>
+<tr>
+<td>Open orders</td>
+<td>CI</td>
+<td>A month holding an open order stays attached and is listed; the next month is archived</td>
 </tr>
 <tr>
 <td>Resume</td>

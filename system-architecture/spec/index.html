@@ -817,6 +817,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>Every status has an icon and a word, never colour alone. Every control is at least one touch target. Focus is always visible.</li>
 <li>Every interactive element has a stable test id.</li>
 <li>No screen waits for a marketplace (<a href="#10-runtime">section 10</a>, rule 8).</li>
+<li><strong>A tap that changes something shows sending, done or not sure,</strong> and shows done only on the server&#39;s answer. Not sure (no answer, or the connection dropped) retries with the same key (<a href="../../stock-ledger/spec/#12-the-lock-keys-and-the-sequence">ADR-006 SPEC 12.4</a>) and holds that item&#39;s next step until it settles, so a worker never repeats the physical step to find out. There is no offline queue at launch.</li>
 </ol>
 <h2 id="13-languages-and-formats">13. Languages and formats</h2>
 <ol>

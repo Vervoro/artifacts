@@ -267,7 +267,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>A dated product&#39;s date is use-by or best-before</strong> (default best-before), on the product (<a href="../../product-model/spec/#12-best-before-lot-and-serial-numbers">ADR-003 SPEC 12</a>).</li>
 <li><strong>Sell-by.</strong> A batch with date D is sellable while D − today (company time zone) ≥ <code>min_days_to_sell</code>. Below that but not past D it is <strong>short-dated</strong>; past D it is <strong>expired</strong>. Both are held.</li>
 <li><strong>Best-before:</strong> a blank <code>min_days_to_sell</code> counts as 0. A manager may send units of an expired best-before batch on a manual order with a reason; they never reach a listing.</li>
-<li><strong>Use-by:</strong> <code>min_days_to_sell</code> is required and at least 1 + the company&#39;s delivery days (setting, default 1). A use-by batch is never reserved, packed or dispatched on or after its date, by any route, with no override, and never sold off by hand.</li>
+<li><strong>Use-by:</strong> <code>min_days_to_sell</code> is required and at least 1 + the company&#39;s delivery days (setting, default 1). A use-by batch is never reserved, packed or dispatched on or after its date, by any route, with no override, and never sold off by hand. An undated batch of a use-by product (stock on hand when use-by was switched on, <a href="../../product-model/spec/#12-best-before-lot-and-serial-numbers">ADR-003 SPEC 12.5</a>) counts as past its date until its date is entered.</li>
 <li><strong>Blocking a lot</strong> (a manager) holds every batch of that lot in every warehouse at once; unblocking frees them.</li>
 <li><strong>The date pass</strong> runs just after midnight in the company&#39;s time zone, and whenever <code>min_days_to_sell</code> or the date kind changes. In one locked transaction per company, it moves each unpacked reservation off a batch that crossed its sell-by date to the next qualifying batch (section 5.2); a line with nowhere to go becomes short. A block does the same at once.</li>
 <li><strong>Already packed units</strong> stay on their parcel when the batch only became short-dated or expired at best-before. Units of a blocked lot, or of a use-by batch on or after its date, are refused at dispatch.</li>
@@ -382,7 +382,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ol>
 <h2 id="10-lot-trace-and-recalls">10. Lot trace and recalls</h2>
 <ol>
-<li><strong>One search by lot</strong> returns every demand that received a batch of that lot (bundles included), the lines marked &quot;batch assumed&quot; that may have received it (apart), the stock of that lot on hand per warehouse, and archived months read from the archive (<a href="../../data-retention/spec/#5-reading-archived-data">ADR-002 SPEC 5</a>). Entries marked &quot;lot not traced&quot; are listed as unknown.</li>
+<li><strong>One search by lot</strong> returns every demand that received a batch of that lot (bundles included), the lines that may have received it (apart: every line of that product marked &quot;batch assumed&quot; or &quot;lot not traced&quot; in a warehouse that held a batch of that lot when the line was packed or dispatched, whichever batch it records), the stock of that lot on hand per warehouse, and archived months read from the archive (<a href="../../data-retention/spec/#5-reading-archived-data">ADR-002 SPEC 5</a>). Entries marked &quot;lot not traced&quot; are listed as unknown.</li>
 <li><strong>The recall list</strong> joins those demands with order details; it is a Fulfilment screen (<a href="../../fulfilment/spec/#7-the-recall-list">ADR-014 SPEC 7</a>). A manager blocks the lot from it at once.</li>
 <li>Procedure: <a href="../../runbooks/run-a-recall/">Run a recall</a>.</li>
 </ol>
@@ -396,7 +396,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ol>
 <li><strong>The company&#39;s lock is the first statement</strong> of every stock command: the update of the company&#39;s stock counter row, which also returns the next ledger number (<a href="../../database-architecture/spec/#2-keys-and-identifiers">ADR-001 SPEC 2</a>). Held until commit.</li>
 <li><strong>Short transactions:</strong> about eight round trips for an order import, counted by a test. Statements work on sets of rows, so a 2,000-line count or a 500-link chunk takes a few round trips. No outside call runs inside a stock transaction (<a href="../../system-architecture/spec/#10-runtime">ADR-000 SPEC 10</a>).</li>
-<li><strong>Revisit thresholds.</strong> Every stock command records its time and its lock wait. The decision is revisited by a new record when, for the busiest company, either the p95 command time or the p95 share spent waiting passes its threshold for 7 days running. Both numbers come from the load test before launch.</li>
+<li><strong>Revisit thresholds.</strong> Every stock command records its time and its lock wait. The decision is revisited by a new record when, for the busiest company, either the p95 command time or the p95 share spent waiting passes its threshold for 7 days running. Both numbers come from the load test before launch. <em>Proposed, until the load test:</em> a p95 command time of 250 ms, and a p95 share spent waiting of 25 %.</li>
 <li><strong>Keys.</strong> <code>stock_command</code> holds each key with its answer and ledger sequence, unique per company and key; a repeat finds it under the lock and returns the answer.</li>
 </ol>
 <div class="table-wrap"><table>
@@ -408,7 +408,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </thead>
 <tbody><tr>
 <td>Import an order</td>
-<td>The marketplace&#39;s order id on that account; an older state changes nothing (<a href="../../order-ingestion/spec/#3-one-order-per-marketplace-order">ADR-007</a>)</td>
+<td>No key in <code>stock_command</code>: an order changes over time, so the import is safe to repeat by its targets under the lock. The same state moves nothing, a newer one moves only the difference, an older one is ignored (<a href="../../order-ingestion/spec/#3-one-order-per-marketplace-order">ADR-007 SPEC 3</a>)</td>
 </tr>
 <tr>
 <td>Pack, confirm a shipment</td>
@@ -667,11 +667,11 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Repeats</td>
-<td>The same command twice moves stock once, one test per command</td>
+<td>The same command twice moves stock once, one test per command; the same order state imported twice moves nothing the second time, and a newer state with a smaller quantity releases the difference</td>
 </tr>
 <tr>
 <td>Batch choice</td>
-<td>Earliest sell-by first; expired, short-dated, blocked and damaged units never reserved; use-by never leaves on or after its date, by every route</td>
+<td>Earliest sell-by first; expired, short-dated, blocked and damaged units never reserved; use-by never leaves on or after its date, by every route; an undated use-by batch never leaves until dated</td>
 </tr>
 <tr>
 <td>Shortage</td>
@@ -713,7 +713,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><input disabled="" type="checkbox"> <strong>Trigger:</strong> one trigger on the ledger writes balances, positions and reservations; the runtime role has no write grant on them.</li>
 <li><input disabled="" type="checkbox"> <strong>No SQL:</strong> apart from the trigger&#39;s migration, every query uses the typed query builder; no <code>sql</code> or <code>raw</code> import in the module.</li>
 <li><input disabled="" type="checkbox"> <strong>Lock first:</strong> each stock command opens with the counter-row update; the lock test lists every command.</li>
-<li><input disabled="" type="checkbox"> <strong>Keys:</strong> every command takes a key and checks <code>stock_command</code> under the lock before planning.</li>
+<li><input disabled="" type="checkbox"> <strong>Keys:</strong> every command but an order import takes a key and checks <code>stock_command</code> under the lock before planning; the import compares targets (<a href="../../order-ingestion/spec/#3-one-order-per-marketplace-order">ADR-007 SPEC 3</a>).</li>
 <li><input disabled="" type="checkbox"> <strong>No figure:</strong> nothing in Inventory reads links or writes a listing&#39;s figure; the note carries products and the sequence only.</li>
 <li><input disabled="" type="checkbox"> <strong>Batch choice:</strong> one function used by import, link, date pass, pin and count moves; it filters by the demand&#39;s shelf life.</li>
 <li><input disabled="" type="checkbox"> <strong>Use-by:</strong> the check sits in batch choice, pack and dispatch, with no override parameter.</li>

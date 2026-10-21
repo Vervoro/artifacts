@@ -179,7 +179,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ol>
 <li><strong>Passkey sign-in does not require the fingerprint, face or PIN check.</strong> <code>userVerification</code> applies at registration; sign-in asks only for &quot;preferred&quot; and verifies without requiring the user-verified flag. Vervoro&#39;s fix uses a hook, not a patch: <code>authentication.afterVerification</code> and <code>registration.afterVerification</code> refuse a response whose user-verified flag is unset. The registration hook is documented; the sign-in hook is in the source but not the documentation. If it is removed, the fix needs an upstream change.</li>
 <li><strong>A password user without a confirmed authenticator gets a full session.</strong> The two-factor plugin challenges only users who have it switched on. Vervoro&#39;s session check (<a href="#5-sessions">section 5</a>) treats such a session as setup-only.</li>
-<li><strong>An authenticator code is accepted again within its time window.</strong> Better Auth keeps no record of used codes, and RFC 6238 forbids a second acceptance. Proposed: a <code>before</code> hook on code verification that records each accepted code&#39;s time step per login for 90 seconds and refuses a repeat. The owner decides.</li>
+<li><strong>An authenticator code is accepted again within its time window.</strong> Better Auth keeps no record of used codes, and RFC 6238 forbids a second acceptance. Decided (owner, 21 October 2026): a <code>before</code> hook on code verification claims the code, hashed, per login in <code>auth_policy</code> for 90 seconds, by a unique insert before the code is checked; a code already claimed is refused. Two requests racing with one code get one acceptance.</li>
 <li><strong>Backup codes belong to the two-factor plugin.</strong> They exist only for people with an authenticator app and are entered only after the password. A passkey-only person cannot hold them, so the old recovery codes for passkey-only Owners, Admins, Accountants and operators have no Better Auth home; Vervoro keeps no second code store. Passkey-only people recover with a second passkey or through their company (<a href="#6-recovery">section 6</a>); operators keep a third passkey offline (<a href="#10-operators">section 10</a>).</li>
 <li><strong>The password and the code are no longer judged together.</strong> Better Auth answers a correct password with the code challenge, so a correct password is visible before the code. Accepted: the lockout, the rate limit and the bot check cover guessing.</li>
 </ol>
@@ -626,7 +626,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Password and code</td>
-<td>Password alone gives no full session; with a correct code, accepted; with a wrong code, refused; a code used twice is refused (if conflict 3 is approved); a backup code works once and leaves a setup-only session; &quot;trust this device&quot; is refused; a password login without a confirmed authenticator is setup-only</td>
+<td>Password alone gives no full session; with a correct code, accepted; with a wrong code, refused; a code used twice is refused, also when two requests race (conflict 3); a backup code works once and leaves a setup-only session; &quot;trust this device&quot; is refused; a password login without a confirmed authenticator is setup-only</td>
 </tr>
 <tr>
 <td>Enrolment</td>

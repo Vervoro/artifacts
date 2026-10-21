@@ -248,7 +248,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ol>
 <h2 id="4-the-belief">4. The belief</h2>
 <ol>
-<li><strong>B may err only upward.</strong> A confirmed write or a read sets it.</li>
+<li><strong>Vervoro lowers B only on evidence,</strong> so its own errors are upward. A confirmed write or a read sets it. A figure set outside Vervoro is drift: it can leave B low until it is found (section 6.2).</li>
 <li><strong>A vouched own sale lowers B,</strong> only for the listing the order names by its marketplace id, and only if placed more than 2 minutes after the confirmation of Vervoro&#39;s last write was received (on Amazon, the notice or read that confirmed it, never the acceptance). An order naming a listing the last read did not show asks for a read.</li>
 <li><strong>A sale that may have crossed a write</strong> leaves B at the written figure; D already counts the sale, so the rules send the gap.</li>
 <li><strong>A confirmed cancellation</strong> gives units back to B the same way.</li>
@@ -637,6 +637,10 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td>Decrease-only</td>
 <td>Never sends above B; a sale on one account still lowers the others</td>
+</tr>
+<tr>
+<td>Model</td>
+<td>Random sequences of stock changes, orders, cancellations, outside edits, every write outcome and restores, run against a small reference model of sections 3–7 and 13; after every step the sent figure, B and the open writes match the model, no raise goes before the order read, and once writes settle with no outside edit pending the marketplace shows at most D plus T − 1</td>
 </tr>
 </tbody></table></div>
 <h2 id="how-to-check-it-was-built-right">How to check it was built right</h2>

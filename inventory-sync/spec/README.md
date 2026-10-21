@@ -73,7 +73,7 @@ This section owns the rule that Stock sync alone writes each listing's figure (o
 
 ## 4. The belief
 
-1. **B may err only upward.** A confirmed write or a read sets it.
+1. **Vervoro lowers B only on evidence,** so its own errors are upward. A confirmed write or a read sets it. A figure set outside Vervoro is drift: it can leave B low until it is found (section 6.2).
 2. **A vouched own sale lowers B,** only for the listing the order names by its marketplace id, and only if placed more than 2 minutes after the confirmation of Vervoro's last write was received (on Amazon, the notice or read that confirmed it, never the acceptance). An order naming a listing the last read did not show asks for a read.
 3. **A sale that may have crossed a write** leaves B at the written figure; D already counts the sale, so the rules send the gap.
 4. **A confirmed cancellation** gives units back to B the same way.
@@ -249,6 +249,7 @@ Pure send rules run as unit tests; the handler and leases on real Postgres; mark
 | Tolerance | A listing above its zone shows at most T − 1 more than D once writes settle |
 | Import problems | Their units are off every account's figure until the order imports, and come back exactly once |
 | Decrease-only | Never sends above B; a sale on one account still lowers the others |
+| Model | Random sequences of stock changes, orders, cancellations, outside edits, every write outcome and restores, run against a small reference model of sections 3–7 and 13; after every step the sent figure, B and the open writes match the model, no raise goes before the order read, and once writes settle with no outside edit pending the marketplace shows at most D plus T − 1 |
 
 ## How to check it was built right
 

@@ -81,7 +81,7 @@ Everything below is built at launch except these parts, which keep their rules h
 1. **A dated product's date is use-by or best-before** (default best-before), on the product ([ADR-003 SPEC 12](../../product-model/spec/#12-best-before-lot-and-serial-numbers)).
 2. **Sell-by.** A batch with date D is sellable while D − today (company time zone) ≥ `min_days_to_sell`. Below that but not past D it is **short-dated**; past D it is **expired**. Both are held.
 3. **Best-before:** a blank `min_days_to_sell` counts as 0. A manager may send units of an expired best-before batch on a manual order with a reason; they never reach a listing.
-4. **Use-by:** `min_days_to_sell` is required and at least 1 + the company's delivery days (setting, default 1). A use-by batch is never reserved, packed or dispatched on or after its date, by any route, with no override, and never sold off by hand.
+4. **Use-by:** `min_days_to_sell` is required and at least 1 + the company's delivery days (setting, default 1). A use-by batch is never reserved, packed or dispatched on or after its date, by any route, with no override, and never sold off by hand. An undated batch of a use-by product (stock on hand when use-by was switched on, [ADR-003 SPEC 12.5](../../product-model/spec/#12-best-before-lot-and-serial-numbers)) counts as past its date until its date is entered.
 5. **Blocking a lot** (a manager) holds every batch of that lot in every warehouse at once; unblocking frees them.
 6. **The date pass** runs just after midnight in the company's time zone, and whenever `min_days_to_sell` or the date kind changes. In one locked transaction per company, it moves each unpacked reservation off a batch that crossed its sell-by date to the next qualifying batch (section 5.2); a line with nowhere to go becomes short. A block does the same at once.
 7. **Already packed units** stay on their parcel when the batch only became short-dated or expired at best-before. Units of a blocked lot, or of a use-by batch on or after its date, are refused at dispatch.
@@ -170,7 +170,7 @@ Each port is a command under the company's lock with its key (section 12). The f
 
 ## 10. Lot trace and recalls
 
-1. **One search by lot** returns every demand that received a batch of that lot (bundles included), the lines marked "batch assumed" that may have received it (apart), the stock of that lot on hand per warehouse, and archived months read from the archive ([ADR-002 SPEC 5](../../data-retention/spec/#5-reading-archived-data)). Entries marked "lot not traced" are listed as unknown.
+1. **One search by lot** returns every demand that received a batch of that lot (bundles included), the lines that may have received it (apart: every line of that product marked "batch assumed" or "lot not traced" in a warehouse that held a batch of that lot when the line was packed or dispatched, whichever batch it records), the stock of that lot on hand per warehouse, and archived months read from the archive ([ADR-002 SPEC 5](../../data-retention/spec/#5-reading-archived-data)). Entries marked "lot not traced" are listed as unknown.
 2. **The recall list** joins those demands with order details; it is a Fulfilment screen ([ADR-014 SPEC 7](../../fulfilment/spec/#7-the-recall-list)). A manager blocks the lot from it at once.
 3. Procedure: [Run a recall](../../runbooks/run-a-recall/).
 
@@ -184,12 +184,12 @@ Each port is a command under the company's lock with its key (section 12). The f
 
 1. **The company's lock is the first statement** of every stock command: the update of the company's stock counter row, which also returns the next ledger number ([ADR-001 SPEC 2](../../database-architecture/spec/#2-keys-and-identifiers)). Held until commit.
 2. **Short transactions:** about eight round trips for an order import, counted by a test. Statements work on sets of rows, so a 2,000-line count or a 500-link chunk takes a few round trips. No outside call runs inside a stock transaction ([ADR-000 SPEC 10](../../system-architecture/spec/#10-runtime)).
-3. **Revisit thresholds.** Every stock command records its time and its lock wait. The decision is revisited by a new record when, for the busiest company, either the p95 command time or the p95 share spent waiting passes its threshold for 7 days running. Both numbers come from the load test before launch.
+3. **Revisit thresholds.** Every stock command records its time and its lock wait. The decision is revisited by a new record when, for the busiest company, either the p95 command time or the p95 share spent waiting passes its threshold for 7 days running. Both numbers come from the load test before launch. *Proposed, until the load test:* a p95 command time of 250 ms, and a p95 share spent waiting of 25 %.
 4. **Keys.** `stock_command` holds each key with its answer and ledger sequence, unique per company and key; a repeat finds it under the lock and returns the answer.
 
 | Command | Key |
 | --- | --- |
-| Import an order | The marketplace's order id on that account; an older state changes nothing ([ADR-007](../../order-ingestion/spec/#3-one-order-per-marketplace-order)) |
+| Import an order | No key in `stock_command`: an order changes over time, so the import is safe to repeat by its targets under the lock. The same state moves nothing, a newer one moves only the difference, an older one is ignored ([ADR-007 SPEC 3](../../order-ingestion/spec/#3-one-order-per-marketplace-order)) |
 | Pack, confirm a shipment | The packing id, the shipment id |
 | Receive | The receipt line id |
 | Save a count figure, approve a count | The count line, the count id |
@@ -289,8 +289,8 @@ Database tests run on real Postgres under the runtime role ([ADR-000 SPEC 15](..
 | Kinds | An entry whose numbers do not fit its kind is refused, one case per kind |
 | Nightly check | Holds after every test; a hand-broken balance, gap or open reservation on a closed line is found |
 | Last unit | Two orders for the last unit, concurrently on real Postgres: exactly one reserves it |
-| Repeats | The same command twice moves stock once, one test per command |
-| Batch choice | Earliest sell-by first; expired, short-dated, blocked and damaged units never reserved; use-by never leaves on or after its date, by every route |
+| Repeats | The same command twice moves stock once, one test per command; the same order state imported twice moves nothing the second time, and a newer state with a smaller quantity releases the difference |
+| Batch choice | Earliest sell-by first; expired, short-dated, blocked and damaged units never reserved; use-by never leaves on or after its date, by every route; an undated use-by batch never leaves until dated |
 | Shortage | A short line reserves what exists; a receipt fills short lines by ship-by time |
 | Bundles | Whole sets only; a component edit does not change an open line |
 | Moves | A move between spots never changes a reservation |
@@ -308,7 +308,7 @@ For someone reviewing code an AI wrote. Each line says where to look.
 - [ ] **Trigger:** one trigger on the ledger writes balances, positions and reservations; the runtime role has no write grant on them.
 - [ ] **No SQL:** apart from the trigger's migration, every query uses the typed query builder; no `sql` or `raw` import in the module.
 - [ ] **Lock first:** each stock command opens with the counter-row update; the lock test lists every command.
-- [ ] **Keys:** every command takes a key and checks `stock_command` under the lock before planning.
+- [ ] **Keys:** every command but an order import takes a key and checks `stock_command` under the lock before planning; the import compares targets ([ADR-007 SPEC 3](../../order-ingestion/spec/#3-one-order-per-marketplace-order)).
 - [ ] **No figure:** nothing in Inventory reads links or writes a listing's figure; the note carries products and the sequence only.
 - [ ] **Batch choice:** one function used by import, link, date pass, pin and count moves; it filters by the demand's shelf life.
 - [ ] **Use-by:** the check sits in batch choice, pack and dispatch, with no override parameter.

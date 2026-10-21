@@ -71,7 +71,7 @@ Packing (ADR-007's "packed") is a server command, keyed by the packing id. For e
 ## 7. The recall list
 
 1. From a lot number, Inventory's lot trace gives the demands that received it ([ADR-006 SPEC 10](../../stock-ledger/spec/#10-lot-trace-and-recalls)). Fulfilment joins each with its order: the order id, the date and the buyer's country, never the buyer's name or address ([ADR-009 SPEC 1](../../buyer-data/spec/#1-who-does-what)).
-2. Lines marked "batch assumed" or "lot not traced" are listed apart, as "may have received it".
+2. The lines that may have received it, as the lot trace defines them ([ADR-006 SPEC 10.1](../../stock-ledger/spec/#10-lot-trace-and-recalls)), are listed apart.
 3. The stock of that lot on hand is shown per warehouse, with a button to block the lot (a manager).
 4. The seller reaches buyers through the marketplace's own messaging, with the order id. Procedure: [Run a recall](../../runbooks/run-a-recall/).
 
