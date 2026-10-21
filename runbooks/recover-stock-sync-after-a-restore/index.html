@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Runbook: Recover stock sync after a restore</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono&display=swap">
+<style>
+:root {
+  --bg: #f6f6f8; --surface: #ffffff; --sunken: #ededf1; --text: #16161a; --muted: #5c5c66; --border: #e0e0e6;
+  --accent: #4338ca; --accent-soft: #eef0ff; --edge: #8a8a96; --tint: #f0f0f4;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #111114; --surface: #1a1a1f; --sunken: #23232a; --text: #ececf1; --muted: #a2a2ad; --border: #2d2d35;
+  --accent: #a5b4fc; --accent-soft: #23264a; --edge: #74747f; --tint: #202027; color-scheme: dark; } }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 var(--sans); }
+main { max-width: 860px; margin: 0 auto; padding: 48px max(20px, env(safe-area-inset-left)) 80px; }
+header.site { max-width: 860px; margin: 0 auto; padding: 20px max(20px, env(safe-area-inset-left)) 0; font-size: 14px; }
+header.site a { color: var(--muted); text-decoration: none; }
+header.site a:hover { color: var(--accent); }
+h1, h2, h3 { line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(28px, 4vw, 38px); letter-spacing: -0.02em; margin: 0 0 20px; }
+h2 { font-size: 23px; margin: 48px 0 12px; padding-top: 20px; border-top: 1px solid var(--border); }
+h3 { font-size: 18px; margin: 32px 0 8px; }
+p, li { max-width: 72ch; }
+a { color: var(--accent); }
+code { font-family: var(--mono); font-size: 0.86em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--sunken); padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 13.5px; line-height: 1.5; }
+pre code { background: none; padding: 0; overflow-wrap: normal; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 16px 0; background: var(--surface); }
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+.table-wrap table { margin: 0; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+th { background: var(--sunken); font-weight: 600; font-size: 13px; color: var(--muted); }
+tr:last-child td { border-bottom: none; }
+ul, ol { padding-left: 22px; }
+li + li { margin-top: 4px; }
+figure { margin: 20px 0; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; }
+svg.diagram { display: block; width: 100%; min-width: 640px; height: auto; font-family: var(--sans); }
+svg .ink { fill: var(--text); } svg .quiet { fill: var(--muted); }
+svg .edge { stroke: var(--edge); } svg .edge-fill { fill: var(--edge); }
+svg .accent { stroke: var(--accent); } svg .accent-fill { fill: var(--accent); }
+svg .box { fill: none; stroke: var(--edge); stroke-width: 1.25; }
+svg .box-main { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+svg .band { fill: var(--tint); stroke: var(--edge); stroke-width: 1.25; }
+.cards { list-style: none; padding: 0; display: grid; gap: 12px; }
+.cards a { display: block; padding: 18px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; text-decoration: none; color: var(--text); }
+.cards a:hover, .cards a:focus-visible { border-color: var(--accent); outline: none; }
+.cards.sub { margin: 12px 0 0 24px; padding-left: 16px; border-left: 2px solid var(--border); }
+.parts { margin: 6px 0 0 20px; font-size: 14px; color: var(--muted); } .cards .parts a { display: inline; padding: 0; background: none; border: none; border-radius: 0; color: var(--accent); font-weight: 600; text-decoration: none; } .cards .parts a:hover { text-decoration: underline; }
+.cards b { display: block; font-size: 17px; } .cards span { color: var(--muted); font-size: 14px; }
+.order li { margin-top: 10px; } .order span { color: var(--muted); font-size: 14px; }
+footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header class="site"><a href="../../">← Vervoro artifacts</a> / <a href="../">Runbooks</a></header>
+<main>
+<h1 id="runbook-recover-stock-sync-after-a-restore">Runbook: Recover stock sync after a restore</h1>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Built</strong></td>
+<td>At launch</td>
+</tr>
+<tr>
+<td><strong>Record</strong></td>
+<td><a href="../../inventory-sync/">ADR-008</a>, rules in <a href="../../inventory-sync/spec/#13-one-writer-per-listing">SPEC 13</a> and <a href="../../inventory-sync/spec/#15-recovery">SPEC 15</a></td>
+</tr>
+<tr>
+<td><strong>Who runs it</strong></td>
+<td>The operator, after <a href="../restore-a-company-full-rewind/">Restore a company: full rewind</a> or <a href="../restore-a-whole-cell/">Restore a whole cell</a>, before any figure is sent</td>
+</tr>
+<tr>
+<td><strong>Role or credential</strong></td>
+<td>The operator console; the sync epoch is in control</td>
+</tr>
+</tbody></table></div>
+<p>After a restore, Vervoro&#39;s stock and what each marketplace shows may disagree in either direction, and old writes must never be mistaken for new ones.</p>
+<h2 id="steps">Steps</h2>
+<ol>
+<li>Check the company&#39;s sync epoch in control has risen. The restore raises it; if it has not, raise it now, before anything else.</li>
+<li>Check every account of the company is back in shadow, with every belief unknown.</li>
+<li>Re-import orders placed since the restore time, and have the seller confirm the stock differences (<a href="../../database-architecture/spec/#restore">ADR-001 SPEC 10</a>).</li>
+<li>Let the reads finish: listings are read by reports and bulk reads, never one Trading call per listing. eBay revisions count at their worst for 24 hours.</li>
+<li>Review the listing check with the seller: every listing showing more than Vervoro&#39;s figure will get the decrease.</li>
+<li>Sign off in the console. Only then does each account go live, by the later-account path of <a href="../take-a-company-live/">Take a company live</a>.</li>
+</ol>
+<h2 id="verify">Verify</h2>
+<ul>
+<li>No write was sent between the restore and the sign-off (the send log is empty for that period).</li>
+<li>Every key sent after sign-off carries the new epoch.</li>
+<li>Each account&#39;s health reaches &quot;right&quot; within one order read.</li>
+</ul>
+<h2 id="if-it-stops-halfway">If it stops halfway</h2>
+<p>Accounts stay in shadow until signed off, so nothing is sent. Start again from step 2; the epoch only ever rises, so raising it again is harmless.</p>
+
+<footer>Vervoro</footer>
+</main>
+</body>
+</html>

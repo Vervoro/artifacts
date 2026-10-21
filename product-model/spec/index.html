@@ -448,15 +448,15 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ol>
 <li><code>pack_of</code> names one simple product; <code>units_per_pack</code> is 2–10,000. A pack of packs is refused: a case of four six-packs is a box size.</li>
 <li><strong>Stock is separate.</strong> A six-pack sale uses six-pack stock, never singles.</li>
-<li><strong>Repacking</strong> opens packs into singles or makes packs from singles. It takes one number, the packs opened or made, and the other side follows from <code>units_per_pack</code>, so base units never change. Both ledger entries are one transaction, and the new stock keeps the batch, dates, lot and landed cost per unit (<a href="../../stock-ledger/#packs-and-bundles">ADR-006</a>).</li>
-<li><strong>Assembly</strong> of a product sealed from several others (a gift set Amazon needs as one labelled unit) makes a simple product of its own, through a manager&#39;s job that states every input (<a href="../../stock-ledger/#packs-and-bundles">ADR-006</a>).</li>
+<li><strong>Repacking</strong> opens packs into singles or makes packs from singles. It takes one number, the packs opened or made, and the other side follows from <code>units_per_pack</code>, so base units never change. Both ledger entries are one transaction, and the new stock keeps the batch, dates, lot and landed cost per unit (<a href="../../stock-ledger/spec/#6-what-a-line-reserves">ADR-006</a>).</li>
+<li><strong>Assembly</strong> of a product sealed from several others (a gift set Amazon needs as one labelled unit) makes a simple product of its own, through a manager&#39;s job that states every input (<a href="../../stock-ledger/spec/#6-what-a-line-reserves">ADR-006</a>).</li>
 <li>Six singles shipped loose in one parcel are a listing with six units per sale, not a pack. A pack exists only when a sealed pack sits on the shelf.</li>
 </ol>
 <h3 id="63-bundle">6.3 Bundle</h3>
 <ol>
 <li><strong>Components:</strong> 1–20, each a simple product or a pack with a whole quantity of 1–1,000, and at least 2 units in all. Three of one product and nothing else is refused, with a pointer to units per sale = 3.</li>
 <li><strong>Sellable is worked out, never stored:</strong> for each component, its sellable divided by the quantity needed, rounded down; the bundle&#39;s is the smallest.</li>
-<li><strong>A sale reserves whole sets of components,</strong> in the same transaction; dispatch deducts the components (<a href="../../stock-ledger/#packs-and-bundles">ADR-006</a>). Each component reserves its own earliest qualifying batch, and the line records each component&#39;s lot.</li>
+<li><strong>A sale reserves whole sets of components,</strong> in the same transaction; dispatch deducts the components (<a href="../../stock-ledger/spec/#6-what-a-line-reserves">ADR-006</a>). Each component reserves its own earliest qualifying batch, and the line records each component&#39;s lot.</li>
 <li><strong>Components still sell on their own,</strong> from the same stock. When a component&#39;s sellable changes, every bundle using it and every listing linked to those bundles gets a new figure.</li>
 <li><strong>Changing the components</strong> applies to orders received afterwards. An open order keeps the components it was reserved with, recorded on its line.</li>
 <li><strong>Cost</strong> is the sum of the components&#39; standard costs, worked out when read. <strong>Weight and size</strong> are entered for the packed bundle.</li>
@@ -591,7 +591,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><em>Later:</em> a <code>product_vat</code> row sets a different class for one country; every other country uses the product&#39;s own.</li>
 </ol>
 <h2 id="12-best-before-lot-and-serial-numbers">12. Best-before, lot and serial numbers</h2>
-<p>Batches, dates and lots live on stock (<a href="../../stock-ledger/#the-four-numbers">ADR-006</a>); the product says only that they are required. The food-law constraints are ADR-006&#39;s.</p>
+<p>Batches, dates and lots live on stock (<a href="../../stock-ledger/spec/#4-dates-blocks-and-the-date-pass">ADR-006</a>); the product says only that they are required. The food-law constraints are ADR-006&#39;s.</p>
 <ol>
 <li><p><strong><code>tracks_best_before</code> on:</strong> no stock enters (receiving, a count that finds stock, a return) without a date. Expired stock is never sellable or reserved. Stock with fewer than <code>min_days_to_sell</code> days left is held back from sale but stays on hand. Stock arriving with fewer than <code>min_days_on_receipt</code> days left needs a manager to accept it.</p>
 </li>

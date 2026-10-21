@@ -258,7 +258,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td><strong>Fulfilment</strong></td>
 <td>Always on</td>
-<td>ADR-006, ADR-007</td>
+<td>ADR-014</td>
 <td>Pick lists, packing, shipments, returns inspection</td>
 <td>Orders, Inventory, Buyer data</td>
 <td>Orders: pick and pack, returns</td>
@@ -292,7 +292,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Switchable</td>
 <td>ADR-008</td>
 <td>The figure each listing should show, what each marketplace was last told and confirmed, read-backs, held raises</td>
-<td>Inventory, Listings, Channels</td>
+<td>Inventory, Listings, Orders, Channels</td>
 <td>Channels; a product&#39;s channels</td>
 </tr>
 <tr>
@@ -307,9 +307,9 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ol start="2">
 <li><strong>Calls point toward the core.</strong> A core module calls only other core modules and the kernel. Any other module calls the core and the modules in its needs. The core learns of other modules&#39; work only through events. The build refuses a cycle in needs: when a module must react to a module that needs it, it reacts by event (a new link reaches Stock sync as an event from Listings).</li>
 <li><strong>Imports come in through the core.</strong> Channels fetches orders and listings through the connectors and hands them to Orders&#39; and Listings&#39; ports; neither core module knows a marketplace exists.</li>
-<li><strong>Stock commands</strong> follow ADR-006: one lock per company, database checks, an append-only ledger and a nightly check (<a href="../../stock-ledger/#concurrency-and-repeats">concurrency</a>, <a href="../../stock-ledger/#the-nightly-check-and-checkpoints">nightly check</a>). Orders reserves stock by calling Inventory&#39;s port inside its own transaction, so an order and its reservation commit together.</li>
+<li><strong>Stock commands</strong> follow ADR-006: one lock per company, database checks, an append-only ledger and a nightly check (<a href="../../stock-ledger/spec/#12-the-lock-keys-and-the-sequence">lock and keys</a>, <a href="../../stock-ledger/spec/#14-the-nightly-check-and-checkpoints">nightly check</a>). Orders reserves stock by calling Inventory&#39;s port inside its own transaction, so an order and its reservation commit together.</li>
 <li><strong>One order per marketplace order.</strong> Importing again updates it; an older state is ignored (<a href="../../order-ingestion/#one-order-per-marketplace-order">ADR-007</a>).</li>
-<li><strong>Desired state per listing</strong> (owner ruling, 21 October 2026). Inventory writes each stock change with its ledger sequence and an outbox note in one transaction. Stock sync hears the note right after commit, reads the links through Listings&#39; port, and keeps one row per linked listing with the figure the marketplace should show and the ledger sequence it came from. A figure from an older sequence never replaces a newer one, and a note is never lost, because it commits with the stock change. The work list is a query, never a queue of messages (<a href="../../stock-ledger/#what-gives-listings-a-new-figure">ADR-006</a>, <a href="../../inventory-sync/#the-figure-per-listing">ADR-008</a>).</li>
+<li><strong>Desired state per listing</strong> (owner ruling, 21 October 2026). Inventory writes each stock change with its ledger sequence and an outbox note in one transaction. Stock sync hears the note right after commit, reads the links through Listings&#39; port, and keeps one row per linked listing with the figure the marketplace should show and the ledger sequence it came from. A figure from an older sequence never replaces a newer one, and a note is never lost, because it commits with the stock change. The work list is a query, never a queue of messages (<a href="../../stock-ledger/spec/#13-telling-stock-sync">ADR-006 SPEC 13</a>; the rule is owned by <a href="../../inventory-sync/spec/#1-the-figure-per-listing">ADR-008 SPEC 1</a>).</li>
 <li><strong>Parked.</strong> Purchasing, Amazon Vendor (ADR-004.4, planned), FBA shipments (stock the seller sends into Amazon&#39;s warehouses), profit, ads, AI, shipping labels, order routing and MCP access (a seller&#39;s AI assistant asking Vervoro questions, owner ruling 21 October 2026: soon after launch) have no record yet. They stay switched off and are not built further until a record and a launch-bar row need them.</li>
 </ol>
 <h3 id="who-depends-on-whom">Who depends on whom</h3>
@@ -676,7 +676,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>Every answer becomes one outcome: <code>applied</code>, <code>accepted</code> (awaiting processing), <code>throttled</code>, <code>compare_mismatch</code>, <code>rejected</code> or <code>unknown</code>. A timeout is <code>unknown</code>, and is settled before anything else is sent to that listing (<a href="../../channel-connectors/#retries-and-outcomes">ADR-004</a>).</li>
 <li>Work is claimed with leases, never open-ended locks. A crash costs one lease period, and a result is written only if the claim is still its own.</li>
 <li>Where a marketplace offers compare-and-set, the gate uses it.</li>
-<li>When a figure is sent, and the read-back deadline, are <a href="../../inventory-sync/#when-a-figure-is-sent">ADR-008</a>.</li>
+<li>When a figure is sent, and the read-back deadline, are <a href="../../inventory-sync/spec/#3-when-a-figure-is-sent">ADR-008</a>.</li>
 </ol>
 <h2 id="8-connectors-and-orders-in">8. Connectors and orders in</h2>
 <ol>

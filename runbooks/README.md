@@ -35,6 +35,25 @@ Rules: [ADR-003 SPEC](../product-model/spec/).
 | --- | --- |
 | [Change a VAT rate](change-a-vat-rate/) | A law changes a VAT rate or sets a temporary one |
 
+## ADR-006: Stock ledger and reservations
+
+Rules: [ADR-006 SPEC](../stock-ledger/spec/).
+
+| Procedure | When |
+| --- | --- |
+| [Settle a stock check difference](settle-a-stock-check-difference/) | The nightly stock check pages |
+| [A stock change refused as negative](a-stock-change-refused-as-negative/) | A "would go negative" refusal alerts |
+
+## ADR-008: Inventory sync
+
+Rules: [ADR-008 SPEC](../inventory-sync/spec/).
+
+| Procedure | When |
+| --- | --- |
+| [Hold raises or pause an account](hold-raises-or-pause-an-account/) | Figures may be wrong on the way up, or an account must stop sending |
+| [Take a company live](take-a-company-live/) | A company leaves shadow for the first time, or a later account goes live |
+| [Recover stock sync after a restore](recover-stock-sync-after-a-restore/) | After a full rewind or a whole-cell restore, before any figure is sent |
+
 ## ADR-010: Users, roles and access
 
 Rules: [ADR-010 SPEC](../users-and-access/spec/).
@@ -54,3 +73,11 @@ Rules: [ADR-013 SPEC](../sign-in/spec/).
 | [Contain a poisoned package](contain-a-poisoned-package/) | A dependency of the app or the sign-in Worker, Better Auth included, is found compromised |
 | [Recover a company's last Owner](recover-a-last-owner/) | A company's last Owner has lost every way in |
 | [Recover an operator's access](recover-an-operator/) | An operator or Vervoro's owner has lost their passkeys |
+
+## ADR-014: Fulfilment
+
+Rules: [ADR-014 SPEC](../fulfilment/spec/).
+
+| Procedure | When |
+| --- | --- |
+| [Run a recall](run-a-recall/) | A supplier or an authority recalls a lot; run by the seller's Manager |

@@ -72,18 +72,18 @@ Extension points (several providers of one port, chosen per key, such as connect
 | **Orders** | Core | ADR-007 | Orders, lines, statuses, holds, cancellations, refunds, manual orders | Products, Listings, Inventory, Buyer data | Orders |
 | **Buyer data** | Core | ADR-009 | Buyers' names and addresses, their anonymisation, the record of who viewed them | — | Inside an order |
 | **Access** | Core | ADR-010 | People, memberships, roles, invitations, the activity view, company settings | — | Settings |
-| **Fulfilment** | Always on | ADR-006, ADR-007 | Pick lists, packing, shipments, returns inspection | Orders, Inventory, Buyer data | Orders: pick and pack, returns |
+| **Fulfilment** | Always on | ADR-014 | Pick lists, packing, shipments, returns inspection | Orders, Inventory, Buyer data | Orders: pick and pack, returns |
 | **Billing** | Always on | ADR-012 | The company's plan and payments | Access | Settings: billing |
 | **Channels** (ADR-004's host) | Switchable | ADR-004 | Connections, sealed credentials, modes, rate budgets, notices, egress records | Listings, Orders | Channels |
 | **Connectors** (one per marketplace) | Switchable | ADR-004.1–004.3 | Nothing: translators, contributed to Channels | Channels | — |
-| **Stock sync** | Switchable | ADR-008 | The figure each listing should show, what each marketplace was last told and confirmed, read-backs, held raises | Inventory, Listings, Channels | Channels; a product's channels |
+| **Stock sync** | Switchable | ADR-008 | The figure each listing should show, what each marketplace was last told and confirmed, read-backs, held raises | Inventory, Listings, Orders, Channels | Channels; a product's channels |
 | **Invoicing** | Switchable | ADR-011 | Invoices, VAT records, invoiced customers | Orders | Invoices |
 
 2. **Calls point toward the core.** A core module calls only other core modules and the kernel. Any other module calls the core and the modules in its needs. The core learns of other modules' work only through events. The build refuses a cycle in needs: when a module must react to a module that needs it, it reacts by event (a new link reaches Stock sync as an event from Listings).
 3. **Imports come in through the core.** Channels fetches orders and listings through the connectors and hands them to Orders' and Listings' ports; neither core module knows a marketplace exists.
-4. **Stock commands** follow ADR-006: one lock per company, database checks, an append-only ledger and a nightly check ([concurrency](../../stock-ledger/#concurrency-and-repeats), [nightly check](../../stock-ledger/#the-nightly-check-and-checkpoints)). Orders reserves stock by calling Inventory's port inside its own transaction, so an order and its reservation commit together.
+4. **Stock commands** follow ADR-006: one lock per company, database checks, an append-only ledger and a nightly check ([lock and keys](../../stock-ledger/spec/#12-the-lock-keys-and-the-sequence), [nightly check](../../stock-ledger/spec/#14-the-nightly-check-and-checkpoints)). Orders reserves stock by calling Inventory's port inside its own transaction, so an order and its reservation commit together.
 5. **One order per marketplace order.** Importing again updates it; an older state is ignored ([ADR-007](../../order-ingestion/#one-order-per-marketplace-order)).
-6. **Desired state per listing** (owner ruling, 21 October 2026). Inventory writes each stock change with its ledger sequence and an outbox note in one transaction. Stock sync hears the note right after commit, reads the links through Listings' port, and keeps one row per linked listing with the figure the marketplace should show and the ledger sequence it came from. A figure from an older sequence never replaces a newer one, and a note is never lost, because it commits with the stock change. The work list is a query, never a queue of messages ([ADR-006](../../stock-ledger/#what-gives-listings-a-new-figure), [ADR-008](../../inventory-sync/#the-figure-per-listing)).
+6. **Desired state per listing** (owner ruling, 21 October 2026). Inventory writes each stock change with its ledger sequence and an outbox note in one transaction. Stock sync hears the note right after commit, reads the links through Listings' port, and keeps one row per linked listing with the figure the marketplace should show and the ledger sequence it came from. A figure from an older sequence never replaces a newer one, and a note is never lost, because it commits with the stock change. The work list is a query, never a queue of messages ([ADR-006 SPEC 13](../../stock-ledger/spec/#13-telling-stock-sync); the rule is owned by [ADR-008 SPEC 1](../../inventory-sync/spec/#1-the-figure-per-listing)).
 7. **Parked.** Purchasing, Amazon Vendor (ADR-004.4, planned), FBA shipments (stock the seller sends into Amazon's warehouses), profit, ads, AI, shipping labels, order routing and MCP access (a seller's AI assistant asking Vervoro questions, owner ruling 21 October 2026: soon after launch) have no record yet. They stay switched off and are not built further until a record and a launch-bar row need them.
 
 ### Who depends on whom
@@ -141,7 +141,7 @@ An **egress effect** is a call that changes something on a marketplace or at a s
 4. Every answer becomes one outcome: `applied`, `accepted` (awaiting processing), `throttled`, `compare_mismatch`, `rejected` or `unknown`. A timeout is `unknown`, and is settled before anything else is sent to that listing ([ADR-004](../../channel-connectors/#retries-and-outcomes)).
 5. Work is claimed with leases, never open-ended locks. A crash costs one lease period, and a result is written only if the claim is still its own.
 6. Where a marketplace offers compare-and-set, the gate uses it.
-7. When a figure is sent, and the read-back deadline, are [ADR-008](../../inventory-sync/#when-a-figure-is-sent).
+7. When a figure is sent, and the read-back deadline, are [ADR-008](../../inventory-sync/spec/#3-when-a-figure-is-sent).
 
 ## 8. Connectors and orders in
 

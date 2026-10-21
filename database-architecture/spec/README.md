@@ -152,7 +152,7 @@ This section and [section 1](#1-tenancy-inside-a-cell) own tenant isolation; oth
 
 Raw SQL exists only in the kernel's data layer (entering, the commit check, the lock) and in migrations, both under change control. Modules still never write SQL. A query the builder cannot express has one escape route: a reviewed view added by migration, or a reviewed extension of the builder, both under change control. Never raw SQL in a module.
 
-The builder, the query check and the allow-list are defence in depth; the commit check stays part of the boundary, and SQL-executing functions are revoked where the platform allows ([section 4](#4-functions)). The foundation's stock ledger trigger is not module SQL: a migration defines it, and it only applies a ledger entry to its balances.
+The builder, the query check and the allow-list are defence in depth; the commit check stays part of the boundary, and SQL-executing functions are revoked where the platform allows ([section 4](#4-functions)). Inventory's stock ledger trigger is not module SQL: its migration defines it, and it only applies a ledger entry to its balances.
 
 ### 6.1 Catalogue lint
 

@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ADR-014 SPEC: Fulfilment</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono&display=swap">
+<style>
+:root {
+  --bg: #f6f6f8; --surface: #ffffff; --sunken: #ededf1; --text: #16161a; --muted: #5c5c66; --border: #e0e0e6;
+  --accent: #4338ca; --accent-soft: #eef0ff; --edge: #8a8a96; --tint: #f0f0f4;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #111114; --surface: #1a1a1f; --sunken: #23232a; --text: #ececf1; --muted: #a2a2ad; --border: #2d2d35;
+  --accent: #a5b4fc; --accent-soft: #23264a; --edge: #74747f; --tint: #202027; color-scheme: dark; } }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 var(--sans); }
+main { max-width: 860px; margin: 0 auto; padding: 48px max(20px, env(safe-area-inset-left)) 80px; }
+header.site { max-width: 860px; margin: 0 auto; padding: 20px max(20px, env(safe-area-inset-left)) 0; font-size: 14px; }
+header.site a { color: var(--muted); text-decoration: none; }
+header.site a:hover { color: var(--accent); }
+h1, h2, h3 { line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(28px, 4vw, 38px); letter-spacing: -0.02em; margin: 0 0 20px; }
+h2 { font-size: 23px; margin: 48px 0 12px; padding-top: 20px; border-top: 1px solid var(--border); }
+h3 { font-size: 18px; margin: 32px 0 8px; }
+p, li { max-width: 72ch; }
+a { color: var(--accent); }
+code { font-family: var(--mono); font-size: 0.86em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--sunken); padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 13.5px; line-height: 1.5; }
+pre code { background: none; padding: 0; overflow-wrap: normal; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 16px 0; background: var(--surface); }
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+.table-wrap table { margin: 0; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+th { background: var(--sunken); font-weight: 600; font-size: 13px; color: var(--muted); }
+tr:last-child td { border-bottom: none; }
+ul, ol { padding-left: 22px; }
+li + li { margin-top: 4px; }
+figure { margin: 20px 0; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; }
+svg.diagram { display: block; width: 100%; min-width: 640px; height: auto; font-family: var(--sans); }
+svg .ink { fill: var(--text); } svg .quiet { fill: var(--muted); }
+svg .edge { stroke: var(--edge); } svg .edge-fill { fill: var(--edge); }
+svg .accent { stroke: var(--accent); } svg .accent-fill { fill: var(--accent); }
+svg .box { fill: none; stroke: var(--edge); stroke-width: 1.25; }
+svg .box-main { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+svg .band { fill: var(--tint); stroke: var(--edge); stroke-width: 1.25; }
+.cards { list-style: none; padding: 0; display: grid; gap: 12px; }
+.cards a { display: block; padding: 18px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; text-decoration: none; color: var(--text); }
+.cards a:hover, .cards a:focus-visible { border-color: var(--accent); outline: none; }
+.cards.sub { margin: 12px 0 0 24px; padding-left: 16px; border-left: 2px solid var(--border); }
+.parts { margin: 6px 0 0 20px; font-size: 14px; color: var(--muted); } .cards .parts a { display: inline; padding: 0; background: none; border: none; border-radius: 0; color: var(--accent); font-weight: 600; text-decoration: none; } .cards .parts a:hover { text-decoration: underline; }
+.cards b { display: block; font-size: 17px; } .cards span { color: var(--muted); font-size: 14px; }
+.order li { margin-top: 10px; } .order span { color: var(--muted); font-size: 14px; }
+footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header class="site"><a href="../../">← Vervoro artifacts</a> / <a href="../">ADR-014: Fulfilment</a></header>
+<main>
+<h1 id="adr-014-spec-fulfilment">ADR-014 SPEC: Fulfilment</h1>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Decision</strong></td>
+<td><a href="../">ADR-014: Fulfilment</a></td>
+</tr>
+<tr>
+<td><strong>Procedures</strong></td>
+<td><a href="../../runbooks/#adr-014-fulfilment">RUNBOOK</a></td>
+</tr>
+<tr>
+<td><strong>Date</strong></td>
+<td>21 October 2026</td>
+</tr>
+<tr>
+<td><strong>For</strong></td>
+<td>The developer and coding agents building it, and the person reviewing their work</td>
+</tr>
+</tbody></table></div>
+<p>The rules to build ADR-014 from: the Fulfilment module. Every stock change below is a call to an Inventory port defined in <a href="../../stock-ledger/spec/#7-ports-fulfilment-and-orders-call">ADR-006 SPEC 7</a>, and every status change a call to Orders (<a href="../../order-ingestion/">ADR-007</a>). Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the <a href="../../guide/">map and glossary</a>.</p>
+<h2 id="0-at-launch-and-later">0. At launch and later</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Later part</th>
+<th>Trigger</th>
+<th>Rules</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Recording every pick as a move at the shelf</td>
+<td>The phone can queue picks offline</td>
+<td><a href="#2-picking">2</a></td>
+</tr>
+<tr>
+<td>Serial numbers recorded at packing and checked on return</td>
+<td>ADR-003&#39;s serial tracking is built</td>
+<td><a href="#3-packing">3</a>, <a href="#6-returns">6</a></td>
+</tr>
+<tr>
+<td>Packing and handover of a shipment into a marketplace&#39;s warehouse</td>
+<td>FBA shipments get their record</td>
+<td><a href="#4-shipments">4</a></td>
+</tr>
+<tr>
+<td>Packing and shipping an Amazon Vendor purchase order</td>
+<td>The Vendor connector (ADR-004.4, not written)</td>
+<td><a href="#4-shipments">4</a></td>
+</tr>
+</tbody></table></div>
+<h2 id="1-the-module">1. The module</h2>
+<ol>
+<li><strong>Always on, outside the core.</strong> Needs Orders, Inventory and Buyer data (<a href="../../system-architecture/spec/#4-the-foundation-and-the-launch-modules">ADR-000 SPEC 4</a>). The core never calls it.</li>
+<li><strong>Its tables,</strong> with the <code>fulfil_</code> prefix, declared through <code>tenantTable()</code> and queried through the typed query builder: <code>fulfil_pick_task</code>, <code>fulfil_packing</code>, <code>fulfil_shipment</code> (order, lines and quantities, boxes, carrier, tracking), <code>fulfil_put_back</code>, <code>fulfil_return</code> and <code>fulfil_inspection</code>.</li>
+<li><strong>One transaction per floor command.</strong> Fulfilment writes its own row and calls Inventory&#39;s (and, for a shipment, Orders&#39;) port inside the same transaction, under the company&#39;s lock, with the command&#39;s key (<a href="../../stock-ledger/spec/#12-the-lock-keys-and-the-sequence">ADR-006 SPEC 12</a>).</li>
+<li><strong>Screens:</strong> Orders → pick and pack, returns, and the recall list.</li>
+</ol>
+<h2 id="2-picking">2. Picking</h2>
+<ol>
+<li><strong>Starting to pick</strong> an order creates a pick task. For each reservation it asks Inventory to claim a spot: the spot of that batch with the fewest units first, less what other open pick tasks already claim from it.</li>
+<li><strong>The pick list</strong> names the batch, its lot and date, and the spot. A pick task writes no ledger entry.</li>
+<li><strong>&quot;Not found&quot;</strong> calls Inventory&#39;s quarantine port (<a href="../../stock-ledger/spec/#7-ports-fulfilment-and-orders-call">ADR-006 SPEC 7.7</a>); the pick list then shows the new batch, or the line as short.</li>
+<li><strong>A unit taken from a spot the books do not show</strong> is reported as it is; Inventory records it as a move or a find (ADR-006 SPEC 7.8).</li>
+<li>An order whose line is waiting or short does not join the pick list (<a href="../../order-ingestion/">ADR-007</a>).</li>
+</ol>
+<h2 id="3-packing">3. Packing</h2>
+<p>Packing (ADR-007&#39;s &quot;packed&quot;) is a server command, keyed by the packing id. For each unit it names the batch:</p>
+<ol>
+<li><strong>One eligible batch</strong> of the product in the spot (or the warehouse, without spots): implied.</li>
+<li><strong>Several:</strong> the packer taps the date or lot on the unit, or scans a barcode that carries it. A product barcode alone names no batch.</li>
+<li><strong>Another eligible batch than planned</strong> (in date, not blocked, meeting the demand&#39;s need) is taken without a manager; Inventory moves or exchanges the reservation. Choices of a later date than planned are listed daily for a manager.</li>
+<li><strong>Nothing to exchange, or nobody says:</strong> the line keeps its reserved batch, marked &quot;batch assumed&quot;, with any lot tapped.</li>
+<li><strong>Packed units</strong> move, still reserved, to the packing spot. Units there for more than 24 hours are listed on Home.</li>
+<li><strong>A use-by unit on or after its date, or of a blocked lot,</strong> is refused at packing and swapped.</li>
+</ol>
+<h2 id="4-shipments">4. Shipments</h2>
+<ol>
+<li><strong>One shipment per order.</strong> It carries every unit still to ship, possibly in several boxes, and names the lines, quantities, carrier and tracking.</li>
+<li><strong>Confirming it,</strong> in one transaction, keyed by the shipment id: Inventory&#39;s dispatch port deducts exactly what was packed for it; Orders records the status shipped and the outbox note for the dispatch notice through the egress gate (<a href="../../system-architecture/spec/#7-the-egress-gate">ADR-000 SPEC 7</a>). A repeat returns &quot;already confirmed&quot;.</li>
+<li><strong>A line never ships more than it reserved,</strong> so an order with a short line waits. A bundle line ships whole sets.</li>
+<li><strong>Part shipped</strong> only when the marketplace reports part shipped outside Vervoro (<a href="../../order-ingestion/">ADR-007</a>); the rest ships whole.</li>
+<li><strong>Dispatch without packing in Vervoro</strong> (confirmed at the bench) is allowed: Inventory packs by the dispatch itself.</li>
+<li><strong>Shipped outside Vervoro</strong> is Orders&#39; import calling Inventory directly; Fulfilment shows the task asking which lot left, and a manager may reverse it (&quot;Not from our stock&quot;).</li>
+<li>Sellable does not change on dispatch, so it sends Stock sync no note.</li>
+</ol>
+<h2 id="5-cancellations-on-the-floor">5. Cancellations on the floor</h2>
+<ol>
+<li><strong>A confirmed cancellation</strong> is Orders&#39; (a request releases nothing). Inventory releases the line&#39;s units.</li>
+<li><strong>Picked, not packed:</strong> the units are in a tote and still on their spot by the books. A put-back task stays open until each unit is confirmed back, by a scan or a tap.</li>
+<li><strong>Packed:</strong> the units are sellable in the packing spot. The put-back task moves each one to a storage spot when confirmed.</li>
+<li><strong>After dispatch:</strong> nothing moves; a parcel that comes back is a return.</li>
+</ol>
+<h2 id="6-returns">6. Returns</h2>
+<ol>
+<li><strong>Receiving</strong> names the order line; Inventory takes the units back into one of the batches that line dispatched, held (<a href="../../stock-ledger/spec/#7-ports-fulfilment-and-orders-call">ADR-006 SPEC 7.9</a>). The person chooses the spot (a returns bench, or the default spot). If the product tracks lots, the person scans or picks the lot from those the line received.</li>
+<li><strong>Inspection decides per unit:</strong> restock (sellable again unless the batch is expired, short-dated or blocked), keep as damaged, or write off with a reason.</li>
+<li><strong>A use-by unit</strong> is restocked only with a manager&#39;s reason; otherwise it is kept as damaged or written off.</li>
+<li><strong>Refunds</strong> are done in the channel&#39;s own tools; the credit note is <a href="../../invoicing-and-vat/">ADR-011&#39;s</a>.</li>
+</ol>
+<h2 id="7-the-recall-list">7. The recall list</h2>
+<ol>
+<li>From a lot number, Inventory&#39;s lot trace gives the demands that received it (<a href="../../stock-ledger/spec/#10-lot-trace-and-recalls">ADR-006 SPEC 10</a>). Fulfilment joins each with its order: the order id, the date and the buyer&#39;s country, never the buyer&#39;s name or address (<a href="../../buyer-data/">ADR-009</a>).</li>
+<li>Lines marked &quot;batch assumed&quot; or &quot;lot not traced&quot; are listed apart, as &quot;may have received it&quot;.</li>
+<li>The stock of that lot on hand is shown per warehouse, with a button to block the lot (a manager).</li>
+<li>The seller reaches buyers through the marketplace&#39;s own messaging, with the order id. Procedure: <a href="../../runbooks/run-a-recall/">Run a recall</a>.</li>
+</ol>
+<h2 id="8-who-may-do-what">8. Who may do what</h2>
+<p>Roles are <a href="../../users-and-access/spec/#4-who-may-do-what">ADR-010&#39;s</a>. A person limited to some warehouses acts only on their orders.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Warehouse</th>
+<th>Manager, Admin, Owner</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Pick, report &quot;not found&quot;, pack, take another eligible batch, confirm a shipment, put back</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Receive a return; inspect: restock or keep as damaged</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Inspect: write off; restock a use-by unit with a reason</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Reverse a shipment reported outside Vervoro</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>See the recall list; block the lot from it</td>
+<td>See only</td>
+<td>Yes</td>
+</tr>
+</tbody></table></div>
+<h2 id="9-tests-that-prove-each-rule">9. Tests that prove each rule</h2>
+<p>Database tests run on real Postgres under the runtime role (<a href="../../system-architecture/spec/#15-testing-and-verification">ADR-000 SPEC 15</a>).</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Proves</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Pick claims</td>
+<td>Starting to pick writes no ledger entry and claims the spot with the fewest units first</td>
+</tr>
+<tr>
+<td>Packing</td>
+<td>One eligible batch is implied; several need a tap; a product barcode alone never names a batch; another eligible batch moves or exchanges the reservation; nothing to exchange ends &quot;batch assumed&quot;</td>
+</tr>
+<tr>
+<td>Use-by</td>
+<td>A use-by unit on or after its date, or of a blocked lot, is refused at packing and at dispatch</td>
+</tr>
+<tr>
+<td>Shipment</td>
+<td>A shipment deducts only what was packed for it and carries every unit still to ship; an order with a short line cannot ship; confirming twice deducts once</td>
+</tr>
+<tr>
+<td>Whole sets</td>
+<td>A bundle line ships whole sets only</td>
+</tr>
+<tr>
+<td>Put-back</td>
+<td>A confirmed cancellation of picked or packed units leaves a put-back task open until each unit is confirmed</td>
+</tr>
+<tr>
+<td>Returns</td>
+<td>A return enters held, into a batch the line dispatched, at most what it dispatched; inspection outcomes write the right entries</td>
+</tr>
+<tr>
+<td>Recall</td>
+<td>The list includes bundles and lists &quot;batch assumed&quot; lines apart; it shows no buyer name or address</td>
+</tr>
+<tr>
+<td>Boundaries</td>
+<td>Fulfilment writes no <code>stock_</code> or order table; every stock change goes through an Inventory port</td>
+</tr>
+</tbody></table></div>
+<h2 id="how-to-check-it-was-built-right">How to check it was built right</h2>
+<p>For someone reviewing code an AI wrote. Each line says where to look.</p>
+<ul>
+<li><input disabled="" type="checkbox"> <strong>Writers:</strong> Fulfilment inserts only into <code>fulfil_</code> tables; stock and status changes are port calls (search the module for <code>stock_</code> and order tables).</li>
+<li><input disabled="" type="checkbox"> <strong>One transaction:</strong> each floor command writes its row and calls the ports inside one transaction with its key.</li>
+<li><input disabled="" type="checkbox"> <strong>Packing:</strong> the batch rule (implied, tap, scan) is one function; there is no path that packs without naming a batch or marking &quot;batch assumed&quot;.</li>
+<li><input disabled="" type="checkbox"> <strong>Shipment:</strong> one shipment per order; the confirm command refuses an order with a short or waiting line.</li>
+<li><input disabled="" type="checkbox"> <strong>Recall:</strong> the query reads Buyer data&#39;s country only; no name or address field is selected.</li>
+<li><input disabled="" type="checkbox"> <strong>No outside call</strong> in a transaction; the dispatch notice goes through the egress gate after commit.</li>
+<li><input disabled="" type="checkbox"> <strong>Later parts:</strong> no serial field, no marketplace-warehouse handover and no Vendor shipment at launch.</li>
+</ul>
+
+<footer>Vervoro</footer>
+</main>
+</body>
+</html>

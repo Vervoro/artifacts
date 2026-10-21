@@ -60,5 +60,5 @@
   <rect x="24" y="352" width="712" height="76" rx="8" class="box"/>
   <text x="380" y="376" text-anchor="middle" font-size="11.5" class="ink">One locked transaction per command · repeats return the first answer · nothing ever below zero</text>
   <text x="380" y="395" text-anchor="middle" font-size="11.5" class="quiet">the nightly check: every balance equals its entries, every reserved number its open reservations</text>
-  <text x="380" y="414" text-anchor="middle" font-size="11.5" class="quiet">a change to sellable writes each affected listing's new figure in the same transaction (ADR-008)</text>
+  <text x="380" y="414" text-anchor="middle" font-size="11.5" class="quiet">a change to sellable commits with an outbox note; Stock sync then works out each figure (ADR-008)</text>
 </svg>

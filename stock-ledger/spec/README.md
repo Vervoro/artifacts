@@ -1,0 +1,318 @@
+# ADR-006 SPEC: Stock ledger and reservations
+
+| | |
+| --- | --- |
+| **Decision** | [ADR-006: Stock ledger and reservations](../) |
+| **Procedures** | [RUNBOOK](../../runbooks/#adr-006-stock-ledger-and-reservations) |
+| **Date** | 21 October 2026 |
+| **For** | The developer and coding agents building it, and the person reviewing their work |
+
+The rules to build ADR-006 from: the Inventory module. Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/). Picking, packing, shipments, put-back and returns inspection are the Fulfilment module's ([ADR-014 SPEC](../../fulfilment/spec/)); this page defines the Inventory ports they call.
+
+## 0. At launch and later
+
+Everything below is built at launch except these parts, which keep their rules here and are built only when their trigger arrives.
+
+| Later part | Trigger | Rules |
+| --- | --- | --- |
+| Shipments into a marketplace's warehouse (a reservation that needs more than 90 days at check-in, handover as `transferred_out`) | FBA shipments get their record ([ADR-000 SPEC 4.7](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)) | [5.1](#51-demands), [5.2](#52-which-batch-a-demand-takes) |
+| Amazon Vendor purchase order lines as a demand | The Vendor connector (ADR-004.4, not written) | [5.1](#51-demands) |
+| Receipts against a purchase order | Purchasing gets its record | [8](#8-receiving) |
+| Serial numbers | ADR-003's serial tracking is built; the stock side goes to [ADR-014](../../fulfilment/) | None here |
+| A lock finer than the company's | Measured lock wait passes its threshold ([12](#12-the-lock-keys-and-the-sequence)) | A new record |
+
+## 1. Where stock is counted
+
+| Thing | Rules |
+| --- | --- |
+| **Warehouse** | A site the seller ships from. Each channel account has a default warehouse. An order is reserved and shipped from one warehouse |
+| **Spot** | A place in a warehouse. Every unit on hand is in exactly one spot. Each warehouse has a default spot, so a seller who does not track shelves never names one. Kinds: `storage`, `packing`, `transit`; the system makes the packing and transit spots |
+| **Batch** | Stock of one product received together: lot, date and its kind, supplier, units per box on that delivery, landed unit cost. Two deliveries of one lot are two batches. A batch is never split; moving part of it moves units between spots |
+| **Spot balance** | Per product, batch and spot: on hand, quarantined, damaged, and the last ledger sequence |
+| **Batch position** | Per product, batch and warehouse: the sums of its spot balances, plus reserved |
+
+1. **Reserved lives on the batch position, never on a spot,** so a move between spots never touches a reservation.
+2. **A transit spot** belongs to the destination warehouse of a transfer and to no warehouse's on hand; its units show as incoming at the destination.
+3. **A bundle has no balance.** An entry against a bundle is refused ([ADR-003 SPEC 6.3](../../product-model/spec/#63-bundle)).
+
+## 2. The ledger
+
+`stock_ledger` is a tenant table ([ADR-001 SPEC 5](../../database-architecture/spec/#5-declaring-tables)), append-only (the runtime role cannot update, delete or truncate it) and partitioned by month.
+
+1. **Only the ledger insert changes a balance.** A trigger, defined by Inventory's migration, applies each entry to its spot balance, its batch position and, for `reserved`, `released` and `dispatched`, its reservation row, and stores the running totals on the entry. The runtime role can read balances, positions and reservations but never write them. The trigger is not module SQL ([ADR-001 SPEC 6](../../database-architecture/spec/#6-guard-rails)); every other Inventory query goes through the typed query builder.
+2. **An entry holds:** `sequence` and `line` (gapless per company, section 12), `occurred_at` (database time), `product_id`, `batch_id`, `warehouse_id`, `spot_id` (empty when only reserved changes), `kind`, the change to `on_hand`, `reserved`, `quarantined` and `damaged`, `demand` (what it was for), `source` (where it came from), `actor` (a person or a named process), `note` (required where the kind says so) and `command_key`.
+3. **Each kind's allowed changes are a check on the row;** an entry whose numbers do not fit its kind is refused.
+
+| Kind | What changes |
+| --- | --- |
+| `received` | On hand up; quarantined up too for a receipt waiting for a manager |
+| `reserved` / `released` | Reserved up / down |
+| `dispatched` | On hand and reserved down together |
+| `returned` | On hand and quarantined up together |
+| `inspected` | Quarantined down; or quarantined down and damaged up |
+| `quarantined` | Quarantined up, or down when a recount finds the units |
+| `marked_damaged` / `restored` | Damaged up / down (a restore needs a reason) |
+| `written_off` | On hand down, with quarantined or damaged down, or neither for an expired or blocked batch; a reason is required |
+| `counted` | On hand up (an approved surplus) |
+| `adjusted` | On hand up or down; a reason is required |
+| `transferred` | On hand down in one spot and up in another, same batch |
+| `transferred_out` | On hand and reserved down together (*Later*, section 0) |
+| `repacked` | On hand down for inputs, up for a new batch of the output |
+| `opening_balance` | Every number, to its total at a checkpoint (section 14) |
+
+4. **A bundle's components** use ordinary entries whose `demand` names the bundle's order line, so a lot trace finds gift sets.
+5. **Not an entry:** printing a label or pick list, starting to pick, holding an order, telling a marketplace an order shipped.
+
+## 3. The four numbers
+
+| Number | Definition |
+| --- | --- |
+| **On hand** | Units physically in the warehouse, in any state. Transit spots count in no warehouse |
+| **Reserved** | The sum of the batch position's open reservations |
+| **Held** | quarantined + damaged + (if the batch is expired, short-dated or blocked: on hand − reserved − quarantined − damaged; otherwise 0) |
+| **Sellable** | On hand − reserved − held, never below zero. Only sellable reaches Stock sync |
+
+1. **Quarantined** units wait for a decision: an uninspected return, a receipt waiting for a manager, a counted shortfall, units set aside. **Damaged** units are never sellable or reserved; they leave by write-off or come back by a recorded restore.
+2. **Incoming** (open purchase order quantity not yet received, units in transit) is shown beside the four numbers, never added to sellable, never sent.
+3. A product's numbers in a warehouse are the sums of its batch positions. A bundle has only a sellable figure, worked out from its components ([ADR-003 SPEC 6.3](../../product-model/spec/#63-bundle)).
+
+## 4. Dates, blocks and the date pass
+
+1. **A dated product's date is use-by or best-before** (default best-before), on the product ([ADR-003 SPEC 12](../../product-model/spec/#12-best-before-lot-and-serial-numbers)).
+2. **Sell-by.** A batch with date D is sellable while D − today (company time zone) ≥ `min_days_to_sell`. Below that but not past D it is **short-dated**; past D it is **expired**. Both are held.
+3. **Best-before:** a blank `min_days_to_sell` counts as 0. A manager may send units of an expired best-before batch on a manual order with a reason; they never reach a listing.
+4. **Use-by:** `min_days_to_sell` is required and at least 1 + the company's delivery days (setting, default 1). A use-by batch is never reserved, packed or dispatched on or after its date, by any route, with no override, and never sold off by hand.
+5. **Blocking a lot** (a manager) holds every batch of that lot in every warehouse at once; unblocking frees them.
+6. **The date pass** runs just after midnight in the company's time zone, and whenever `min_days_to_sell` or the date kind changes. In one locked transaction per company, it moves each unpacked reservation off a batch that crossed its sell-by date to the next qualifying batch (section 5.2); a line with nowhere to go becomes short. A block does the same at once.
+7. **Already packed units** stay on their parcel when the batch only became short-dated or expired at best-before. Units of a blocked lot, or of a use-by batch on or after its date, are refused at dispatch.
+
+## 5. Reservations
+
+### 5.1 Demands
+
+One reservation shape serves every demand.
+
+| Demand | Reserves | Shelf life it needs | Deducts |
+| --- | --- | --- | --- |
+| Marketplace or website order line | On import, or when its listing is linked | The product's sell-by rule | On a confirmed shipment |
+| Manual or business order line | When the order is confirmed ([ADR-007](../../order-ingestion/)) | The product's sell-by rule | On a confirmed shipment |
+| Transfer between warehouses | When sent; units move to the destination's transit spot | The product's sell-by rule | Received, or written off as lost in transit |
+| *Later:* shipment into a marketplace's warehouse | When ready to pack | More than 90 days left at the expected check-in: at least 90 + the account's days to check-in (default 14) on the day it reserves | At handover, as `transferred_out`, once per shipment; never an order |
+| *Later:* Amazon Vendor purchase order line | When the seller confirms the line | The purchase order's minimum (ADR-004.4) | When its shipment is confirmed |
+
+### 5.2 Which batch a demand takes
+
+1. **Sellable units only, in the demand's warehouse,** from batches that meet the demand's shelf life.
+2. **Earliest sell-by date first,** then earliest received. Expired, short-dated and blocked batches are skipped. Undated batches come after dated ones, by received date.
+3. **No spot is chosen;** picking chooses spots ([ADR-014 SPEC 2](../../fulfilment/spec/#2-picking)).
+4. **A manager can pin another batch** that is sellable and meets the need: a `released` and a `reserved` entry with name and reason.
+
+### 5.3 Reserving an order line
+
+Orders calls Inventory's reserve port inside its import transaction ([ADR-007](../../order-ingestion/)), after the company's lock:
+
+1. The line's link version, valid when the buyer bought, gives product, units per sale and fulfilment ([ADR-005](../../catalogue-sync/)). The line stores it.
+2. **Target, not delta:** what the line still needs is (quantity − cancelled − dispatched − shipped outside) × units per sale, per component for a bundle. Only the difference from what it holds is reserved or released, so one read with a cancellation and an edit never releases twice.
+3. **A shortage reserves what exists** and records the rest as missing. Vervoro never cancels the order; that is the seller's choice.
+4. **Short lines fill when units arrive** (receipt, restock, accepted receipt, count surplus), in the same transaction, in that warehouse: earliest ship-by time first ([ADR-007](../../order-ingestion/)); orders held for payment or with a cancellation requested last; oldest purchase breaks a tie.
+5. **A smaller quantity releases** latest sell-by first and unpacked units first; a larger one reserves more by 5.2.
+6. **A line's reservation never changes because a link changed** ([ADR-005](../../catalogue-sync/)). It changes only when a manager resolves the line again, pins a batch, the floor packs another eligible batch, or a date pass, block or count moves it.
+7. **Resolving again** (a manager, for a line reserved under a wrong link) releases and reserves under the current link in one transaction. A line with units packed or dispatched cannot be resolved again.
+
+The order line's `link_id`, `product_id`, `units_per_sale`, `fulfilled_by`, `components`, `needed` and `missing` are Orders' fields ([ADR-007](../../order-ingestion/)). `stock_reservation` holds demand, product, batch, warehouse, reserved, packed, dispatched and closed at.
+
+## 6. What a line reserves
+
+1. **A pack reserves its own stock,** never singles. When singles could make a missing pack, the screen offers a repack job; Vervoro never repacks on its own.
+2. **Units per sale multiply:** six loose jars per sale, ordered twice, reserve 12 jars.
+3. **A bundle reserves its components in whole sets:** the most whole sets every component can cover, with the rest missing on every component alike. It ships whole sets only. The line records each component and quantity per bundle it used; a later bundle edit does not change it.
+4. **Repack and assembly** use free units only. A repack takes one number (packs opened or made), so base units never change. An assembly (a manager) states every input and the output quantity, and the output batch records every input lot.
+5. **A line for an unlinked listing reserves nothing.** It is a **waiting line** while its order is open, not cancelled and seller-shipped (or of unknown fulfilment). Orders hears Listings' link event and, right after the link commits, reserves every waiting line of that listing in one transaction, oldest order first, each recording the new link version. ADR-005's link screen says beforehand how many will be reserved and how many will be short. A bulk link's chunks each reserve their own waiting lines. A line bought before the link began but imported after it reserves at import under the current link.
+6. **A closed link** leaves open lines as they are; dispatch deducts the product they reserved. A person who wants the units back cancels the order or resolves the line again.
+7. **A waiting line already shipped outside Vervoro** reserves nothing. Attaching it to a product deducts at once, as `dispatched` with source "attached after shipping", earliest sell-by first, marked "batch assumed".
+8. **A marketplace-shipped line reserves nothing.** A line whose fulfilment is unknown reserves as if the seller ships it, and releases when the marketplace confirms it ships the line. A seller-shipped line on a listing linked as marketplace-shipped reserves and opens a conflict ([ADR-005](../../catalogue-sync/)).
+9. **Stock the marketplace holds is a reading,** not a ledger: `stock_marketplace_reading` per product and account, read by ADR-004.2, shown beside the four numbers and never added to them.
+
+## 7. Ports Fulfilment and Orders call
+
+Each port is a command under the company's lock with its key (section 12). The floor rules around them are [ADR-014](../../fulfilment/).
+
+1. **Claim spots for a pick.** Records, per reservation, the spot and quantity a pick task will take, with no ledger entry. Counts read these claims as their allowance (section 9).
+2. **Pack.** For each unit, the batch that left: moves it, still reserved, to the warehouse's packing spot (`transferred`, source "packing"). Another eligible batch than planned (in date, not blocked, meeting the demand's need) moves the reservation with it; if that batch has no free units, the reservation is exchanged with the newest unpacked reservation of the same batch on another line. With nothing to exchange, the line keeps its reserved batch, marked "batch assumed", with any lot the packer tapped.
+3. **Put back.** Moves packed units back to a storage spot, or leaves them in the packing spot for put-away.
+4. **Dispatch.** Writes `dispatched` for each packed reservation the shipment uses (on hand in the packing spot and reserved down together), marks them dispatched, and records each line's lots. A reservation can never dispatch more than it packed, nor pack more than it reserved. An order dispatched without packing in Vervoro is packed by the dispatch itself: one eligible batch is implied, otherwise the reserved batch, marked "batch assumed".
+5. **Shipped outside Vervoro.** When the marketplace reports a line shipped with no shipment in Vervoro, Orders calls dispatch with source "marketplace said shipped": packed units first, unpacked marked "batch assumed"; in shadow, marked "lot not traced". When it had to choose between eligible batches of a dated product, a task asks the warehouse to tap the lot; it never blocks. A manager reverses a wrong one with `adjusted` and a reason.
+6. **Release.** A confirmed cancellation releases exactly what each line held, batch by batch. A request releases nothing ([ADR-007](../../order-ingestion/)). After dispatch, a cancellation moves nothing.
+7. **Quarantine at a pick ("not found").** Quarantines the unit with that reason, moves the reservation to another qualifying batch or leaves the line short, and puts the spot on the count list.
+8. **A unit picked where the books do not show it** is a move from the spot where the books hold that batch, and both spots go on the count list. Only when no spot holds that batch is it **found**: received with reason "found at pick" and packed in one transaction, listed for a manager.
+9. **Receive a return.** Into one of the batches the line dispatched (the lot scanned, or else the earliest-dated), as `returned`: held until inspected. At most what the line dispatched, less earlier returns. A bundle returns by component. A unit with no dispatch record goes into a new batch with a reason; a dated product asks for its date.
+10. **Inspect.** Restock (`inspected`, then a move to storage; a use-by unit only with a manager's reason), keep as damaged, or write off with a reason.
+
+## 8. Receiving
+
+1. **A confirmed receipt line,** in one locked transaction, creates a batch (lot, date, supplier, units per box, provisional landed cost), writes `received` into the chosen spot or the default spot, and fills short lines in that warehouse.
+2. **Checks:** a product that tracks dates or lots refuses a receipt without them; fewer days left than `min_days_on_receipt` is received quarantined ("short-dated receipt") until a manager accepts or refuses it; a box barcode adds its units ([ADR-003 SPEC 7](../../product-model/spec/#7-box-and-pallet-sizes)); warehouse users never see costs.
+3. **Put-away is a move** (`transferred` between spots). Nobody confirms put-away before stock goes on sale.
+4. **Without a purchase order:** a manager receives directly, with a reason from a short list (supplier extra, sample, opening stock, found, other with a note), sellable at once. A Warehouse user's receipt enters quarantined until a manager accepts it, at launch too, while every receipt is without a purchase order (owner ruling, 21 October 2026). A manager accepts (`inspected`) or refuses (write-off or return to supplier). Cost may be blank; reports then use the product's standard cost and say so. Each such receipt is in the activity view and a reconciliation report.
+5. *Later (Purchasing):* **against a purchase order,** each delivery is its own batch; fewer than ordered leave the rest incoming until a manager closes the line; more are received as counted and the surplus is shown for a manager. A receipt made without one can be attached to its line later; stock does not move again.
+6. **Cost is not stock.** Changing a landed cost never touches quantities or the ledger.
+
+## 9. Counts and adjustments
+
+1. **Blind.** The counter never sees the expected figure. Home lists the spots counted least recently.
+2. **Against the saved moment.** Each figure stores the ledger sequence when it was saved; the expected figure is the spot's on hand at that sequence.
+3. **The allowance** is the units open pick claims take from that spot for orders not yet packed (section 7.1). A figure between books − allowance and books records nothing, and the spot is checked again once those orders are packed; a re-check unsettled after 24 hours is listed on Home. The allowance never creates stock.
+4. **A shortfall beyond the allowance is quarantined at once** ("counted short"). It comes from free units first; when it reaches reserved units, unpacked order reservations give way, newest order first, moving to another qualifying batch or leaving the line short. Approval writes them off; a recount that finds them releases them.
+5. **A surplus** goes to the counted batch, or the spot's latest batch, as `counted` on approval. A unit the books hold in another spot of the same batch is a move, not a surplus.
+6. **All or none:** approval writes every entry in one transaction; approving again returns the first answer. A count holds at most 2,000 lines.
+7. **Orders dispatched without packing in Vervoro:** their reserved units in the spot count in the allowance while the order is picking or packed; a shortfall reaching them waits for a recount after dispatch or a manager who confirms the units are gone.
+8. **Adjustments** (a manager, typed reason, one spot balance) never take a batch below its reserved plus held, and never take units from a reservation; a real loss there is a count.
+
+## 10. Lot trace and recalls
+
+1. **One search by lot** returns every demand that received a batch of that lot (bundles included), the lines marked "batch assumed" that may have received it (apart), the stock of that lot on hand per warehouse, and archived months read from the archive ([ADR-002](../../data-retention/)). Entries marked "lot not traced" are listed as unknown.
+2. **The recall list** joins those demands with order details; it is a Fulfilment screen ([ADR-014 SPEC 7](../../fulfilment/spec/#7-the-recall-list)). A manager blocks the lot from it at once.
+3. Procedure: [Run a recall](../../runbooks/run-a-recall/).
+
+## 11. Negative stock
+
+1. **Database checks.** Spot balance: on hand ≥ 0, quarantined ≥ 0, damaged ≥ 0, quarantined + damaged ≤ on hand. Batch position: reserved ≥ 0, reserved + quarantined + damaged ≤ on hand. Reservation: packed ≤ reserved, dispatched ≤ packed.
+2. A command plans its change; the checks are the last line. A breach fails the transaction and returns a typed refusal ("would go negative") naming product, batch and spot. Nothing is clamped. A refusal means a bug and alerts the operator ([runbook](../../runbooks/a-stock-change-refused-as-negative/)).
+3. Fewer units than the books say is a count; a unit where the books have none is a move or a find (section 7.8).
+
+## 12. The lock, keys and the sequence
+
+1. **The company's lock is the first statement** of every stock command: the update of the company's stock counter row, which also returns the next ledger number ([ADR-001 SPEC 2](../../database-architecture/spec/#2-keys-and-identifiers)). Held until commit.
+2. **Short transactions:** about eight round trips for an order import, counted by a test. Statements work on sets of rows, so a 2,000-line count or a 500-link chunk takes a few round trips. No outside call runs inside a stock transaction ([ADR-000 SPEC 10](../../system-architecture/spec/#10-runtime)).
+3. **Revisit thresholds.** Every stock command records its time and its lock wait. The decision is revisited by a new record when, for the busiest company, either the p95 command time or the p95 share spent waiting passes its threshold for 7 days running. Both numbers come from the load test before launch.
+4. **Keys.** `stock_command` holds each key with its answer and ledger sequence, unique per company and key; a repeat finds it under the lock and returns the answer.
+
+| Command | Key |
+| --- | --- |
+| Import an order | The marketplace's order id on that account; an older state changes nothing ([ADR-007](../../order-ingestion/)) |
+| Pack, confirm a shipment | The packing id, the shipment id |
+| Receive | The receipt line id |
+| Save a count figure, approve a count | The count line, the count id |
+| Receive or inspect a return | The return line and the receipt or inspection id |
+| Any person's action | A key the client makes for the tap, kept across retries |
+
+5. **The ledger sequence** is gapless and in commit order. Stock sync records the sequence each figure came from (section 13).
+
+## 13. Telling Stock sync
+
+Inventory never writes a listing's figure. The rule is [ADR-008 SPEC 1](../../inventory-sync/spec/#1-the-figure-per-listing) (owner ruling, 21 October 2026, [ADR-000 SPEC 4.6](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)).
+
+1. **Every stock command that changes sellable** writes, in its own transaction, an outbox note naming the company, the products whose sellable changed (and so the bundles that use them) and the ledger sequence.
+2. **Inventory's read port** gives Stock sync a product's sellable per warehouse with the last ledger sequence that changed it.
+
+| Change | Sellable | Note |
+| --- | --- | --- |
+| Receipt into sellable stock; a quarantined receipt accepted | Up | Yes |
+| Receipt received quarantined | No | No |
+| Reserve, release, cancellation, short line filled | Down or up | Yes |
+| Packing, put-back, a move between spots of one warehouse | No | No |
+| Shipment confirmed; handover to a marketplace's warehouse | No: on hand and reserved fall together | No |
+| Return received / restocked | No / up | No / yes |
+| Count shortfall, approval, surplus; adjustment of free units | Down or up | Yes |
+| Units damaged, quarantined, "not found", restored | Down or up | Yes |
+| A batch crosses its sell-by date; a lot blocked or unblocked | Down or up | Yes |
+| Transfer sent or received | Down at the source, up at the destination | Yes |
+| Repack or assembly | Down for inputs, up for the output | Yes |
+
+Link changes reach Stock sync from Listings, and a bundle's new components from Products, by their own events.
+
+## 14. The nightly check and checkpoints
+
+The sweeper runs it per company, outside the lock, on a consistent snapshot ([ADR-001 SPEC 9](../../database-architecture/spec/#9-background-work-and-the-outbox)):
+
+1. Every spot balance and batch position equals the latest checkpoint plus the entries after it.
+2. Every batch position's reserved equals its open reservations, and each reservation equals its `reserved`, `released` and `dispatched` entries.
+3. The sequence has no gaps since the last check.
+4. No open reservation remains on a cancelled, fully shipped or re-resolved line.
+5. Per day, units on shipped lines equal their `dispatched` entries (× units per sale of the link version), and received return lines equal their `returned` entries; one grouped query per kind.
+6. Each open order's status, worked out again, equals the stored one ([ADR-007](../../order-ingestion/)); a difference here alerts the operator only.
+
+A difference in 1–5 alerts the operator and the company's managers, and Stock sync holds raises on every listing of the affected products while decreases go ([ADR-008 SPEC 7](../../inventory-sync/spec/#7-held-raises)). The operator rebuilds the balance from the ledger: [Settle a stock check difference](../../runbooks/settle-a-stock-check-difference/). The operator never writes a seller's ledger.
+
+**Checkpoints** ([ADR-002](../../data-retention/)): before a ledger month leaves the database, the archiver writes under the lock one `opening_balance` per spot balance and batch position with entries up to then, carrying each total and the last sequence covered, and each open reservation's totals. Open reservations are never archived.
+
+## 15. Storage
+
+Every table is Inventory's, a tenant table with the `stock_` prefix, declared through `tenantTable()` and queried through the typed query builder ([ADR-001 SPEC 5](../../database-architecture/spec/#5-declaring-tables)). No foreign key crosses modules.
+
+| Table | Holds |
+| --- | --- |
+| `stock_warehouse`, `stock_spot` | Warehouses with their default spot; spots and their kind |
+| `stock_batch` | Product, lot, date and kind, received at, supplier, units per box, landed unit cost and currency, blocked, input batches of an assembly |
+| `stock_balance`, `stock_position` | Spot balances and batch positions, written only by the trigger |
+| `stock_ledger` | Every entry; append-only; by month |
+| `stock_reservation` | Written only by the trigger |
+| `stock_pick_claim` | Spot claims of open pick tasks (section 7.1); a plan, not stock |
+| `stock_command` | Keys and answers |
+| `stock_receipt`, `stock_count`, `stock_count_line`, `stock_transfer` | Receipts, counts and transfers with their state |
+| `stock_marketplace_reading` | The marketplace's own-warehouse figure per product and account |
+
+The date kind and `min_days_to_sell` are on the product ([ADR-003](../../product-model/)). Schema changes expand, then contract ([ADR-000 SPEC 11](../../system-architecture/spec/#11-deploying)).
+
+## 16. Who may do what
+
+Roles are [ADR-010's](../../users-and-access/spec/#4-who-may-do-what). A person limited to some warehouses acts only on their stock.
+
+| Action | Warehouse | Manager, Admin, Owner |
+| --- | --- | --- |
+| Receive (without a purchase order: quarantined), move, repack, count, mark damaged or quarantined | Yes | Yes |
+| Approve a count; confirm reserved units gone | No | Yes |
+| Adjust, write off, restore damaged units (reason required) | No | Yes |
+| Accept or refuse a quarantined receipt; receive without a purchase order directly | No | Yes |
+| Block or unblock a lot; pin a batch; resolve a line again | No | Yes |
+| Assemble; send an expired best-before batch on a manual order | No | Yes |
+
+Floor actions (pick, pack, ship, inspect a return) are [ADR-014 SPEC 8](../../fulfilment/spec/#8-who-may-do-what).
+
+## 17. Constraints
+
+| Constraint | What it means here | Source |
+| --- | --- | --- |
+| Use-by and best-before (UK) | Selling food past use-by is an offence; past best-before it may be sold if still of good quality | [Business Companion: date and lot marking](https://www.businesscompanion.info/en/quick-guides/food-and-drink/date-and-lot-marking-of-prepacked-food) |
+| Lot marking (UK) | Most prepacked food carries a lot mark; a day-and-month date can serve as one | Food (Lot Marking) Regulations 1996, same page |
+| Traceability | A food business names who supplied it and whom it supplied, on demand | [Retained Regulation 178/2002, Article 18](https://www.legislation.gov.uk/eur/2002/178/article/18) |
+| Amazon's warehouses (*Later*) | Food must be lot-controlled with more than 90 days of shelf life at check-in | [Amazon: expiration dates on FBA products](https://sellercentral.amazon.com/gp/help/external/201003420) |
+
+## 18. Tests that prove each rule
+
+Database tests run on real Postgres under the runtime role ([ADR-000 SPEC 15](../../system-architecture/spec/#15-testing-and-verification)); batch choice and the four numbers are also pure unit tests.
+
+| Test | Proves |
+| --- | --- |
+| Checks | No balance number goes negative; reserved + held never exceeds on hand; a breach returns "would go negative" and writes nothing |
+| Append-only | The runtime role cannot update, delete or truncate the ledger, nor write balances, positions or reservations |
+| Kinds | An entry whose numbers do not fit its kind is refused, one case per kind |
+| Nightly check | Holds after every test; a hand-broken balance, gap or open reservation on a closed line is found |
+| Last unit | Two orders for the last unit, concurrently on real Postgres: exactly one reserves it |
+| Repeats | The same command twice moves stock once, one test per command |
+| Batch choice | Earliest sell-by first; expired, short-dated, blocked and damaged units never reserved; use-by never leaves on or after its date, by every route |
+| Shortage | A short line reserves what exists; a receipt fills short lines by ship-by time |
+| Bundles | Whole sets only; a component edit does not change an open line |
+| Moves | A move between spots never changes a reservation |
+| Counts | A count during picking writes off nothing in the allowance and never creates stock; a shortfall beyond it leaves sale at once |
+| Links | A link change never changes an open line; linking reserves waiting lines oldest first after the link commits |
+| Notes | Every command that changes sellable writes one outbox note with its sequence; one that does not, writes none |
+| Lock | Every stock command's first statement takes the company's lock; an order import takes about eight round trips |
+| Batch assumed | At most 1 % of lines on the simulated reference seller's day |
+
+## How to check it was built right
+
+For someone reviewing code an AI wrote. Each line says where to look.
+
+- [ ] **Writers:** only Inventory's code inserts into `stock_*` tables; other modules call its ports (search them for `stock_`).
+- [ ] **Trigger:** one trigger on the ledger writes balances, positions and reservations; the runtime role has no write grant on them.
+- [ ] **No SQL:** apart from the trigger's migration, every query uses the typed query builder; no `sql` or `raw` import in the module.
+- [ ] **Lock first:** each stock command opens with the counter-row update; the lock test lists every command.
+- [ ] **Keys:** every command takes a key and checks `stock_command` under the lock before planning.
+- [ ] **No figure:** nothing in Inventory reads links or writes a listing's figure; the note carries products and the sequence only.
+- [ ] **Batch choice:** one function used by import, link, date pass, pin and count moves; it filters by the demand's shelf life.
+- [ ] **Use-by:** the check sits in batch choice, pack and dispatch, with no override parameter.
+- [ ] **No clamp:** no `max(0, …)` or similar on a stored number; a refusal is a typed `Result`.
+- [ ] **No outside call** inside a stock transaction (search the module for connector or HTTP imports).
+- [ ] **Counts:** the expected figure is read at the saved sequence; the allowance reads `stock_pick_claim`.
+- [ ] **Later parts:** no `transferred_out` path, Vendor demand, purchase-order receipt or serial field at launch.

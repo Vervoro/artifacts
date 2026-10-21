@@ -18,7 +18,8 @@ ADR-000  System architecture: modules, the foundation, outbox, egress gate, simu
 │
 ├── Products and stock
 │   ├── ADR-003  Product model: SKU, packs, bundles, VAT class, charge lines
-│   └── ADR-006  Stock ledger and reservations
+│   ├── ADR-006  Stock ledger and reservations: the Inventory module
+│   └── ADR-014  Fulfilment: picking, packing, shipments, returns
 │
 ├── Marketplaces
 │   ├── ADR-004  Channel connectors: the contract, the host, shadow mode
@@ -28,7 +29,7 @@ ADR-000  System architecture: modules, the foundation, outbox, egress gate, simu
 │   │   └── ADR-004.4  Amazon Vendor (planned)
 │   ├── ADR-005  Catalogue sync and linking
 │   ├── ADR-007  Order ingestion
-│   └── ADR-008  Inventory sync
+│   └── ADR-008  Inventory sync: the Stock sync module
 │
 └── Money
     ├── ADR-011  Invoicing and VAT (the seller's own invoices)
@@ -47,7 +48,7 @@ Each record is split into up to three documents, so that a person can review the
 | **SPEC** | The developer and coding agents, to build from | Numbered rule sets, tables and state lists, platform constraints with sources, the tests that prove each rule, and a checklist for reviewing the code |
 | **RUNBOOK** | The operator, to carry out | One page per procedure under [runbooks](../runbooks/): who runs it, with which role, numbered steps, how to verify, what to do if it stops halfway |
 
-The ADR decides, the SPEC says exactly how, and a runbook carries it out. When they disagree, the ADR wins. [ADR-000](../system-architecture/), [ADR-001](../database-architecture/), [ADR-003](../product-model/), [ADR-010](../users-and-access/) and [ADR-013](../sign-in/) are in this form; the others follow one at a time. The rules every change must keep are in the [engineering rulebook](../rulebook/).
+The ADR decides, the SPEC says exactly how, and a runbook carries it out. When they disagree, the ADR wins. [ADR-000](../system-architecture/), [ADR-001](../database-architecture/), [ADR-003](../product-model/), [ADR-006](../stock-ledger/), [ADR-008](../inventory-sync/), [ADR-010](../users-and-access/), [ADR-013](../sign-in/) and [ADR-014](../fulfilment/) are in this form; the others follow one at a time. The rules every change must keep are in the [engineering rulebook](../rulebook/).
 
 ## Status of a record
 
@@ -96,7 +97,7 @@ One word per concept. Where two words appear in the records, the table says whet
 | **Module** | A feature inside the main application deployable (the sign-in Worker, deployed separately, holds no module). It owns its tables and talks to others only through typed ports and events (ADR-000) |
 | **Library** | A package of shared code with no tables, manifest, state or business rule, such as the kernel. Any module may import one (ADR-000) |
 | **Foundation** | The always-on core: Products, Listings, Inventory, Orders, Buyer data and Access, each the only writer of its own data. Inventory alone changes stock (ADR-006); Orders alone changes order status. They share one transaction where they must (ADR-000) |
-| **Always-on module** | A module outside the core that is never switched off, such as Fulfilment. It calls the foundation; the foundation never calls it (ADR-000) |
+| **Always-on module** | A module outside the core that is never switched off, such as Fulfilment ([ADR-014](../fulfilment/)). It calls the foundation; the foundation never calls it (ADR-000) |
 | **Switchable module** | A module a company's plan and settings turn on or off. It calls the foundation; the foundation never calls it (ADR-000) |
 | **Outbox** | Notes written in the same transaction as a change, delivered after commit, each handled once |
 | **Egress gate** | The one door to marketplaces and suppliers. Records every outbound effect with an idempotency key and sends it only after commit (ADR-000 SPEC 7) |

@@ -271,7 +271,7 @@ ADR-006 owns how units are chosen and held. This record decides when, in what or
 6. Set or clear the marketplace holds; set floor stops on a picked or packed order that changed.
 7. Work out the status, write it if it changed, and raise the alarm on an unexpected move.
 8. Write buyer data, and the anonymisation due time when one is known (ADR-009).
-9. Write new desired figures for affected listings, and the outbox event. Commit.
+9. Write the outbox event, with the ledger sequence of the reservations. Commit. Stock sync works out the affected listings' figures after the commit (ADR-008).
 
 **Pending orders reserve too.** A pending order can still become a sale; not holding its units lets another channel sell them. The hold keeps it off the picking list until the marketplace says it can ship. If it is cancelled instead, the units come back.
 
@@ -430,7 +430,7 @@ An unlinked listing is left to the marketplace (ADR-005), but its orders are imp
 
 | Choice | What it does | When to use it |
 | --- | --- | --- |
-| **Link the listing** | Opens ADR-005's link screen. The link reserves for every waiting line of that listing, oldest first, in its own transaction (ADR-006), and the listing starts getting figures | The seller wants Vervoro to manage this listing from now on |
+| **Link the listing** | Opens ADR-005's link screen. As soon as the link commits, Orders reserves for every waiting line of that listing, oldest first, in one transaction (ADR-006), and the listing starts getting figures | The seller wants Vervoro to manage this listing from now on |
 | **Attach this line** | Resolves only this line to a product and units per sale, chosen by the packer holding the item or by a manager. It reserves at once. The listing stays unlinked and gets no figure. The line records `resolved_by` = person | The listing stays with the marketplace, but this parcel ships from the warehouse |
 
 **A waiting line shipped outside Vervoro** reserved nothing, so nothing is deducted. It stays flagged. Attaching it deducts its units at once, earliest sell-by first, as ADR-006 decides. "Not from our stock" closes the flag and moves nothing.

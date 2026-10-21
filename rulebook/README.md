@@ -10,7 +10,7 @@ Load this page with any task. Load the linked record before changing the area it
 | --- | --- |
 | Vervoro never sends a cancellation | [ADR-007 decision 9](../order-ingestion/#decision) |
 | Only Inventory writes stock | [ADR-006 decision 1](../stock-ledger/#decision) |
-| Only Stock sync writes each listing's figure, worked out after the stock commit | [ADR-008: The figure per listing](../inventory-sync/#the-figure-per-listing); until ADR-008's split aligns its wording, the owner's ruling is [ADR-000 SPEC 4.6](../system-architecture/spec/#4-the-foundation-and-the-launch-modules) |
+| Only Stock sync writes each listing's figure, worked out after the stock commit | [ADR-008 decision 1](../inventory-sync/#decision) and [SPEC 1](../inventory-sync/spec/#1-the-figure-per-listing) |
 | An unknown write is settled before anything else is sent | [ADR-004: Retries and outcomes](../channel-connectors/#retries-and-outcomes) |
 | Tenant isolation: the security boundary and defence in depth | [ADR-001 SPEC 1](../database-architecture/spec/#1-tenancy-inside-a-cell) and [SPEC 6](../database-architecture/spec/#6-guard-rails) |
 | Authentication (who) and authorization (what) | [ADR-013 decision 3](../sign-in/#decision) for the split; [ADR-010 SPEC 5](../users-and-access/spec/#5-rules-for-every-action) for what Access decides |
@@ -22,7 +22,7 @@ Load this page with any task. Load the linked record before changing the area it
 ## 1. When in doubt, stop
 
 1. **Never guess when correctness is uncertain.** A wrong company, an unknown write, an incomplete order read or a broken stock rule stops the work, records what is uncertain and settles it. It never carries on with a best guess. [ADR-001](../database-architecture/spec/#1-tenancy-inside-a-cell), [ADR-004](../channel-connectors/#retries-and-outcomes), [ADR-008](../inventory-sync/#decision)
-2. **Cross-company exposure and corrupted stock are the worst failures.** A sign of cross-company exposure pages the operator and closes the database's egress. A stock difference found by the nightly check alerts the operator and holds raises on the affected listings, while decreases still go. [ADR-001](../database-architecture/spec/#6-guard-rails), [ADR-006](../stock-ledger/#the-nightly-check-and-checkpoints)
+2. **Cross-company exposure and corrupted stock are the worst failures.** A sign of cross-company exposure pages the operator and closes the database's egress. A stock difference found by the nightly check alerts the operator and holds raises on the affected listings, while decreases still go. [ADR-001](../database-architecture/spec/#6-guard-rails), [ADR-006](../stock-ledger/spec/#14-the-nightly-check-and-checkpoints)
 
 ## 2. Companies and databases
 
@@ -40,17 +40,17 @@ Load this page with any task. Load the linked record before changing the area it
 ## 3. Modules and the foundation
 
 13. **One main application deployable, plus the separate sign-in Worker; every feature is a module.** The sign-in Worker is kept apart on purpose ([ADR-013](../sign-in/#decision)). A module owns its tables and talks to other modules only through their typed ports and events. [ADR-000](../system-architecture/#decision)
-14. **Only Inventory changes stock, only Orders changes order status, and only Stock sync works out the figure a listing should show.** The foundation is six always-on core modules, each the only writer of its own data; Listings alone changes links. They share one transaction where they must. Stock sync works out a listing's figure from each committed stock change, through the outbox, and never replaces a newer figure with an older one. Other modules call their ports, and calls always point toward the core. [ADR-000](../system-architecture/#decision), [SPEC 4](../system-architecture/spec/#4-the-foundation-and-the-launch-modules)
+14. **Only Inventory changes stock, only Orders changes order status, and only Stock sync works out the figure a listing should show.** The foundation is six always-on core modules, each the only writer of its own data; Listings alone changes links. They share one transaction where they must. Stock sync works out a listing's figure from each committed stock change, through the outbox, and never replaces a newer figure with an older one ([ADR-008](../inventory-sync/spec/#1-the-figure-per-listing) owns this). Other modules call their ports, and calls always point toward the core. [ADR-000](../system-architecture/#decision), [SPEC 4](../system-architecture/spec/#4-the-foundation-and-the-launch-modules)
 15. **Expected failures are typed `Result` values.** No silent catches. [ADR-000](../system-architecture/#decision)
 16. **Events are written with the change.** An outbox note goes in the same transaction, is delivered after commit, and is handled once, with a receipt per handler. [ADR-001](../database-architecture/spec/#9-background-work-and-the-outbox)
 
 ## 4. Stock
 
 17. **Only a ledger insert changes a balance or a reservation.** The ledger is append-only, and every entry has a reason, an actor and a source. [ADR-006](../stock-ledger/#decision)
-18. **Stock never goes below zero and is never quietly set to zero.** Reserved plus held never exceeds on hand. Only sellable ever reaches a listing. [ADR-006](../stock-ledger/#the-four-numbers)
-19. **Every stock command takes the company's lock first and carries a key.** A repeat with the same key returns the first answer and moves nothing. [ADR-006](../stock-ledger/#concurrency-and-repeats)
-20. **An order reserves when it is imported, in the same transaction.** Each reservation names a batch, never a spot. A bundle reserves its components in whole sets. [ADR-006](../stock-ledger/#reserving-on-order)
-21. **Stock leaves only when a shipment is confirmed,** or when the marketplace reports a line shipped outside Vervoro. A cancellation request releases nothing; only a confirmed cancellation does. [ADR-006](../stock-ledger/#deducting-on-dispatch), [ADR-007](../order-ingestion/#decision)
+18. **Stock never goes below zero and is never quietly set to zero.** Reserved plus held never exceeds on hand. Only sellable ever reaches a listing. [ADR-006](../stock-ledger/spec/#3-the-four-numbers)
+19. **Every stock command takes the company's lock first and carries a key.** A repeat with the same key returns the first answer and moves nothing. [ADR-006](../stock-ledger/spec/#12-the-lock-keys-and-the-sequence)
+20. **An order reserves when it is imported, in the same transaction.** Each reservation names a batch, never a spot. A bundle reserves its components in whole sets. [ADR-006](../stock-ledger/spec/#53-reserving-an-order-line)
+21. **Stock leaves only when a shipment is confirmed,** or when the marketplace reports a line shipped outside Vervoro. A cancellation request releases nothing; only a confirmed cancellation does. [ADR-014](../fulfilment/#decision), [ADR-006](../stock-ledger/spec/#7-ports-fulfilment-and-orders-call), [ADR-007](../order-ingestion/#decision)
 22. **A use-by batch is never reserved, packed or dispatched on or after its date,** by any route, with no override. [ADR-006](../stock-ledger/#decision)
 23. **Every quantity is a whole number of base units of one product,** and weights and sizes are stored in whole grams and millimetres. Other units are converted only on entry and display. [ADR-003 SPEC 2.1](../product-model/spec/#21-numbers-and-money), [SPEC 15](../product-model/spec/#15-units-of-measure)
 24. **A charge that is not stock is a charge line, never a product.** It never reserves or moves stock; a marketplace listing that is not stock is marked so, never linked. [ADR-003 SPEC 1.1](../product-model/spec/#11-charge-lines-and-listings-that-are-not-stock)
@@ -58,7 +58,7 @@ Load this page with any task. Load the linked record before changing the area it
 ## 5. Marketplaces
 
 25. **Nothing reaches a marketplace or a supplier except through the egress gate.** Every outbound effect is recorded in the transaction with an idempotency key and sent only after commit. [ADR-000](../system-architecture/spec/#7-the-egress-gate)
-26. **Nothing leaves Vervoro during a database transaction.** No marketplace or other outside call runs inside one, so a company's lock is held only for database work, and Postgres's transaction timeout ends a transaction that runs too long. [ADR-000](../system-architecture/spec/#10-runtime), [ADR-001](../database-architecture/spec/#13-platform-constraints), [ADR-006](../stock-ledger/#concurrency-and-repeats)
+26. **Nothing leaves Vervoro during a database transaction.** No marketplace or other outside call runs inside one, so a company's lock is held only for database work, and Postgres's transaction timeout ends a transaction that runs too long. [ADR-000](../system-architecture/spec/#10-runtime), [ADR-001](../database-architecture/spec/#13-platform-constraints), [ADR-006](../stock-ledger/spec/#12-the-lock-keys-and-the-sequence)
 27. **A connector only translates.** It has no network access, credentials, clock or database. The host owns credentials, HTTP, retries, rate limits and shared allowances. Core code knows marketplace concepts such as listings, links and FBA, but not marketplace protocols. [ADR-004](../channel-connectors/#decision)
 28. **Orders come in by notice.** A notice is a hint: the order is fetched and imported. The scheduled read is only the backup, and only a complete read moves the order watermark. Amazon's notices reach the same path through an AWS bridge. [ADR-004](../channel-connectors/#decision), [ADR-007](../order-ingestion/#decision)
 29. **Each marketplace order is imported once,** keyed by account and marketplace order id. A fetch older than the stored one changes nothing. An order that cannot be imported becomes a problem row; it is never dropped. [ADR-007](../order-ingestion/#decision)

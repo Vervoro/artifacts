@@ -137,15 +137,15 @@ Every change to a product, its barcodes, components or box sizes writes an activ
 
 1. `pack_of` names one simple product; `units_per_pack` is 2–10,000. A pack of packs is refused: a case of four six-packs is a box size.
 2. **Stock is separate.** A six-pack sale uses six-pack stock, never singles.
-3. **Repacking** opens packs into singles or makes packs from singles. It takes one number, the packs opened or made, and the other side follows from `units_per_pack`, so base units never change. Both ledger entries are one transaction, and the new stock keeps the batch, dates, lot and landed cost per unit ([ADR-006](../../stock-ledger/#packs-and-bundles)).
-4. **Assembly** of a product sealed from several others (a gift set Amazon needs as one labelled unit) makes a simple product of its own, through a manager's job that states every input ([ADR-006](../../stock-ledger/#packs-and-bundles)).
+3. **Repacking** opens packs into singles or makes packs from singles. It takes one number, the packs opened or made, and the other side follows from `units_per_pack`, so base units never change. Both ledger entries are one transaction, and the new stock keeps the batch, dates, lot and landed cost per unit ([ADR-006](../../stock-ledger/spec/#6-what-a-line-reserves)).
+4. **Assembly** of a product sealed from several others (a gift set Amazon needs as one labelled unit) makes a simple product of its own, through a manager's job that states every input ([ADR-006](../../stock-ledger/spec/#6-what-a-line-reserves)).
 5. Six singles shipped loose in one parcel are a listing with six units per sale, not a pack. A pack exists only when a sealed pack sits on the shelf.
 
 ### 6.3 Bundle
 
 1. **Components:** 1–20, each a simple product or a pack with a whole quantity of 1–1,000, and at least 2 units in all. Three of one product and nothing else is refused, with a pointer to units per sale = 3.
 2. **Sellable is worked out, never stored:** for each component, its sellable divided by the quantity needed, rounded down; the bundle's is the smallest.
-3. **A sale reserves whole sets of components,** in the same transaction; dispatch deducts the components ([ADR-006](../../stock-ledger/#packs-and-bundles)). Each component reserves its own earliest qualifying batch, and the line records each component's lot.
+3. **A sale reserves whole sets of components,** in the same transaction; dispatch deducts the components ([ADR-006](../../stock-ledger/spec/#6-what-a-line-reserves)). Each component reserves its own earliest qualifying batch, and the line records each component's lot.
 4. **Components still sell on their own,** from the same stock. When a component's sellable changes, every bundle using it and every listing linked to those bundles gets a new figure.
 5. **Changing the components** applies to orders received afterwards. An open order keeps the components it was reserved with, recorded on its line.
 6. **Cost** is the sum of the components' standard costs, worked out when read. **Weight and size** are entered for the packed bundle.
@@ -229,7 +229,7 @@ Listings and how they are read and matched are [ADR-005](../../catalogue-sync/).
 
 ## 12. Best-before, lot and serial numbers
 
-Batches, dates and lots live on stock ([ADR-006](../../stock-ledger/#the-four-numbers)); the product says only that they are required. The food-law constraints are ADR-006's.
+Batches, dates and lots live on stock ([ADR-006](../../stock-ledger/spec/#4-dates-blocks-and-the-date-pass)); the product says only that they are required. The food-law constraints are ADR-006's.
 
 1. **`tracks_best_before` on:** no stock enters (receiving, a count that finds stock, a return) without a date. Expired stock is never sellable or reserved. Stock with fewer than `min_days_to_sell` days left is held back from sale but stays on hand. Stock arriving with fewer than `min_days_on_receipt` days left needs a manager to accept it.
 2. **`date_kind = use_by`** is a hard stop: `min_days_to_sell` is required and at least 1 plus the company's delivery days, and a use-by batch is never reserved, packed or dispatched on or after its date ([ADR-006](../../stock-ledger/#decision)).
