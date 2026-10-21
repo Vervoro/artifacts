@@ -137,7 +137,7 @@ The rules to build ADR-011 from: the Invoicing module, switchable, needing Order
 
 1. **Made once.** Issuing writes the PDF and a data file (the record as JSON) to object storage under keys never overwritten, encrypted under the company's key, with each file's hash on the record. A download always returns the same file.
 2. **Delivery is by the seller.** The roles allowed ([section 13](#13-who-may-do-what)) download through a link that expires after 24 hours; each download is logged ([ADR-009](../../buyer-data/spec/#7-who-can-see-it)).
-3. **Kept as accounting records:** 24 months in the cell, then archived with their month, deleted 7 years after its end ([ADR-002](../../data-retention/)). After the order is anonymised, a full invoice is visible only as [ADR-009 SPEC 9](../../buyer-data/spec/#9-invoices-and-export-evidence) says; an erasure request keeps it, with the reason recorded.
+3. **Kept as accounting records:** 24 months in the cell, then archived with their month, deleted 7 years after its end ([ADR-002 SPEC 2](../../data-retention/spec/#2-the-retention-schedule)). After the order is anonymised, a full invoice is visible only as [ADR-009 SPEC 9](../../buyer-data/spec/#9-invoices-and-export-evidence) says; an erasure request keeps it, with the reason recorded.
 
 ## 11. Sales outside the UK and export evidence
 

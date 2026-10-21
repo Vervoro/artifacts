@@ -387,7 +387,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ol>
 <li><strong>Made once.</strong> Issuing writes the PDF and a data file (the record as JSON) to object storage under keys never overwritten, encrypted under the company&#39;s key, with each file&#39;s hash on the record. A download always returns the same file.</li>
 <li><strong>Delivery is by the seller.</strong> The roles allowed (<a href="#13-who-may-do-what">section 13</a>) download through a link that expires after 24 hours; each download is logged (<a href="../../buyer-data/spec/#7-who-can-see-it">ADR-009</a>).</li>
-<li><strong>Kept as accounting records:</strong> 24 months in the cell, then archived with their month, deleted 7 years after its end (<a href="../../data-retention/">ADR-002</a>). After the order is anonymised, a full invoice is visible only as <a href="../../buyer-data/spec/#9-invoices-and-export-evidence">ADR-009 SPEC 9</a> says; an erasure request keeps it, with the reason recorded.</li>
+<li><strong>Kept as accounting records:</strong> 24 months in the cell, then archived with their month, deleted 7 years after its end (<a href="../../data-retention/spec/#2-the-retention-schedule">ADR-002 SPEC 2</a>). After the order is anonymised, a full invoice is visible only as <a href="../../buyer-data/spec/#9-invoices-and-export-evidence">ADR-009 SPEC 9</a> says; an erasure request keeps it, with the reason recorded.</li>
 </ol>
 <h2 id="11-sales-outside-the-uk-and-export-evidence">11. Sales outside the UK and export evidence</h2>
 <ol>
