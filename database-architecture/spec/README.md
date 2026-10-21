@@ -217,7 +217,7 @@ Control is its own database on its own compute. A cell credential can never read
 1. **People:** a session check needs control ([ADR-013 SPEC 1](../../sign-in/spec/#1-better-auth-and-what-is-switched-on), cookie cache off), so screens say Vervoro is unavailable. A tap that got no answer shows "not sure" ([ADR-000 SPEC 12](../../system-architecture/spec/#12-the-client)).
 2. **Background work and sends:** a job that needs control waits and retries. Nothing is sent to a marketplace, a decrease included, without its pool token and the sync epoch read from control. Inbound notices wait in the inbound queue; any that reach the dead-letter queue are replayed ([Replay dead letters](../../runbooks/replay-dead-letters/)).
 3. **Nothing is trusted from a cache** in its place: no session, pool count or epoch. A stale route is still harmless (rule 2 above).
-4. **Paging:** control unreachable for 2 minutes pages the operator (*proposed*, until shadow measures how often it blips).
+4. **Paging:** control unreachable for 5 minutes pages the operator (owner ruling, 21 October 2026). Procedure: [Control database unreachable](../../runbooks/control-database-unreachable/).
 5. **Recovered** when sign-in works, every account's order watermark has caught up, the dead-letter queue is empty, and every `unknown` write is settled before new sends ([ADR-004 SPEC 5](../../channel-connectors/spec/#5-retries-and-outcomes)).
 
 ## 8. Adding companies and databases

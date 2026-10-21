@@ -18,6 +18,7 @@ Architecture decisions and plans, published with GitHub Pages.
   - [Runbook: Restore a whole cell](runbooks/restore-a-whole-cell/README.md)
   - [Runbook: Drills](runbooks/drills/README.md)
   - [Runbook: Use the owner role](runbooks/use-the-owner-role/README.md)
+  - [Runbook: Control database unreachable](runbooks/control-database-unreachable/README.md)
   - [Runbook: Check an archive month](runbooks/check-an-archive-month/README.md)
   - [Runbook: Change a VAT rate](runbooks/change-a-vat-rate/README.md)
   - [Runbook: Open an operator grant](runbooks/open-an-operator-grant/README.md)

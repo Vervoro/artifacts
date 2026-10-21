@@ -544,7 +544,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>People:</strong> a session check needs control (<a href="../../sign-in/spec/#1-better-auth-and-what-is-switched-on">ADR-013 SPEC 1</a>, cookie cache off), so screens say Vervoro is unavailable. A tap that got no answer shows &quot;not sure&quot; (<a href="../../system-architecture/spec/#12-the-client">ADR-000 SPEC 12</a>).</li>
 <li><strong>Background work and sends:</strong> a job that needs control waits and retries. Nothing is sent to a marketplace, a decrease included, without its pool token and the sync epoch read from control. Inbound notices wait in the inbound queue; any that reach the dead-letter queue are replayed (<a href="../../runbooks/replay-dead-letters/">Replay dead letters</a>).</li>
 <li><strong>Nothing is trusted from a cache</strong> in its place: no session, pool count or epoch. A stale route is still harmless (rule 2 above).</li>
-<li><strong>Paging:</strong> control unreachable for 2 minutes pages the operator (<em>proposed</em>, until shadow measures how often it blips).</li>
+<li><strong>Paging:</strong> control unreachable for 5 minutes pages the operator (owner ruling, 21 October 2026). Procedure: <a href="../../runbooks/control-database-unreachable/">Control database unreachable</a>.</li>
 <li><strong>Recovered</strong> when sign-in works, every account&#39;s order watermark has caught up, the dead-letter queue is empty, and every <code>unknown</code> write is settled before new sends (<a href="../../channel-connectors/spec/#5-retries-and-outcomes">ADR-004 SPEC 5</a>).</li>
 </ol>
 <h2 id="8-adding-companies-and-databases">8. Adding companies and databases</h2>

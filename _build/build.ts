@@ -111,6 +111,7 @@ const docs: Doc[] = [
     ["restore-a-whole-cell", "Restore a whole cell"],
     ["drills", "Drills"],
     ["use-the-owner-role", "Use the owner role"],
+    ["control-database-unreachable", "Control database unreachable"],
     ["check-an-archive-month", "Check an archive month"],
     ["change-a-vat-rate", "Change a VAT rate"],
     ["open-an-operator-grant", "Open an operator grant"],

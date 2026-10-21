@@ -26,6 +26,7 @@ Rules: [ADR-001 SPEC](../database-architecture/spec/).
 | [Restore a whole cell](restore-a-whole-cell/) | A cell is lost |
 | [Drills](drills/) | Weekly, monthly and nightly, unattended |
 | [Use the owner role](use-the-owner-role/) | An emergency that no other role can fix |
+| [Control database unreachable](control-database-unreachable/) | Control has been unreachable for 5 minutes |
 
 ## ADR-002: Data retention and archiving
 

@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Runbook: Control database unreachable</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono&display=swap">
+<style>
+:root {
+  --bg: #f6f6f8; --surface: #ffffff; --sunken: #ededf1; --text: #16161a; --muted: #5c5c66; --border: #e0e0e6;
+  --accent: #4338ca; --accent-soft: #eef0ff; --edge: #8a8a96; --tint: #f0f0f4;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #111114; --surface: #1a1a1f; --sunken: #23232a; --text: #ececf1; --muted: #a2a2ad; --border: #2d2d35;
+  --accent: #a5b4fc; --accent-soft: #23264a; --edge: #74747f; --tint: #202027; color-scheme: dark; } }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 var(--sans); }
+main { max-width: 860px; margin: 0 auto; padding: 48px max(20px, env(safe-area-inset-left)) 80px; }
+header.site { max-width: 860px; margin: 0 auto; padding: 20px max(20px, env(safe-area-inset-left)) 0; font-size: 14px; }
+header.site a { color: var(--muted); text-decoration: none; }
+header.site a:hover { color: var(--accent); }
+h1, h2, h3 { line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(28px, 4vw, 38px); letter-spacing: -0.02em; margin: 0 0 20px; }
+h2 { font-size: 23px; margin: 48px 0 12px; padding-top: 20px; border-top: 1px solid var(--border); }
+h3 { font-size: 18px; margin: 32px 0 8px; }
+p, li { max-width: 72ch; }
+a { color: var(--accent); }
+code { font-family: var(--mono); font-size: 0.86em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--sunken); padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 13.5px; line-height: 1.5; }
+pre code { background: none; padding: 0; overflow-wrap: normal; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 16px 0; background: var(--surface); }
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+.table-wrap table { margin: 0; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+th { background: var(--sunken); font-weight: 600; font-size: 13px; color: var(--muted); }
+tr:last-child td { border-bottom: none; }
+ul, ol { padding-left: 22px; }
+li + li { margin-top: 4px; }
+figure { margin: 20px 0; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; }
+svg.diagram { display: block; width: 100%; min-width: 640px; height: auto; font-family: var(--sans); }
+svg .ink { fill: var(--text); } svg .quiet { fill: var(--muted); }
+svg .edge { stroke: var(--edge); } svg .edge-fill { fill: var(--edge); }
+svg .accent { stroke: var(--accent); } svg .accent-fill { fill: var(--accent); }
+svg .box { fill: none; stroke: var(--edge); stroke-width: 1.25; }
+svg .box-main { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+svg .band { fill: var(--tint); stroke: var(--edge); stroke-width: 1.25; }
+.cards { list-style: none; padding: 0; display: grid; gap: 12px; }
+.cards a { display: block; padding: 18px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; text-decoration: none; color: var(--text); }
+.cards a:hover, .cards a:focus-visible { border-color: var(--accent); outline: none; }
+.cards.sub { margin: 12px 0 0 24px; padding-left: 16px; border-left: 2px solid var(--border); }
+.parts { margin: 6px 0 0 20px; font-size: 14px; color: var(--muted); } .cards .parts a { display: inline; padding: 0; background: none; border: none; border-radius: 0; color: var(--accent); font-weight: 600; text-decoration: none; } .cards .parts a:hover { text-decoration: underline; }
+.cards b { display: block; font-size: 17px; } .cards span { color: var(--muted); font-size: 14px; }
+.order li { margin-top: 10px; } .order span { color: var(--muted); font-size: 14px; }
+footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header class="site"><a href="../../">← Vervoro artifacts</a> / <a href="../">Runbooks</a></header>
+<main>
+<h1 id="runbook-control-database-unreachable">Runbook: Control database unreachable</h1>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Built</strong></td>
+<td>At launch</td>
+</tr>
+<tr>
+<td><strong>Record</strong></td>
+<td><a href="../../database-architecture/">ADR-001</a>, rules in <a href="../../database-architecture/spec/#7-control-database-and-routing">SPEC 7</a></td>
+</tr>
+<tr>
+<td><strong>Who runs it</strong></td>
+<td>The operator, when control has been unreachable for 5 minutes and the page fires</td>
+</tr>
+<tr>
+<td><strong>Role or credential</strong></td>
+<td>The database provider&#39;s console and the Cloudflare dashboard. The operator console needs sign-in, which needs control, so it is not available until control answers</td>
+</tr>
+</tbody></table></div>
+<p>While control is down, nobody can sign in, and no send goes to a marketplace, decreases included. Jobs wait and retry, and inbound notices wait in the queue. This procedure confirms the cause, leaves the waiting alone, and checks recovery. It covers control being unreachable, not control&#39;s data being lost.</p>
+<h2 id="steps">Steps</h2>
+<ol>
+<li><strong>Confirm it is control.</strong> Sign-in fails for every company while the cells answer their own health checks. If one cell is down instead, this is not the procedure.</li>
+<li><strong>Check for a deploy.</strong> If a deploy or a migration on control has just run, follow <a href="../deploy-and-roll-back/">Deploy and roll back</a>: roll the Workers back, and never roll back a migration.</li>
+<li><strong>Check the database provider&#39;s status page</strong> and control&#39;s compute in its console. If the provider has an incident, wait for it to clear, and note the start time and the cause.</li>
+<li><strong>Do not work around control.</strong> Do not send figures by hand, take any session, pool count or epoch from a cache, or point the Workers at another database (<a href="../../database-architecture/spec/#7-control-database-and-routing">SPEC 7</a>, &quot;When control is unreachable&quot;, rule 3).</li>
+<li><strong>When control answers,</strong> jobs resume on their own. Check that sign-in works first.</li>
+<li><strong>Notices:</strong> any that reached the dead-letter queue are replayed through <a href="../replay-dead-letters/">Replay dead letters</a>.</li>
+<li><strong>Orders:</strong> ask for an on-demand completeness check on every account, as in <a href="../handle-a-marketplace-outage/">Handle a marketplace outage</a>, step 6. An account still behind after its normal interval goes to <a href="../order-ingestion-stalled/">Order ingestion stalled</a>.</li>
+<li><strong>Sends:</strong> <code>unknown</code> writes are settled before any new send, as on release from a marketplace outage (<a href="../handle-a-marketplace-outage/">Handle a marketplace outage</a>, step 7). Do nothing by hand.</li>
+</ol>
+<h2 id="verify">Verify</h2>
+<ul>
+<li>Sign-in works, and the control page has cleared.</li>
+<li>Every account&#39;s order watermark is within its normal interval of now.</li>
+<li>The dead-letter queue is empty.</li>
+<li>No <code>unknown</code> write is left unsettled, and the send log shows decreases first.</li>
+</ul>
+<h2 id="if-it-stops-halfway">If it stops halfway</h2>
+<p>Every step is safe to repeat. If control drops again during recovery, start again from step 1; the jobs that already finished are not redone. If control&#39;s data is lost or corrupt rather than unreachable, stop: this procedure does not cover a restore of control.</p>
+
+<footer>Vervoro</footer>
+</main>
+</body>
+</html>
