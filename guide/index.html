@@ -64,36 +64,36 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h1 id="architecture-map-and-glossary">Architecture map and glossary</h1>
 <p>How the records fit together, what their shared words mean, and how far each one has got. When this page and a record disagree, the record wins.</p>
 <h2 id="map">Map</h2>
-<pre><code class="language-text">ADR-000  System architecture: modules, the foundation, outbox, egress gate, simulators
+<p>The records follow <a href="../system-architecture/spec/#4-the-foundation-and-the-launch-modules">ADR-000&#39;s module map</a>: the platform under every module, the six core modules, the always-on modules outside the core, and the switchable modules.</p>
+<pre><code class="language-text">ADR-000  System architecture: modules and the module map, the outbox, the egress gate, simulators
 │
-├── Data and isolation
-│   ├── ADR-001  Multi-tenant database: control database, cells, forced RLS, routing
+├── Platform (no module of its own)
+│   ├── ADR-001  Multi-tenant database: control and cells, forced row-level security, routing
 │   ├── ADR-002  Data retention and archiving
-│   └── ADR-009  Buyer data and privacy
-│
-├── People and access
-│   ├── ADR-010  Users, roles and access
 │   └── ADR-013  Sign-in: the sign-in Worker running Better Auth, passkeys, sessions, recovery
 │
-├── Products and stock
-│   ├── ADR-003  Product model: SKU, packs, bundles, VAT class, charge lines
-│   ├── ADR-006  Stock ledger and reservations: the Inventory module
-│   └── ADR-014  Fulfilment: picking, packing, shipments, returns
+├── Core modules: the foundation, always on, each the only writer of its own data
+│   ├── ADR-003  Products: SKU, packs, bundles, VAT class, charge lines
+│   ├── ADR-005  Listings: catalogue sync and versioned links
+│   ├── ADR-006  Inventory: the stock ledger and reservations
+│   ├── ADR-007  Orders: order ingestion
+│   ├── ADR-009  Buyer data and privacy
+│   └── ADR-010  Access: users, roles and permissions
 │
-├── Marketplaces
-│   ├── ADR-004  Channel connectors: the contract, the host, shadow mode
-│   │   ├── ADR-004.1  eBay
-│   │   ├── ADR-004.2  Amazon Seller
-│   │   ├── ADR-004.3  Shopify (Later)
-│   │   └── ADR-004.4  Amazon Vendor (planned)
-│   ├── ADR-005  Catalogue sync and linking
-│   ├── ADR-007  Order ingestion: the Orders module
-│   └── ADR-008  Inventory sync: the Stock sync module
+├── Always-on modules, outside the core
+│   ├── ADR-014  Fulfilment: picking, packing, shipments, returns
+│   └── ADR-012  Billing and plans (Vervoro charging the seller)
 │
-└── Money
-    ├── ADR-011  Invoicing and VAT (the seller&#39;s own invoices)
-    └── ADR-012  Billing and plans (Vervoro charging the seller)
+└── Switchable modules
+    ├── ADR-004  Channels: the connector contract, the host, shadow mode
+    │   ├── ADR-004.1  eBay connector
+    │   ├── ADR-004.2  Amazon Seller connector
+    │   ├── ADR-004.3  Shopify connector (Later)
+    │   └── ADR-004.4  Amazon Vendor connector (planned, not written)
+    ├── ADR-008  Stock sync: inventory sync
+    └── ADR-011  Invoicing and VAT (the seller&#39;s own invoices)
 </code></pre>
+<p><strong>Parked, with no record yet</strong> (<a href="../system-architecture/spec/#4-the-foundation-and-the-launch-modules">ADR-000 SPEC 4.7</a>): Purchasing, FBA shipments, profit, ads, AI, shipping labels, order routing, and MCP access for a seller&#39;s AI assistant (soon after launch). They stay switched off and are not built further until a record and a launch-bar row need them.</p>
 <p>The order to build them in is on the <a href="../">index</a>.</p>
 <h2 id="how-the-records-are-organised">How the records are organised</h2>
 <p>Each record is split into up to three documents, so that a person can review the decision in a few minutes:</p>
@@ -108,20 +108,20 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tbody><tr>
 <td><strong>ADR</strong></td>
 <td>The owner and the developer, to approve</td>
-<td>Context, at most 10 decisions in plain words, consequences, alternatives rejected, open items. About 900 words; no SQL or worked examples</td>
+<td>Status and scope, context, at most 10 decisions in plain words, often a short section with a diagram showing how it works, consequences, alternatives rejected, open items. No SQL or worked examples</td>
 </tr>
 <tr>
 <td><strong>SPEC</strong></td>
 <td>The developer and coding agents, to build from</td>
-<td>Numbered rule sets, tables and state lists, platform constraints with sources, the tests that prove each rule, and a checklist for reviewing the code</td>
+<td>Section 0, the parts that are <em>Later</em> and the trigger for each; who writes what; numbered rule sets, tables and state lists; storage; platform constraints with sources; the tests that prove each rule; and a checklist for reviewing the code</td>
 </tr>
 <tr>
 <td><strong>RUNBOOK</strong></td>
 <td>The operator, to carry out</td>
-<td>One page per procedure under <a href="../runbooks/">runbooks</a>: who runs it, with which role, numbered steps, how to verify, what to do if it stops halfway</td>
+<td>One page per procedure under <a href="../runbooks/">runbooks</a>: when it is built, its record, who runs it, with which role, numbered steps, how to verify, and what to do if it stops halfway</td>
 </tr>
 </tbody></table></div>
-<p>The ADR decides, the SPEC says exactly how, and a runbook carries it out. When they disagree, the ADR wins. Every record is in this form. The rules every change must keep are in the <a href="../rulebook/">engineering rulebook</a>.</p>
+<p>The ADR decides, the SPEC says exactly how, and a runbook carries it out. When they disagree, the ADR wins. Every record is in this form; ADR-004.3, which is <em>Later</em>, has no runbook of its own yet. A rule another record owns is linked, never restated (<a href="../rulebook/">which record owns which rule</a>). A part marked <em>Later</em> keeps its rules in the SPEC and is built only when its trigger arrives; a <em>parked</em> area has no record yet. A change to an Accepted record is an amendment that names the owner&#39;s ruling and its date. The rules every change must keep are in the <a href="../rulebook/">engineering rulebook</a>.</p>
 <h2 id="status-of-a-record">Status of a record</h2>
 <div class="table-wrap"><table>
 <thead>
@@ -132,11 +132,11 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </thead>
 <tbody><tr>
 <td><strong>Proposed</strong></td>
-<td>Written and reviewed by the owner, still open to change. Code may follow it, but it is not yet a binding constraint</td>
+<td>Written and reviewed by the owner, still open to change. Code follows it, and its rules bind until the record changes</td>
 </tr>
 <tr>
 <td><strong>Accepted</strong></td>
-<td>The developer has reviewed it and the owner has signed it off. Implementation must follow it</td>
+<td>The developer has reviewed it and the owner has signed it off. It changes only by a dated amendment with the owner&#39;s ruling</td>
 </tr>
 <tr>
 <td><strong>Implemented</strong></td>
@@ -151,10 +151,10 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>No longer applies, and nothing replaces it</td>
 </tr>
 </tbody></table></div>
-<p><strong>Accepted</strong> (21 October 2026): <a href="../system-architecture/">ADR-000</a>, <a href="../database-architecture/">ADR-001</a>, <a href="../users-and-access/">ADR-010</a> and <a href="../sign-in/">ADR-013</a>; ADR-013 may be amended by Amazon&#39;s answer on passkeys. Every other record is <strong>Proposed</strong>.</p>
+<p><strong>Accepted</strong> (21 October 2026, amended since by dated owner rulings): <a href="../system-architecture/">ADR-000</a>, <a href="../database-architecture/">ADR-001</a>, <a href="../users-and-access/">ADR-010</a> and <a href="../sign-in/">ADR-013</a>; ADR-013 may be amended by Amazon&#39;s answer on passkeys. Every other record is <strong>Proposed</strong>.</p>
 <p>A record becomes Accepted only after the developer&#39;s review and the owner&#39;s sign-off, as the build reaches it: <a href="../system-architecture/">ADR-000</a>, <a href="../database-architecture/">ADR-001</a>, <a href="../users-and-access/">ADR-010</a> and <a href="../sign-in/">ADR-013</a> before the foundation is built; <a href="../stock-ledger/">ADR-006</a>, <a href="../order-ingestion/">ADR-007</a> and <a href="../inventory-sync/">ADR-008</a> before their phases begin; each other record before the work that follows it.</p>
 <h2 id="glossary">Glossary</h2>
-<p>One word per concept. Where two words appear in the records, the table says whether they mean the same thing.</p>
+<p>One word per concept, defined once, with the record that owns it. Where two words appear in the records, the table says whether they mean the same thing; words that look alike but mean different things are listed at the end.</p>
 <h3 id="companies-people-and-databases">Companies, people and databases</h3>
 <div class="table-wrap"><table>
 <thead>
@@ -165,7 +165,11 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </thead>
 <tbody><tr>
 <td><strong>Company</strong></td>
-<td>One customer of Vervoro: a seller&#39;s business. &quot;Tenant&quot; in ADR-001 means the same thing; the <strong>tenant row</strong> is a cell&#39;s own record of a company and its state there. Vervoro has no separate &quot;organisation&quot;</td>
+<td>One customer of Vervoro: a seller&#39;s business. &quot;Tenant&quot; in ADR-001 means the same thing; the <strong>tenant row</strong> is a cell&#39;s own record of a company and its state there. Vervoro has no separate &quot;organisation&quot; (ADR-001)</td>
+</tr>
+<tr>
+<td><strong>Company state</strong></td>
+<td>Trial, active, restricted or closed, worked out from a few dates in control and never stored; an erased company is only a tombstone. <strong>Restricted</strong> makes everything off the stock path read-only (ADR-012 SPEC 7–8)</td>
 </tr>
 <tr>
 <td><strong>Login</strong></td>
@@ -185,7 +189,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Sign-in Worker</strong></td>
-<td>The only Worker besides the app. It runs Better Auth, serves the sign-in pages, alone holds the sign-in secret and touches the auth schema, and tells the app over a service binding whether a session is live and whose. The app never sees a typed password (ADR-013)</td>
+<td>The only Worker besides the app. It runs Better Auth, serves the sign-in pages, alone holds the sign-in secret and touches the <code>auth</code> and <code>auth_policy</code> schemas, and tells the app over a service binding whether a session is live and whose. The app never sees a typed password (ADR-013)</td>
 </tr>
 <tr>
 <td><strong>Auth schema</strong></td>
@@ -200,6 +204,14 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Better Auth&#39;s record that a login signed in, held in the browser as a cookie: at most 24 hours for everyone, never extended. The only session model (ADR-013)</td>
 </tr>
 <tr>
+<td><strong>Fresh check</strong></td>
+<td>A session started within the last 5 minutes. Account changes need one, and only the sign-in Worker can vouch for it (ADR-013 SPEC 5, ADR-010 SPEC 5)</td>
+</tr>
+<tr>
+<td><strong>Setup-only session</strong></td>
+<td>A session that can only finish setting up sign-in: a password without a confirmed authenticator, a backup code just used, or a password past 365 days. The app treats it as no session (ADR-013 SPEC 5)</td>
+</tr>
+<tr>
 <td><strong>Passkey</strong></td>
 <td>A key the person&#39;s phone, laptop or password manager keeps, unlocked by a fingerprint, a face or the device&#39;s PIN. The default way to sign in (ADR-013)</td>
 </tr>
@@ -209,35 +221,79 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Membership</strong></td>
-<td>A login&#39;s place in one company: the (login, company) pair in control. The person&#39;s role, warehouse scope and status are on their member row in the company&#39;s cell, which alone decides what they may do (ADR-010). One person can be a member of several companies</td>
+<td>A login&#39;s place in one company: the (login, company) pair in control. It is <strong>paused</strong> after the person is reset in another company, until this company&#39;s Owner or Admin confirms it. The person&#39;s role, warehouse scope and status are on their member row in the company&#39;s cell; a request needs both an active member row and a membership that is not paused (ADR-010 SPEC 2, 5). One person can be a member of several companies</td>
 </tr>
 <tr>
 <td><strong>Role</strong></td>
-<td>One of six: Owner, Admin, Manager, Warehouse, Accountant, Staff (ADR-010)</td>
+<td>One of six: Owner, Admin, Manager, Warehouse, Accountant, Staff (ADR-010). Not a database role</td>
 </tr>
 <tr>
 <td><strong>Operator</strong></td>
-<td>A person running the Vervoro platform, not a member of any company. Acts on a company only through an audited, time-limited grant</td>
+<td>A person running the Vervoro platform, not a member of any company. Looks inside a company only through a <strong>grant</strong>: read-only, one company, a written reason, at most 8 hours, seen and endable by the seller, buyer data masked unless an Owner or Admin switches it on (ADR-010 SPEC 7)</td>
+</tr>
+<tr>
+<td><strong>Repair</strong></td>
+<td>A recorded command an operator runs without a grant, as a system actor, showing no company data: rebuilding a balance from the ledger, re-importing an order, an export or restore by the lifecycle tool (ADR-010 SPEC 7)</td>
+</tr>
+<tr>
+<td><strong>System actor</strong></td>
+<td>The named actor background work (the sweeper, the queue consumer, the egress gate) runs as and records on every entry. Never a person (ADR-010 SPEC 1)</td>
 </tr>
 <tr>
 <td><strong>Control database</strong></td>
-<td>The one database that holds who the companies are and where they live: registry, routing, logins (Better Auth&#39;s tables in the auth schema), operators, shared quotas, the erasure register. No business data (ADR-001)</td>
+<td>The one database that holds who the companies are and where they live: registry, routing, memberships, logins (Better Auth&#39;s tables in the auth schema), operators and grants, plans, shared quotas, the sync epoch, the erasure register and the platform security log. No business data (ADR-001 SPEC 7)</td>
 </tr>
 <tr>
 <td><strong>Cell</strong></td>
-<td>A database holding the business data of many companies in shared tables, each row carrying <code>company_id</code>, fenced by forced row-level security. There is no schema per company</td>
+<td>A database holding the business data of many companies in shared tables, each row carrying <code>company_id</code>, fenced by forced row-level security. There is no schema per company. At launch there is one, cell A (ADR-001)</td>
+</tr>
+<tr>
+<td><strong>Neon project and branch</strong></td>
+<td>Control and every cell are each a Neon project of their own, with their own storage, compute, history and credentials. A branch is only a short-lived copy of one database (a rehearsal, a restore, a look-back), never holds live data, and is deleted within 24 hours (ADR-001 SPEC 7, 10)</td>
 </tr>
 <tr>
 <td><strong>Dedicated database</strong></td>
-<td>A cell holding one company, in its own Neon project, with the same schema and the same code path. Also called a dedicated cell</td>
+<td><em>Later.</em> A cell holding one company, with the same schema and the same code path. Also called a dedicated cell (ADR-001)</td>
 </tr>
 <tr>
 <td><strong>Routing</strong></td>
-<td>Finding a company&#39;s database: <code>company.database_id</code> in control, read by <code>forCompany(id)</code>. Every transaction then proves it is in the right database</td>
+<td>Finding a company&#39;s database: <code>company.database_id</code> in control, read by <code>forCompany(id)</code>. Every transaction then proves it is in the right database (ADR-001 SPEC 7)</td>
 </tr>
 <tr>
 <td><strong>Adding a company / adding a cell</strong></td>
-<td>Two separate operations: <code>company:add</code> needs no database and no deploy; <code>cell:add</code> and <code>dedicated:add</code> add capacity and include a deploy (ADR-001)</td>
+<td>Two separate operations: <code>company:add</code> needs no database and no deploy; <code>cell:add</code> and <code>dedicated:add</code> (both <em>Later</em>) add capacity and include a deploy (ADR-001 SPEC 8)</td>
+</tr>
+<tr>
+<td><strong>Database roles</strong></td>
+<td>Owner (migrations, from the CI job only), runtime (serves requests, cannot bypass row-level security), lifecycle (company operations), sign-in (control&#39;s <code>auth</code> and <code>auth_policy</code> only) and the definer owner (cannot log in). Neon&#39;s own internal roles, today <code>neon_service</code>, are the one named exception to the role rules (ADR-001 SPEC 3)</td>
+</tr>
+<tr>
+<td><strong>Slice operation</strong></td>
+<td>The one generated operation that copies or deletes every row of one company, in batches, as the lifecycle role: export, restore and erase; moves and dedicated placement when they are built (ADR-001 SPEC 10)</td>
+</tr>
+<tr>
+<td><strong>Erasure register</strong></td>
+<td>Control&#39;s record, by ids and times only, of every buyer erasure and company tombstone, also written to an append-only log in object storage. Every restore replays it before anyone reads the data (ADR-001 SPEC 7, ADR-009 SPEC 11)</td>
+</tr>
+<tr>
+<td><strong>Security boundary and defence in depth</strong></td>
+<td>The boundary is what keeps one company from another&#39;s rows: forced row-level security, restricted roles, entering one company, the commit check, routing and composite keys. Defence in depth stops a mistake before it gets there: the query builder and query check, the catalogue lint, the audit and the canary (ADR-001 SPEC 6)</td>
+</tr>
+<tr>
+<td><strong>Commit check</strong></td>
+<td>The data layer&#39;s check, before every commit, that the company setting and the role are still those the transaction entered; a mismatch rolls back, pages and closes egress (ADR-001 SPEC 6)</td>
+</tr>
+<tr>
+<td><strong>Canary company</strong></td>
+<td>A synthetic company in every database whose rows no other company may ever see; checked nightly and after each deploy and new partition (ADR-001 SPEC 11)</td>
+</tr>
+<tr>
+<td><strong>Catalogue lint and audit</strong></td>
+<td>The lint checks every table and partition against the tenancy rules, in CI and on the live catalogue. The audit checks, at every deploy and nightly, every Neon project and branch, every role, every Hyperdrive configuration and every Worker in the account. A failure pages, and closes egress except where ADR-001 SPEC 11 says (ADR-001 SPEC 6.1, 11)</td>
+</tr>
+<tr>
+<td><strong>Staging</strong></td>
+<td>The environment before production: production&#39;s roles, row-level security, migration order and EU placement, with simulators and synthetic data only. Until launch it may be deployed from the owner&#39;s laptop by the CI deploy script (ADR-001 SPEC 3, ADR-009 SPEC 15)</td>
 </tr>
 </tbody></table></div>
 <h3 id="code-and-background-work">Code and background work</h3>
@@ -250,7 +306,11 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </thead>
 <tbody><tr>
 <td><strong>Module</strong></td>
-<td>A feature inside the main application deployable (the sign-in Worker, deployed separately, holds no module). It owns its tables and talks to others only through typed ports and events (ADR-000)</td>
+<td>A feature inside the main application deployable (the sign-in Worker, deployed separately, holds no module). It owns its tables, prefixed with its id, and talks to others only through typed ports and events (ADR-000)</td>
+</tr>
+<tr>
+<td><strong>Port, event and contract</strong></td>
+<td>A port is a typed call that returns a typed <code>Result</code>, for an answer now; an event is a typed fact that already happened. A module&#39;s contract is its exported ports, events and their types; only a contract change re-runs the tests of the modules that need it (ADR-000 SPEC 1, 15)</td>
 </tr>
 <tr>
 <td><strong>Library</strong></td>
@@ -258,27 +318,59 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Foundation</strong></td>
-<td>The always-on core: Products, Listings, Inventory, Orders, Buyer data and Access, each the only writer of its own data. Inventory alone changes stock (ADR-006); Orders alone changes order status. They share one transaction where they must (ADR-000)</td>
+<td>The six core modules: Products, Listings, Inventory, Orders, Buyer data and Access, always on, each the only writer of its own data. Inventory alone changes stock (ADR-006); Orders alone changes order status. They share one transaction where they must (ADR-000)</td>
 </tr>
 <tr>
 <td><strong>Always-on module</strong></td>
-<td>A module outside the core that is never switched off, such as Fulfilment (<a href="../fulfilment/">ADR-014</a>). It calls the foundation; the foundation never calls it (ADR-000)</td>
+<td>A module outside the core that is never switched off: Fulfilment (<a href="../fulfilment/">ADR-014</a>) and Billing (<a href="../billing-and-plans/">ADR-012</a>). It calls the foundation; the foundation never calls it (ADR-000)</td>
 </tr>
 <tr>
 <td><strong>Switchable module</strong></td>
-<td>A module a company&#39;s plan and settings turn on or off. It calls the foundation; the foundation never calls it (ADR-000)</td>
+<td>A module a company&#39;s plan and settings turn on or off: Channels and its connectors, Stock sync, Invoicing. It calls the foundation; the foundation never calls it (ADR-000)</td>
+</tr>
+<tr>
+<td><strong>Query builder and query check</strong></td>
+<td>The typed query builder (Kysely) the data layer hands a module inside an entered transaction, with no raw SQL and only allow-listed functions; the query check is its run-time plugin that refuses, failing closed, any raw-SQL node, function off the allow-list or table outside the module&#39;s set (ADR-001 SPEC 6)</td>
 </tr>
 <tr>
 <td><strong>Outbox</strong></td>
-<td>Notes written in the same transaction as a change, delivered after commit, each handled once</td>
+<td>Notes written in the same transaction as a change, delivered after commit, each handled once (ADR-001 SPEC 9)</td>
 </tr>
 <tr>
 <td><strong>Egress gate</strong></td>
-<td>The one door to marketplaces and suppliers. Records every outbound effect with an idempotency key and sends it only after commit (ADR-000 SPEC 7)</td>
+<td>The one door to marketplaces and suppliers. The kernel&#39;s <strong>egress record</strong> writes every outbound effect, with an idempotency key, in the caller&#39;s transaction; Channels sends it after commit, reading the account&#39;s mode from the database on each send (ADR-000 SPEC 7)</td>
+</tr>
+<tr>
+<td><strong>Egress effect</strong></td>
+<td>A call that changes something on a marketplace or at a supplier: figures, dispatch, confirmations, messages. A notice subscription is a <strong>set-up call</strong>, not an egress effect, and runs in shadow too (ADR-000 SPEC 7)</td>
+</tr>
+<tr>
+<td><strong>Key</strong></td>
+<td>What makes a repeat harmless: the gate&#39;s idempotency key on an outbound effect (ADR-000 SPEC 7), a stock command&#39;s key (ADR-006 SPEC 12), and the key a client makes for a tap and keeps across retries (ADR-000 SPEC 12)</td>
+</tr>
+<tr>
+<td><strong>Lease</strong></td>
+<td>A time-limited claim on work, never an open-ended lock. A crash costs one lease period, and a result is written only if the claim is still its own (ADR-000 SPEC 7)</td>
 </tr>
 <tr>
 <td><strong>Sweeper</strong></td>
 <td>One background worker per database. Finds due work through the <code>due</code> table. <code>due</code> and <code>buyer_ref</code> are the only tables read across companies, and only through two allow-listed functions that return ids and times (ADR-001)</td>
+</tr>
+<tr>
+<td><strong>Stored copy</strong></td>
+<td>Marketplace data a screen shows, read by a background job and shown with its age. A request never calls a marketplace (ADR-000 SPEC 10)</td>
+</tr>
+<tr>
+<td><strong>Simulator</strong></td>
+<td>A real HTTP server that speaks an outside service&#39;s real API, with a control interface for its world and its failures. Development and tests never call the real service (ADR-000 SPEC 9)</td>
+</tr>
+<tr>
+<td><strong>Layered testing</strong></td>
+<td>Each rule proved at the cheapest layer that can: pure logic in unit tests with no database; the database on real Postgres; marketplace behaviour on the simulators; critical flows end to end (ADR-000 SPEC 15)</td>
+</tr>
+<tr>
+<td><strong>Expand, migrate, contract</strong></td>
+<td>How every schema change ships: add in a backward-compatible form, deploy code that reads both shapes and move the data, then remove the old shape in a later release after the <strong>rollback window</strong> of at least 24 hours and one successful nightly cycle (ADR-000 SPEC 11)</td>
 </tr>
 </tbody></table></div>
 <h3 id="marketplaces">Marketplaces</h3>
@@ -290,40 +382,157 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </thead>
 <tbody><tr>
+<td><strong>Channels</strong></td>
+<td>The switchable module that hosts the connectors: credentials, HTTP, retries, rate budgets, shared pools, notices and the sending half of the egress gate. Also called the host (ADR-004)</td>
+</tr>
+<tr>
 <td><strong>Connector</strong></td>
 <td>Vervoro&#39;s code for one marketplace. It only translates; the host owns credentials, HTTP, limits and checks (ADR-004)</td>
 </tr>
 <tr>
 <td><strong>Account</strong></td>
-<td>One seller&#39;s connection to one marketplace. &quot;Connection&quot; in ADR-012 means the same thing</td>
+<td>One company&#39;s connection to one marketplace account: on eBay one site, on Amazon one seller id in one region. &quot;Connection&quot; in ADR-012 means the same thing (ADR-004)</td>
 </tr>
 <tr>
 <td><strong>Account mode</strong></td>
-<td>Shadow (reads happen, writes are only recorded), live, paused, decrease-only (a closed company, ADR-012) or disconnected</td>
+<td>Shadow, live, paused, decrease-only or disconnected (ADR-004 SPEC 12)</td>
+</tr>
+<tr>
+<td><strong>Shadow mode</strong></td>
+<td>Every account&#39;s first mode: orders are imported and reserved and listings read, and the gate records each figure it would send without sending it (ADR-004 SPEC 11)</td>
+</tr>
+<tr>
+<td><strong>Launch gates</strong></td>
+<td>The three measures shadow must pass on a marketplace before any of its accounts goes live: lost notices, detection delay and unreserved orders. The figures are proposals (ADR-004 SPEC 11)</td>
+</tr>
+<tr>
+<td><strong>Stop choice</strong></td>
+<td>Each account&#39;s stored answer to &quot;if Vervoro stops sending, leave the figures or send zero?&quot;, first asked at going live. Every stop asks the same question, and closing a company carries out the stored answer (ADR-008 SPEC 10, ADR-012 SPEC 6, 9)</td>
+</tr>
+<tr>
+<td><strong>Decrease-only</strong></td>
+<td>The account mode of a closed company until erasure: orders still import and reserve, and a figure may fall but is never raised (ADR-008 SPEC 10, ADR-012 decision 7)</td>
+</tr>
+<tr>
+<td><strong>Notice</strong></td>
+<td>A marketplace&#39;s message that something changed: a webhook, or an Amazon notification brought by the AWS bridge. A hint only: it causes a fetch and is never imported itself (ADR-004 SPEC 8)</td>
+</tr>
+<tr>
+<td><strong>Completeness check</strong></td>
+<td>The scheduled order read behind the notices, hourly on eBay and every 10 minutes on Amazon. &quot;Backup read&quot; and &quot;scheduled read&quot; mean the same thing (ADR-004 SPEC 9)</td>
+</tr>
+<tr>
+<td><strong>Order watermark</strong></td>
+<td>The point up to which a complete read of a marketplace&#39;s orders has been done. Only a complete read moves it, and a raise waits for it (ADR-007 SPEC 2)</td>
+</tr>
+<tr>
+<td><strong>Shared pool</strong></td>
+<td>A marketplace allowance shared by every seller, such as eBay&#39;s Trading API calls, counted exactly in control. Its <strong>safety lane</strong> carries decreases and any figure near zero, its <strong>bulk lane</strong> the rest, and a tenth is a reserve split between its accounts (ADR-004 SPEC 7)</td>
+</tr>
+<tr>
+<td><strong>External directory</strong></td>
+<td>Control&#39;s map from a marketplace&#39;s seller id to the one company that connected it (ADR-001 SPEC 7, ADR-004 SPEC 3)</td>
 </tr>
 <tr>
 <td><strong>Listing</strong></td>
-<td>What a marketplace sells, keyed by the marketplace&#39;s own id, never by SKU (ADR-005)</td>
+<td>What a marketplace sells and counts on its own, keyed by the marketplace&#39;s most stable id and never by the bare SKU; an eBay inventory item and an Amazon seller SKU are keyed by their SKU on that account (ADR-005 SPEC 2)</td>
+</tr>
+<tr>
+<td><strong>Listing group</strong></td>
+<td>A marketplace parent (an eBay listing with variations, an Amazon parent ASIN): shown, never linked (ADR-005)</td>
 </tr>
 <tr>
 <td><strong>Link</strong></td>
-<td>A versioned tie from a listing to a product, with units per sale. An order uses the link that was valid when the buyer bought</td>
+<td>A versioned tie from a listing to a product, with units per sale and who ships it. An order uses the link that was valid when the buyer bought (ADR-005, ADR-003 SPEC 8)</td>
+</tr>
+<tr>
+<td><strong>Marketplace-shipped</strong></td>
+<td>A link or line the marketplace ships from its own stock, such as Amazon FBA. Recorded, never reserved, and its listing gets no figure. The opposite is seller-shipped (ADR-003 SPEC 8, ADR-007 SPEC 15)</td>
+</tr>
+<tr>
+<td><strong>Shared-stock listing</strong></td>
+<td>An unlinked, seller-shipped listing that looks like it shares stock with a linked product. Going live needs an answer for each (ADR-005 SPEC 12)</td>
 </tr>
 <tr>
 <td><strong>Figure</strong></td>
-<td>The number a listing should show, worked out by Stock sync after each stock change (&quot;D&quot; in ADR-008). The desired state</td>
+<td>The number a listing should show, worked out by Stock sync after each stock change (&quot;D&quot; in ADR-008). The desired state. <strong>No figure</strong> is never sent as zero (ADR-008 SPEC 1)</td>
 </tr>
 <tr>
 <td><strong>Believed figure</strong></td>
-<td>What the marketplace is believed to show (&quot;B&quot; in ADR-008). A number, or unknown</td>
+<td>What the marketplace is believed to show (&quot;B&quot; in ADR-008). A number, or unknown. Vervoro lowers it only on evidence (ADR-008 SPEC 4)</td>
+</tr>
+<tr>
+<td><strong>Zone near zero and tolerance</strong></td>
+<td>Near zero every change is sent; above the zone a figure is sent once it is the tolerance (20 listing units) away from the believed figure, where the listing&#39;s own sales are <strong>vouched</strong> to come out of Vervoro&#39;s figure (ADR-008 SPEC 2–3)</td>
+</tr>
+<tr>
+<td><strong>Drift</strong></td>
+<td>A figure set on the marketplace outside Vervoro, found by notices or reads (ADR-008 decision 2)</td>
+</tr>
+<tr>
+<td><strong>Held raise</strong></td>
+<td>A raise Stock sync keeps back while a listing has any hold reason, such as a failed nightly check, a conflict or an unconfirmed bulk link. The figure is still worked out, and every decrease goes (ADR-008 SPEC 7)</td>
+</tr>
+<tr>
+<td><strong>Managed listing</strong></td>
+<td>A listing Stock sync sends figures to. A listing not managed gets none; its orders still reserve (ADR-008 SPEC 10)</td>
+</tr>
+<tr>
+<td><strong>Sync epoch</strong></td>
+<td>One number per company in control, raised by every restore and part of every write&#39;s idempotency key, so no write from before a restore is taken for one after it (ADR-008 SPEC 13)</td>
 </tr>
 <tr>
 <td><strong>Unknown</strong></td>
 <td>An outbound write with no clear answer, a timeout included. It is settled before anything else is sent to that listing: read back by default, or, where the connector&#39;s record names the exception, the absolute figure Vervoro wants now resent (ADR-004)</td>
 </tr>
+</tbody></table></div>
+<h3 id="orders-and-fulfilment">Orders and fulfilment</h3>
+<div class="table-wrap"><table>
+<thead>
 <tr>
-<td><strong>Order watermark</strong></td>
-<td>The point up to which a complete read of a marketplace&#39;s orders has been done. A raise waits for it</td>
+<th>Term</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Order status</strong></td>
+<td>Pending, open, picking, packed, part shipped, shipped or cancelled, worked out by one function from the order&#39;s facts. An unexpected move is written and alarms, never refused (ADR-007 SPEC 6)</td>
+</tr>
+<tr>
+<td><strong>Hold</strong></td>
+<td>A reason that pauses an order: it keeps the reservation, sends nothing, and stops picking, packing and dispatch. Its kind (marketplace, office or floor) decides who clears it. A <strong>floor stop</strong> is the hold set when the marketplace changes a picked or packed order (ADR-007 SPEC 11, 13)</td>
+</tr>
+<tr>
+<td><strong>Import problem</strong></td>
+<td>An order that cannot be read into the contract&#39;s types. Never dropped: a problem row, retried on every notice and read, its lines&#39; units kept off the figures (ADR-007 SPEC 9)</td>
+</tr>
+<tr>
+<td><strong>Waiting line</strong></td>
+<td>An order line whose listing is unlinked or unknown. It reserves nothing until the listing is linked or a person attaches the line to a product (ADR-006 SPEC 6, ADR-007 SPEC 14)</td>
+</tr>
+<tr>
+<td><strong>Short line</strong></td>
+<td>A line with part of its units reserved and the rest recorded missing. It fills when stock arrives; a short order waits (ADR-006 SPEC 5.3, ADR-007 SPEC 10)</td>
+</tr>
+<tr>
+<td><strong>Shipped outside Vervoro</strong></td>
+<td>Units the marketplace says shipped that no Vervoro shipment covers. Deducted once, in shadow too (ADR-007 SPEC 17)</td>
+</tr>
+<tr>
+<td><strong>Manual order</strong></td>
+<td>A phone, email or business order, or a counter sale, made in Vervoro. A draft reserves nothing; confirming reserves (ADR-007 SPEC 18)</td>
+</tr>
+<tr>
+<td><strong>Ship-by and leave-by</strong></td>
+<td>Ship-by is the marketplace&#39;s deadline; leave-by is the warehouse&#39;s last collection cut-off at or before it, by which the picking list is sorted (ADR-007 SPEC 20)</td>
+</tr>
+<tr>
+<td><strong>Shipment</strong></td>
+<td>One per order, possibly in several boxes. Confirming it deducts exactly what was packed for it, once (ADR-014 SPEC 4)</td>
+</tr>
+<tr>
+<td><strong>Batch assumed</strong></td>
+<td>A line packed or shipped without anyone saying which batch left: it records the reserved batch, and a recall lists it apart. &quot;Lot not traced&quot; marks units deducted in shadow (ADR-014 SPEC 3, ADR-006 SPEC 7)</td>
 </tr>
 </tbody></table></div>
 <h3 id="products">Products</h3>
@@ -340,35 +549,35 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Base unit</strong></td>
-<td>What one unit of a product is called: a piece, a jar, or a metre or 100 g for goods sold by length or weight</td>
+<td>What one unit of a product is called: a piece, a jar, or a metre or 100 g for goods sold by length or weight (ADR-003)</td>
 </tr>
 <tr>
 <td><strong>Pack</strong></td>
-<td>A sealed multiple of one simple product, with its own stock. Opened or made by a repack</td>
+<td>A sealed multiple of one simple product, with its own stock. Opened or made by a repack (ADR-003)</td>
 </tr>
 <tr>
 <td><strong>Bundle</strong></td>
-<td>Several products sold as one item, with no stock of its own; its sellable comes from its scarcest component</td>
+<td>Several products sold as one item, with no stock of its own; its sellable comes from its scarcest component (ADR-003)</td>
 </tr>
 <tr>
 <td><strong>Box size</strong></td>
-<td>How many base units one case or pallet holds. Used on documents and scans; never stock</td>
+<td>How many base units one case or pallet holds. Used on documents and scans; never stock (ADR-003)</td>
 </tr>
 <tr>
 <td><strong>Family</strong></td>
-<td>Products that are one design in several sizes or colours, linked to one variation listing in one step</td>
+<td>Products that are one design in several sizes or colours, linked to one variation listing in one step (ADR-003)</td>
 </tr>
 <tr>
 <td><strong>Charge line</strong></td>
-<td>Something charged that is not stock (a service fee, gift wrap): a name, an amount and a VAT class on an order or invoice. Never reserves or moves stock</td>
+<td>Something charged that is not stock (a service fee, gift wrap): a name, an amount and a VAT class on an order or invoice. Never reserves or moves stock (ADR-003 SPEC 1.1)</td>
 </tr>
 <tr>
 <td><strong>Not stock</strong></td>
-<td>A mark on a marketplace listing that sells no stock (a warranty). It is never linked; its order lines are charge lines (ADR-005)</td>
+<td>A mark on a marketplace listing that sells no stock (a warranty). It is never linked; its order lines are charge lines (ADR-003 SPEC 1.1)</td>
 </tr>
 <tr>
 <td><strong>Units setting</strong></td>
-<td>A company&#39;s choice of metric or imperial for showing weights and sizes. Storage is always grams and millimetres</td>
+<td>A company&#39;s choice of metric or imperial for showing weights and sizes. Storage is always grams and millimetres (ADR-003)</td>
 </tr>
 </tbody></table></div>
 <h3 id="stock">Stock</h3>
@@ -384,20 +593,155 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>The append-only record of every stock change. Only a ledger insert changes a balance (ADR-006)</td>
 </tr>
 <tr>
+<td><strong>Ledger sequence</strong></td>
+<td>The ledger&#39;s number, gapless per company and in commit order. Stock sync records the sequence each figure came from (ADR-006 SPEC 12)</td>
+</tr>
+<tr>
+<td><strong>Company&#39;s lock</strong></td>
+<td>The row lock on the company&#39;s stock counter, taken by the first statement of every stock command and held until commit (ADR-006 SPEC 12, ADR-001 SPEC 2)</td>
+</tr>
+<tr>
 <td><strong>Batch</strong></td>
-<td>Stock of one product received together, with its lot, dates and cost</td>
+<td>Stock of one product received together, with its lot, dates and cost (ADR-006)</td>
 </tr>
 <tr>
 <td><strong>Warehouse</strong></td>
-<td>A site the seller ships from. An order is reserved and shipped from one warehouse</td>
+<td>A site the seller ships from. An order is reserved and shipped from one warehouse (ADR-006)</td>
 </tr>
 <tr>
 <td><strong>Spot</strong></td>
-<td>A place in a warehouse: a shelf, a bench, a dispatch area. Optional: each warehouse has a default spot</td>
+<td>A place in a warehouse: a shelf, a bench, a dispatch area. Optional: each warehouse has a default spot (ADR-006)</td>
 </tr>
 <tr>
 <td><strong>On hand, reserved, held, sellable</strong></td>
-<td>The four numbers per batch in a warehouse. Sellable = on hand − reserved − held, never below zero; only sellable reaches a listing. Incoming is shown beside them but is never stock</td>
+<td>The four numbers per batch in a warehouse. Sellable = on hand − reserved − held, never below zero; only sellable reaches a listing. Held is quarantined plus damaged, plus everything free in an expired, short-dated or blocked batch. Incoming is shown beside them but is never stock (ADR-006 SPEC 3)</td>
+</tr>
+<tr>
+<td><strong>Use-by, best-before and sell-by</strong></td>
+<td>A dated batch is use-by or best-before. It is sellable while its date is at least the product&#39;s days to sell away; below that it is <strong>short-dated</strong>, past its date <strong>expired</strong>, and both are held. A use-by batch is never reserved, packed or dispatched on or after its date (ADR-006 SPEC 4)</td>
+</tr>
+<tr>
+<td><strong>Date pass</strong></td>
+<td>The run just after midnight, in the company&#39;s time zone, that moves unpacked reservations off batches that crossed their sell-by date (ADR-006 SPEC 4)</td>
+</tr>
+<tr>
+<td><strong>Nightly check</strong></td>
+<td>The proof, per company, that every balance equals its ledger entries and every reserved number its open reservations. A difference alerts and holds raises (ADR-006 SPEC 14)</td>
+</tr>
+<tr>
+<td><strong>Lot trace</strong></td>
+<td>One search from a lot to every demand that received it and the stock still on hand; the recall list joins it with the orders (ADR-006 SPEC 10, ADR-014 SPEC 7)</td>
+</tr>
+<tr>
+<td><strong>Marketplace stock reading</strong></td>
+<td>What a marketplace holds in its own warehouses (Amazon FBA), read and shown beside the four numbers, never added to them (ADR-006 SPEC 6, ADR-004.2)</td>
+</tr>
+</tbody></table></div>
+<h3 id="money-and-vat">Money and VAT</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Plan</strong></td>
+<td>A row in control: the modules it includes, a monthly order ceiling and a support level; prices live only at the payment provider (ADR-012)</td>
+</tr>
+<tr>
+<td><strong>Stock contact</strong></td>
+<td>The person a company names to hear about stock if billing goes wrong; needed, with a payment method and a stop choice, before a connection first goes live (ADR-012 decision 4)</td>
+</tr>
+<tr>
+<td><strong>Issuer</strong></td>
+<td>Who issues a sale&#39;s invoices: the marketplace (Amazon through its VAT Calculation Service, eBay when the seller opted in) or Vervoro in the seller&#39;s name. One per sale (ADR-011 SPEC 2)</td>
+</tr>
+<tr>
+<td><strong>VAT record</strong></td>
+<td>The append-only record of each sale line&#39;s VAT, written when the order is imported, invoiced or not; corrections and reversals are new records (ADR-011 SPEC 6)</td>
+</tr>
+<tr>
+<td><strong>Tax point</strong></td>
+<td>The date that fixes a sale&#39;s VAT rate and period: for a marketplace order its payment, for a manual order its dispatch or an earlier payment (ADR-011 SPEC 3)</td>
+</tr>
+<tr>
+<td><strong>Rate table</strong></td>
+<td>The VAT rates by country and class, platform data in control, changed only by the operator (ADR-003 SPEC 11)</td>
+</tr>
+</tbody></table></div>
+<h3 id="data-and-retention">Data and retention</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong><code>audit_log</code></strong></td>
+<td>The company&#39;s own record, in its cell, of what happened in that company, read by the seller. Append-only, never holds buyer data (ADR-010 SPEC 8)</td>
+</tr>
+<tr>
+<td><strong>Platform security log</strong></td>
+<td>Control&#39;s record of sign-in and security events, with no buyer data and no email address (ADR-010 SPEC 8)</td>
+</tr>
+<tr>
+<td><strong>Field tags</strong></td>
+<td>The <code>pii</code>, <code>secret</code> and <code>retention</code> tags a module puts on its columns, which drive encryption, the logger&#39;s drop, anonymisation, erasure, export and the AI mask (ADR-001 SPEC 5, ADR-009 SPEC 4)</td>
+</tr>
+<tr>
+<td><strong>Anonymisation</strong></td>
+<td>Clearing every <code>pii</code> field of an order 30 days after delivery, dispatch as the fallback, or at once on a buyer&#39;s erasure. An anonymised order never stores personal data again (ADR-009 SPEC 8)</td>
+</tr>
+<tr>
+<td><strong>Archive</strong></td>
+<td><em>Later.</em> Compressed files in object storage, one per table per company per month, for months older than 24 months; a <strong>checkpoint</strong> keeps the stock proof when a ledger month leaves (ADR-002)</td>
+</tr>
+</tbody></table></div>
+<h3 id="words-that-look-alike">Words that look alike</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Words</th>
+<th>Not the same</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Owner, owner role, Vervoro&#39;s owner</strong></td>
+<td>A seller&#39;s top role (ADR-010); the database role that migrates (ADR-001); the person who owns Vervoro and rules on its records</td>
+</tr>
+<tr>
+<td><strong>Hold, held, held raise</strong></td>
+<td>A reason pausing an order (ADR-007); stock that is not sellable (ADR-006); a raise Stock sync keeps back (ADR-008)</td>
+</tr>
+<tr>
+<td><strong>Short, short-dated</strong></td>
+<td>A line missing stock (ADR-006 SPEC 5); a batch too close to its date to sell (ADR-006 SPEC 4)</td>
+</tr>
+<tr>
+<td><strong>Paused</strong></td>
+<td>An account mode (ADR-004); a membership waiting for an Owner or Admin to confirm it (ADR-010)</td>
+</tr>
+<tr>
+<td><strong>Restricted</strong></td>
+<td>A company state (ADR-012); Amazon&#39;s restricted role for buyer data (ADR-004.2)</td>
+</tr>
+<tr>
+<td><strong>Audit, <code>audit_log</code></strong></td>
+<td>The production check of every database and Worker (ADR-001 SPEC 11); the company&#39;s own activity record (ADR-010)</td>
+</tr>
+<tr>
+<td><strong>Variant</strong></td>
+<td><em>Later:</em> an alternative provider of a port for a named company (ADR-000); a Shopify product option, which is a listing (ADR-004.3)</td>
+</tr>
+<tr>
+<td><strong>Lock, lockout</strong></td>
+<td>The company&#39;s stock lock (ADR-006); a sign-in method locked after failures (ADR-013)</td>
+</tr>
+<tr>
+<td><strong>Erasure</strong></td>
+<td>A buyer&#39;s erasure anonymises that buyer&#39;s orders at once (ADR-009); erasing a company deletes all its data and destroys its key (ADR-001, ADR-012)</td>
 </tr>
 </tbody></table></div>
 

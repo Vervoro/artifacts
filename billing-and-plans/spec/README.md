@@ -36,7 +36,7 @@ The rules to build ADR-012 from: the Billing module, always on, outside the core
 
 ## 3. What billing may refuse
 
-This section owns the rulebook's billing rule ([rule 47](../../rulebook/#7-money-and-countries)).
+This section owns [the rulebook's billing rule](../../rulebook/#7-money-and-countries).
 
 1. **Nothing that moves orders or stock is ever refused for a billing reason,** in any state before erasure: importing, reserving, holding, picking, packing, dispatching, receiving, counting, and sending figures to live connections (decreases only once closed).
 2. **The only refusal a plan makes** is switching on a module it does not include. The screen offers the plan that has it.
