@@ -2,7 +2,7 @@
 
 | | |
 | --- | --- |
-| **Status** | Proposed |
+| **Status** | Accepted, 21 October 2026, after the developer's review and the owner's sign-off |
 | **Date** | 17 October 2026; revised 18 October 2026; split into ADR, SPEC and RUNBOOK 20 October 2026; hosting reviewed 21 October 2026; sign-in data aligned with Better Auth ([ADR-013](../sign-in/)) 21 October 2026; isolation tiers named 21 October 2026 |
 | **Scope** | How Vervoro stores, isolates, routes and moves each company's data |
 | **Builds on** | [ADR-000: System architecture](../system-architecture/) |

@@ -2,7 +2,7 @@
 
 | | |
 | --- | --- |
-| **Status** | Proposed |
+| **Status** | Accepted, 21 October 2026, after the developer's review and the owner's sign-off. Amazon's answer on passkeys and its multi-factor rule may amend decision 4 (see Open items) |
 | **Date** | 18 October 2026, as part of ADR-010; made its own record, split into ADR, SPEC and RUNBOOK, 21 October 2026; Better Auth replaces the in-house engine, owner approval of 21 October 2026; owner rulings on sessions, email and the passkey fallback the same day |
 | **Scope** | How a person proves who they are: the sign-in Worker and Better Auth inside it, sign-in methods, Vervoro's password policy, sessions, recovery, lockouts, secrets and the incident commands |
 | **Builds on** | [ADR-000: System architecture](../system-architecture/), [ADR-001: Multi-tenant database architecture](../database-architecture/), [ADR-009: Buyer data and privacy](../buyer-data/), [ADR-010: Users, roles and access](../users-and-access/) |
@@ -77,7 +77,7 @@ Parts marked *Later* keep their rules in the SPEC but are built only when their 
 
 These stay open until settled with authoritative evidence ([SPEC 14](spec/#14-checked-before-launch)):
 
-- **Does a passkey with its fingerprint, face or PIN check meet Amazon's multi-factor rule for every user?** No Amazon text says yes or no; only Amazon can settle it ([SPEC 3](spec/#3-sign-in-methods)). If it says no, the fallback in decision 4 applies, and nothing else changes.
+- **Does a passkey with its fingerprint, face or PIN check meet Amazon's multi-factor rule for every user?** No Amazon text says yes or no; only Amazon can settle it ([SPEC 3](spec/#3-sign-in-methods)). If it says no, the fallback in decision 4 applies, and nothing else changes. The record was accepted with this question open; Amazon's answer is recorded as an amendment.
 - **Cloudflare's Email Service is in beta,** with a starting daily quota that grows with reputation; confirm it is generally available, or the quota enough, before launch.
 - **Conflicts with Better Auth** ([SPEC 1](spec/#1-better-auth-and-what-is-switched-on)): passkey sign-in does not itself require the fingerprint check; backup codes exist only with an authenticator app. A code accepted twice within its window is closed by a hook (owner, 21 October 2026).
 - **Integration checks:** the pinned version on a deployed Worker through Hyperdrive; passkey site name and domains; the cookie across Vervoro's addresses; how sensitive fields are stored; secret rotation; schema migrations.

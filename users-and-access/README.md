@@ -2,7 +2,7 @@
 
 | | |
 | --- | --- |
-| **Status** | Proposed |
+| **Status** | Accepted, 21 October 2026, after the developer's review and the owner's sign-off |
 | **Date** | 18 October 2026, revised 18 October 2026; sign-in moved to [ADR-013](../sign-in/), split into ADR, SPEC and RUNBOOK, 21 October 2026; aligned with Better Auth as ADR-013's engine the same day |
 | **Scope** | Who uses Vervoro and what each may do: the people, one login across companies, the seller's roles and warehouse scope, the permission matrix, invitations, sign-up and removal, operator access to a company, the audit trails, and API tokens |
 | **Builds on** | [ADR-000](../system-architecture/), [ADR-001](../database-architecture/), [ADR-002](../data-retention/), [ADR-006](../stock-ledger/), [ADR-007](../order-ingestion/), [ADR-009](../buyer-data/); sign-in is [ADR-013](../sign-in/) |

@@ -60,7 +60,9 @@ The ADR decides, the SPEC says exactly how, and a runbook carries it out. When t
 | **Superseded** | Replaced by a named later record, which is linked from it |
 | **Deprecated** | No longer applies, and nothing replaces it |
 
-Every record is **Proposed** today. A record becomes Accepted only after the developer's review and the owner's sign-off, as the build reaches it: [ADR-000](../system-architecture/), [ADR-001](../database-architecture/), [ADR-010](../users-and-access/) and [ADR-013](../sign-in/) before the foundation is built; [ADR-006](../stock-ledger/), [ADR-007](../order-ingestion/) and [ADR-008](../inventory-sync/) before their phases begin; each other record before the work that follows it.
+**Accepted** (21 October 2026): [ADR-000](../system-architecture/), [ADR-001](../database-architecture/), [ADR-010](../users-and-access/) and [ADR-013](../sign-in/); ADR-013 may be amended by Amazon's answer on passkeys. Every other record is **Proposed**.
+
+A record becomes Accepted only after the developer's review and the owner's sign-off, as the build reaches it: [ADR-000](../system-architecture/), [ADR-001](../database-architecture/), [ADR-010](../users-and-access/) and [ADR-013](../sign-in/) before the foundation is built; [ADR-006](../stock-ledger/), [ADR-007](../order-ingestion/) and [ADR-008](../inventory-sync/) before their phases begin; each other record before the work that follows it.
 
 ## Glossary
 
