@@ -86,7 +86,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>The operator console to read the refusal and the company&#39;s activity. No write to the seller&#39;s stock</td>
 </tr>
 </tbody></table></div>
-<p>Stock is never negative and never clamped. A command plans its change, and the database checks are the last line, so a refusal means a command planned wrongly: a bug. The change was not written. If the command was an order import, the order is retried and becomes an import problem after three attempts (<a href="../../order-ingestion/">ADR-007</a>), and its units come off every figure meanwhile (<a href="../../inventory-sync/spec/#1-the-figure-per-listing">ADR-008 SPEC 1</a>).</p>
+<p>Stock is never negative and never clamped. A command plans its change, and the database checks are the last line, so a refusal means a command planned wrongly: a bug. The change was not written. If the command was an order import, the order is retried and becomes an import problem after three attempts (<a href="../../order-ingestion/spec/#8-reserving-on-import">ADR-007</a>), and its units come off every figure meanwhile (<a href="../../inventory-sync/spec/#1-the-figure-per-listing">ADR-008 SPEC 1</a>).</p>
 <h2 id="steps">Steps</h2>
 <ol>
 <li>Read the refusal: the command, its key, the product, batch and spot, and the check that failed.</li>

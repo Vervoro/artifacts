@@ -29,7 +29,7 @@ Only what is particular to eBay. Everything the host does (credentials, HTTP, ou
 1. **One destination per environment,** made by the operator, because it needs the endpoint's verification token, which no hook sees. eBay also needs the application's alert address and checks the endpoint's challenge first. Procedure: [Set up eBay notices](../../runbooks/set-up-ebay-notices/).
 2. **Three topics per seller,** subscribed on connect and removed on disconnect: `ORDER_CONFIRMATION`, `ORDER_CANCELLATION_ACTIVITY`, `ITEM_MARKED_SHIPPED`.
 3. **Checked with eBay's public key** before any database read. The queue message holds the topic, the notice id, the seller's user id and the order ids.
-4. **What each leads to.** A confirmation fetches the order. A cancellation notice fetches it again, and the fetched order's own cancellation state decides; a reminder to answer is ignored. An item marked shipped outside Vervoro fetches the order; Vervoro's own shipments return on the same topic and are not fetched again ([ADR-007](../../order-ingestion/)).
+4. **What each leads to.** A confirmation fetches the order. A cancellation notice fetches it again, and the fetched order's own cancellation state decides; a reminder to answer is ignored. An item marked shipped outside Vervoro fetches the order; Vervoro's own shipments return on the same topic and are not fetched again ([ADR-007](../../order-ingestion/spec/#2-how-an-order-comes-in)).
 
 ## 3. Orders
 
@@ -72,7 +72,7 @@ Only what is particular to eBay. Everything the host does (credentials, HTTP, ou
 
 ## 7. Cancellations and dispatch
 
-1. **Vervoro sends no cancellation and no answer to a buyer's request** ([ADR-007 decision 9](../../order-ingestion/#decision)). No Post-Order call is made. The cancellations scope is still asked for, because the cancellation notice needs it. ADR-007 fetches the order again when eBay's 3-day answer window closes.
+1. **Vervoro sends no cancellation and no answer to a buyer's request** ([ADR-007 SPEC 12](../../order-ingestion/spec/#12-cancellations-and-refunds)). No Post-Order call is made. The cancellations scope is still asked for, because the cancellation notice needs it. ADR-007 fetches the order again when eBay's 3-day answer window closes.
 2. **Dispatch:** one Fulfillment API call per shipment, with carrier and tracking, through the gate.
 
 ## 8. Account deletion notices

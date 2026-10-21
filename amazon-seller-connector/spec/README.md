@@ -30,7 +30,7 @@ Only what is particular to Amazon. Everything the host does (credentials, HTTP, 
 1. **The region decides** the API address and the notice destination the seller is subscribed to.
 2. **One figure for the account's marketplaces.** A listing update names every marketplace the account serves, and Amazon applies one quantity to all.
 3. **Which marketplace a sale lowers** depends on a seller setting Vervoro cannot see. An order counts as coming out of Vervoro's figure only when the account serves exactly one marketplace ([ADR-008 SPEC 12](../../inventory-sync/spec/#12-amazon-accounts-on-several-marketplaces)).
-4. **Orders from every marketplace of the region are imported.** The first order the seller ships from a marketplace the account was not set up for asks who ships that marketplace's orders ([ADR-007](../../order-ingestion/)).
+4. **Orders from every marketplace of the region are imported.** The first order the seller ships from a marketplace the account was not set up for asks who ships that marketplace's orders ([ADR-007](../../order-ingestion/spec/#21-amazon-orders-from-the-regions-other-marketplaces)).
 
 ## 3. Notices and the bridge
 

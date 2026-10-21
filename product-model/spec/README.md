@@ -35,7 +35,7 @@ Everything below is built at launch except these parts, which keep their rules h
 
 Owner ruling, 21 October 2026: non-stock charges are charge lines, not a product kind.
 
-1. **A charge line** is a name (1–200 characters), an amount with its currency, and a VAT class (section 11). It sits on a manual order ([ADR-007](../../order-ingestion/#manual-orders)) and on the invoice made from it ([ADR-011](../../invoicing-and-vat/#what-a-document-holds)). It never reserves, picks or moves stock, and never reaches a pick list.
+1. **A charge line** is a name (1–200 characters), an amount with its currency, and a VAT class (section 11). It sits on a manual order ([ADR-007](../../order-ingestion/spec/#18-manual-orders)) and on the invoice made from it ([ADR-011](../../invoicing-and-vat/#what-a-document-holds)). It never reserves, picks or moves stock, and never reaches a pick list.
 2. **Delivery is not a charge line.** It stays the order's delivery charge, and its VAT follows the goods ([ADR-011](../../invoicing-and-vat/#working-out-the-vat)).
 3. **A marketplace listing that is not stock** (a warranty, gift wrap) is marked "not stock" with a VAT class instead of being linked ([ADR-005](../../catalogue-sync/spec/#12-unlinked-listings-and-going-live)). It gets no figure; its order lines import as charge lines and never wait for a link.
 4. **No product kind, flag or setting** turns a product into a charge.
@@ -177,7 +177,7 @@ Listings and how they are read and matched are [ADR-005](../../catalogue-sync/).
 1. **One listing, one product;** a product may have any number of listings. A set of different products is a bundle.
 2. **The listing's figure** is the product's sellable divided by units per sale, rounded down ([ADR-008](../../inventory-sync/)).
 3. **One sale reserves** units per sale of the product; for a bundle, that many sets of its components.
-4. **A listing that is not linked** reserves nothing; its orders are imported and flagged ([ADR-007](../../order-ingestion/#orders-for-unlinked-listings)). A listing marked not stock is section 1.1.
+4. **A listing that is not linked** reserves nothing; its orders are imported and flagged ([ADR-007](../../order-ingestion/spec/#14-orders-for-unlinked-listings)). A listing marked not stock is section 1.1.
 
 ### 8.1 Amazon
 

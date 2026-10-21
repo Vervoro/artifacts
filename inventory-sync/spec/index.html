@@ -150,7 +150,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>A bundle</strong> takes, per component, that component&#39;s avail for A divided by the quantity per bundle, rounded down, and the smallest of them.</li>
 <li><strong>D = floor(avail ÷ u).</strong></li>
 </ol>
-<p><strong>Import problems</strong> (<a href="../../order-ingestion/">ADR-007</a>): each line whose listing and quantity were read takes quantity × the units per sale of the link valid at purchase off avail for every account, never below zero, until the order imports, when its reservations replace the deduction. A line whose quantity was not read holds raises on its listing; a line whose listing was not read holds every raise on the account, and pages the operator after 60 minutes. A mirror&#39;s lines (a Shopify copy of a sale also connected directly) count the same.</p>
+<p><strong>Import problems</strong> (<a href="../../order-ingestion/spec/#9-import-problems">ADR-007 SPEC 9</a>): each line whose listing and quantity were read takes quantity × the units per sale of the link valid at purchase off avail for every account, never below zero, until the order imports, when its reservations replace the deduction. A line whose quantity was not read holds raises on its listing; a line whose listing was not read holds every raise on the account, and pages the operator after 60 minutes. A mirror&#39;s lines (a Shopify copy of a sale also connected directly) count the same.</p>
 <p><strong>No figure</strong> (never sent as 0): marketplace-shipped listings; pending and ended listings (<a href="../../catalogue-sync/spec/#3-states">ADR-005 SPEC 3</a>); a missing listing keeps its figure; eBay variations without a SKU; eBay Seller Hub listings never read because the out-of-stock option is off (<a href="../../ebay-connector/">ADR-004.1</a>); listings not managed; disconnected accounts.</p>
 <h2 id="2-terms">2. Terms</h2>
 <div class="table-wrap"><table>
@@ -281,7 +281,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2 id="5-the-order-read-before-a-raise">5. The order read before a raise</h2>
 <ol>
 <li><strong>A raise becomes due</strong> when D rises above B, or a read lowers B. A decrease, or a read that changes nothing, does not restart the wait.</li>
-<li><strong>It goes</strong> when the account&#39;s order watermark (<a href="../../order-ingestion/">ADR-007</a>) is at least that moment plus 2 minutes, and <strong>sends the latest D,</strong> never the figure it became due with.</li>
+<li><strong>It goes</strong> when the account&#39;s order watermark (<a href="../../order-ingestion/spec/#2-how-an-order-comes-in">ADR-007 SPEC 2.3</a>) is at least that moment plus 2 minutes, and <strong>sends the latest D,</strong> never the figure it became due with.</li>
 <li><strong>A notice naming an order without its lines</strong> holds the account&#39;s raises until the order is fetched or recorded as an import problem; after 30 minutes the operator is paged.</li>
 <li><strong>One on-demand read per account</strong> covers every raise waiting on it:</li>
 </ol>
@@ -357,7 +357,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2 id="7-held-raises">7. Held raises</h2>
 <ol>
 <li><strong>Stock sync keeps one set of reasons per listing.</strong> While it is not empty, D is still worked out truthfully, every decrease goes, and raises wait.</li>
-<li><strong>Reasons:</strong> the listing came back after ending; its SKU was edited onto another product&#39;s; a live bulk link is not confirmed; a fulfilment conflict is open or a fulfilment change waits for the seller (<a href="../../catalogue-sync/spec/#118-held-raise-reasons-listings-sends">ADR-005 SPEC 11.8</a>, <a href="../../order-ingestion/">ADR-007</a>); its product failed the nightly check (<a href="../../stock-ledger/spec/#14-the-nightly-check-and-checkpoints">ADR-006</a>); an open import problem names it. Each arrives by its owner&#39;s event; the operator can also hold raises by hand (<a href="../../runbooks/hold-raises-or-pause-an-account/">runbook</a>).</li>
+<li><strong>Reasons:</strong> the listing came back after ending; its SKU was edited onto another product&#39;s; a live bulk link is not confirmed; a fulfilment conflict is open or a fulfilment change waits for the seller (<a href="../../catalogue-sync/spec/#118-held-raise-reasons-listings-sends">ADR-005 SPEC 11.8</a>, <a href="../../order-ingestion/spec/#15-marketplace-shipped-lines-and-conflicts">ADR-007</a>); its product failed the nightly check (<a href="../../stock-ledger/spec/#14-the-nightly-check-and-checkpoints">ADR-006</a>); an open import problem names it. Each arrives by its owner&#39;s event; the operator can also hold raises by hand (<a href="../../runbooks/hold-raises-or-pause-an-account/">runbook</a>).</li>
 <li><strong>When the last reason clears,</strong> the raise becomes due at that moment and waits for the order read.</li>
 </ol>
 <h2 id="8-limits-and-who-goes-next">8. Limits and who goes next</h2>

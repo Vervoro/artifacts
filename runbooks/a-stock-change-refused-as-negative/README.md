@@ -7,7 +7,7 @@
 | **Who runs it** | The operator, when a "would go negative" refusal alerts |
 | **Role or credential** | The operator console to read the refusal and the company's activity. No write to the seller's stock |
 
-Stock is never negative and never clamped. A command plans its change, and the database checks are the last line, so a refusal means a command planned wrongly: a bug. The change was not written. If the command was an order import, the order is retried and becomes an import problem after three attempts ([ADR-007](../../order-ingestion/)), and its units come off every figure meanwhile ([ADR-008 SPEC 1](../../inventory-sync/spec/#1-the-figure-per-listing)).
+Stock is never negative and never clamped. A command plans its change, and the database checks are the last line, so a refusal means a command planned wrongly: a bug. The change was not written. If the command was an order import, the order is retried and becomes an import problem after three attempts ([ADR-007](../../order-ingestion/spec/#8-reserving-on-import)), and its units come off every figure meanwhile ([ADR-008 SPEC 1](../../inventory-sync/spec/#1-the-figure-per-listing)).
 
 ## Steps
 

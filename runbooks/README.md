@@ -82,6 +82,17 @@ Rules: [ADR-006 SPEC](../stock-ledger/spec/).
 | [Settle a stock check difference](settle-a-stock-check-difference/) | The nightly stock check pages |
 | [A stock change refused as negative](a-stock-change-refused-as-negative/) | A "would go negative" refusal alerts |
 
+## ADR-007: Order ingestion
+
+Rules: [ADR-007 SPEC](../order-ingestion/spec/).
+
+| Procedure | When |
+| --- | --- |
+| [Order ingestion stalled](order-ingestion-stalled/) | The order watermark of a marketplace's accounts is more than 60 minutes behind |
+| [Work the problem-orders list](work-the-problem-orders-list/) | An import problem alerts, or a connector fix ships |
+| [Handle a buyer's cancellation request](handle-a-buyers-cancellation-request/) | The cancellation list shows a request; run by the seller's Manager |
+| [Settle an order shipped outside Vervoro](settle-an-order-shipped-outside-vervoro/) | An order in the daily digest did not leave the warehouse, or is held "step undone"; run by the seller's Manager |
+
 ## ADR-008: Inventory sync
 
 Rules: [ADR-008 SPEC](../inventory-sync/spec/).

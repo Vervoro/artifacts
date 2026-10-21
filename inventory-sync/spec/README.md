@@ -40,7 +40,7 @@ This section owns the rule that Stock sync alone writes each listing's figure (o
 4. **A bundle** takes, per component, that component's avail for A divided by the quantity per bundle, rounded down, and the smallest of them.
 5. **D = floor(avail ÷ u).**
 
-**Import problems** ([ADR-007](../../order-ingestion/)): each line whose listing and quantity were read takes quantity × the units per sale of the link valid at purchase off avail for every account, never below zero, until the order imports, when its reservations replace the deduction. A line whose quantity was not read holds raises on its listing; a line whose listing was not read holds every raise on the account, and pages the operator after 60 minutes. A mirror's lines (a Shopify copy of a sale also connected directly) count the same.
+**Import problems** ([ADR-007 SPEC 9](../../order-ingestion/spec/#9-import-problems)): each line whose listing and quantity were read takes quantity × the units per sale of the link valid at purchase off avail for every account, never below zero, until the order imports, when its reservations replace the deduction. A line whose quantity was not read holds raises on its listing; a line whose listing was not read holds every raise on the account, and pages the operator after 60 minutes. A mirror's lines (a Shopify copy of a sale also connected directly) count the same.
 
 **No figure** (never sent as 0): marketplace-shipped listings; pending and ended listings ([ADR-005 SPEC 3](../../catalogue-sync/spec/#3-states)); a missing listing keeps its figure; eBay variations without a SKU; eBay Seller Hub listings never read because the out-of-stock option is off ([ADR-004.1](../../ebay-connector/)); listings not managed; disconnected accounts.
 
@@ -89,7 +89,7 @@ This section owns the rule that Stock sync alone writes each listing's figure (o
 ## 5. The order read before a raise
 
 1. **A raise becomes due** when D rises above B, or a read lowers B. A decrease, or a read that changes nothing, does not restart the wait.
-2. **It goes** when the account's order watermark ([ADR-007](../../order-ingestion/)) is at least that moment plus 2 minutes, and **sends the latest D,** never the figure it became due with.
+2. **It goes** when the account's order watermark ([ADR-007 SPEC 2.3](../../order-ingestion/spec/#2-how-an-order-comes-in)) is at least that moment plus 2 minutes, and **sends the latest D,** never the figure it became due with.
 3. **A notice naming an order without its lines** holds the account's raises until the order is fetched or recorded as an import problem; after 30 minutes the operator is paged.
 4. **One on-demand read per account** covers every raise waiting on it:
 
@@ -117,7 +117,7 @@ This section owns the rule that Stock sync alone writes each listing's figure (o
 ## 7. Held raises
 
 1. **Stock sync keeps one set of reasons per listing.** While it is not empty, D is still worked out truthfully, every decrease goes, and raises wait.
-2. **Reasons:** the listing came back after ending; its SKU was edited onto another product's; a live bulk link is not confirmed; a fulfilment conflict is open or a fulfilment change waits for the seller ([ADR-005 SPEC 11.8](../../catalogue-sync/spec/#118-held-raise-reasons-listings-sends), [ADR-007](../../order-ingestion/)); its product failed the nightly check ([ADR-006](../../stock-ledger/spec/#14-the-nightly-check-and-checkpoints)); an open import problem names it. Each arrives by its owner's event; the operator can also hold raises by hand ([runbook](../../runbooks/hold-raises-or-pause-an-account/)).
+2. **Reasons:** the listing came back after ending; its SKU was edited onto another product's; a live bulk link is not confirmed; a fulfilment conflict is open or a fulfilment change waits for the seller ([ADR-005 SPEC 11.8](../../catalogue-sync/spec/#118-held-raise-reasons-listings-sends), [ADR-007](../../order-ingestion/spec/#15-marketplace-shipped-lines-and-conflicts)); its product failed the nightly check ([ADR-006](../../stock-ledger/spec/#14-the-nightly-check-and-checkpoints)); an open import problem names it. Each arrives by its owner's event; the operator can also hold raises by hand ([runbook](../../runbooks/hold-raises-or-pause-an-account/)).
 3. **When the last reason clears,** the raise becomes due at that moment and waits for the order read.
 
 ## 8. Limits and who goes next

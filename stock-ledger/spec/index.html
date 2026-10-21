@@ -292,7 +292,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Manual or business order line</td>
-<td>When the order is confirmed (<a href="../../order-ingestion/">ADR-007</a>)</td>
+<td>When the order is confirmed (<a href="../../order-ingestion/spec/#18-manual-orders">ADR-007</a>)</td>
 <td>The product&#39;s sell-by rule</td>
 <td>On a confirmed shipment</td>
 </tr>
@@ -323,17 +323,17 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>A manager can pin another batch</strong> that is sellable and meets the need: a <code>released</code> and a <code>reserved</code> entry with name and reason.</li>
 </ol>
 <h3 id="53-reserving-an-order-line">5.3 Reserving an order line</h3>
-<p>Orders calls Inventory&#39;s reserve port inside its import transaction (<a href="../../order-ingestion/">ADR-007</a>), after the company&#39;s lock:</p>
+<p>Orders calls Inventory&#39;s reserve port inside its import transaction (<a href="../../order-ingestion/spec/#8-reserving-on-import">ADR-007</a>), after the company&#39;s lock:</p>
 <ol>
 <li>The line&#39;s link version, valid when the buyer bought, gives product, units per sale and fulfilment (<a href="../../catalogue-sync/">ADR-005</a>). The line stores it.</li>
 <li><strong>Target, not delta:</strong> what the line still needs is (quantity − cancelled − dispatched − shipped outside) × units per sale, per component for a bundle. Only the difference from what it holds is reserved or released, so one read with a cancellation and an edit never releases twice.</li>
 <li><strong>A shortage reserves what exists</strong> and records the rest as missing. Vervoro never cancels the order; that is the seller&#39;s choice.</li>
-<li><strong>Short lines fill when units arrive</strong> (receipt, restock, accepted receipt, count surplus), in the same transaction, in that warehouse: earliest ship-by time first (<a href="../../order-ingestion/">ADR-007</a>); orders held for payment or with a cancellation requested last; oldest purchase breaks a tie.</li>
+<li><strong>Short lines fill when units arrive</strong> (receipt, restock, accepted receipt, count surplus), in the same transaction, in that warehouse: earliest ship-by time first (<a href="../../order-ingestion/spec/#20-deadlines-and-the-handover">ADR-007</a>); orders held for payment or with a cancellation requested last; oldest purchase breaks a tie.</li>
 <li><strong>A smaller quantity releases</strong> latest sell-by first and unpacked units first; a larger one reserves more by 5.2.</li>
 <li><strong>A line&#39;s reservation never changes because a link changed</strong> (<a href="../../catalogue-sync/">ADR-005</a>). It changes only when a manager resolves the line again, pins a batch, the floor packs another eligible batch, or a date pass, block or count moves it.</li>
 <li><strong>Resolving again</strong> (a manager, for a line reserved under a wrong link) releases and reserves under the current link in one transaction. A line with units packed or dispatched cannot be resolved again.</li>
 </ol>
-<p>The order line&#39;s <code>link_id</code>, <code>product_id</code>, <code>units_per_sale</code>, <code>fulfilled_by</code>, <code>components</code>, <code>needed</code> and <code>missing</code> are Orders&#39; fields (<a href="../../order-ingestion/">ADR-007</a>). <code>stock_reservation</code> holds demand, product, batch, warehouse, reserved, packed, dispatched and closed at.</p>
+<p>The order line&#39;s <code>link_id</code>, <code>product_id</code>, <code>units_per_sale</code>, <code>fulfilled_by</code>, <code>components</code>, <code>needed</code> and <code>missing</code> are Orders&#39; fields (<a href="../../order-ingestion/spec/#5-the-order-and-its-lines">ADR-007</a>). <code>stock_reservation</code> holds demand, product, batch, warehouse, reserved, packed, dispatched and closed at.</p>
 <h2 id="6-what-a-line-reserves">6. What a line reserves</h2>
 <ol>
 <li><strong>A pack reserves its own stock,</strong> never singles. When singles could make a missing pack, the screen offers a repack job; Vervoro never repacks on its own.</li>
@@ -354,7 +354,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Put back.</strong> Moves packed units back to a storage spot, or leaves them in the packing spot for put-away.</li>
 <li><strong>Dispatch.</strong> Writes <code>dispatched</code> for each packed reservation the shipment uses (on hand in the packing spot and reserved down together), marks them dispatched, and records each line&#39;s lots. A reservation can never dispatch more than it packed, nor pack more than it reserved. An order dispatched without packing in Vervoro is packed by the dispatch itself: one eligible batch is implied, otherwise the reserved batch, marked &quot;batch assumed&quot;.</li>
 <li><strong>Shipped outside Vervoro.</strong> When the marketplace reports a line shipped with no shipment in Vervoro, Orders calls dispatch with source &quot;marketplace said shipped&quot;: packed units first, unpacked marked &quot;batch assumed&quot;; in shadow, marked &quot;lot not traced&quot;. When it had to choose between eligible batches of a dated product, a task asks the warehouse to tap the lot; it never blocks. A manager reverses a wrong one with <code>adjusted</code> and a reason.</li>
-<li><strong>Release.</strong> A confirmed cancellation releases exactly what each line held, batch by batch. A request releases nothing (<a href="../../order-ingestion/">ADR-007</a>). After dispatch, a cancellation moves nothing.</li>
+<li><strong>Release.</strong> A confirmed cancellation releases exactly what each line held, batch by batch. A request releases nothing (<a href="../../order-ingestion/spec/#12-cancellations-and-refunds">ADR-007</a>). After dispatch, a cancellation moves nothing.</li>
 <li><strong>Quarantine at a pick (&quot;not found&quot;).</strong> Quarantines the unit with that reason, moves the reservation to another qualifying batch or leaves the line short, and puts the spot on the count list.</li>
 <li><strong>A unit picked where the books do not show it</strong> is a move from the spot where the books hold that batch, and both spots go on the count list. Only when no spot holds that batch is it <strong>found</strong>: received with reason &quot;found at pick&quot; and packed in one transaction, listed for a manager.</li>
 <li><strong>Receive a return.</strong> Into one of the batches the line dispatched (the lot scanned, or else the earliest-dated), as <code>returned</code>: held until inspected. At most what the line dispatched, less earlier returns. A bundle returns by component. A unit with no dispatch record goes into a new batch with a reason; a dated product asks for its date.</li>
@@ -408,7 +408,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </thead>
 <tbody><tr>
 <td>Import an order</td>
-<td>The marketplace&#39;s order id on that account; an older state changes nothing (<a href="../../order-ingestion/">ADR-007</a>)</td>
+<td>The marketplace&#39;s order id on that account; an older state changes nothing (<a href="../../order-ingestion/spec/#3-one-order-per-marketplace-order">ADR-007</a>)</td>
 </tr>
 <tr>
 <td>Pack, confirm a shipment</td>
@@ -513,7 +513,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>The sequence has no gaps since the last check.</li>
 <li>No open reservation remains on a cancelled, fully shipped or re-resolved line.</li>
 <li>Per day, units on shipped lines equal their <code>dispatched</code> entries (× units per sale of the link version), and received return lines equal their <code>returned</code> entries; one grouped query per kind.</li>
-<li>Each open order&#39;s status, worked out again, equals the stored one (<a href="../../order-ingestion/">ADR-007</a>); a difference here alerts the operator only.</li>
+<li>Each open order&#39;s status, worked out again, equals the stored one (<a href="../../order-ingestion/spec/#6-statuses">ADR-007</a>); a difference here alerts the operator only.</li>
 </ol>
 <p>A difference in 1–5 alerts the operator and the company&#39;s managers, and Stock sync holds raises on every listing of the affected products while decreases go (<a href="../../inventory-sync/spec/#7-held-raises">ADR-008 SPEC 7</a>). The operator rebuilds the balance from the ledger: <a href="../../runbooks/settle-a-stock-check-difference/">Settle a stock check difference</a>. The operator never writes a seller&#39;s ledger.</p>
 <p><strong>Checkpoints</strong> (<a href="../../data-retention/">ADR-002</a>): before a ledger month leaves the database, the archiver writes under the lock one <code>opening_balance</code> per spot balance and batch position with entries up to then, carrying each total and the last sequence covered, and each open reservation&#39;s totals. Open reservations are never archived.</p>

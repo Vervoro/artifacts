@@ -34,7 +34,7 @@ Only what is particular to Shopify. Everything the host does (credentials, HTTP,
 
 1. **Declared once in the app's configuration,** all to one address.
 2. **Checked with the app's secret** (current or previous) before any database read. The shop is named in a header the signature does not cover, so it is used only to find the account; a genuine body replayed under another shop's name can at most cause a fetch that finds nothing.
-3. **Topics:** order created, updated, edited and cancelled; fulfilment order moved, placed on hold and released; a new risk assessment; inventory changed at the warehouse location; app uninstalled; the privacy topics. Moves, holds and risk assessments do not reliably raise the order-updated topic, so each has its own ([ADR-007](../../order-ingestion/)).
+3. **Topics:** order created, updated, edited and cancelled; fulfilment order moved, placed on hold and released; a new risk assessment; inventory changed at the warehouse location; app uninstalled; the privacy topics. Moves, holds and risk assessments do not reliably raise the order-updated topic, so each has its own ([ADR-007](../../order-ingestion/spec/#7-from-each-marketplace)).
 4. **The body is not imported.** Only the order id, the topic, and what changed (cancelled, or shipped outside Vervoro, with the time) are queued; the order is fetched.
 5. **Backup read** every 10 minutes, early reads at least 30 seconds apart. Without the older-orders scope only the last 60 days are readable, longer than Vervoro keeps buyer data.
 6. **Lines without a SKU.** A gift card, a tip or a line that needs no shipping is left out. A line that needs shipping with no SKU and no variant stays unmatched, so the order cannot be dispatched until a person looks.

@@ -86,7 +86,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>The developer and coding agents building it, and the person reviewing their work</td>
 </tr>
 </tbody></table></div>
-<p>The rules to build ADR-014 from: the Fulfilment module. Every stock change below is a call to an Inventory port defined in <a href="../../stock-ledger/spec/#7-ports-fulfilment-and-orders-call">ADR-006 SPEC 7</a>, and every status change a call to Orders (<a href="../../order-ingestion/">ADR-007</a>). Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the <a href="../../guide/">map and glossary</a>.</p>
+<p>The rules to build ADR-014 from: the Fulfilment module. Every stock change below is a call to an Inventory port defined in <a href="../../stock-ledger/spec/#7-ports-fulfilment-and-orders-call">ADR-006 SPEC 7</a>, and every status change a call to Orders (<a href="../../order-ingestion/spec/#1-the-module">ADR-007</a>). Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the <a href="../../guide/">map and glossary</a>.</p>
 <h2 id="0-at-launch-and-later">0. At launch and later</h2>
 <div class="table-wrap"><table>
 <thead>
@@ -130,7 +130,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>The pick list</strong> names the batch, its lot and date, and the spot. A pick task writes no ledger entry.</li>
 <li><strong>&quot;Not found&quot;</strong> calls Inventory&#39;s quarantine port (<a href="../../stock-ledger/spec/#7-ports-fulfilment-and-orders-call">ADR-006 SPEC 7.7</a>); the pick list then shows the new batch, or the line as short.</li>
 <li><strong>A unit taken from a spot the books do not show</strong> is reported as it is; Inventory records it as a move or a find (ADR-006 SPEC 7.8).</li>
-<li>An order whose line is waiting or short does not join the pick list (<a href="../../order-ingestion/">ADR-007</a>).</li>
+<li>An order whose line is waiting or short does not join the pick list (<a href="../../order-ingestion/spec/#10-whole-orders">ADR-007</a>).</li>
 </ol>
 <h2 id="3-packing">3. Packing</h2>
 <p>Packing (ADR-007&#39;s &quot;packed&quot;) is a server command, keyed by the packing id. For each unit it names the batch:</p>
@@ -147,7 +147,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>One shipment per order.</strong> It carries every unit still to ship, possibly in several boxes, and names the lines, quantities, carrier and tracking.</li>
 <li><strong>Confirming it,</strong> in one transaction, keyed by the shipment id: Inventory&#39;s dispatch port deducts exactly what was packed for it; Orders records the status shipped and the outbox note for the dispatch notice through the egress gate (<a href="../../system-architecture/spec/#7-the-egress-gate">ADR-000 SPEC 7</a>). A repeat returns &quot;already confirmed&quot;.</li>
 <li><strong>A line never ships more than it reserved,</strong> so an order with a short line waits. A bundle line ships whole sets.</li>
-<li><strong>Part shipped</strong> only when the marketplace reports part shipped outside Vervoro (<a href="../../order-ingestion/">ADR-007</a>); the rest ships whole.</li>
+<li><strong>Part shipped</strong> only when the marketplace reports part shipped outside Vervoro (<a href="../../order-ingestion/spec/#17-shipped-outside-vervoro">ADR-007</a>); the rest ships whole.</li>
 <li><strong>Dispatch without packing in Vervoro</strong> (confirmed at the bench) is allowed: Inventory packs by the dispatch itself.</li>
 <li><strong>Shipped outside Vervoro</strong> is Orders&#39; import calling Inventory directly; Fulfilment shows the task asking which lot left, and a manager may reverse it (&quot;Not from our stock&quot;).</li>
 <li>Sellable does not change on dispatch, so it sends Stock sync no note.</li>

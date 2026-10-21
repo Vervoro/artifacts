@@ -176,7 +176,7 @@ Closing a link without a new one, by a person, by retiring the product, or by an
 1. **Reserved orders keep their stock** ([ADR-006 SPEC 6.6](../../stock-ledger/spec/#6-what-a-line-reserves)); the screen says how many.
 2. **The listing is sent 0 by default.** The screen offers "Set to 0 and unlink", the default, or "Leave the marketplace's figure", showing the figure. The choice is recorded on the closed link, and Stock sync carries it out as a stop ([ADR-008 SPEC 10.2](../../inventory-sync/spec/#10-listing-modes-and-stopping)).
 3. **A marketplace-shipped listing** never gets a figure, so unlinking it sends nothing.
-4. **Relinking is a new link.** Orders already dispatched while unlinked stay flagged; the seller attaches each to a product from the order ([ADR-007](../../order-ingestion/#orders-for-unlinked-listings)).
+4. **Relinking is a new link.** Orders already dispatched while unlinked stay flagged; the seller attaches each to a product from the order ([ADR-007](../../order-ingestion/spec/#14-orders-for-unlinked-listings)).
 
 ### 11.7 Fulfilment changes
 
@@ -190,7 +190,7 @@ The listing came back after ending (8.6); its SKU was edited onto another produc
 
 ## 12. Unlinked listings and going live
 
-1. **An unlinked listing is left to the marketplace.** It gets no figure; its orders are imported and flagged ([ADR-007](../../order-ingestion/#orders-for-unlinked-listings)). Unlinked is the default and needs no mark. The account shows how many listings are left to the marketplace.
+1. **An unlinked listing is left to the marketplace.** It gets no figure; its orders are imported and flagged ([ADR-007](../../order-ingestion/spec/#14-orders-for-unlinked-listings)). Unlinked is the default and needs no mark. The account shows how many listings are left to the marketplace.
 2. **Not stock.** A listing that sells no stock is marked "not stock" with a VAT class by those who may link ([ADR-010 SPEC 4](../../users-and-access/spec/#4-who-may-do-what)). It is never linked and gets no figure; its order lines are charge lines ([ADR-003 SPEC 1.1](../../product-model/spec/#11-charge-lines-and-listings-that-are-not-stock), owner ruling, 21 October 2026). Removing the mark makes it an ordinary unlinked listing.
 3. **A shared-stock listing** is an unlinked, buyable, seller-shipped listing with a strong or medium suggestion naming a product already linked elsewhere, or in a listing group with a linked member. It takes stock Vervoro does not deduct.
 4. **Going live on an account needs** a complete catalogue read, no open conflict, and an answer for every shared-stock listing: link it, or "separate stock, leave to the marketplace". Many can be answered at once, with a confirm that names the risk. The answer is recorded (listing, evidence, who, when), creates no link, and is asked again when a new strong suggestion appears. Every other unlinked listing is a count, never a blocker. How accounts go live is [ADR-008 SPEC 14](../../inventory-sync/spec/#14-shadow-and-going-live).
@@ -233,7 +233,7 @@ Answered one at a time, never in bulk.
 | --- | --- |
 | A listing's SKU and barcode point at different products | Stays unlinked; no suggestion is strong |
 | A SKU edited onto another product's SKU | Link kept, decreases go, raises wait |
-| A seller-shipped order on a listing linked as marketplace-shipped (opened by Orders, [ADR-007](../../order-ingestion/#a-seller-shipped-order-on-a-marketplace-shipped-link)) | The order reserves; raises wait for the seller's answer |
+| A seller-shipped order on a listing linked as marketplace-shipped (opened by Orders, [ADR-007](../../order-ingestion/spec/#15-marketplace-shipped-lines-and-conflicts)) | The order reserves; raises wait for the seller's answer |
 | A listing came back as a different marketplace product | The old link is closed; the old product is suggested |
 
 **Duplicates are allowed.** Several listings may link to one product, on one account or across accounts; each gets the figure. Same-account duplicates are a warning on the product page, not a conflict.

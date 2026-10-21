@@ -96,14 +96,14 @@ A module declares each action in its manifest ([ADR-000 SPEC 1](../../system-arc
 | **Orders** | | | | | | | |
 | Read orders (buyer data as ADR-009 decides) | Yes | Yes | Yes | Yes | Yes | Yes | [ADR-009](../../buyer-data/) |
 | Pick, pack (and take another eligible batch, recorded), print labels, confirm a shipment | Yes | Yes | Yes | Yes | No | No | [ADR-006](../../stock-ledger/), [ADR-007](../../order-ingestion/) |
-| Place or clear a floor hold (including an address check on an order being picked or packed) | Yes | Yes | Yes | Yes | No | No | [ADR-007](../../order-ingestion/) |
-| Place or clear an office hold; release an Amazon buyer's cancellation request to ship anyway | Yes | Yes | Yes | No | No | No | [ADR-007](../../order-ingestion/) |
-| Create, confirm, edit or cancel a phone or email order (a warehouse user confirms with a payment reference, or it is held for a manager; their copies of earlier orders carry no buyer details) | Yes | Yes | Yes | Yes | No | No | [ADR-007](../../order-ingestion/) |
-| Confirm a manual order without payment (account terms), or release its payment hold | Yes | Yes | Yes | No | No | No | [ADR-007](../../order-ingestion/) |
-| Make a counter sale (paid and collected at once) | Yes | Yes | Yes | Yes | No | No | [ADR-007](../../order-ingestion/) |
-| Attach an order line to a product (its listing stays unlinked) | Yes | Yes | Yes | Yes | No | No | [ADR-007](../../order-ingestion/) |
+| Place or clear a floor hold (including an address check on an order being picked or packed) | Yes | Yes | Yes | Yes | No | No | [ADR-007](../../order-ingestion/spec/#11-holds) |
+| Place or clear an office hold; release an Amazon buyer's cancellation request to ship anyway | Yes | Yes | Yes | No | No | No | [ADR-007](../../order-ingestion/spec/#11-holds) |
+| Create, confirm, edit or cancel a phone or email order (a warehouse user confirms with a payment reference, or it is held for a manager; their copies of earlier orders carry no buyer details) | Yes | Yes | Yes | Yes | No | No | [ADR-007](../../order-ingestion/spec/#18-manual-orders) |
+| Confirm a manual order without payment (account terms), or release its payment hold | Yes | Yes | Yes | No | No | No | [ADR-007](../../order-ingestion/spec/#18-manual-orders) |
+| Make a counter sale (paid and collected at once) | Yes | Yes | Yes | Yes | No | No | [ADR-007](../../order-ingestion/spec/#18-manual-orders) |
+| Attach an order line to a product (its listing stays unlinked) | Yes | Yes | Yes | Yes | No | No | [ADR-007](../../order-ingestion/spec/#14-orders-for-unlinked-listings) |
 | Pin a batch for a line, resolve a line again | Yes | Yes | Yes | No | No | No | [ADR-006](../../stock-ledger/), [ADR-007](../../order-ingestion/) |
-| Reverse a shipment reported outside Vervoro | Yes | Yes | Yes | No | No | No | [ADR-006](../../stock-ledger/), [ADR-007](../../order-ingestion/) |
+| Reverse a shipment reported outside Vervoro | Yes | Yes | Yes | No | No | No | [ADR-006](../../stock-ledger/), [ADR-007](../../order-ingestion/spec/#17-shipped-outside-vervoro) |
 | **Invoicing** | | | | | | | |
 | Issue an invoice; confirm a credit note | Yes | Yes | Yes | No | No | No | [ADR-011](../../invoicing-and-vat/) |
 | Issue on Vervoro's figure despite a VAT flag (reason required) | Yes | Yes | No | No | No | No | [ADR-011](../../invoicing-and-vat/) |

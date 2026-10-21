@@ -121,7 +121,7 @@ Orders arrive by notice; the scheduled read is only the backup ([9](#9-the-compl
 
 ## 9. The completeness check
 
-1. **It reads the orders changed since the watermark,** with a small overlap, and is the only thing that moves the watermark, and only after a complete window ([ADR-007](../../order-ingestion/)).
+1. **It reads the orders changed since the watermark,** with a small overlap, and is the only thing that moves the watermark, and only after a complete window ([ADR-007 SPEC 2.3](../../order-ingestion/spec/#2-how-an-order-comes-in)).
 2. **The interval is per marketplace,** by whether the order limit is shared: hourly where it is (eBay), every 10 minutes where it is per seller (Amazon, Shopify). The operator can change it per connector without code.
 3. **Any complete read resets the timer,** including one a raise asks for.
 4. **Broken notices are read every 10 minutes:** an account whose subscription is failing, or whose read finds an order no notice announced, until its notices work again. The operator is alerted.

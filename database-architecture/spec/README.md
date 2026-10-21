@@ -113,7 +113,7 @@ Modules never write `CREATE TABLE`. They declare tables through `tenantTable()`,
 | The data layer | `company_id` and its default; composite primary, unique and foreign keys; the cascade to `tenant`; `ENABLE` + `FORCE` RLS and the policy, on the table and every partition; grants, with the append-only revoke; the table's entry in the slice manifest; anonymisation hooks |
 
 1. **Field tags** drive buyer anonymisation, a buyer's erasure, AI masking and export redaction from one declaration.
-2. **Append-only tables** have `UPDATE`, `DELETE` and `TRUNCATE` revoked from the runtime role. At launch: the stock ledger, the order hold table (every hold and release is a row; the current set is read from it, [ADR-007](../../order-ingestion/)), the outbox and `audit_log`. Rows leave only through the slice operation, as the lifecycle role, or by a whole month detached after the archiver verified it ([ADR-002](../../data-retention/)).
+2. **Append-only tables** have `UPDATE`, `DELETE` and `TRUNCATE` revoked from the runtime role. At launch: the stock ledger, the order hold table (every hold and release is a row; the current set is read from it, [ADR-007](../../order-ingestion/spec/#11-holds)), the outbox and `audit_log`. Rows leave only through the slice operation, as the lifecycle role, or by a whole month detached after the archiver verified it ([ADR-002](../../data-retention/)).
 3. **Partitions.** A partition named directly ignores its parent's policies and grants, because partitions follow Postgres's inheritance rules ([inheritance](https://www.postgresql.org/docs/17/ddl-inherit.html), [partitioning](https://www.postgresql.org/docs/17/ddl-partitioning.html)). So every partition gets its own `ENABLE`, `FORCE` and policy, and no grant to the runtime or lifecycle role. No default privileges grant the runtime role anything. Only the monthly migration run names a partition.
 4. **Partitioned by month:** `audit_log`, `event_log`, orders, the stock ledger and outbound sends. A unique index on a partitioned table must hold the partition column, so outbound sends keep their idempotency keys in an unpartitioned `(company_id, key)` table kept for the retention window. Until that table exists, outbound sends are unpartitioned (owner ruling, 21 October 2026).
 5. **Logs:** one table per retention class. `audit_log` holds security and access events, kept at least a year for live companies. `event_log` holds module activity, kept 90 days.
@@ -297,7 +297,7 @@ Launch kinds, taken from the records:
 | --- | --- | --- |
 | Outbox delivery | Kernel | A note has no receipt for one of its handlers. A control write still needed is an outbox note too, whose handler runs outside the transaction: one kind, not two (owner ruling, 21 October 2026) |
 | Egress send and read-back | Channels ([ADR-004](../../channel-connectors/)) | A recorded send is due, or a send passed its deadline unconfirmed |
-| Backup order read | Channels, importing into Orders ([ADR-007](../../order-ingestion/)) | An account's scheduled read is due |
+| Backup order read | Channels, importing into Orders ([ADR-007](../../order-ingestion/spec/#2-how-an-order-comes-in)) | An account's scheduled read is due |
 | Listing safety read | Channels, handing over to Listings ([ADR-005](../../catalogue-sync/)) | An account's daily read is due |
 | Nightly stock check | Inventory ([ADR-006](../../stock-ledger/)) | Once a night |
 | Buyer anonymisation | Buyer data ([ADR-009](../../buyer-data/)) | 30 days after delivery |
@@ -481,7 +481,7 @@ A code review found 17 places where the record was unclear. Each is answered by 
 | 1 | May a plain login switch into the runtime role with `SET ROLE`? | No. The runtime role logs in itself (owner ruling) | [3](#3-roles) |
 | 2 | Which role writes the tenant row at sign-up? | The runtime role, through the allow-listed definer `app.open_tenant` (owner ruling) | [4](#4-functions), [8](#adding-a-company) |
 | 3 | Is a keyword filter enough? | No. Modules write no SQL; they use a typed query builder with a function allow-list, and SQL-executing functions are revoked (owner ruling, 21 October 2026) | [4](#4-functions), [6](#6-guard-rails) |
-| 4 | Are order holds append-only, or only their log? | The hold table itself: every hold and release is a row ([ADR-007](../../order-ingestion/)) | [5](#5-declaring-tables) |
+| 4 | Are order holds append-only, or only their log? | The hold table itself: every hold and release is a row ([ADR-007](../../order-ingestion/spec/#11-holds)) | [5](#5-declaring-tables) |
 | 5 | Does the cascade from `tenant` break append-only? | No. It is the erase path's last step, open only to the lifecycle role | [2](#2-keys-and-identifiers), [10](#erase) |
 | 6 | Are notice subscriptions egress effects? | No. They are set-up calls run on connect, in shadow too ([ADR-004](../../channel-connectors/)) | [9](#the-outbox) |
 | 7 | How does the row check work? | A check of the company setting and role before every commit (owner ruling) | [6](#6-guard-rails) |

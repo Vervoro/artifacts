@@ -406,7 +406,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Reserved orders keep their stock</strong> (<a href="../../stock-ledger/spec/#6-what-a-line-reserves">ADR-006 SPEC 6.6</a>); the screen says how many.</li>
 <li><strong>The listing is sent 0 by default.</strong> The screen offers &quot;Set to 0 and unlink&quot;, the default, or &quot;Leave the marketplace&#39;s figure&quot;, showing the figure. The choice is recorded on the closed link, and Stock sync carries it out as a stop (<a href="../../inventory-sync/spec/#10-listing-modes-and-stopping">ADR-008 SPEC 10.2</a>).</li>
 <li><strong>A marketplace-shipped listing</strong> never gets a figure, so unlinking it sends nothing.</li>
-<li><strong>Relinking is a new link.</strong> Orders already dispatched while unlinked stay flagged; the seller attaches each to a product from the order (<a href="../../order-ingestion/#orders-for-unlinked-listings">ADR-007</a>).</li>
+<li><strong>Relinking is a new link.</strong> Orders already dispatched while unlinked stay flagged; the seller attaches each to a product from the order (<a href="../../order-ingestion/spec/#14-orders-for-unlinked-listings">ADR-007</a>).</li>
 </ol>
 <h3 id="117-fulfilment-changes">11.7 Fulfilment changes</h3>
 <ol>
@@ -418,7 +418,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p>The listing came back after ending (8.6); its SKU was edited onto another product&#39;s (9); a live bulk link is not confirmed (11.3.5); a fulfilment conflict is open (16); a fulfilment change waits for the seller (11.7.2). Each clears with its own answer. Decreases are never held. The first figure after a link is <a href="../../inventory-sync/spec/#11-the-first-figure-after-a-link">ADR-008 SPEC 11</a>.</p>
 <h2 id="12-unlinked-listings-and-going-live">12. Unlinked listings and going live</h2>
 <ol>
-<li><strong>An unlinked listing is left to the marketplace.</strong> It gets no figure; its orders are imported and flagged (<a href="../../order-ingestion/#orders-for-unlinked-listings">ADR-007</a>). Unlinked is the default and needs no mark. The account shows how many listings are left to the marketplace.</li>
+<li><strong>An unlinked listing is left to the marketplace.</strong> It gets no figure; its orders are imported and flagged (<a href="../../order-ingestion/spec/#14-orders-for-unlinked-listings">ADR-007</a>). Unlinked is the default and needs no mark. The account shows how many listings are left to the marketplace.</li>
 <li><strong>Not stock.</strong> A listing that sells no stock is marked &quot;not stock&quot; with a VAT class by those who may link (<a href="../../users-and-access/spec/#4-who-may-do-what">ADR-010 SPEC 4</a>). It is never linked and gets no figure; its order lines are charge lines (<a href="../../product-model/spec/#11-charge-lines-and-listings-that-are-not-stock">ADR-003 SPEC 1.1</a>, owner ruling, 21 October 2026). Removing the mark makes it an ordinary unlinked listing.</li>
 <li><strong>A shared-stock listing</strong> is an unlinked, buyable, seller-shipped listing with a strong or medium suggestion naming a product already linked elsewhere, or in a listing group with a linked member. It takes stock Vervoro does not deduct.</li>
 <li><strong>Going live on an account needs</strong> a complete catalogue read, no open conflict, and an answer for every shared-stock listing: link it, or &quot;separate stock, leave to the marketplace&quot;. Many can be answered at once, with a confirm that names the risk. The answer is recorded (listing, evidence, who, when), creates no link, and is asked again when a new strong suggestion appears. Every other unlinked listing is a count, never a blocker. How accounts go live is <a href="../../inventory-sync/spec/#14-shadow-and-going-live">ADR-008 SPEC 14</a>.</li>
@@ -469,7 +469,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Link kept, decreases go, raises wait</td>
 </tr>
 <tr>
-<td>A seller-shipped order on a listing linked as marketplace-shipped (opened by Orders, <a href="../../order-ingestion/#a-seller-shipped-order-on-a-marketplace-shipped-link">ADR-007</a>)</td>
+<td>A seller-shipped order on a listing linked as marketplace-shipped (opened by Orders, <a href="../../order-ingestion/spec/#15-marketplace-shipped-lines-and-conflicts">ADR-007</a>)</td>
 <td>The order reserves; raises wait for the seller&#39;s answer</td>
 </tr>
 <tr>

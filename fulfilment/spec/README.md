@@ -7,7 +7,7 @@
 | **Date** | 21 October 2026 |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
-The rules to build ADR-014 from: the Fulfilment module. Every stock change below is a call to an Inventory port defined in [ADR-006 SPEC 7](../../stock-ledger/spec/#7-ports-fulfilment-and-orders-call), and every status change a call to Orders ([ADR-007](../../order-ingestion/)). Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/).
+The rules to build ADR-014 from: the Fulfilment module. Every stock change below is a call to an Inventory port defined in [ADR-006 SPEC 7](../../stock-ledger/spec/#7-ports-fulfilment-and-orders-call), and every status change a call to Orders ([ADR-007](../../order-ingestion/spec/#1-the-module)). Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/).
 
 ## 0. At launch and later
 
@@ -31,7 +31,7 @@ The rules to build ADR-014 from: the Fulfilment module. Every stock change below
 2. **The pick list** names the batch, its lot and date, and the spot. A pick task writes no ledger entry.
 3. **"Not found"** calls Inventory's quarantine port ([ADR-006 SPEC 7.7](../../stock-ledger/spec/#7-ports-fulfilment-and-orders-call)); the pick list then shows the new batch, or the line as short.
 4. **A unit taken from a spot the books do not show** is reported as it is; Inventory records it as a move or a find (ADR-006 SPEC 7.8).
-5. An order whose line is waiting or short does not join the pick list ([ADR-007](../../order-ingestion/)).
+5. An order whose line is waiting or short does not join the pick list ([ADR-007](../../order-ingestion/spec/#10-whole-orders)).
 
 ## 3. Packing
 
@@ -49,7 +49,7 @@ Packing (ADR-007's "packed") is a server command, keyed by the packing id. For e
 1. **One shipment per order.** It carries every unit still to ship, possibly in several boxes, and names the lines, quantities, carrier and tracking.
 2. **Confirming it,** in one transaction, keyed by the shipment id: Inventory's dispatch port deducts exactly what was packed for it; Orders records the status shipped and the outbox note for the dispatch notice through the egress gate ([ADR-000 SPEC 7](../../system-architecture/spec/#7-the-egress-gate)). A repeat returns "already confirmed".
 3. **A line never ships more than it reserved,** so an order with a short line waits. A bundle line ships whole sets.
-4. **Part shipped** only when the marketplace reports part shipped outside Vervoro ([ADR-007](../../order-ingestion/)); the rest ships whole.
+4. **Part shipped** only when the marketplace reports part shipped outside Vervoro ([ADR-007](../../order-ingestion/spec/#17-shipped-outside-vervoro)); the rest ships whole.
 5. **Dispatch without packing in Vervoro** (confirmed at the bench) is allowed: Inventory packs by the dispatch itself.
 6. **Shipped outside Vervoro** is Orders' import calling Inventory directly; Fulfilment shows the task asking which lot left, and a manager may reverse it ("Not from our stock").
 7. Sellable does not change on dispatch, so it sends Stock sync no note.

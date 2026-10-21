@@ -321,7 +321,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ol>
 <h2 id="9-the-completeness-check">9. The completeness check</h2>
 <ol>
-<li><strong>It reads the orders changed since the watermark,</strong> with a small overlap, and is the only thing that moves the watermark, and only after a complete window (<a href="../../order-ingestion/">ADR-007</a>).</li>
+<li><strong>It reads the orders changed since the watermark,</strong> with a small overlap, and is the only thing that moves the watermark, and only after a complete window (<a href="../../order-ingestion/spec/#2-how-an-order-comes-in">ADR-007 SPEC 2.3</a>).</li>
 <li><strong>The interval is per marketplace,</strong> by whether the order limit is shared: hourly where it is (eBay), every 10 minutes where it is per seller (Amazon, Shopify). The operator can change it per connector without code.</li>
 <li><strong>Any complete read resets the timer,</strong> including one a raise asks for.</li>
 <li><strong>Broken notices are read every 10 minutes:</strong> an account whose subscription is failing, or whose read finds an order no notice announced, until its notices work again. The operator is alerted.</li>

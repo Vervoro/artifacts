@@ -8,7 +8,7 @@ Load this page with any task. Load the linked record before changing the area it
 
 | Rule | Owner |
 | --- | --- |
-| Vervoro never sends a cancellation | [ADR-007 decision 9](../order-ingestion/#decision) |
+| Vervoro never sends a cancellation | [ADR-007 decision 7](../order-ingestion/#decision) and [SPEC 12](../order-ingestion/spec/#12-cancellations-and-refunds) |
 | Only Inventory writes stock | [ADR-006 decision 1](../stock-ledger/#decision) |
 | Only Stock sync writes each listing's figure, worked out after the stock commit | [ADR-008 decision 1](../inventory-sync/#decision) and [SPEC 1](../inventory-sync/spec/#1-the-figure-per-listing) |
 | An unknown write is settled before anything else is sent | [ADR-004 SPEC 5: Retries and outcomes](../channel-connectors/spec/#5-retries-and-outcomes) |
@@ -62,8 +62,8 @@ Load this page with any task. Load the linked record before changing the area it
 26. **Nothing leaves Vervoro during a database transaction.** No marketplace or other outside call runs inside one, so a company's lock is held only for database work, and Postgres's transaction timeout ends a transaction that runs too long. [ADR-000](../system-architecture/spec/#10-runtime), [ADR-001](../database-architecture/spec/#13-platform-constraints), [ADR-006](../stock-ledger/spec/#12-the-lock-keys-and-the-sequence)
 27. **A connector only translates.** It has no network access, credentials, clock or database. Channels, the host, owns credentials, HTTP, retries, rate limits, shared allowances, notice checks and the sending half of the egress gate. Core code knows marketplace concepts such as listings, links and FBA, but not marketplace protocols. [ADR-004](../channel-connectors/#decision)
 28. **Orders come in by notice.** A notice is a hint: the order is fetched and imported. The scheduled read is only the backup, and only a complete read moves the order watermark. Amazon's notices reach the same path through an AWS bridge. [ADR-004](../channel-connectors/#decision), [ADR-007](../order-ingestion/#decision)
-29. **Each marketplace order is imported once,** keyed by account and marketplace order id. A fetch older than the stored one changes nothing. An order that cannot be imported becomes a problem row; it is never dropped. [ADR-007](../order-ingestion/#decision)
-30. **Vervoro never sends a cancellation.** The seller cancels on the marketplace, and only a confirmed cancellation releases stock. [ADR-007](../order-ingestion/#decision)
+29. **Each marketplace order is imported once,** keyed by account and marketplace order id. A fetch older than the stored one changes nothing. An order that cannot be imported becomes a problem row; it is never dropped. [ADR-007](../order-ingestion/spec/#3-one-order-per-marketplace-order)
+30. **Vervoro never sends a cancellation.** The seller cancels on the marketplace, and only a confirmed cancellation releases stock. [ADR-007](../order-ingestion/spec/#12-cancellations-and-refunds)
 31. **A timeout is `unknown`, not failed.** An unknown write is settled before anything else is sent to that listing. Read-back is the default; a connector may instead resend the same absolute figure only when the write sets a value (never adds to one), repeating it cannot compound, and its record names the exception (eBay's Trading API). [ADR-004](../channel-connectors/spec/#5-retries-and-outcomes), [ADR-004.1](../ebay-connector/spec/#4-listings-and-stock)
 32. **Figures go only to linked listings,** and only the quantity and the offers the seller asks for are ever written. [ADR-005](../catalogue-sync/#decision)
 33. **No raise leaves before a complete order read covers the moment it became due.** Near zero, every change is sent; above that, a figure is sent once it is 20 away from what the channel shows. A held raise never holds a decrease. [ADR-008](../inventory-sync/#decision), [ADR-005 SPEC 11.3](../catalogue-sync/spec/#113-bulk-accept)

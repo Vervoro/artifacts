@@ -239,6 +239,32 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>A &quot;would go negative&quot; refusal alerts</td>
 </tr>
 </tbody></table></div>
+<h2 id="adr-007-order-ingestion">ADR-007: Order ingestion</h2>
+<p>Rules: <a href="../order-ingestion/spec/">ADR-007 SPEC</a>.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Procedure</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="order-ingestion-stalled/">Order ingestion stalled</a></td>
+<td>The order watermark of a marketplace&#39;s accounts is more than 60 minutes behind</td>
+</tr>
+<tr>
+<td><a href="work-the-problem-orders-list/">Work the problem-orders list</a></td>
+<td>An import problem alerts, or a connector fix ships</td>
+</tr>
+<tr>
+<td><a href="handle-a-buyers-cancellation-request/">Handle a buyer&#39;s cancellation request</a></td>
+<td>The cancellation list shows a request; run by the seller&#39;s Manager</td>
+</tr>
+<tr>
+<td><a href="settle-an-order-shipped-outside-vervoro/">Settle an order shipped outside Vervoro</a></td>
+<td>An order in the daily digest did not leave the warehouse, or is held &quot;step undone&quot;; run by the seller&#39;s Manager</td>
+</tr>
+</tbody></table></div>
 <h2 id="adr-008-inventory-sync">ADR-008: Inventory sync</h2>
 <p>Rules: <a href="../inventory-sync/spec/">ADR-008 SPEC</a>.</p>
 <div class="table-wrap"><table>

@@ -95,7 +95,7 @@ One reservation shape serves every demand.
 | Demand | Reserves | Shelf life it needs | Deducts |
 | --- | --- | --- | --- |
 | Marketplace or website order line | On import, or when its listing is linked | The product's sell-by rule | On a confirmed shipment |
-| Manual or business order line | When the order is confirmed ([ADR-007](../../order-ingestion/)) | The product's sell-by rule | On a confirmed shipment |
+| Manual or business order line | When the order is confirmed ([ADR-007](../../order-ingestion/spec/#18-manual-orders)) | The product's sell-by rule | On a confirmed shipment |
 | Transfer between warehouses | When sent; units move to the destination's transit spot | The product's sell-by rule | Received, or written off as lost in transit |
 | *Later:* shipment into a marketplace's warehouse | When ready to pack | More than 90 days left at the expected check-in: at least 90 + the account's days to check-in (default 14) on the day it reserves | At handover, as `transferred_out`, once per shipment; never an order |
 | *Later:* Amazon Vendor purchase order line | When the seller confirms the line | The purchase order's minimum (ADR-004.4) | When its shipment is confirmed |
@@ -109,17 +109,17 @@ One reservation shape serves every demand.
 
 ### 5.3 Reserving an order line
 
-Orders calls Inventory's reserve port inside its import transaction ([ADR-007](../../order-ingestion/)), after the company's lock:
+Orders calls Inventory's reserve port inside its import transaction ([ADR-007](../../order-ingestion/spec/#8-reserving-on-import)), after the company's lock:
 
 1. The line's link version, valid when the buyer bought, gives product, units per sale and fulfilment ([ADR-005](../../catalogue-sync/)). The line stores it.
 2. **Target, not delta:** what the line still needs is (quantity − cancelled − dispatched − shipped outside) × units per sale, per component for a bundle. Only the difference from what it holds is reserved or released, so one read with a cancellation and an edit never releases twice.
 3. **A shortage reserves what exists** and records the rest as missing. Vervoro never cancels the order; that is the seller's choice.
-4. **Short lines fill when units arrive** (receipt, restock, accepted receipt, count surplus), in the same transaction, in that warehouse: earliest ship-by time first ([ADR-007](../../order-ingestion/)); orders held for payment or with a cancellation requested last; oldest purchase breaks a tie.
+4. **Short lines fill when units arrive** (receipt, restock, accepted receipt, count surplus), in the same transaction, in that warehouse: earliest ship-by time first ([ADR-007](../../order-ingestion/spec/#20-deadlines-and-the-handover)); orders held for payment or with a cancellation requested last; oldest purchase breaks a tie.
 5. **A smaller quantity releases** latest sell-by first and unpacked units first; a larger one reserves more by 5.2.
 6. **A line's reservation never changes because a link changed** ([ADR-005](../../catalogue-sync/)). It changes only when a manager resolves the line again, pins a batch, the floor packs another eligible batch, or a date pass, block or count moves it.
 7. **Resolving again** (a manager, for a line reserved under a wrong link) releases and reserves under the current link in one transaction. A line with units packed or dispatched cannot be resolved again.
 
-The order line's `link_id`, `product_id`, `units_per_sale`, `fulfilled_by`, `components`, `needed` and `missing` are Orders' fields ([ADR-007](../../order-ingestion/)). `stock_reservation` holds demand, product, batch, warehouse, reserved, packed, dispatched and closed at.
+The order line's `link_id`, `product_id`, `units_per_sale`, `fulfilled_by`, `components`, `needed` and `missing` are Orders' fields ([ADR-007](../../order-ingestion/spec/#5-the-order-and-its-lines)). `stock_reservation` holds demand, product, batch, warehouse, reserved, packed, dispatched and closed at.
 
 ## 6. What a line reserves
 
@@ -142,7 +142,7 @@ Each port is a command under the company's lock with its key (section 12). The f
 3. **Put back.** Moves packed units back to a storage spot, or leaves them in the packing spot for put-away.
 4. **Dispatch.** Writes `dispatched` for each packed reservation the shipment uses (on hand in the packing spot and reserved down together), marks them dispatched, and records each line's lots. A reservation can never dispatch more than it packed, nor pack more than it reserved. An order dispatched without packing in Vervoro is packed by the dispatch itself: one eligible batch is implied, otherwise the reserved batch, marked "batch assumed".
 5. **Shipped outside Vervoro.** When the marketplace reports a line shipped with no shipment in Vervoro, Orders calls dispatch with source "marketplace said shipped": packed units first, unpacked marked "batch assumed"; in shadow, marked "lot not traced". When it had to choose between eligible batches of a dated product, a task asks the warehouse to tap the lot; it never blocks. A manager reverses a wrong one with `adjusted` and a reason.
-6. **Release.** A confirmed cancellation releases exactly what each line held, batch by batch. A request releases nothing ([ADR-007](../../order-ingestion/)). After dispatch, a cancellation moves nothing.
+6. **Release.** A confirmed cancellation releases exactly what each line held, batch by batch. A request releases nothing ([ADR-007](../../order-ingestion/spec/#12-cancellations-and-refunds)). After dispatch, a cancellation moves nothing.
 7. **Quarantine at a pick ("not found").** Quarantines the unit with that reason, moves the reservation to another qualifying batch or leaves the line short, and puts the spot on the count list.
 8. **A unit picked where the books do not show it** is a move from the spot where the books hold that batch, and both spots go on the count list. Only when no spot holds that batch is it **found**: received with reason "found at pick" and packed in one transaction, listed for a manager.
 9. **Receive a return.** Into one of the batches the line dispatched (the lot scanned, or else the earliest-dated), as `returned`: held until inspected. At most what the line dispatched, less earlier returns. A bundle returns by component. A unit with no dispatch record goes into a new batch with a reason; a dated product asks for its date.
@@ -189,7 +189,7 @@ Each port is a command under the company's lock with its key (section 12). The f
 
 | Command | Key |
 | --- | --- |
-| Import an order | The marketplace's order id on that account; an older state changes nothing ([ADR-007](../../order-ingestion/)) |
+| Import an order | The marketplace's order id on that account; an older state changes nothing ([ADR-007](../../order-ingestion/spec/#3-one-order-per-marketplace-order)) |
 | Pack, confirm a shipment | The packing id, the shipment id |
 | Receive | The receipt line id |
 | Save a count figure, approve a count | The count line, the count id |
@@ -230,7 +230,7 @@ The sweeper runs it per company, outside the lock, on a consistent snapshot ([AD
 3. The sequence has no gaps since the last check.
 4. No open reservation remains on a cancelled, fully shipped or re-resolved line.
 5. Per day, units on shipped lines equal their `dispatched` entries (× units per sale of the link version), and received return lines equal their `returned` entries; one grouped query per kind.
-6. Each open order's status, worked out again, equals the stored one ([ADR-007](../../order-ingestion/)); a difference here alerts the operator only.
+6. Each open order's status, worked out again, equals the stored one ([ADR-007](../../order-ingestion/spec/#6-statuses)); a difference here alerts the operator only.
 
 A difference in 1–5 alerts the operator and the company's managers, and Stock sync holds raises on every listing of the affected products while decreases go ([ADR-008 SPEC 7](../../inventory-sync/spec/#7-held-raises)). The operator rebuilds the balance from the ledger: [Settle a stock check difference](../../runbooks/settle-a-stock-check-difference/). The operator never writes a seller's ledger.
 
