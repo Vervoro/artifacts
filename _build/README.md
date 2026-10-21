@@ -13,3 +13,7 @@ Before committing, check every link between pages (target page and `#anchor`):
 ```bash
 cd _build && bun check-links.ts
 ```
+
+## Checking that the records agree
+
+The link check only finds broken links. To find records that disagree, run the read-only `consistency-reviewer` agent (`.claude/agents/consistency-reviewer.md`) on demand: after a batch of record changes, before a record is Accepted, or when two records look like they disagree. Give it a commit range, or "all". It reports each disagreement with the owning record and the smallest fix; the owner approves any fix before it is pushed.
