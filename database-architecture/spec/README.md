@@ -416,6 +416,10 @@ CI proves the schema it builds. These prove the databases running, because a con
 8. Each database's migration version is the one the deployed code needs.
 9. Every Worker that reaches a database is placed next to it (owner ruling, 22 October 2026), and every Worker has invocation logs off. Every queue and Durable Object namespace is in the EU jurisdiction. No Worker binds a key-value store, SQL database or analytics store. A failure here pages the operator but does not close egress: it concerns where data is processed, not who can see it.
 
+**A failure on control** (owner ruling, 22 October 2026). Control holds no company data, but every route and membership comes from it, so its failures close egress only where they could let one company reach another's data. Checks 1–5 and 8 failing on control close egress for every cell. Checks 6, 7 and 9 failing on control page the operator and close nothing.
+
+**Staging's audit** (owner ruling, 22 October 2026) covers only staging's own Neon projects and Workers. Those of the earlier system, named in the deploy's staging configuration, are left out until they are removed; any other unknown project or Worker still fails.
+
 **A canary company in every database.** A second synthetic company must see none of the canary's rows: every table nightly and after each deploy and each new partition. A transaction with no company set must raise. *Later* ([section 0](#0-at-launch-and-later)): a few tables every 10 minutes, and the egress gate scanning every outbound payload for the canary's marker strings.
 
 ## 12. Operations
