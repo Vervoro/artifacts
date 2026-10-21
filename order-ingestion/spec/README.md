@@ -25,7 +25,7 @@ The rules to build ADR-007 from: the Orders module, core and always on, needing 
 1. **Orders writes** orders, lines, statuses, holds, cancellation requests, refunds, import problems and manual orders. No other module writes them.
 2. **Channels hands orders in.** The consumer and the completeness check fetch through the connector and call Orders' import port with the contract's order type ([ADR-004 SPEC 1](../../channel-connectors/spec/#1-the-connector-contract)). Orders never sees a marketplace payload.
 3. **Orders asks for a fetch by event.** A core module never calls Channels, so a re-fetch (section 2.5) is an event Channels hears after commit.
-4. **Orders calls core ports inside its transaction:** Listings to resolve a line to the link valid at purchase, report an unknown listing and open a fulfilment conflict ([ADR-005 SPEC 1](../../catalogue-sync/spec/#1-who-does-what)); Inventory to reserve, release and deduct ([ADR-006 SPEC 5.3](../../stock-ledger/spec/#53-reserving-an-order-line), [7](../../stock-ledger/spec/#7-ports-fulfilment-and-orders-call)); Buyer data to store the allowed fields ([ADR-009](../../buyer-data/)).
+4. **Orders calls core ports inside its transaction:** Listings to resolve a line to the link valid at purchase, report an unknown listing and open a fulfilment conflict ([ADR-005 SPEC 1](../../catalogue-sync/spec/#1-who-does-what)); Inventory to reserve, release and deduct ([ADR-006 SPEC 5.3](../../stock-ledger/spec/#53-reserving-an-order-line), [7](../../stock-ledger/spec/#7-ports-fulfilment-and-orders-call)); Buyer data to hand over the allowed buyer fields, which it alone writes ([ADR-009 SPEC 1](../../buyer-data/spec/#1-who-does-what)).
 5. **Orders announces by event:** an order imported or changed, a problem opened or closed, a floor stop, an order shipped or refunded. Stock sync ([ADR-008](../../inventory-sync/)), Fulfilment ([ADR-014](../../fulfilment/)) and Invoicing ([ADR-011](../../invoicing-and-vat/)) act on them.
 6. **Fulfilment calls Orders' ports** to start picking, record packed and record a shipment ([ADR-014 SPEC 4](../../fulfilment/spec/#4-shipments)). Orders sends nothing to a marketplace except the dispatch notice it records for a shipment through the egress gate ([ADR-000 SPEC 7](../../system-architecture/spec/#7-the-egress-gate)); an unknown outcome follows [ADR-004 SPEC 5](../../channel-connectors/spec/#5-retries-and-outcomes).
 
@@ -63,17 +63,17 @@ Once shipped or cancelled, the status is final; later news is a fact on the orde
 
 | Later news | What happens |
 | --- | --- |
-| Tracking or delivery | Recorded; a delivery date starts ADR-009's retention clock |
+| Tracking or delivery | The delivery date is recorded and starts ADR-009's retention clock; a tracking number goes to Buyer data's port |
 | Our own shipment echoed back | Recognised by its shipment id, or a shipped quantity no larger than Vervoro's; nothing moves |
 | A refund | Recorded (section 12.5) |
 | Cancelled after dispatch | Recorded; no stock moves; the order shows "expect a return" |
 | Fewer units shipped or cancelled than before | Held "step undone"; nothing moves until a person answers (section 17.6) |
 | The order is gone from the marketplace | Held "order gone"; the reservation stays; a manager may cancel it in Vervoro |
-| A changed delivery address before dispatch | Saved; on a picked or packed order, a floor stop (section 13) |
+| A changed delivery address before dispatch | Handed to Buyer data; on a picked or packed order, a floor stop (section 13) |
 
 ## 5. The order and its lines
 
-1. **The order** holds the account (or "manual"), the marketplace order id, purchase and change times, status and the function's version, who ships it, the warehouse (the account's default, [ADR-006 SPEC 1](../../stock-ledger/spec/#1-where-stock-is-counted)), ship-by and leave-by, the marketplace it was sold on, where it arrived from, a replacement mark (ADR-012 does not count replacements), a business buyer's purchase-order reference (their company name and VAT number are buyer fields, kept by Buyer data, [ADR-009 SPEC 4](../../buyer-data/spec/#4-what-is-kept)), the delivery charge and any order discount as paid ([ADR-011](../../invoicing-and-vat/)), and the shipped, cancelled, delivered and anonymised times.
+1. **The order** holds the account (or "manual"), the marketplace order id, purchase and change times, status and the function's version, who ships it, the warehouse (the account's default, [ADR-006 SPEC 1](../../stock-ledger/spec/#1-where-stock-is-counted)), ship-by and leave-by, the marketplace it was sold on, where it arrived from, a replacement mark (ADR-012 does not count replacements), a business buyer's purchase-order reference (their company name and VAT number are buyer fields, kept by Buyer data, [ADR-009 SPEC 4](../../buyer-data/spec/#4-what-is-kept)), the delivery charge and any order discount as paid ([ADR-011](../../invoicing-and-vat/)), and the shipped, cancelled and delivered times. The anonymisation itself, and when it happened, are Buyer data's.
 2. **A line** holds the marketplace line id, the listing key ([ADR-005 SPEC 2](../../catalogue-sync/spec/#2-listings-and-keys)), the SKU and title as given, quantity, cancelled, shipped outside and when, fulfilment (seller, marketplace or unknown), how it was resolved (link, person or none), price, currency, discount and who funded it, the marketplace's tax figure and whether it collects it, the VAT rate used ([ADR-003](../../product-model/)), and the stock fields of [ADR-006 SPEC 5.3](../../stock-ledger/spec/#53-reserving-an-order-line). Money is never added across currencies. Units shipped by Vervoro come from Fulfilment's shipments, not a second copy.
 3. **A line's stock state is worked out, never stored:**
 
@@ -170,7 +170,7 @@ Moves, holds and risk changes do not reliably raise the order-updated webhook, s
 
 ADR-006 owns which units are chosen; this section owns when, in what order and what a failure does.
 
-1. **One transaction, in these steps:** take the company's lock; read the key and stop if the fetch is older; write the order and lines, keeping the facts that only rise; resolve each new line with the link valid at purchase, or leave it waiting; reserve or release only the difference from each line's target, recording shortages; set or clear marketplace holds and floor stops; work out the status and alarm on an unexpected move; write buyer data and the anonymisation due time; write the outbox note with the ledger sequence. Commit. Stock sync works out the affected listings' figures after commit ([ADR-008 SPEC 1](../../inventory-sync/spec/#1-the-figure-per-listing)).
+1. **One transaction, in these steps:** take the company's lock; read the key and stop if the fetch is older; write the order and lines, keeping the facts that only rise; resolve each new line with the link valid at purchase, or leave it waiting; reserve or release only the difference from each line's target, recording shortages; set or clear marketplace holds and floor stops; work out the status and alarm on an unexpected move; hand the buyer fields and the anonymisation start to Buyer data's port; write the outbox note with the ledger sequence. Commit. Stock sync works out the affected listings' figures after commit ([ADR-008 SPEC 1](../../inventory-sync/spec/#1-the-figure-per-listing)).
 2. **Never half an order:** the order, every line and every reservation, or nothing.
 3. **Pending orders reserve,** because they can still become sales; the hold keeps them off the picking list.
 4. **Orders found together import oldest purchase first,** then by marketplace order id, so when stock is short the earliest buyer gets it.
@@ -224,7 +224,7 @@ A hold pauses an order. It does not release it.
 | Payment pending | Marketplace (office on a manual order) | Payment not complete | The marketplace says it can ship; on a manual order, a manager |
 | Not yet due | Marketplace | A pre-order or scheduled order | The marketplace says it can ship |
 | Cancellation requested | Marketplace | A buyer asked to cancel | Confirmed, declined or lapsed; on Amazon a manager may release it (section 12.3) |
-| Address missing | Marketplace | A seller-shipped order that can ship has no complete address | A fetch brings it, or a manager enters it |
+| Address missing | Marketplace | A seller-shipped order that can ship has no complete address | A fetch brings it, or a manager enters it through Buyer data's port |
 | Refunded, not cancelled | Office | A full refund on an order not shipped or cancelled | A person cancels it on the marketplace, or ships it |
 | Line changed after import | Office | A later fetch names another listing for a reserved line | A manager resolves the line again ([ADR-006 SPEC 5.3](../../stock-ledger/spec/#53-reserving-an-order-line)) or accepts it |
 | Step undone | Office | Fewer units shipped or cancelled than before | A person answers (section 17.6) |
@@ -240,7 +240,7 @@ A hold pauses an order. It does not release it.
 | *Later:* possible duplicate | Office | Section 16 | A manager confirms a separate sale, or marks it a mirror |
 | *Later:* address changed after label; label to void | Floor | The address changed, or the order changed or was cancelled, after a label was bought in Vervoro | The label is checked, replaced or voided, confirmed by a scan or a tap |
 
-5. **Floor holds never widen who sees buyer data.** The warehouse holds or clears an address check only on an order it is picking or packing, when it already sees the address ([ADR-009](../../buyer-data/)).
+5. **Floor holds never widen who sees buyer data.** The warehouse holds or clears an address check only on an order it is picking or packing, when it already sees the address ([ADR-009 SPEC 7](../../buyer-data/spec/#7-who-can-see-it)).
 6. **Decide-by and escalation.** Decide-by is the leave-by, or the marketplace's deadline when sooner. Two hours before it, those who may clear the hold are alerted; when it passes, again, and the owner too if they switched that on. No hold expires on its own.
 
 ## 12. Cancellations and refunds
@@ -297,7 +297,7 @@ This section owns "Vervoro never sends a cancellation"; other records link here.
 1. **The fact.** `shipped_outside` on a line is the units the marketplace says shipped, less those Vervoro's shipments cover, with the marketplace's time. It only rises.
 2. **It deducts in the import's transaction** through Inventory's port, source "marketplace said shipped", packed units first, then earliest sell-by ([ADR-006 SPEC 7.5](../../stock-ledger/spec/#7-ports-fulfilment-and-orders-call)). The status follows. A short line deducts what it held and stops seeking the rest. A waiting line deducts nothing (section 14.8).
 3. **In shadow too,** so the figures Vervoro would send stay true; these entries are "lot not traced". At going live the on-hand import sets each product outright ([ADR-008 SPEC 14](../../inventory-sync/spec/#14-shadow-and-going-live)), so nothing counts twice.
-4. **Ours or theirs.** Vervoro stores the fulfilment or shipment id the marketplace returns for its dispatch notice. A report with one of those ids, or a shipped quantity no larger than Vervoro's, is our own and moves nothing. A shipment confirmed in Vervoro after the outside one is refused "already shipped outside"; "this was our parcel" attaches its carrier and tracking and moves nothing.
+4. **Ours or theirs.** Vervoro stores the fulfilment or shipment id the marketplace returns for its dispatch notice. A report with one of those ids, or a shipped quantity no larger than Vervoro's, is our own and moves nothing. A shipment confirmed in Vervoro after the outside one is refused "already shipped outside"; "this was our parcel" keeps its carrier and tracking on Fulfilment's shipment and moves nothing.
 5. **Reversing.** A manager who knows the parcel did not leave the warehouse chooses "Not from our stock": the units come back as an adjustment with a reason and become sellable. A line is reversed at most once.
 6. **The marketplace undoes it.** Fewer units shipped than before holds the order "step undone". "The parcel did not leave" reverses the deduction and the line reserves again; "it left" closes the hold.
 7. **The seller sees** these orders in the daily digest; the batch task is Fulfilment's ([ADR-014 SPEC 4](../../fulfilment/spec/#4-shipments)). Procedure: [Settle an order shipped outside Vervoro](../../runbooks/settle-an-order-shipped-outside-vervoro/).
@@ -305,8 +305,8 @@ This section owns "Vervoro never sends a cancellation"; other records link here.
 ## 18. Manual orders
 
 1. **Who:** anyone in the warehouse, or a manager, admin or owner, creates, confirms, edits and cancels phone and email orders and makes counter sales. A business order on account terms is confirmed by a manager, admin or owner.
-2. **A draft first.** Lines name products directly, with quantities, prices and currency, a delivery address, and for a business buyer the company, VAT number and purchase-order reference. A draft reserves nothing.
-3. **Copying a previous order** starts a draft (no saved customer list at launch). A manager's copy brings everything; a warehouse user's brings products, quantities and prices but no buyer details ([ADR-009](../../buyer-data/)).
+2. **A draft first.** Lines name products directly, with quantities, prices and currency, and a business buyer's purchase-order reference. The delivery address and a business buyer's company and VAT number go to Buyer data's port with the draft. A draft reserves nothing.
+3. **Copying a previous order** starts a draft (no saved customer list at launch). A manager's copy brings everything; a warehouse user's brings products, quantities and prices but no buyer details ([ADR-009 SPEC 7](../../buyer-data/spec/#7-who-can-see-it)).
 4. **Charge lines:** a name, an amount with currency and a VAT class ([ADR-003 SPEC 1.1](../../product-model/spec/#11-charge-lines-and-listings-that-are-not-stock), owner ruling, 21 October 2026). They never reserve, move stock or reach the pick list. Delivery is not a charge line: it stays the order's delivery charge, its VAT following the goods ([ADR-011](../../invoicing-and-vat/)).
 5. **Confirming reserves** in one transaction, with a key the client makes so a double tap confirms once, and takes the next number from the company's counter.
 6. **Payment.** A warehouse user confirms an order as paid with its payment reference; without one it is held "payment pending" (office) until a manager releases it. A manager may confirm unpaid for account terms, and hold any manual order until paid. The server checks this on every confirm.
@@ -314,7 +314,7 @@ This section owns "Vervoro never sends a cancellation"; other records link here.
 8. **Edits before picking** release or reserve the difference; after picking starts, an edit puts the order back to open, with put-back for units taken off.
 9. **Cancelling** is immediate and releases what the order held.
 10. **A counter sale** is one screen: products, quantities, paid and collected, created, reserved and shipped in one transaction with the client's key, with no address or label. It is in the manager's daily list; a manager can reverse it.
-11. **The recipient's name, address and phone** are buyer data under ADR-009.
+11. **The recipient's name, address and phone** are buyer data, written and anonymised by Buyer data like any order's.
 
 ## 19. Buyer data on import
 
@@ -322,18 +322,18 @@ ADR-009 decides what is kept and for how long. Orders hands the buyer fields to 
 
 1. **Only from the fetched order;** a notice body is never read for buyer data.
 2. **Only for orders the seller ships;** on Amazon the recipient is asked for only on seller-shipped orders not yet shipped ([ADR-004.2 SPEC 8](../../amazon-seller-connector/spec/#8-buyer-data)).
-3. **Only the allowed fields:** recipient name, delivery address and phone, order note, gift message, a business buyer's company name and VAT number, each encrypted with the company's key.
-4. **The eBay buyer's user id** becomes a keyed hash; the id is never stored.
+3. **Only the allowed fields** of [ADR-009 SPEC 4](../../buyer-data/spec/#4-what-is-kept): recipient name, delivery address and phone, order note, gift message, a business buyer's company name and VAT number. Buyer data encrypts and stores them; no `sales_` table holds one.
+4. **The eBay buyer's user id** is handed over once; Buyer data stores only its keyed hash ([ADR-009 SPEC 16.2](../../buyer-data/spec/#162-ebay)).
 5. **What a marketplace withholds stays missing.** A later fetch without a field never blanks it; a partial address never replaces a complete one.
-6. **The anonymisation due time** is set when its start is known: delivery, dispatch, the outside shipping time, or a cancellation.
-7. **An anonymised order** stores nothing personal again, whatever a fetch brings.
+6. **The anonymisation start** is passed to Buyer data when it is known: delivery, dispatch, the outside shipping time, or a cancellation.
+7. **An anonymised order** gets nothing personal again: Buyer data refuses it, whatever a fetch brings ([ADR-009 SPEC 8](../../buyer-data/spec/#8-retention-and-anonymisation)).
 8. **No buyer data** in a problem row, log, queue message, event or duplicate match.
 
 ## 20. Deadlines and the handover
 
 1. **Ship-by, one per order:** the earliest of its lines' deadlines. eBay: each line's `shipByDate`. Amazon: the end of `shipByWindow`. Manual: the date a manager sets. *Later:* Shopify: the fulfilment order's `fulfillBy`, else purchase plus the account's handling time.
 2. **Leave-by:** the last collection cut-off at or before the ship-by. Each warehouse has one cut-off with dated exceptions (a holiday with no collection, a different time). With none set, leave-by is the ship-by.
-3. **The picking list** holds the orders ready to pick (section 10.2) in the picker's warehouses, sorted by leave-by, then purchase time. Pick lists, packing and shipments are [ADR-014's](../../fulfilment/); what the warehouse may see while packing is [ADR-009's](../../buyer-data/).
+3. **The picking list** holds the orders ready to pick (section 10.2) in the picker's warehouses, sorted by leave-by, then purchase time. Pick lists, packing and shipments are [ADR-014's](../../fulfilment/); what the warehouse may see while packing is [ADR-009's](../../buyer-data/spec/#7-who-can-see-it).
 4. **Deadlines are watched.** Two hours before leave-by, an unshipped order is fetched once, then those who can unblock it are alerted: the warehouse for an open order, a manager for an office hold or a short order. When it passes they are alerted again (the owner too, if switched on) and the order is listed until it ships. Home shows each cut-off with the orders that will miss it.
 5. **The dispatch notice.** Recording a shipment writes the notice through the egress gate; the gate retries a failed or throttled send, and the shipment stands. A notice not accepted an hour after the confirm, or by the ship-by if sooner, alerts the seller and the operator.
 6. *Later:* **a fresh read before a label** for an Amazon or Shopify order, so a cancellation whose notice was lost stops the label; never for eBay, whose allowance is shared.
@@ -410,7 +410,7 @@ Pure rules (the status function, the mappings, leave-by) run as unit tests; port
 | Never cancels | The contract has no cancel operation; the egress gate refuses one |
 | Not reserved | Marketplace-shipped lines and charge lines never reserve or reach the picking list |
 | Shipped outside | Deducts once; our own echo deducts nothing; a race with a Vervoro confirm on real Postgres deducts once |
-| Buyer data | None on a marketplace-shipped or anonymised order, in a problem row or an event (ADR-009's field-tag lint) |
+| Buyer data | No `sales_` column holds a buyer field; none is handed over for a marketplace-shipped or anonymised order, or put in a problem row or an event (ADR-009's field-tag lint) |
 | Manual | A draft reserves nothing; confirming twice with one key reserves once; a warehouse user cannot confirm unpaid |
 | Leave-by | The last cut-off at or before ship-by, with dated exceptions |
 
@@ -427,6 +427,7 @@ For someone reviewing code an AI wrote. Each line says where to look.
 - [ ] **Holds:** read from the append-only table; the release command checks kind against role in one place.
 - [ ] **No cancel path:** no connector, port or screen sends a cancellation or an answer to a buyer.
 - [ ] **Watermark:** Channels moves it only from a window whose orders all committed or have problem rows.
+- [ ] **Buyer fields:** no `sales_` table has a buyer column; every buyer field goes through Buyer data's port (search for `pii` tags in the module).
 - [ ] **Problem rows:** no column holds an order body or buyer data.
 - [ ] **Stock calls:** every reservation, release and deduction is an Inventory port call inside the import's transaction.
 - [ ] **Events after commit:** Stock sync, Fulfilment and Invoicing act on Orders' events, never inside its transaction.
