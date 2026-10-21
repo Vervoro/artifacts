@@ -8,7 +8,7 @@
 
 ## Steps
 
-1. Write the reason in the platform security log. The job alerts the operator ([ADR-009](../../buyer-data/)).
+1. Write the reason in the platform security log. The job alerts the operator ([ADR-009](../../buyer-data/spec/#7-who-can-see-it)).
 2. Run the fix as a reviewed script through the CI migration job. Never connect by hand.
 3. Run the production audit and the catalogue lint.
 

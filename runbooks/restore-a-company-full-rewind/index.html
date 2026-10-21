@@ -91,7 +91,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>Fence the company: pause its outbound marketplace calls, revoke its sessions, set its tenant row to <code>restoring</code>.</li>
 <li>Branch the cell at the restore time; set every tenant row on the branch to <code>lookback</code>.</li>
 <li>Replace the live slice with the branch&#39;s slice, in batches.</li>
-<li>Replay the erasure register for the company and run the anonymisation rule (<a href="../../buyer-data/">ADR-009</a>).</li>
+<li>Replay the erasure register for the company and run the anonymisation rule (<a href="../../buyer-data/spec/#11-erasure-backups-and-restores">ADR-009</a>).</li>
 <li>Rebuild the company&#39;s directory rows in control.</li>
 <li>Set counters to at least their live values. Re-register every invoice and credit note in object storage newer than the restore time, and set their counter past the highest (<a href="../../invoicing-and-vat/">ADR-011</a>).</li>
 <li>Mark restored outbound sends <code>unknown</code>; never resend them. Put every marketplace account back in shadow. Raise the company&#39;s sync epoch in control (<a href="../../inventory-sync/">ADR-008</a>).</li>

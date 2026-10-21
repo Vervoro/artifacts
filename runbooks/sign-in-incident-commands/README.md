@@ -4,12 +4,12 @@
 | --- | --- |
 | **Built** | At launch, each rehearsed once on a staging copy |
 | **Record** | [ADR-013](../../sign-in/), rules in [SPEC 11](../../sign-in/spec/#11-incident-commands) |
-| **Who runs it** | The operator, as the incident point of contact; Vervoro's owner as deputy ([ADR-009](../../buyer-data/)) |
+| **Who runs it** | The operator, as the incident point of contact; Vervoro's owner as deputy ([ADR-009](../../buyer-data/spec/#13-incidents)) |
 | **Role or credential** | The operator console with a fresh check. The commands run in the sign-in Worker over its service binding, through Better Auth's API and the sign-in policy tables; never SQL against Better Auth's tables |
 
 ## Steps
 
-1. Write the incident in the incident record ([ADR-009](../../buyer-data/)).
+1. Write the incident in the incident record ([Report a personal-data breach](../report-a-personal-data-breach/)).
 2. Choose the narrowest command that contains it:
 
 | Command | What it does | Effect |

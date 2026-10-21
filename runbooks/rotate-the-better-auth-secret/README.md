@@ -4,7 +4,7 @@
 | --- | --- |
 | **Built** | At launch, rehearsed once on a staging copy |
 | **Record** | [ADR-013](../../sign-in/), rules in [SPEC 9](../../sign-in/spec/#9-secrets) |
-| **Who runs it** | The operator: once a year ([ADR-009](../../buyer-data/)), and at once when the sign-in Worker or its secret may be compromised |
+| **Who runs it** | The operator: once a year ([ADR-009](../../buyer-data/spec/#14-security-controls)), and at once when the sign-in Worker or its secret may be compromised |
 | **Role or credential** | The sign-in Worker's own deploy token, to change its secret. Better Auth's versioned secrets (`BETTER_AUTH_SECRETS`) do the rest |
 
 Better Auth signs session cookies with the current version and encrypts authenticator secrets and backup codes with a version it records on each value. Older versions stay listed only to decrypt.

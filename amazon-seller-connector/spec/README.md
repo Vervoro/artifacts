@@ -87,7 +87,7 @@ A SKU Amazon fulfils on any of the account's marketplaces is Amazon's and is nev
 1. **The restricted role** releases names, addresses and phones only for orders the seller ships, while unshipped or shipped.
 2. **Only what is needed to ship:** name, address, phone, gift message. What Amazon withholds or masks is left out, never stored blank, so it never erases an earlier value.
 3. **Orders Amazon ships carry no buyer data.**
-4. **Anonymised 30 days after delivery** ([ADR-009](../../buyer-data/)). Amazon's policy also asks for multi-factor sign-in on every user account ([ADR-013](../../sign-in/)).
+4. **Anonymised 30 days after delivery** ([ADR-009 SPEC 8](../../buyer-data/spec/#8-retention-and-anonymisation), Amazon rules in [SPEC 16.1](../../buyer-data/spec/#161-amazon)). Amazon's policy also asks for multi-factor sign-in on every user account ([ADR-013](../../sign-in/)).
 
 ## 9. Dispatch
 

@@ -14,7 +14,7 @@
 1. Deploy the app without the package, or with its last good version ([Deploy and roll back](../deploy-and-roll-back/)).
 2. Sign everyone out ([incident commands](../sign-in-incident-commands/)).
 3. Rotate the app's own secrets and the cells' credentials.
-4. Follow ADR-009's incident steps, including who is told and when ([ADR-009](../../buyer-data/)).
+4. Follow [Report a personal-data breach](../report-a-personal-data-breach/), including who is told and when ([ADR-009 SPEC 13](../../buyer-data/spec/#13-incidents)).
 
 **In the sign-in Worker** (Better Auth, its plugins or their dependencies), all of the above, and also:
 

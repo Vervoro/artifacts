@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Record** | [ADR-001](../../database-architecture/), rules in [SPEC 10](../../database-architecture/spec/#erase) |
-| **Who runs it** | The operations job, on the seller's privacy request ([ADR-009](../../buyer-data/)) or 30 days after the company closes ([ADR-012](../../billing-and-plans/)). Never an operator command; the operator watches it |
+| **Who runs it** | The operations job, on the seller's privacy request ([ADR-009](../../buyer-data/spec/#11-erasure-backups-and-restores)) or 30 days after the company closes ([ADR-012](../../billing-and-plans/)). Never an operator command; the operator watches it |
 | **Role or credential** | The lifecycle role, over a direct connection |
 
 ## Steps

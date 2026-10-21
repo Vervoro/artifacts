@@ -79,7 +79,7 @@ Only what is particular to eBay. Everything the host does (credentials, HTTP, ou
 
 1. eBay requires every application to receive account deletion notices for all eBay users. The endpoint answers eBay's challenge with the verification token and checks each notice's signature.
 2. **A connected seller:** a privacy request with its due date ([ADR-004 SPEC 8](../../channel-connectors/spec/#8-notices-in)).
-3. **Anyone else:** a keyed hash of the user id is looked up in each cell; a buyer found there has their orders anonymised at once ([ADR-009](../../buyer-data/)). Nothing from the notice is kept.
+3. **Anyone else:** a keyed hash of the user id is looked up in each cell; a buyer found there has their orders anonymised at once ([ADR-009 SPEC 16.2](../../buyer-data/spec/#162-ebay)). Nothing from the notice is kept.
 
 ## 9. Simulator and pre-launch recordings
 

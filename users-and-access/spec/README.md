@@ -25,7 +25,7 @@ Everything below is built at launch except these parts, which keep their rules h
 | --- | --- | --- |
 | **Seller's users** | The app, on their own phone or laptop, in one or more companies | One role per company |
 | **Operators** | The operator console only, never the app ([ADR-013 SPEC 10](../../sign-in/spec/#10-operators)) | Platform work, and grants to look inside a company. No standing access |
-| **Developers** | Source control and the build pipeline only | No production data ([ADR-009](../../buyer-data/)). Deploys run under the pipeline's identity; the sign-in Worker has a deploy identity of its own |
+| **Developers** | Source control and the build pipeline only | No production data ([ADR-009](../../buyer-data/spec/#7-who-can-see-it)). Deploys run under the pipeline's identity; the sign-in Worker has a deploy identity of its own |
 | **System actors** | Nothing | The sweeper, the queue consumer and the egress gate act for a company under a named system actor, recorded on every entry they write |
 
 Buyers and suppliers sign in to nothing. Every login belongs to one person, identified by their own email address; generic logins ("packing desk") do not exist. The customer terms forbid sharing, and the audit log makes it visible: one name packing at two benches at once.
@@ -56,7 +56,7 @@ Buyers and suppliers sign in to nothing. Every login belongs to one person, iden
 2. Outside their warehouses, stock, batches, movements, receiving, counts, returns, orders and shipments do not exist for that person, and reports cover only their warehouses. The catalogue and the connection settings are not scoped.
 3. The core modules' read and command ports take the person's scope with every call and enforce it. Row-level security stays company-only ([ADR-001](../../database-architecture/)).
 
-**Buyer data** by role is [ADR-009's](../../buyer-data/#who-can-see-it): the matrix below follows it.
+**Buyer data** by role is [ADR-009's](../../buyer-data/spec/#7-who-can-see-it): the matrix below follows it.
 
 ## 4. Who may do what
 
@@ -71,7 +71,7 @@ A module declares each action in its manifest ([ADR-000 SPEC 1](../../system-arc
 | Reset a person's sign-in | Yes | Below Admin | No | No | No | No | ADR-010 |
 | Switch on buyer data for an operator grant; end a grant | Yes | Yes | No | No | No | No | ADR-010 |
 | Read the company's audit log | Yes | Yes | No | No | Yes | No | ADR-010 |
-| Handle a buyer's privacy request | Yes | Yes | No | No | No | No | [ADR-009](../../buyer-data/) |
+| Handle a buyer's privacy request | Yes | Yes | No | No | No | No | [ADR-009](../../buyer-data/spec/#10-buyers-requests) |
 | Change the company's units (metric or imperial) | Yes | Yes | No | No | No | No | [ADR-003](../../product-model/spec/#15-units-of-measure) |
 | **Marketplaces and listings** | | | | | | | |
 | Connect or disconnect an account; switch a connector on or off | Yes | Yes | No | No | No | No | ADR-010; [ADR-004](../../channel-connectors/) |
@@ -94,7 +94,7 @@ A module declares each action in its manifest ([ADR-000 SPEC 1](../../system-arc
 | Inspect a return: write off, or restock a use-by unit; restore damaged units | Yes | Yes | Yes | No | No | No | [ADR-006](../../stock-ledger/) |
 | Block or unblock a lot | Yes | Yes | Yes | No | No | No | [ADR-006](../../stock-ledger/) |
 | **Orders** | | | | | | | |
-| Read orders (buyer data as ADR-009 decides) | Yes | Yes | Yes | Yes | Yes | Yes | [ADR-009](../../buyer-data/) |
+| Read orders (buyer data as ADR-009 decides) | Yes | Yes | Yes | Yes | Yes | Yes | [ADR-009](../../buyer-data/spec/#7-who-can-see-it) |
 | Pick, pack (and take another eligible batch, recorded), print labels, confirm a shipment | Yes | Yes | Yes | Yes | No | No | [ADR-006](../../stock-ledger/), [ADR-007](../../order-ingestion/) |
 | Place or clear a floor hold (including an address check on an order being picked or packed) | Yes | Yes | Yes | Yes | No | No | [ADR-007](../../order-ingestion/spec/#11-holds) |
 | Place or clear an office hold; release an Amazon buyer's cancellation request to ship anyway | Yes | Yes | Yes | No | No | No | [ADR-007](../../order-ingestion/spec/#11-holds) |
@@ -118,7 +118,7 @@ A module declares each action in its manifest ([ADR-000 SPEC 1](../../system-arc
 | Read and download Vervoro's invoices and credit notes | Yes | Yes | No | No | Yes | No | [ADR-012](../../billing-and-plans/) |
 | **Reports and exports** | | | | | | | |
 | Reports | Yes | Yes | Yes | No | Yes | No | ADR-010 |
-| Export with buyer data | Yes | Yes | No | No | No | No | [ADR-009](../../buyer-data/) |
+| Export with buyer data | Yes | Yes | No | No | No | No | [ADR-009](../../buyer-data/spec/#12-exports) |
 | Export without buyer data | Yes | Yes | Yes | No | Yes | No | ADR-010 |
 
 While a company is restricted or closed, [ADR-012](../../billing-and-plans/#what-each-role-may-do) narrows this table. A later module adds its rows here when its record is written, in the same six roles.
@@ -171,7 +171,7 @@ All of it happens within minutes, inside ADR-009's 24 hours.
 
 **A grant is for looking**, at a company's screens or, at the seller's request, at old records in a restore branch ([ADR-001's look-back](../../runbooks/restore-a-company-look-back/)):
 
-1. One company, a written reason, at most 8 hours ([ADR-009](../../buyer-data/)).
+1. One company, a written reason, at most 8 hours ([ADR-009](../../buyer-data/spec/#7-who-can-see-it)).
 2. Read-only: the operator sees the screens as a viewer and changes nothing. They never sign in as, or act in the name of, a seller's user, and never change a role, a person, a sign-in method, a connection or stock.
 3. Every Owner and Admin is told at once, in the app and by email, with the reason and the end time; any of them can end it.
 4. Buyer fields stay encrypted unless an Owner or Admin switches them on for that grant. The decrypting code refuses an operator actor whose grant does not name buyer data.
@@ -194,7 +194,7 @@ All of it happens within minutes, inside ADR-009's 24 hours.
 | **Each entry** | Time, actor (person, operator with grant, or system actor), action, the ids it named, result | Time, login or operator id, event, network address and device kind, result |
 | **Never holds** | Buyer data (a view records which fields were shown, not their values) | Buyer data, email addresses, names, passwords or codes |
 | **Read by** | Owner, Admin, Accountant | The operator; each person sees their own sign-ins |
-| **Kept** | At least a year in the cell, then 6 years in the archive ([ADR-002](../../data-retention/)); erased with the company | 12 months ([ADR-009](../../buyer-data/)) |
+| **Kept** | At least a year in the cell, then 6 years in the archive ([ADR-002](../../data-retention/)); erased with the company | 12 months ([ADR-009](../../buyer-data/spec/#14-security-controls)) |
 | **Protected** | Append-only: the runtime role cannot update, delete or truncate it ([ADR-001 SPEC 5](../../database-architecture/spec/#5-declaring-tables)) | The same |
 
 ADR-009's alerts read these trails: every grant, every use of the owner role, a burst of failed sign-ins, a last-Owner recovery, and a person viewing far more buyers than their packing explains.

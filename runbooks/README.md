@@ -103,6 +103,19 @@ Rules: [ADR-008 SPEC](../inventory-sync/spec/).
 | [Take a company live](take-a-company-live/) | A company leaves shadow for the first time, or a later account goes live |
 | [Recover stock sync after a restore](recover-stock-sync-after-a-restore/) | After a full rewind or a whole-cell restore, before any figure is sent |
 
+## ADR-009: Buyer data and privacy
+
+Rules: [ADR-009 SPEC](../buyer-data/spec/). Also: [Erase a company](erase-a-company/), [Export a company](export-a-company/), [Sign-in incident commands](sign-in-incident-commands/).
+
+| Procedure | When |
+| --- | --- |
+| [Answer a buyer's data request](answer-a-buyers-data-request/) | A buyer asks the seller to see, correct or erase their data |
+| [Answer a seller's data request](answer-a-sellers-data-request/) | A seller's user asks Vervoro, as controller, for their own data |
+| [Report a personal-data breach](report-a-personal-data-breach/) | Personal data may have been read, changed, lost or sent where it should not be |
+| [Anonymise after a connection ends](anonymise-after-a-connection-ends/) | A marketplace connection is disconnected, revoked or ended by a marketplace's notice |
+| [Check the anonymisation job](check-the-anonymisation-job/) | The nightly check finds orders past their due time still holding buyer data |
+| [Run the quarterly access review](run-the-quarterly-access-review/) | Every quarter: every operator, developer and service account checked |
+
 ## ADR-010: Users, roles and access
 
 Rules: [ADR-010 SPEC](../users-and-access/spec/).

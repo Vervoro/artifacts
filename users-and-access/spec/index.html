@@ -135,7 +135,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td><strong>Developers</strong></td>
 <td>Source control and the build pipeline only</td>
-<td>No production data (<a href="../../buyer-data/">ADR-009</a>). Deploys run under the pipeline&#39;s identity; the sign-in Worker has a deploy identity of its own</td>
+<td>No production data (<a href="../../buyer-data/spec/#7-who-can-see-it">ADR-009</a>). Deploys run under the pipeline&#39;s identity; the sign-in Worker has a deploy identity of its own</td>
 </tr>
 <tr>
 <td><strong>System actors</strong></td>
@@ -199,7 +199,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>Outside their warehouses, stock, batches, movements, receiving, counts, returns, orders and shipments do not exist for that person, and reports cover only their warehouses. The catalogue and the connection settings are not scoped.</li>
 <li>The core modules&#39; read and command ports take the person&#39;s scope with every call and enforce it. Row-level security stays company-only (<a href="../../database-architecture/">ADR-001</a>).</li>
 </ol>
-<p><strong>Buyer data</strong> by role is <a href="../../buyer-data/#who-can-see-it">ADR-009&#39;s</a>: the matrix below follows it.</p>
+<p><strong>Buyer data</strong> by role is <a href="../../buyer-data/spec/#7-who-can-see-it">ADR-009&#39;s</a>: the matrix below follows it.</p>
 <h2 id="4-who-may-do-what">4. Who may do what</h2>
 <p>A module declares each action in its manifest (<a href="../../system-architecture/spec/#1-modules-and-the-manifest">ADR-000 SPEC 1</a>); this table grants it. Where another record decided an action&#39;s roles, the last column names it.</p>
 <div class="table-wrap"><table>
@@ -293,7 +293,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>No</td>
 <td>No</td>
 <td>No</td>
-<td><a href="../../buyer-data/">ADR-009</a></td>
+<td><a href="../../buyer-data/spec/#10-buyers-requests">ADR-009</a></td>
 </tr>
 <tr>
 <td>Change the company&#39;s units (metric or imperial)</td>
@@ -523,7 +523,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Yes</td>
 <td>Yes</td>
 <td>Yes</td>
-<td><a href="../../buyer-data/">ADR-009</a></td>
+<td><a href="../../buyer-data/spec/#7-who-can-see-it">ADR-009</a></td>
 </tr>
 <tr>
 <td>Pick, pack (and take another eligible batch, recorded), print labels, confirm a shipment</td>
@@ -763,7 +763,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>No</td>
 <td>No</td>
 <td>No</td>
-<td><a href="../../buyer-data/">ADR-009</a></td>
+<td><a href="../../buyer-data/spec/#12-exports">ADR-009</a></td>
 </tr>
 <tr>
 <td>Export without buyer data</td>
@@ -820,7 +820,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p><strong>Repairs need no grant.</strong> They are recorded commands that run as system actors and show no company data: rebuilding a balance from the ledger (<a href="../../stock-ledger/">ADR-006</a>), re-importing an order, and <a href="../../database-architecture/spec/#10-company-lifecycle">ADR-001&#39;s</a> export, move and restore by the lifecycle tool. Each writes an <code>audit_log</code> entry naming the operator and the reason. Erasure is never an operator command; it runs on the seller&#39;s privacy request (<a href="../../buyer-data/">ADR-009</a>).</p>
 <p><strong>A grant is for looking</strong>, at a company&#39;s screens or, at the seller&#39;s request, at old records in a restore branch (<a href="../../runbooks/restore-a-company-look-back/">ADR-001&#39;s look-back</a>):</p>
 <ol>
-<li>One company, a written reason, at most 8 hours (<a href="../../buyer-data/">ADR-009</a>).</li>
+<li>One company, a written reason, at most 8 hours (<a href="../../buyer-data/spec/#7-who-can-see-it">ADR-009</a>).</li>
 <li>Read-only: the operator sees the screens as a viewer and changes nothing. They never sign in as, or act in the name of, a seller&#39;s user, and never change a role, a person, a sign-in method, a connection or stock.</li>
 <li>Every Owner and Admin is told at once, in the app and by email, with the reason and the end time; any of them can end it.</li>
 <li>Buyer fields stay encrypted unless an Owner or Admin switches them on for that grant. The decrypting code refuses an operator actor whose grant does not name buyer data.</li>
@@ -870,7 +870,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td><strong>Kept</strong></td>
 <td>At least a year in the cell, then 6 years in the archive (<a href="../../data-retention/">ADR-002</a>); erased with the company</td>
-<td>12 months (<a href="../../buyer-data/">ADR-009</a>)</td>
+<td>12 months (<a href="../../buyer-data/spec/#14-security-controls">ADR-009</a>)</td>
 </tr>
 <tr>
 <td><strong>Protected</strong></td>

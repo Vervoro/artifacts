@@ -1,0 +1,27 @@
+# Runbook: Answer a seller's data request
+
+| | |
+| --- | --- |
+| **Built** | At launch |
+| **Record** | [ADR-009](../../buyer-data/), rules in [SPEC 17](../../buyer-data/spec/#17-the-sellers-users-sign-in-data) |
+| **Who runs it** | The operator, when a seller's user, or a former user, asks Vervoro to see or erase the personal data it holds about them as controller |
+| **Role or credential** | The operator console. Sign-in data is read only through the sign-in Worker's export command; nobody queries the `auth` schema |
+
+A seller asking for their **company's** data is not this procedure: use [Export a company](../export-a-company/) or [Erase a company](../erase-a-company/). Buyer data is the seller's to answer: [Answer a buyer's data request](../answer-a-buyers-data-request/).
+
+## Steps
+
+1. Record the request in the platform security log: who asked, by which channel, and the due date, one month from receipt.
+2. Confirm it is the person: the request comes from the login's own address, and they sign in once to confirm it.
+3. **Access:** run the sign-in Worker's export for that login: email address, name, sign-in methods (no secrets), sessions with network address and browser, and their security events. Add their memberships and billing contact details where they hold them. Send the file to the login's address.
+4. **Erasure:** ask each company's Owner to remove the person, or, where the person is a company's last Owner, explain that the company must name another Owner or close. A login with no membership is deleted after 30 days, its address and name with it ([ADR-010 SPEC 6](../../users-and-access/spec/#6-invitations-sign-up-and-removal)).
+5. Tell the person what stays and why: `audit_log` entries keep their user id for the company's audit period, and control's backups hold the login until they expire, within 30 days.
+
+## Verify
+
+- The request in the security log shows done within the month.
+- After an erasure, the login is gone 30 days after its last membership ended.
+
+## If it stops halfway
+
+Nothing is changed until step 4. A removed membership stays removed; the 30-day deletion runs by itself.

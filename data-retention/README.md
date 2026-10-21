@@ -20,7 +20,7 @@ Storage itself is cheap and has no hard cap. What degrades with old data is ever
 Two rules limit what can be deleted:
 
 - **Accounting records** (invoices, payments, the orders behind them) must be kept for the statutory period. In the UK the longest general rule is 6 years from the end of the financial year they belong to (see "Statutory periods" below). Vervoro keeps them 7 years from the end of the month they belong to, which covers any financial year without asking when the seller's ends.
-- **Buyer personal data** is anonymised 30 days after delivery, or after dispatch when no delivery date is known ([ADR-009](../buyer-data/)), so old order history holds almost no personal data. Issued VAT invoices keep the buyer details the law requires.
+- **Buyer personal data** is anonymised 30 days after delivery, or after dispatch when no delivery date is known ([ADR-009 SPEC 8](../buyer-data/spec/#8-retention-and-anonymisation)), so old order history holds almost no personal data. Issued VAT invoices keep the buyer details the law requires.
 
 ## Decision
 

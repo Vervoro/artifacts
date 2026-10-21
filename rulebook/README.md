@@ -18,6 +18,9 @@ Load this page with any task. Load the linked record before changing the area it
 | Shadow mode | [ADR-004 SPEC 11: Shadow mode and launch gates](../channel-connectors/spec/#11-shadow-mode-and-launch-gates) |
 | The egress gate | [ADR-000 SPEC 7](../system-architecture/spec/#7-the-egress-gate) |
 | Schema changes expand, then contract | [ADR-000 SPEC 11](../system-architecture/spec/#11-deploying) |
+| Buyer data: what is kept, where it lives, who sees it | [ADR-009 decisions 2–4](../buyer-data/#decision) and [SPEC 4, 5 and 7](../buyer-data/spec/#4-what-is-kept) |
+| Buyer data anonymised 30 days after delivery, and erasure through backups and restores | [ADR-009 SPEC 8](../buyer-data/spec/#8-retention-and-anonymisation) and [SPEC 11](../buyer-data/spec/#11-erasure-backups-and-restores) |
+| Who is told of an incident, and when | [ADR-009 SPEC 13](../buyer-data/spec/#13-incidents) |
 | Layered testing, and when a test may change | [ADR-000 SPEC 15](../system-architecture/spec/#15-testing-and-verification) |
 
 ## 1. When in doubt, stop
@@ -78,9 +81,9 @@ Load this page with any task. Load the linked record before changing the area it
 39. **Sign-in is Better Auth inside the sign-in Worker, and nothing else.** Only the sign-in Worker runs Better Auth, holds its secret, shows a password field and touches the `auth` and `auth_policy` schemas; no other code queries or writes Better Auth's tables. Nobody writes passkey, authenticator-code, password-hashing or session code beside it, forks it or patches it. The app asks the sign-in Worker whether a session is live and never records a fresh check itself; its pages and calls are a closed list. [ADR-013 SPEC 8](../sign-in/spec/#8-the-sign-in-worker)
 40. **Better Auth says who; ADR-010 says what.** The sign-in Worker hands the app a login id and the session's facts; companies, roles, scope, permissions and operator grants are decided only by Access. Better Auth's organisation and access features stay off. [ADR-013](../sign-in/#decision), [ADR-010 SPEC 5](../users-and-access/spec/#5-rules-for-every-action)
 41. **A passkey, or a password with its second factor; never a password alone.** Passkeys are the default and need the fingerprint, face or PIN check. Only the methods ADR-013 names are switched on. Better Auth and its plugins are exact-pinned and upgraded only through a reviewed, committed schema migration and the sign-in tests, never at start-up; no agent changes its setup or schema without the record. [ADR-013 SPEC 1](../sign-in/spec/#1-better-auth-and-what-is-switched-on), [SPEC 13](../sign-in/spec/#13-upgrades-and-migrations)
-42. **Buyer data comes only from the fetched order,** only the fields ADR-009 allows, encrypted per field under the company's key. It never goes to control, queues, logs, URLs, caches, emails, client storage or the AI provider. [ADR-009](../buyer-data/#decision)
-43. **Every view of buyer data is logged.** It is anonymised 30 days after delivery. [ADR-009](../buyer-data/#decision)
-44. **No real buyer data outside production.** Tests, fixtures and demos use synthetic buyers. [ADR-009](../buyer-data/#decision)
+42. **Buyer data comes only from the fetched order,** only the fields ADR-009 allows, encrypted per field under the company's key. It never goes to control, queues, logs, URLs, caches, emails, client storage or the AI provider. [ADR-009](../buyer-data/#decision), [SPEC 4](../buyer-data/spec/#4-what-is-kept) and [SPEC 5](../buyer-data/spec/#5-where-it-lives)
+43. **Every view of buyer data is logged.** It is anonymised 30 days after delivery, dispatch as the fallback. [ADR-009](../buyer-data/#decision), [SPEC 7](../buyer-data/spec/#7-who-can-see-it) and [SPEC 8](../buyer-data/spec/#8-retention-and-anonymisation)
+44. **No real buyer data outside production.** Tests, fixtures and demos use synthetic buyers. [ADR-009](../buyer-data/#decision), [SPEC 15](../buyer-data/spec/#15-no-real-buyer-data-outside-production)
 
 ## 7. Money and countries
 

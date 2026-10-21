@@ -72,5 +72,4 @@ Parts marked *Later* keep their rules in the SPEC but are built only when their 
 ## Open items
 
 - **Single sign-on and custom roles** wait for enough sellers to ask; neither has a trigger number yet.
-- **The quarterly access review** is ADR-009's; it has no written procedure yet.
 - **Later modules** (purchasing, returns) add their rows to the matrix when their records are written.

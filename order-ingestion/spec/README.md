@@ -73,7 +73,7 @@ Once shipped or cancelled, the status is final; later news is a fact on the orde
 
 ## 5. The order and its lines
 
-1. **The order** holds the account (or "manual"), the marketplace order id, purchase and change times, status and the function's version, who ships it, the warehouse (the account's default, [ADR-006 SPEC 1](../../stock-ledger/spec/#1-where-stock-is-counted)), ship-by and leave-by, the marketplace it was sold on, where it arrived from, a replacement mark (ADR-012 does not count replacements), a business buyer's company, VAT number and purchase-order reference, the delivery charge and any order discount as paid ([ADR-011](../../invoicing-and-vat/)), and the shipped, cancelled, delivered and anonymised times.
+1. **The order** holds the account (or "manual"), the marketplace order id, purchase and change times, status and the function's version, who ships it, the warehouse (the account's default, [ADR-006 SPEC 1](../../stock-ledger/spec/#1-where-stock-is-counted)), ship-by and leave-by, the marketplace it was sold on, where it arrived from, a replacement mark (ADR-012 does not count replacements), a business buyer's purchase-order reference (their company name and VAT number are buyer fields, kept by Buyer data, [ADR-009 SPEC 4](../../buyer-data/spec/#4-what-is-kept)), the delivery charge and any order discount as paid ([ADR-011](../../invoicing-and-vat/)), and the shipped, cancelled, delivered and anonymised times.
 2. **A line** holds the marketplace line id, the listing key ([ADR-005 SPEC 2](../../catalogue-sync/spec/#2-listings-and-keys)), the SKU and title as given, quantity, cancelled, shipped outside and when, fulfilment (seller, marketplace or unknown), how it was resolved (link, person or none), price, currency, discount and who funded it, the marketplace's tax figure and whether it collects it, the VAT rate used ([ADR-003](../../product-model/)), and the stock fields of [ADR-006 SPEC 5.3](../../stock-ledger/spec/#53-reserving-an-order-line). Money is never added across currencies. Units shipped by Vervoro come from Fulfilment's shipments, not a second copy.
 3. **A line's stock state is worked out, never stored:**
 
@@ -318,7 +318,7 @@ This section owns "Vervoro never sends a cancellation"; other records link here.
 
 ## 19. Buyer data on import
 
-ADR-009 decides what is kept and for how long. On import:
+ADR-009 decides what is kept and for how long. Orders hands the buyer fields to Buyer data's port in the import's transaction, and Buyer data writes them ([ADR-009 SPEC 1](../../buyer-data/spec/#1-who-does-what)). On import:
 
 1. **Only from the fetched order;** a notice body is never read for buyer data.
 2. **Only for orders the seller ships;** on Amazon the recipient is asked for only on seller-shipped orders not yet shipped ([ADR-004.2 SPEC 8](../../amazon-seller-connector/spec/#8-buyer-data)).
@@ -357,7 +357,7 @@ Orders' tables carry the `sales_` prefix, are declared through `tenantTable()` a
 
 | Table | Holds |
 | --- | --- |
-| `sales_order` | The order fields of section 5; partitioned by month of purchase; buyer fields tagged `pii` |
+| `sales_order` | The order fields of section 5; partitioned by month of purchase; no buyer field, those are Buyer data's ([ADR-009 SPEC 18](../../buyer-data/spec/#18-storage)) |
 | `sales_order_key` | Company, account, marketplace order id → order id and month; unpartitioned, unique, read first |
 | `sales_order_line` | The line fields of section 5, partitioned with its order; a charge line has no product, link or reservation; no stored stock state |
 | `sales_order_hold` | Each hold placed and cleared: reason, kind, note, by whom, decide-by, when; append-only |

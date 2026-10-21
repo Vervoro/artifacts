@@ -117,7 +117,7 @@ Orders arrive by notice; the scheduled read is only the backup ([9](#9-the-compl
 6. **The consumer fetches, then imports.** It has the connector parse the message and fetches each order seen, one call, and hands it to Orders. An order not visible yet is fetched again after 30 seconds, doubling, for about half an hour, then left to the completeness check. A failed delivery goes to the dead-letter queue, which pages the operator ([ADR-000 SPEC 8](../../system-architecture/spec/#8-connectors-and-orders-in)).
 7. **A notice is a hint.** Vervoro imports what it fetches, never the notice body, and a notice never moves the watermark.
 8. **Subscriptions are made on connect** by the connector's hook and removed on disconnect. A failing hook is retried and alerts. An account with no working subscription shows as "not notified".
-9. **The host handles some topics itself.** Approval revoked disconnects the account. A privacy request is recorded with its due date, and the buyer data it names is anonymised ([ADR-009](../../buyer-data/)).
+9. **The host handles some topics itself.** Approval revoked disconnects the account. A privacy request is recorded with its due date, and Buyer data opens the company's privacy request ([ADR-009 SPEC 10](../../buyer-data/spec/#10-buyers-requests)).
 
 ## 9. The completeness check
 

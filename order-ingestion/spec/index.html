@@ -219,7 +219,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tbody></table></div>
 <h2 id="5-the-order-and-its-lines">5. The order and its lines</h2>
 <ol>
-<li><strong>The order</strong> holds the account (or &quot;manual&quot;), the marketplace order id, purchase and change times, status and the function&#39;s version, who ships it, the warehouse (the account&#39;s default, <a href="../../stock-ledger/spec/#1-where-stock-is-counted">ADR-006 SPEC 1</a>), ship-by and leave-by, the marketplace it was sold on, where it arrived from, a replacement mark (ADR-012 does not count replacements), a business buyer&#39;s company, VAT number and purchase-order reference, the delivery charge and any order discount as paid (<a href="../../invoicing-and-vat/">ADR-011</a>), and the shipped, cancelled, delivered and anonymised times.</li>
+<li><strong>The order</strong> holds the account (or &quot;manual&quot;), the marketplace order id, purchase and change times, status and the function&#39;s version, who ships it, the warehouse (the account&#39;s default, <a href="../../stock-ledger/spec/#1-where-stock-is-counted">ADR-006 SPEC 1</a>), ship-by and leave-by, the marketplace it was sold on, where it arrived from, a replacement mark (ADR-012 does not count replacements), a business buyer&#39;s purchase-order reference (their company name and VAT number are buyer fields, kept by Buyer data, <a href="../../buyer-data/spec/#4-what-is-kept">ADR-009 SPEC 4</a>), the delivery charge and any order discount as paid (<a href="../../invoicing-and-vat/">ADR-011</a>), and the shipped, cancelled, delivered and anonymised times.</li>
 <li><strong>A line</strong> holds the marketplace line id, the listing key (<a href="../../catalogue-sync/spec/#2-listings-and-keys">ADR-005 SPEC 2</a>), the SKU and title as given, quantity, cancelled, shipped outside and when, fulfilment (seller, marketplace or unknown), how it was resolved (link, person or none), price, currency, discount and who funded it, the marketplace&#39;s tax figure and whether it collects it, the VAT rate used (<a href="../../product-model/">ADR-003</a>), and the stock fields of <a href="../../stock-ledger/spec/#53-reserving-an-order-line">ADR-006 SPEC 5.3</a>. Money is never added across currencies. Units shipped by Vervoro come from Fulfilment&#39;s shipments, not a second copy.</li>
 <li><strong>A line&#39;s stock state is worked out, never stored:</strong></li>
 </ol>
@@ -778,7 +778,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>The recipient&#39;s name, address and phone</strong> are buyer data under ADR-009.</li>
 </ol>
 <h2 id="19-buyer-data-on-import">19. Buyer data on import</h2>
-<p>ADR-009 decides what is kept and for how long. On import:</p>
+<p>ADR-009 decides what is kept and for how long. Orders hands the buyer fields to Buyer data&#39;s port in the import&#39;s transaction, and Buyer data writes them (<a href="../../buyer-data/spec/#1-who-does-what">ADR-009 SPEC 1</a>). On import:</p>
 <ol>
 <li><strong>Only from the fetched order;</strong> a notice body is never read for buyer data.</li>
 <li><strong>Only for orders the seller ships;</strong> on Amazon the recipient is asked for only on seller-shipped orders not yet shipped (<a href="../../amazon-seller-connector/spec/#8-buyer-data">ADR-004.2 SPEC 8</a>).</li>
@@ -822,7 +822,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </thead>
 <tbody><tr>
 <td><code>sales_order</code></td>
-<td>The order fields of section 5; partitioned by month of purchase; buyer fields tagged <code>pii</code></td>
+<td>The order fields of section 5; partitioned by month of purchase; no buyer field, those are Buyer data&#39;s (<a href="../../buyer-data/spec/#18-storage">ADR-009 SPEC 18</a>)</td>
 </tr>
 <tr>
 <td><code>sales_order_key</code></td>

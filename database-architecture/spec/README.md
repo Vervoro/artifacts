@@ -78,7 +78,7 @@ Rules:
 1. No other role may log in. A role created in the Neon console, CLI or API joins `neon_superuser`, so no role is ever created there.
 2. The runtime role logs in as itself. No login switches role with `SET ROLE` (owner ruling, 20 October 2026).
 3. A serving connection refuses to start if its login is a superuser, has `BYPASSRLS`, owns a table, or is a member of the owner, of `neon_superuser` or of any role with those rights.
-4. The owner's emergency use goes through the CI migration job, records the reason first and alerts the operator ([ADR-009](../../buyer-data/)). See the [runbook](../../runbooks/use-the-owner-role/).
+4. The owner's emergency use goes through the CI migration job, records the reason first and alerts the operator ([ADR-009](../../buyer-data/spec/#7-who-can-see-it)). See the [runbook](../../runbooks/use-the-owner-role/).
 5. The runtime role has a `statement_timeout` and an `idle_in_transaction_session_timeout`.
 
 ## 4. Functions
@@ -89,7 +89,7 @@ Rules:
 | `app.enter_company(id)` | Invoker | Runtime, lifecycle | Sets `app.company_id` for this transaction, then reads `tenant` through row-level security and raises unless the row exists in a state this role may enter. Needs no special rights and no extra round trip |
 | `app.open_tenant(id)` | `SECURITY DEFINER`, allow-listed | Runtime | Used at sign-up in place of `enter_company`. Inserts a `tenant` row for `id` in state `open` and sets the company for this transaction. Raises if a row for `id` already exists (owner ruling, 20 October 2026) |
 | `app.due_companies(limit)` | `SECURITY DEFINER`, allow-listed | Runtime | Returns `(company_id, next_due_at)` from `due` for companies due now, earliest first, plus one row with no company holding the earliest future `next_due_at`, so the sweeper can set its alarm (owner ruling, 21 October 2026) |
-| `app.buyer_ref_companies(hash)` | `SECURITY DEFINER`, allow-listed | Runtime | Returns the company ids holding an eBay buyer hash ([ADR-009](../../buyer-data/)) |
+| `app.buyer_ref_companies(hash)` | `SECURITY DEFINER`, allow-listed | Runtime | Returns the company ids holding an eBay buyer hash ([ADR-009](../../buyer-data/spec/#162-ebay)) |
 
 Rules for the three definers:
 
@@ -195,7 +195,7 @@ Control is its own database on its own compute. A cell credential can never read
 | Platform data | Settings, the platform security log, shared marketplace quotas, usage rollups, alerts |
 | Migration summary | Per database, the version the last deploy reached ([section 12](#12-operations)) |
 
-**Emails in control** are stored readable, once per login, in Better Auth's user table in the `auth` schema, reachable only by the sign-in role; storage encryption covers it at rest and control's backups hold it for their 30 days. No outside identity service holds it ([ADR-009](../../buyer-data/)). Each company's users table holds its own copy.
+**Emails in control** are stored readable, once per login, in Better Auth's user table in the `auth` schema, reachable only by the sign-in role; storage encryption covers it at rest and control's backups hold it for their 30 days. No outside identity service holds it ([ADR-009](../../buyer-data/spec/#17-the-sellers-users-sign-in-data)). Each company's users table holds its own copy.
 
 **Routing:**
 
@@ -300,7 +300,7 @@ Launch kinds, taken from the records:
 | Backup order read | Channels, importing into Orders ([ADR-007](../../order-ingestion/spec/#2-how-an-order-comes-in)) | An account's scheduled read is due |
 | Listing safety read | Channels, handing over to Listings ([ADR-005](../../catalogue-sync/)) | An account's daily read is due |
 | Nightly stock check | Inventory ([ADR-006](../../stock-ledger/)) | Once a night |
-| Buyer anonymisation | Buyer data ([ADR-009](../../buyer-data/)) | 30 days after delivery |
+| Buyer anonymisation | Buyer data ([ADR-009](../../buyer-data/spec/#8-retention-and-anonymisation)) | 30 days after delivery |
 | Erasure after closing | Billing ([ADR-012](../../billing-and-plans/)) | 30 days after the company closes |
 
 ### Fair shares
@@ -363,7 +363,7 @@ Fence (`moving_out`), copy in batches, compare checksums, switch the registry ro
 
 After any full rewind, before the company opens:
 
-1. the erasure register and the anonymisation rule ([ADR-009](../../buyer-data/)) are replayed;
+1. the erasure register and the anonymisation rule ([ADR-009](../../buyer-data/spec/#11-erasure-backups-and-restores)) are replayed;
 2. counters are at least their live values, and invoices and credit notes issued after the restore time are re-registered from object storage ([ADR-011](../../invoicing-and-vat/));
 3. restored outbound sends are `unknown`, never resent; every account is back in shadow; the sync epoch is raised ([ADR-008](../../inventory-sync/));
 4. orders placed since the restore time are re-imported, and the seller confirms the differences before any stock push.
@@ -376,13 +376,13 @@ After any full rewind, before the company opens:
 | Scheduled snapshots | Kept 30 days |
 | Manual snapshots | None: they never expire |
 | Erasure complete in backups | Day 30, stated in the customer terms |
-| Files in object storage | Versioning or a 30-day soft delete; a file key is never overwritten |
+| Files in object storage | Versioning or a 30-day soft delete; a file key is never overwritten. Label files excepted: their own bucket, no versioning, so anonymising deletes them ([ADR-009 SPEC 6](../../buyer-data/spec/#6-encryption-and-keys)) |
 
 ### Encryption
 
 1. Credentials and buyer contact fields are encrypted under a per-company data key in `secrets(company_id, purpose)`, wrapped by a key-encryption key held as a platform secret.
 2. `company_id` is bound in as associated data, so a row read under the wrong company fails to decrypt.
-3. The wrapped keys stay in the database. Which buyer fields, and the search they allow, are [ADR-009's](../../buyer-data/).
+3. The wrapped keys stay in the database. Which buyer fields, and the search they allow, are [ADR-009's](../../buyer-data/spec/#6-encryption-and-keys).
 
 ### Drills
 

@@ -185,7 +185,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ol>
 <li>eBay requires every application to receive account deletion notices for all eBay users. The endpoint answers eBay&#39;s challenge with the verification token and checks each notice&#39;s signature.</li>
 <li><strong>A connected seller:</strong> a privacy request with its due date (<a href="../../channel-connectors/spec/#8-notices-in">ADR-004 SPEC 8</a>).</li>
-<li><strong>Anyone else:</strong> a keyed hash of the user id is looked up in each cell; a buyer found there has their orders anonymised at once (<a href="../../buyer-data/">ADR-009</a>). Nothing from the notice is kept.</li>
+<li><strong>Anyone else:</strong> a keyed hash of the user id is looked up in each cell; a buyer found there has their orders anonymised at once (<a href="../../buyer-data/spec/#162-ebay">ADR-009 SPEC 16.2</a>). Nothing from the notice is kept.</li>
 </ol>
 <h2 id="9-simulator-and-pre-launch-recordings">9. Simulator and pre-launch recordings</h2>
 <p>The simulator speaks only the calls above: Inventory, Fulfillment, Feed, Notification and Identity APIs, the Trading calls used here, the consent page and token exchange, signed notices, daily usage limits and the out-of-stock preference. Before launch each call is recorded against the sandbox or a real account (<a href="../../channel-connectors/spec/#14-simulators-and-recorded-replies">ADR-004 SPEC 14</a>). The recordings include that the order list keeps a stable order for one filter across calls, which the backwards read relies on. <code>getTopics</code> is read on the production keyset: the three topics must be available to Vervoro with the scopes it asks for; any restricted one is requested from eBay before a seller connects.</p>

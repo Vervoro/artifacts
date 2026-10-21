@@ -317,7 +317,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>The consumer fetches, then imports.</strong> It has the connector parse the message and fetches each order seen, one call, and hands it to Orders. An order not visible yet is fetched again after 30 seconds, doubling, for about half an hour, then left to the completeness check. A failed delivery goes to the dead-letter queue, which pages the operator (<a href="../../system-architecture/spec/#8-connectors-and-orders-in">ADR-000 SPEC 8</a>).</li>
 <li><strong>A notice is a hint.</strong> Vervoro imports what it fetches, never the notice body, and a notice never moves the watermark.</li>
 <li><strong>Subscriptions are made on connect</strong> by the connector&#39;s hook and removed on disconnect. A failing hook is retried and alerts. An account with no working subscription shows as &quot;not notified&quot;.</li>
-<li><strong>The host handles some topics itself.</strong> Approval revoked disconnects the account. A privacy request is recorded with its due date, and the buyer data it names is anonymised (<a href="../../buyer-data/">ADR-009</a>).</li>
+<li><strong>The host handles some topics itself.</strong> Approval revoked disconnects the account. A privacy request is recorded with its due date, and Buyer data opens the company&#39;s privacy request (<a href="../../buyer-data/spec/#10-buyers-requests">ADR-009 SPEC 10</a>).</li>
 </ol>
 <h2 id="9-the-completeness-check">9. The completeness check</h2>
 <ol>

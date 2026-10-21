@@ -12,7 +12,7 @@
 1. Fence the company: pause its outbound marketplace calls, revoke its sessions, set its tenant row to `restoring`.
 2. Branch the cell at the restore time; set every tenant row on the branch to `lookback`.
 3. Replace the live slice with the branch's slice, in batches.
-4. Replay the erasure register for the company and run the anonymisation rule ([ADR-009](../../buyer-data/)).
+4. Replay the erasure register for the company and run the anonymisation rule ([ADR-009](../../buyer-data/spec/#11-erasure-backups-and-restores)).
 5. Rebuild the company's directory rows in control.
 6. Set counters to at least their live values. Re-register every invoice and credit note in object storage newer than the restore time, and set their counter past the highest ([ADR-011](../../invoicing-and-vat/)).
 7. Mark restored outbound sends `unknown`; never resend them. Put every marketplace account back in shadow. Raise the company's sync epoch in control ([ADR-008](../../inventory-sync/)).

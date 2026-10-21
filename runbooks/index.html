@@ -287,6 +287,40 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>After a full rewind or a whole-cell restore, before any figure is sent</td>
 </tr>
 </tbody></table></div>
+<h2 id="adr-009-buyer-data-and-privacy">ADR-009: Buyer data and privacy</h2>
+<p>Rules: <a href="../buyer-data/spec/">ADR-009 SPEC</a>. Also: <a href="erase-a-company/">Erase a company</a>, <a href="export-a-company/">Export a company</a>, <a href="sign-in-incident-commands/">Sign-in incident commands</a>.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Procedure</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="answer-a-buyers-data-request/">Answer a buyer&#39;s data request</a></td>
+<td>A buyer asks the seller to see, correct or erase their data</td>
+</tr>
+<tr>
+<td><a href="answer-a-sellers-data-request/">Answer a seller&#39;s data request</a></td>
+<td>A seller&#39;s user asks Vervoro, as controller, for their own data</td>
+</tr>
+<tr>
+<td><a href="report-a-personal-data-breach/">Report a personal-data breach</a></td>
+<td>Personal data may have been read, changed, lost or sent where it should not be</td>
+</tr>
+<tr>
+<td><a href="anonymise-after-a-connection-ends/">Anonymise after a connection ends</a></td>
+<td>A marketplace connection is disconnected, revoked or ended by a marketplace&#39;s notice</td>
+</tr>
+<tr>
+<td><a href="check-the-anonymisation-job/">Check the anonymisation job</a></td>
+<td>The nightly check finds orders past their due time still holding buyer data</td>
+</tr>
+<tr>
+<td><a href="run-the-quarterly-access-review/">Run the quarterly access review</a></td>
+<td>Every quarter: every operator, developer and service account checked</td>
+</tr>
+</tbody></table></div>
 <h2 id="adr-010-users-roles-and-access">ADR-010: Users, roles and access</h2>
 <p>Rules: <a href="../users-and-access/spec/">ADR-010 SPEC</a>.</p>
 <div class="table-wrap"><table>

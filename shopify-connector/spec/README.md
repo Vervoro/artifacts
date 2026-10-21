@@ -68,8 +68,8 @@ A variant with a blank SKU, or one another variant shares, is named by its varia
 ## 8. Buyer data and privacy
 
 1. **Protected customer data** (names, addresses, phones) is released only to approved apps. Without approval those fields arrive empty and nothing is guessed.
-2. **Only what is needed to ship:** the delivery address with the recipient's name and phone, the order note, a gift message, each line's title. Anonymised 30 days after delivery, or after dispatch when no delivery date is known ([ADR-009](../../buyer-data/)).
-3. **Privacy webhooks:** a request to forget a buyer anonymises their orders at once; a buyer's data request and a request to forget a shop are recorded for a person, due within 30 days ([ADR-004 SPEC 8](../../channel-connectors/spec/#8-notices-in)).
+2. **Only what is needed to ship:** the delivery address with the recipient's name and phone, the order note, a gift message, each line's title. Anonymised 30 days after delivery, or after dispatch when no delivery date is known ([ADR-009 SPEC 8](../../buyer-data/spec/#8-retention-and-anonymisation)).
+3. **Privacy webhooks:** a request to forget a buyer anonymises their orders at once; a buyer's data request and a request to forget a shop are recorded for a person, due within 30 days ([ADR-004 SPEC 8](../../channel-connectors/spec/#8-notices-in), [ADR-009 SPEC 10](../../buyer-data/spec/#10-buyers-requests)).
 
 ## 9. Dispatch and the page inside Shopify
 
