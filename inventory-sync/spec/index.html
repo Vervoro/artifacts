@@ -127,6 +127,11 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="#6-confirming-every-write">6</a></td>
 </tr>
 <tr>
+<td>Every Shopify rule in this SPEC (location, write target, compare-and-set, webhooks)</td>
+<td>The Shopify connector is built (<a href="../../shopify-connector/">ADR-004.3</a>)</td>
+<td><a href="#1-the-figure-per-listing">1</a>, <a href="#2-terms">2</a>, <a href="#4-the-belief">4</a>, <a href="#5-the-order-read-before-a-raise">5</a>, <a href="#6-confirming-every-write">6</a>, <a href="#8-limits-and-who-goes-next">8</a></td>
+</tr>
+<tr>
 <td>The tolerance for Amazon accounts on several marketplaces</td>
 <td>Notices during shadow prove Amazon keeps the marketplaces in step</td>
 <td><a href="#12-amazon-accounts-on-several-marketplaces">12</a></td>
@@ -390,7 +395,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p>   From 1,800 in 30 days an item takes only zeros. eBay&#39;s own &quot;limit reached&quot; reply stops every write to the item until the window frees a revision, and the seller is told at once. A Trading call carries up to four listings or variations of one account, waits at most 2 seconds to fill, and a zero never waits.
 5. <strong>Amazon:</strong> single patches only, one open write per SKU (a decrease may overtake it). Scheduled reads use the all-listings report and notices, never one read per listing.
 6. <strong>Shopify:</strong> compare-and-set on every write (<a href="../../shopify-connector/">ADR-004.3</a>), in batches of up to 250 on the bulk lane, singly on the safety lane, always leaving 55 points in the bucket.
-7. <strong>Budget.</strong> At 2,000 linked listings and 150 orders a day per seller, stock writes and reads use about 100 Trading calls a day for 10 sellers and 740 for 100. What binds is ADR-004&#39;s reserve rule: 500 calls per Seller Hub account, so the default 5,000 serves 10, and more need eBay&#39;s Growth Check.</p>
+7. <strong>Budget.</strong> At 2,000 linked listings and 150 orders a day per seller, stock writes and reads use about 100 Trading calls a day for 10 sellers and 740 for 100. What binds is ADR-004&#39;s reserve rule (<a href="../../channel-connectors/spec/">ADR-004 SPEC 7</a>), so the default 5,000 serves 10, and more need eBay&#39;s Growth Check.</p>
 <h2 id="9-the-low-stock-policy">9. The low-stock policy</h2>
 <div class="table-wrap"><table>
 <thead>
@@ -488,7 +493,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Every listing shows two figures,</strong> Vervoro&#39;s and what the marketplace last showed, each with its age in words. An account&#39;s health is one of: not measured, right, catching up, needs you.</li>
 <li><strong>Seller alerts in the app:</strong> a listing at 0 with stock for 5 minutes that no rule is fixing; a refused figure; a figure not confirmed 20 minutes after its deadline; a not-managed listing showing more than the stock.</li>
 <li><strong>One email:</strong> &quot;a marketplace shows more than you have and Vervoro cannot fix it&quot; (a refused decrease, eBay&#39;s revision limit, a frozen item), to the account&#39;s Owners and Admins, grouped per account, at most every 30 minutes, never during an incident on the marketplace&#39;s side, naming the listings and the fix.</li>
-<li><strong>Operator pages, per marketplace, never per listing:</strong> the order watermark more than 60 minutes behind; a decrease or a change in the zone, unheld, unsent for 15 minutes; a shared pool at 90 %; an Amazon write accepted but unconfirmed after 60 minutes; an <code>unknown</code> write unsettled after three reads. When a fifth of a marketplace&#39;s accounts page at once, one &quot;marketplace down&quot; page replaces them.</li>
+<li><strong>Operator pages, per marketplace, never per listing:</strong> the order watermark behind by more than its marketplace&#39;s backup-read interval plus 15 minutes (<a href="../../channel-connectors/spec/">ADR-004 SPEC 9</a>); a decrease or a change in the zone, unheld, unsent for 15 minutes; a shared pool at 90 %; an Amazon write accepted but unconfirmed after 60 minutes; an <code>unknown</code> write unsettled after three reads. When a fifth of a marketplace&#39;s accounts page at once, one &quot;marketplace down&quot; page replaces them.</li>
 </ol>
 <h2 id="17-storage">17. Storage</h2>
 <p>Stock sync&#39;s tables carry the <code>sync_</code> prefix, are declared through <code>tenantTable()</code> and queried through the typed query builder (<a href="../../database-architecture/spec/#5-declaring-tables">ADR-001 SPEC 5</a>); they name other modules&#39; rows by plain ids, with no foreign key.</p>

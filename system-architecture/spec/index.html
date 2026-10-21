@@ -300,7 +300,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Switchable</td>
 <td>ADR-011</td>
 <td>Invoices, VAT records, invoiced customers</td>
-<td>Orders</td>
+<td>Orders, Products, Buyer data (owner ruling, 22 October 2026)</td>
 <td>Invoices</td>
 </tr>
 </tbody></table></div>
@@ -671,7 +671,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p>An <strong>egress effect</strong> is a call that changes something on a marketplace or at a supplier: figures, dispatch, confirmations, messages. Notice subscriptions made by a connector&#39;s connect and disconnect hooks are set-up calls, not egress effects: they run in shadow mode too, through the host&#39;s HTTP and rate budgets (<a href="../../channel-connectors/spec/#8-notices-in">ADR-004</a>).</p>
 <ol>
 <li>An effect is recorded inside the transaction with an idempotency key and sent only after commit. A repeat with the same key cannot send twice.</li>
-<li>For every send the gate reads the account&#39;s mode from the database, never from a cache. Only <code>live</code> sends; <code>shadow</code> records what it would have sent. The modes and the stop choice are <a href="../../channel-connectors/spec/#11-shadow-mode-and-launch-gates">ADR-004</a>.</li>
+<li>For every send the gate reads the account&#39;s mode from the database, never from a cache. <code>live</code> sends; a <code>decrease-only</code> account (a closed company, <a href="../../billing-and-plans/">ADR-012</a>) sends only the decreases <a href="../../inventory-sync/spec/#10-listing-modes-and-stopping">ADR-008 SPEC 10.3</a> allows; <code>shadow</code> and every other mode record what they would have sent (owner ruling, 22 October 2026). The modes and the stop choice are <a href="../../channel-connectors/spec/#11-shadow-mode-and-launch-gates">ADR-004</a>.</li>
 <li>Channels opens the account&#39;s credentials, takes a token from its rate budget and calls the connector. No connector, handler or screen ever sees an opened credential.</li>
 <li>Every answer becomes one outcome: <code>applied</code>, <code>accepted</code> (awaiting processing), <code>throttled</code>, <code>compare_mismatch</code>, <code>rejected</code> or <code>unknown</code>. A timeout is <code>unknown</code>, and is settled before anything else is sent to that listing (<a href="../../channel-connectors/spec/#5-retries-and-outcomes">ADR-004</a>).</li>
 <li>Work is claimed with leases, never open-ended locks. A crash costs one lease period, and a result is written only if the claim is still its own.</li>

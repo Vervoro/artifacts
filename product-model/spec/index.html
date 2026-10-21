@@ -500,7 +500,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tbody></table></div>
 <ol>
 <li><strong>One listing, one product;</strong> a product may have any number of listings. A set of different products is a bundle.</li>
-<li><strong>The listing&#39;s figure</strong> is the product&#39;s sellable divided by units per sale, rounded down (<a href="../../inventory-sync/">ADR-008</a>).</li>
+<li><strong>The listing&#39;s figure</strong> is worked out by Stock sync (<a href="../../inventory-sync/spec/#1-the-figure-per-listing">ADR-008 SPEC 1</a>).</li>
 <li><strong>One sale reserves</strong> units per sale of the product; for a bundle, that many sets of its components.</li>
 <li><strong>A listing that is not linked</strong> reserves nothing; its orders are imported and flagged (<a href="../../order-ingestion/spec/#14-orders-for-unlinked-listings">ADR-007</a>). A listing marked not stock is section 1.1.</li>
 </ol>
@@ -508,7 +508,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ol>
 <li><strong>Shipped by Amazon:</strong> a listing linked with <code>fulfilled_by = marketplace</code>. Vervoro reserves nothing and sends it no figure; its orders are for reports.</li>
 <li><strong>Amazon&#39;s unit label</strong> (FNSKU) identifies the listing, so it is stored on the listing. Scanning it finds the product through the link.</li>
-<li><strong>Sending stock to Amazon</strong> is a transfer, not a sale (<a href="../../stock-ledger/">ADR-006</a>), and uses the product&#39;s box sizes, weight, sizes and dates.</li>
+<li><em>Later, with FBA shipments (<a href="../../system-architecture/spec/#4-the-foundation-and-the-launch-modules">ADR-000 SPEC 4.7</a>):</em> <strong>sending stock to Amazon</strong> is a transfer, not a sale (<a href="../../stock-ledger/">ADR-006</a>), and uses the product&#39;s box sizes, weight, sizes and dates.</li>
 <li><em>Later:</em> <strong>Amazon Vendor</strong> catalogue items link like listings with <code>fulfilled_by = seller</code>; units per sale is the base units in one item of Amazon&#39;s purchase order; an unlinked item stops its purchase-order line. Carton data comes from box sizes. The price Amazon pays is never on the product.</li>
 </ol>
 <h2 id="9-status">9. Status</h2>

@@ -143,7 +143,7 @@ A check that passes and a write that then fails changes nothing. A Better Auth u
 
 **A reset reaches one company:**
 
-1. It re-activates the person only in the resetter's company. Their other memberships are paused until that company's Owner or Admin confirms them with a fresh check. Pausing is the app's, in control ([ADR-010](../../users-and-access/spec/#6-invitations-sign-up-and-removal)).
+1. It re-activates the person only in the resetter's company. Their other memberships are paused until that company's Owner or Admin confirms them with a fresh check. Pausing is the app's, on the membership in control ([ADR-010 SPEC 2](../../users-and-access/spec/#2-logins-and-member-rows), [SPEC 5](../../users-and-access/spec/#5-rules-for-every-action)).
 2. Each paused company's Owners and Admins are told at once, and the person sees it marked "waiting for an Owner or Admin".
 
 This stops a trial company from inviting someone, resetting them, and opening every company they belong to.

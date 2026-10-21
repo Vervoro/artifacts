@@ -83,7 +83,7 @@ One word per concept. Where two words appear in the records, the table says whet
 | **Session** | Better Auth's record that a login signed in, held in the browser as a cookie: at most 24 hours for everyone, never extended. The only session model (ADR-013) |
 | **Passkey** | A key the person's phone, laptop or password manager keeps, unlocked by a fingerprint, a face or the device's PIN. The default way to sign in (ADR-013) |
 | **Recovery** | Getting a person back in after they lose a method: Better Auth's steps (reset, backup code, new methods) under Vervoro's rules on who may start it and which company it reopens (ADR-013) |
-| **Membership** | A login's place in one company, with one role and an optional warehouse scope. One person can be a member of several companies |
+| **Membership** | A login's place in one company: the (login, company) pair in control. The person's role, warehouse scope and status are on their member row in the company's cell, which alone decides what they may do (ADR-010). One person can be a member of several companies |
 | **Role** | One of six: Owner, Admin, Manager, Warehouse, Accountant, Staff (ADR-010) |
 | **Operator** | A person running the Vervoro platform, not a member of any company. Acts on a company only through an audited, time-limited grant |
 | **Control database** | The one database that holds who the companies are and where they live: registry, routing, logins (Better Auth's tables in the auth schema), operators, shared quotas, the erasure register. No business data (ADR-001) |
@@ -116,7 +116,7 @@ One word per concept. Where two words appear in the records, the table says whet
 | **Link** | A versioned tie from a listing to a product, with units per sale. An order uses the link that was valid when the buyer bought |
 | **Figure** | The number a listing should show, worked out by Stock sync after each stock change ("D" in ADR-008). The desired state |
 | **Believed figure** | What the marketplace is believed to show ("B" in ADR-008). A number, or unknown |
-| **Unknown** | An outbound write with no clear answer, a timeout included. It is settled before anything else is sent to that listing: read back by default, or, where the connector's record names the exception, the same absolute figure resent (ADR-004) |
+| **Unknown** | An outbound write with no clear answer, a timeout included. It is settled before anything else is sent to that listing: read back by default, or, where the connector's record names the exception, the absolute figure Vervoro wants now resent (ADR-004) |
 | **Order watermark** | The point up to which a complete read of a marketplace's orders has been done. A raise waits for it |
 
 ### Products

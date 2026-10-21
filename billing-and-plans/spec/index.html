@@ -362,7 +362,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2 id="16-cancellation-export-erasure-and-refunds">16. Cancellation, export, erasure and refunds</h2>
 <ol>
 <li><strong>Cancelling</strong> is the Owner&#39;s step on Vervoro&#39;s billing screen. It shows each live connection&#39;s stop choice for confirmation, then ends the subscription at the end of the paid period. Until then the company is active, and the cancellation can be taken back.</li>
-<li><strong>Export</strong> runs in every state until erasure, made only by an Owner or Admin (<a href="../../database-architecture/spec/#export">ADR-001 SPEC 10</a>, buyer data per <a href="../../buyer-data/spec/#12-exports">ADR-009 SPEC 12</a>).</li>
+<li><strong>Export</strong> runs in every state until erasure: with buyer data only by an Owner or Admin (<a href="../../buyer-data/spec/#12-exports">ADR-009 SPEC 12</a>), otherwise by the roles in <a href="../../users-and-access/spec/#4-who-may-do-what">ADR-010 SPEC 4</a> (<a href="../../database-architecture/spec/#export">ADR-001 SPEC 10</a>, buyer data per <a href="../../buyer-data/spec/#12-exports">ADR-009 SPEC 12</a>).</li>
 <li><strong>Erasure</strong> runs 30 days after closing with ADR-001&#39;s slice operation. A seller may ask sooner; it then runs after a confirmation and once every stop choice has been carried out.</li>
 <li><strong>Refunds.</strong> Part periods are not refunded. A charge made by Vervoro&#39;s mistake is refunded or credited by credit note at Stripe. A Bacs refund is made only after the original payment settled, and the seller is told first, so their bank does not also pay them back under the Direct Debit Guarantee. Procedure: <a href="../../runbooks/refund-a-seller/">Refund a seller</a>.</li>
 </ol>

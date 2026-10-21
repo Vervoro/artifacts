@@ -104,7 +104,7 @@ One function works the status out from the order's facts, inside every transacti
 | From | To | Caused by |
 | --- | --- | --- |
 | Pending | Open | The marketplace says it can ship |
-| Any but shipped | Cancelled | The marketplace confirms the whole order cancelled, or a manager cancels a manual order |
+| Any but shipped | Cancelled | The marketplace confirms the whole order cancelled; anyone in the warehouse or a manager cancels a manual order ([18.1](#18-manual-orders)); or a manager cancels an order gone from the marketplace |
 | Open | Picking | A picker starts it; refused while blocked or held |
 | Picking | Packed | Packing has every unit still to ship |
 | Picking, packed | Open | A person puts it back, or the marketplace changed it (section 13) |
@@ -349,7 +349,7 @@ ADR-009 decides what is kept and for how long. Orders hands the buyer fields to 
 
 1. **The seller:** problem orders at the top of the order list; the cancellation list; each order's holds with decide-by; short and waiting orders with their decision; shipped-outside orders in the daily digest.
 2. **The warehouse:** the picking list by leave-by, red stops on changed orders, and Home's cut-offs with the orders that will miss them.
-3. **The operator:** import problems, unexpected status changes, unknown states, nightly status differences, and dispatch notices not accepted. The order watermark more than 60 minutes behind pages per marketplace ([ADR-008 SPEC 16](../../inventory-sync/spec/#16-what-the-seller-and-the-operator-see)). Procedure: [Order ingestion stalled](../../runbooks/order-ingestion-stalled/).
+3. **The operator:** import problems, unexpected status changes, unknown states, nightly status differences, and dispatch notices not accepted. The order watermark behind by more than its marketplace's backup-read interval plus 15 minutes ([ADR-004 SPEC 9](../../channel-connectors/spec/)) pages per marketplace ([ADR-008 SPEC 16](../../inventory-sync/spec/#16-what-the-seller-and-the-operator-see)). Procedure: [Order ingestion stalled](../../runbooks/order-ingestion-stalled/).
 
 ## 23. Storage
 

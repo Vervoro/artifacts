@@ -186,7 +186,7 @@ Procedure: [Work a failed payment](../../runbooks/work-a-failed-payment/).
 ## 16. Cancellation, export, erasure and refunds
 
 1. **Cancelling** is the Owner's step on Vervoro's billing screen. It shows each live connection's stop choice for confirmation, then ends the subscription at the end of the paid period. Until then the company is active, and the cancellation can be taken back.
-2. **Export** runs in every state until erasure, made only by an Owner or Admin ([ADR-001 SPEC 10](../../database-architecture/spec/#export), buyer data per [ADR-009 SPEC 12](../../buyer-data/spec/#12-exports)).
+2. **Export** runs in every state until erasure: with buyer data only by an Owner or Admin ([ADR-009 SPEC 12](../../buyer-data/spec/#12-exports)), otherwise by the roles in [ADR-010 SPEC 4](../../users-and-access/spec/#4-who-may-do-what) ([ADR-001 SPEC 10](../../database-architecture/spec/#export), buyer data per [ADR-009 SPEC 12](../../buyer-data/spec/#12-exports)).
 3. **Erasure** runs 30 days after closing with ADR-001's slice operation. A seller may ask sooner; it then runs after a confirmation and once every stop choice has been carried out.
 4. **Refunds.** Part periods are not refunded. A charge made by Vervoro's mistake is refunded or credited by credit note at Stripe. A Bacs refund is made only after the original payment settled, and the seller is told first, so their bank does not also pay them back under the Direct Debit Guarantee. Procedure: [Refund a seller](../../runbooks/refund-a-seller/).
 

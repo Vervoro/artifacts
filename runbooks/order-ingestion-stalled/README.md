@@ -4,7 +4,7 @@
 | --- | --- |
 | **Built** | At launch |
 | **Record** | [ADR-007](../../order-ingestion/), rules in [SPEC 2](../../order-ingestion/spec/#2-how-an-order-comes-in) and [SPEC 9](../../order-ingestion/spec/#9-import-problems); the completeness check in [ADR-004 SPEC 9](../../channel-connectors/spec/#9-the-completeness-check) |
-| **Who runs it** | The operator, when the order watermark of a marketplace's accounts is more than 60 minutes behind ([ADR-008 SPEC 16](../../inventory-sync/spec/#16-what-the-seller-and-the-operator-see)) |
+| **Who runs it** | The operator, when the order watermark of a marketplace's accounts is behind by more than its backup-read interval plus 15 minutes ([ADR-008 SPEC 16](../../inventory-sync/spec/#16-what-the-seller-and-the-operator-see)) |
 | **Role or credential** | The operator console |
 
 While the watermark is behind, raises on those accounts wait and orders no notice brought are not reserved. Decreases still go. The watermark moves only after a complete window, so the task is to find what keeps the window from completing.

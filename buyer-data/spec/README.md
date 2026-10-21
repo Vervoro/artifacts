@@ -14,6 +14,7 @@ The rules to build ADR-009 from: the Buyer data module, core and always on, need
 | Later part | Trigger | Rules |
 | --- | --- | --- |
 | Shopify: level 2 protected customer data, the three privacy webhooks, deletion after uninstall | The Shopify connector is built ([ADR-004.3](../../shopify-connector/), owner ruling, 21 October 2026) | [10](#10-buyers-requests), [16.3](#163-shopify) |
+| Label files: a label bought through Vervoro, kept encrypted and anonymised with the order | Shipping labels in Vervoro ([ADR-000 SPEC 4.7](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules), owner ruling, 22 October 2026); at launch the seller buys labels on the marketplace | [1](#1-who-does-what), [4](#4-what-is-kept), [6](#6-encryption-and-keys) |
 | Amazon's tax invoicing role | A later record on uploading invoices to Amazon ([ADR-011](../../invoicing-and-vat/)) | [16.1](#161-amazon) |
 
 ## 1. Who does what

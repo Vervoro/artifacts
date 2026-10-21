@@ -90,10 +90,10 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2 id="steps">Steps</h2>
 <ol>
 <li>Open the check&#39;s report. It names the company, the rule that failed (balances, reserved, gaps, a closed line, documents) and the products, batches and spots.</li>
-<li>Tell the seller&#39;s managers, in the app, that raises are held on those products while the operator checks. Nothing else changes for them.</li>
+<li>The company&#39;s managers are alerted automatically (<a href="../../stock-ledger/spec/#14-the-nightly-check-and-checkpoints">ADR-006 SPEC 14</a>); nothing else changes for them.</li>
 <li><strong>A gap in the sequence, or entries that contradict each other:</strong> the ledger itself is damaged. Stop here and follow <a href="../restore-a-company-full-rewind/">Restore a company: full rewind</a>.</li>
 <li><strong>A document rule (shipped lines or returns against their entries):</strong> find the order line or return in the activity view. If an entry is missing, the seller&#39;s manager records it through the normal command (a count, a return), never the operator.</li>
-<li><strong>A stored number differs from its entries:</strong> write the cause in the platform security log. Then run the rebuild script through the owner role. It recomputes the named balances, positions and reservations from the latest checkpoint plus the entries after it, and writes nothing else.</li>
+<li><strong>A stored number differs from its entries:</strong> write the cause in the platform security log. Then run the rebuild command, a recorded repair that runs as a system actor (<a href="../../stock-ledger/spec/#14-the-nightly-check-and-checkpoints">ADR-006 SPEC 14</a>), never the owner role. It recomputes the named balances, positions and reservations from the latest checkpoint plus the entries after it, and writes nothing else.</li>
 <li>Record the repair in the company&#39;s activity view: which numbers changed, from what, to what, and why.</li>
 <li>Run the check again for that company. When it passes, Stock sync clears the hold, and the held raises wait for the next order read.</li>
 <li>Open a defect for the cause, with the report attached.</li>

@@ -175,7 +175,7 @@ Listings and how they are read and matched are [ADR-005](../../catalogue-sync/).
 | Fulfilled by | `seller` or `marketplace` (Amazon FBA and similar) |
 
 1. **One listing, one product;** a product may have any number of listings. A set of different products is a bundle.
-2. **The listing's figure** is the product's sellable divided by units per sale, rounded down ([ADR-008](../../inventory-sync/)).
+2. **The listing's figure** is worked out by Stock sync ([ADR-008 SPEC 1](../../inventory-sync/spec/#1-the-figure-per-listing)).
 3. **One sale reserves** units per sale of the product; for a bundle, that many sets of its components.
 4. **A listing that is not linked** reserves nothing; its orders are imported and flagged ([ADR-007](../../order-ingestion/spec/#14-orders-for-unlinked-listings)). A listing marked not stock is section 1.1.
 
@@ -183,7 +183,7 @@ Listings and how they are read and matched are [ADR-005](../../catalogue-sync/).
 
 1. **Shipped by Amazon:** a listing linked with `fulfilled_by = marketplace`. Vervoro reserves nothing and sends it no figure; its orders are for reports.
 2. **Amazon's unit label** (FNSKU) identifies the listing, so it is stored on the listing. Scanning it finds the product through the link.
-3. **Sending stock to Amazon** is a transfer, not a sale ([ADR-006](../../stock-ledger/)), and uses the product's box sizes, weight, sizes and dates.
+3. *Later, with FBA shipments ([ADR-000 SPEC 4.7](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)):* **sending stock to Amazon** is a transfer, not a sale ([ADR-006](../../stock-ledger/)), and uses the product's box sizes, weight, sizes and dates.
 4. *Later:* **Amazon Vendor** catalogue items link like listings with `fulfilled_by = seller`; units per sale is the base units in one item of Amazon's purchase order; an unlinked item stops its purchase-order line. Carton data comes from box sizes. The price Amazon pays is never on the product.
 
 ## 9. Status

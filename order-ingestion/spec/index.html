@@ -320,7 +320,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td>Any but shipped</td>
 <td>Cancelled</td>
-<td>The marketplace confirms the whole order cancelled, or a manager cancels a manual order</td>
+<td>The marketplace confirms the whole order cancelled; anyone in the warehouse or a manager cancels a manual order (<a href="#18-manual-orders">18.1</a>); or a manager cancels an order gone from the marketplace</td>
 </tr>
 <tr>
 <td>Open</td>
@@ -809,7 +809,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ol>
 <li><strong>The seller:</strong> problem orders at the top of the order list; the cancellation list; each order&#39;s holds with decide-by; short and waiting orders with their decision; shipped-outside orders in the daily digest.</li>
 <li><strong>The warehouse:</strong> the picking list by leave-by, red stops on changed orders, and Home&#39;s cut-offs with the orders that will miss them.</li>
-<li><strong>The operator:</strong> import problems, unexpected status changes, unknown states, nightly status differences, and dispatch notices not accepted. The order watermark more than 60 minutes behind pages per marketplace (<a href="../../inventory-sync/spec/#16-what-the-seller-and-the-operator-see">ADR-008 SPEC 16</a>). Procedure: <a href="../../runbooks/order-ingestion-stalled/">Order ingestion stalled</a>.</li>
+<li><strong>The operator:</strong> import problems, unexpected status changes, unknown states, nightly status differences, and dispatch notices not accepted. The order watermark behind by more than its marketplace&#39;s backup-read interval plus 15 minutes (<a href="../../channel-connectors/spec/">ADR-004 SPEC 9</a>) pages per marketplace (<a href="../../inventory-sync/spec/#16-what-the-seller-and-the-operator-see">ADR-008 SPEC 16</a>). Procedure: <a href="../../runbooks/order-ingestion-stalled/">Order ingestion stalled</a>.</li>
 </ol>
 <h2 id="23-storage">23. Storage</h2>
 <p>Orders&#39; tables carry the <code>sales_</code> prefix, are declared through <code>tenantTable()</code> and queried through the typed query builder; modules write no SQL (<a href="../../database-architecture/spec/#5-declaring-tables">ADR-001 SPEC 5</a>). Schema changes expand, then contract (<a href="../../system-architecture/spec/#11-deploying">ADR-000 SPEC 11</a>).</p>

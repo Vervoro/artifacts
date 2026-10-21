@@ -33,7 +33,7 @@ Buyers and suppliers sign in to nothing. Every login belongs to one person, iden
 ## 2. Logins and member rows
 
 1. **The login** is a Better Auth user in control's auth schema and belongs to [ADR-013](../../sign-in/spec/#2-the-login-and-its-data). Its id is the only thing this record takes from it: Better Auth establishes who the person is; memberships, roles, scope, permissions and grants are decided here. Nothing here reads Better Auth's tables.
-2. **The membership** (login id, company) is in control, written by the app's runtime role. It holds the login id with no foreign key into the auth schema, so a Better Auth upgrade never touches it.
+2. **The membership** (login id, company) is in control, written by the app's runtime role. It is `paused` after a reset in another company until this company's Owner or Admin confirms it ([ADR-013 SPEC 6](../../sign-in/spec/), owner ruling, 22 October 2026). It holds the login id with no foreign key into the auth schema, so a Better Auth upgrade never touches it.
 3. **The member row** is in the company's own users table, in its cell: email address, name, role, warehouse scope, status (`invited`, `active`, `removed`) and when each changed. It alone decides what the person may do in that company, and it is exported, restored and erased with the company.
 4. **Switching company** is a menu. The session belongs to the login, and every request names its company, so two tabs can work in two companies. Switching asks for no new sign-in; account changes still ask for a fresh check ([ADR-013 SPEC 5](../../sign-in/spec/#5-sessions)).
 5. **Email to a person** from the app reads their address from any company where they are active. Sign-in mail (address proofs, resets, sign-in notices) is the sign-in Worker's, to the login's own address ([ADR-013 SPEC 8](../../sign-in/spec/#8-the-sign-in-worker)).
@@ -95,7 +95,7 @@ A module declares each action in its manifest ([ADR-000 SPEC 1](../../system-arc
 | Block or unblock a lot | Yes | Yes | Yes | No | No | No | [ADR-006](../../stock-ledger/) |
 | **Orders** | | | | | | | |
 | Read orders (buyer data as ADR-009 decides) | Yes | Yes | Yes | Yes | Yes | Yes | [ADR-009](../../buyer-data/spec/#7-who-can-see-it) |
-| Pick, pack (and take another eligible batch, recorded), print labels, confirm a shipment | Yes | Yes | Yes | Yes | No | No | [ADR-006](../../stock-ledger/), [ADR-007](../../order-ingestion/) |
+| Pick, pack (and take another eligible batch, recorded), print labels (*Later*, with shipping labels; owner ruling, 22 October 2026), confirm a shipment | Yes | Yes | Yes | Yes | No | No | [ADR-006](../../stock-ledger/), [ADR-007](../../order-ingestion/) |
 | Place or clear a floor hold (including an address check on an order being picked or packed) | Yes | Yes | Yes | Yes | No | No | [ADR-007](../../order-ingestion/spec/#11-holds) |
 | Place or clear an office hold; release an Amazon buyer's cancellation request to ship anyway | Yes | Yes | Yes | No | No | No | [ADR-007](../../order-ingestion/spec/#11-holds) |
 | Create, confirm, edit or cancel a phone or email order (a warehouse user confirms with a payment reference, or it is held for a manager; their copies of earlier orders carry no buyer details) | Yes | Yes | Yes | Yes | No | No | [ADR-007](../../order-ingestion/spec/#18-manual-orders) |
@@ -126,7 +126,7 @@ While a company is restricted or closed, [ADR-012 SPEC 8](../../billing-and-plan
 ## 5. Rules for every action
 
 1. **The server decides.** The client mounts only what the person may use, but every request is checked again on the server, in the transaction that does the work. The member row is that transaction's first read.
-2. **A grant needs every condition:** the module is on for the company, the role holds the action, the scope covers the warehouse, and the person is `active`.
+2. **A grant needs every condition:** the module is on for the company, the role holds the action, the scope covers the warehouse, the person is `active`, and the membership in control is not `paused`.
 3. **Every refusal carries its reason** ("needs a manager", "outside your warehouses"), so the screen can show it.
 4. **A role or scope change applies to the next request,** because it is read in the request's own transaction.
 5. **Account changes need a fresh check** ([ADR-013 SPEC 5](../../sign-in/spec/#5-sessions)): inviting, removing or changing anyone's role or scope; resetting anyone's sign-in; connecting, disconnecting, going live on or switching off a marketplace account; an export with buyer data; switching on buyer data for an operator grant; closing the company or changing an Owner; the billing steps [ADR-012 SPEC 19](../../billing-and-plans/spec/#19-who-may-manage-billing) names. Picking, packing, printing and counting never ask.
@@ -167,7 +167,7 @@ All of it happens within minutes, inside ADR-009's 24 hours.
 
 ## 7. Operator access to a company
 
-**Repairs need no grant.** They are recorded commands that run as system actors and show no company data: rebuilding a balance from the ledger ([ADR-006](../../stock-ledger/)), re-importing an order, and [ADR-001's](../../database-architecture/spec/#10-company-lifecycle) export, move and restore by the lifecycle tool. Each writes an `audit_log` entry naming the operator and the reason. Erasure is never an operator command; it runs on the seller's privacy request ([ADR-009](../../buyer-data/)).
+**Repairs need no grant.** They are recorded commands that run as system actors and show no company data: rebuilding a balance from the ledger ([ADR-006](../../stock-ledger/)), re-importing an order, and [ADR-001's](../../database-architecture/spec/#10-company-lifecycle) export, move and restore by the lifecycle tool. Each writes an `audit_log` entry naming the operator and the reason. Erasure is never an operator command; it runs on the seller's privacy request ([ADR-009](../../buyer-data/)) or 30 days after the company closes ([ADR-012 SPEC 16](../../billing-and-plans/spec/); owner ruling, 22 October 2026).
 
 **A grant is for looking**, at a company's screens or, at the seller's request, at old records in a restore branch ([ADR-001's look-back](../../runbooks/restore-a-company-look-back/)):
 

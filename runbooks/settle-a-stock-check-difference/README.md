@@ -12,10 +12,10 @@ The ledger is the truth. A difference means a balance, a position or a reservati
 ## Steps
 
 1. Open the check's report. It names the company, the rule that failed (balances, reserved, gaps, a closed line, documents) and the products, batches and spots.
-2. Tell the seller's managers, in the app, that raises are held on those products while the operator checks. Nothing else changes for them.
+2. The company's managers are alerted automatically ([ADR-006 SPEC 14](../../stock-ledger/spec/#14-the-nightly-check-and-checkpoints)); nothing else changes for them.
 3. **A gap in the sequence, or entries that contradict each other:** the ledger itself is damaged. Stop here and follow [Restore a company: full rewind](../restore-a-company-full-rewind/).
 4. **A document rule (shipped lines or returns against their entries):** find the order line or return in the activity view. If an entry is missing, the seller's manager records it through the normal command (a count, a return), never the operator.
-5. **A stored number differs from its entries:** write the cause in the platform security log. Then run the rebuild script through the owner role. It recomputes the named balances, positions and reservations from the latest checkpoint plus the entries after it, and writes nothing else.
+5. **A stored number differs from its entries:** write the cause in the platform security log. Then run the rebuild command, a recorded repair that runs as a system actor ([ADR-006 SPEC 14](../../stock-ledger/spec/#14-the-nightly-check-and-checkpoints)), never the owner role. It recomputes the named balances, positions and reservations from the latest checkpoint plus the entries after it, and writes nothing else.
 6. Record the repair in the company's activity view: which numbers changed, from what, to what, and why.
 7. Run the check again for that company. When it passes, Stock sync clears the hold, and the held raises wait for the next order read.
 8. Open a defect for the cause, with the report attached.

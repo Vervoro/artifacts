@@ -77,7 +77,7 @@ Extension points (several providers of one port, chosen per key, such as connect
 | **Channels** (ADR-004's host) | Switchable | ADR-004 | Connections, sealed credentials, modes, rate budgets, notices, egress records | Listings, Orders | Channels |
 | **Connectors** (one per marketplace) | Switchable | ADR-004.1–004.3 | Nothing: translators, contributed to Channels | Channels | — |
 | **Stock sync** | Switchable | ADR-008 | The figure each listing should show, what each marketplace was last told and confirmed, read-backs, held raises | Inventory, Listings, Orders, Channels | Channels; a product's channels |
-| **Invoicing** | Switchable | ADR-011 | Invoices, VAT records, invoiced customers | Orders | Invoices |
+| **Invoicing** | Switchable | ADR-011 | Invoices, VAT records, invoiced customers | Orders, Products, Buyer data (owner ruling, 22 October 2026) | Invoices |
 
 2. **Calls point toward the core.** A core module calls only other core modules and the kernel. Any other module calls the core and the modules in its needs. The core learns of other modules' work only through events. The build refuses a cycle in needs: when a module must react to a module that needs it, it reacts by event (a new link reaches Stock sync as an event from Listings).
 3. **Imports come in through the core.** Channels fetches orders and listings through the connectors and hands them to Orders' and Listings' ports; neither core module knows a marketplace exists.
@@ -136,7 +136,7 @@ This section owns the egress gate; other records link here. The gate has two hal
 An **egress effect** is a call that changes something on a marketplace or at a supplier: figures, dispatch, confirmations, messages. Notice subscriptions made by a connector's connect and disconnect hooks are set-up calls, not egress effects: they run in shadow mode too, through the host's HTTP and rate budgets ([ADR-004](../../channel-connectors/spec/#8-notices-in)).
 
 1. An effect is recorded inside the transaction with an idempotency key and sent only after commit. A repeat with the same key cannot send twice.
-2. For every send the gate reads the account's mode from the database, never from a cache. Only `live` sends; `shadow` records what it would have sent. The modes and the stop choice are [ADR-004](../../channel-connectors/spec/#11-shadow-mode-and-launch-gates).
+2. For every send the gate reads the account's mode from the database, never from a cache. `live` sends; a `decrease-only` account (a closed company, [ADR-012](../../billing-and-plans/)) sends only the decreases [ADR-008 SPEC 10.3](../../inventory-sync/spec/#10-listing-modes-and-stopping) allows; `shadow` and every other mode record what they would have sent (owner ruling, 22 October 2026). The modes and the stop choice are [ADR-004](../../channel-connectors/spec/#11-shadow-mode-and-launch-gates).
 3. Channels opens the account's credentials, takes a token from its rate budget and calls the connector. No connector, handler or screen ever sees an opened credential.
 4. Every answer becomes one outcome: `applied`, `accepted` (awaiting processing), `throttled`, `compare_mismatch`, `rejected` or `unknown`. A timeout is `unknown`, and is settled before anything else is sent to that listing ([ADR-004](../../channel-connectors/spec/#5-retries-and-outcomes)).
 5. Work is claimed with leases, never open-ended locks. A crash costs one lease period, and a result is written only if the claim is still its own.

@@ -209,7 +209,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Membership</strong></td>
-<td>A login&#39;s place in one company, with one role and an optional warehouse scope. One person can be a member of several companies</td>
+<td>A login&#39;s place in one company: the (login, company) pair in control. The person&#39;s role, warehouse scope and status are on their member row in the company&#39;s cell, which alone decides what they may do (ADR-010). One person can be a member of several companies</td>
 </tr>
 <tr>
 <td><strong>Role</strong></td>
@@ -319,7 +319,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Unknown</strong></td>
-<td>An outbound write with no clear answer, a timeout included. It is settled before anything else is sent to that listing: read back by default, or, where the connector&#39;s record names the exception, the same absolute figure resent (ADR-004)</td>
+<td>An outbound write with no clear answer, a timeout included. It is settled before anything else is sent to that listing: read back by default, or, where the connector&#39;s record names the exception, the absolute figure Vervoro wants now resent (ADR-004)</td>
 </tr>
 <tr>
 <td><strong>Order watermark</strong></td>

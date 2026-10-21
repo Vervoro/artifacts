@@ -171,7 +171,7 @@ The link's fields and what a sale reserves are [ADR-003 SPEC 8](../../product-mo
 
 ### 11.6 Unlinking
 
-Closing a link without a new one, by a person, by retiring the product, or by an undo.
+Closing a link without a new one, by a person or by an undo. A product with linked listings cannot be retired ([ADR-003 SPEC 9.2](../../product-model/spec/#9-status)).
 
 1. **Reserved orders keep their stock** ([ADR-006 SPEC 6.6](../../stock-ledger/spec/#6-what-a-line-reserves)); the screen says how many.
 2. **The listing is sent 0 by default.** The screen offers "Set to 0 and unlink", the default, or "Leave the marketplace's figure", showing the figure. The choice is recorded on the closed link, and Stock sync carries it out as a stop ([ADR-008 SPEC 10.2](../../inventory-sync/spec/#10-listing-modes-and-stopping)).
