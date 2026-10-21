@@ -60,5 +60,4 @@
 - **Lost notices.** The launch gate figures in [ADR-004 SPEC 11](../channel-connectors/spec/#11-shadow-mode-and-launch-gates) are proposals and need the owner's numbers.
 - **The order allowance also carries every order fetch,** so hundreds of sellers, or a shortened backup read, need the Growth Check too.
 - **Topics and scopes** are confirmed with `getTopics` on the production keyset before any seller connects.
-- **Unknown Inventory API writes** are read back; the resend exception covers the Trading API only.
 - **Recorded replies,** including a stable order across pages, are a pre-launch task.
