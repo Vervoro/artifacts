@@ -361,7 +361,7 @@ Orders' tables carry the `sales_` prefix, are declared through `tenantTable()` a
 | `sales_order_key` | Company, account, marketplace order id → order id and month; unpartitioned, unique, read first |
 | `sales_order_line` | The line fields of section 5, partitioned with its order; a charge line has no product, link or reservation; no stored stock state |
 | `sales_order_hold` | Each hold placed and cleared: reason, kind, note, by whom, decide-by, when; append-only; partitioned by its order's month, archived with it ([ADR-002](../../data-retention/spec/#2-the-retention-schedule)) |
-| `sales_order_cancellation` | Each buyer request and change: lines, quantities, marketplace id, deadline, state, times; append-only |
+| `sales_order_cancellation` | Each buyer request and change: lines, quantities, marketplace id, deadline, state, times; append-only; partitioned by its order's month, archived with it ([ADR-002](../../data-retention/spec/#2-the-retention-schedule)) |
 | `sales_order_refund` | Amount, currency, lines, time |
 | `sales_order_problem` | Section 9; no order body and no buyer data |
 | `sales_cutoff` | Each warehouse's collection cut-off and dated exceptions, by warehouse id |

@@ -28,7 +28,7 @@ At launch only the deletions in [section 2](#2-the-retention-schedule) run (`eve
 | Data | In the cell | Archive | Then |
 | --- | --- | --- | --- |
 | Products, listings, stock levels, open orders and purchase orders, settings, users | Always | Never | Deleted with the company |
-| Closed orders, their lines and holds | 24 months | Until 7 years after the month ends | Deleted |
+| Closed orders, their lines, holds and cancellations | 24 months | Until 7 years after the month ends | Deleted |
 | Invoices, credit notes, VAT records, export evidence and payments ([ADR-011](../../invoicing-and-vat/)) | 24 months | Until 7 years after the month ends | Deleted |
 | Stock ledger entries | 24 months, then a checkpoint | Until 7 years after the month ends | Deleted |
 | Batches with no stock left | 24 months after the last movement | Until 7 years after the month ends | Deleted |

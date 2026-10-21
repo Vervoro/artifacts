@@ -19,7 +19,7 @@
 
 ## Decision
 
-1. **History stays in the cell for 24 months:** closed orders with their lines and holds, invoices, credit notes, VAT records, export evidence, payments, stock ledger entries, and batches with no stock left (counted from their last movement). That covers year-on-year reports.
+1. **History stays in the cell for 24 months:** closed orders with their lines, holds and cancellations, invoices, credit notes, VAT records, export evidence, payments, stock ledger entries, and batches with no stock left (counted from their last movement). That covers year-on-year reports.
 2. **Current state is never archived:** products, listings, stock levels, open orders, open purchase orders, settings and users. It is deleted only with the company.
 3. **Older months move to an archive, then leave the cell.** The archive is object storage: compressed files, one per table per company per month, encrypted with the company's key. A month is archived for the whole cell at once, because partitions are shared. It leaves the cell only after every company's files are verified against it ([SPEC 3](spec/#3-archiving-a-month)).
 4. **Stock still proves itself after its history leaves.** Before a ledger month is archived, the archiver writes a checkpoint (an opening balance) so the nightly check sums from it ([ADR-006 SPEC 14](../stock-ledger/spec/#14-the-nightly-check-and-checkpoints)).

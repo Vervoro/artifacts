@@ -838,7 +838,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><code>sales_order_cancellation</code></td>
-<td>Each buyer request and change: lines, quantities, marketplace id, deadline, state, times; append-only</td>
+<td>Each buyer request and change: lines, quantities, marketplace id, deadline, state, times; append-only; partitioned by its order&#39;s month, archived with it (<a href="../../data-retention/spec/#2-the-retention-schedule">ADR-002</a>)</td>
 </tr>
 <tr>
 <td><code>sales_order_refund</code></td>
