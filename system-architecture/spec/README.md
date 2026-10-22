@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-000: System architecture](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-000-system-architecture) |
-| **Date** | 20–21 October 2026; sign-in on Better Auth ([ADR-013](../../sign-in/)) 21 October 2026 |
+| **Date** | 20–21 October 2026; sign-in on Better Auth ([ADR-013](../../sign-in/)) 21 October 2026; amended by owner rulings: a tap's sending, done and not sure states (12.8) and the rollback window (11.2), 21 October 2026; decrease-only accounts through the gate (7.2) and Invoicing's needs (4), 22 October 2026 |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-000 from. Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins. Words are defined in the [map and glossary](../../guide/).

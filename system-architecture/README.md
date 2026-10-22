@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Status** | Accepted, 21 October 2026, after the developer's review and the owner's sign-off |
-| **Date** | 17 October 2026; revised 18 October 2026; split into ADR, SPEC and RUNBOOK, with the module map, 20–21 October 2026; hosting reviewed 21 October 2026; sign-in on Better Auth ([ADR-013](../sign-in/)) 21 October 2026; convergence pass (one main deployable plus the sign-in Worker, layered testing, expand then contract) 21 October 2026 |
+| **Date** | 17 October 2026; revised 18 October 2026; split into ADR, SPEC and RUNBOOK, with the module map, 20–21 October 2026; hosting reviewed 21 October 2026; sign-in on Better Auth ([ADR-013](../sign-in/)) 21 October 2026; convergence pass (one main deployable plus the sign-in Worker, layered testing, expand then contract) 21 October 2026; amended by owner rulings: a tap's sending, done and not sure states and the rollback window, 21 October 2026; decrease-only accounts send decreases through the egress gate and Invoicing's needs, 22 October 2026 |
 | **Scope** | The overall shape of the system and the rules every module follows |
 | **Related** | [ADR-001: Multi-tenant database architecture](../database-architecture/), [ADR-002: Data retention and archiving](../data-retention/) |
 | **SPEC** | [The rules to build from, and how to check them](spec/) |

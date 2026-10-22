@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-001: Multi-tenant database architecture](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-001-multi-tenant-database-architecture) |
-| **Date** | 20 October 2026; hosting reviewed 21 October 2026; sign-in data aligned with Better Auth ([ADR-013](../../sign-in/)) 21 October 2026 |
+| **Date** | 20 October 2026; hosting reviewed 21 October 2026; sign-in data aligned with Better Auth ([ADR-013](../../sign-in/)) 21 October 2026; amended by owner rulings: control unreachable (7) and the sign-in role's rights (3), 21 October 2026; one Neon project per database (7, 8), Neon's internal roles and the staging rule (3), append-only and partitioned tables declared per table (5), the audit over every project, staging's audit and an audit failure on control (11), 22 October 2026 |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-001 from. Each section is a rule set, a table or a list of states. The record decides; this page says exactly how. Where this page and the ADR disagree, the ADR wins and this page is fixed. The words used are defined in the [map and glossary](../../guide/).

@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Status** | Accepted, 21 October 2026, after the developer's review and the owner's sign-off |
-| **Date** | 17 October 2026; revised 18 October 2026; split into ADR, SPEC and RUNBOOK 20 October 2026; hosting reviewed 21 October 2026; sign-in data aligned with Better Auth ([ADR-013](../sign-in/)) 21 October 2026; isolation tiers named 21 October 2026 |
+| **Date** | 17 October 2026; revised 18 October 2026; split into ADR, SPEC and RUNBOOK 20 October 2026; hosting reviewed 21 October 2026; sign-in data aligned with Better Auth ([ADR-013](../sign-in/)) 21 October 2026; isolation tiers named 21 October 2026; amended by owner rulings: control unreachable and the sign-in role's rights, 21 October 2026; one Neon project per database, Neon's internal roles, the staging rule, the audit over every project, append-only and partitioned tables declared per table, and an audit failure on control, 22 October 2026 |
 | **Scope** | How Vervoro stores, isolates, routes and moves each company's data |
 | **Builds on** | [ADR-000: System architecture](../system-architecture/) |
 | **SPEC** | [The rules to build from, and how to check them](spec/) |
