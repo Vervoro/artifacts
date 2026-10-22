@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>21 October 2026; Better Auth replaces the in-house engine, owner approval of 21 October 2026; owner rulings on sessions, email and the passkey fallback the same day; amended by owner rulings: the sign-in mail provider chosen by configuration, sign-up with a password first, a forced change exempt from the 1-day minimum, an email-first sign-in page, its passkey offers worded to what a browser can tell, signing out other devices, the privacy notice link, and the export and name calls, 22 October 2026</td>
+<td>21 October 2026; Better Auth replaces the in-house engine, owner approval of 21 October 2026; owner rulings on sessions, email and the passkey fallback the same day; amended by owner rulings: the sign-in mail provider chosen by configuration, sign-up with a password first, a forced change exempt from the 1-day minimum, an email-first sign-in page, its passkey offers worded to what a browser can tell, signing out other devices, the privacy notice link, the export and name calls, the freeze and the 365-day rule clarified, 22 October 2026</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -300,7 +300,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td>Changed at least every 365 days</td>
 <td>Amazon 1.4.1</td>
-<td>At sign-in, a password older than 365 days makes the session setup-only until it is changed</td>
+<td>At a password sign-in, a password older than 365 days makes the session setup-only until it is changed; a passkey sign-in is not held by it (Amazon&#39;s rule is on passwords used; confirm with Amazon with the passkey question in <a href="#3-sign-in-methods">section 3</a>; owner ruling, 22 October 2026)</td>
 </tr>
 <tr>
 <td>None of the last 10 reused</td>
@@ -359,7 +359,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>One session model:</strong> Better Auth&#39;s session row. Vervoro keeps no session table of its own.</li>
 <li><strong>Effective end</strong> = the session&#39;s start + 24 hours, for everyone. Better Auth&#39;s own settings do it: <code>expiresIn</code> 24 hours and <code>disableSessionRefresh</code>, so no hook and no second limit exist. The validation call checks start + 24 hours again and refuses past it, as a backstop.</li>
 <li><strong>The cookie</strong> holds Better Auth&#39;s signed token only: <code>Secure</code>, <code>HttpOnly</code>, <code>SameSite=Strict</code>, host-only (no <code>Domain</code>), on the app&#39;s own address; a <code>__Host-</code> name if Better Auth&#39;s cookie settings allow it. No session, role or buyer data in the browser&#39;s storage (<a href="../../buyer-data/spec/#5-where-it-lives">ADR-009 SPEC 5</a>).</li>
-<li><strong>Validation over the binding.</strong> The app passes the request&#39;s cookie to the sign-in Worker&#39;s <code>session</code> call (<a href="#8-the-sign-in-worker">section 8</a>), which asks Better Auth for the session and applies Vervoro&#39;s checks: the effective end, a freeze, and the setup-only states (a password without a confirmed authenticator, a backup code just used, a password past 365 days or forced to change). It answers the login id, the session id, whether it is an operator, when it started and when it ends, and full or setup-only (with the reason, for the sign-in pages), or nothing. The app treats setup-only as no session for everything but sending the person to the sign-in pages.</li>
+<li><strong>Validation over the binding.</strong> The app passes the request&#39;s cookie to the sign-in Worker&#39;s <code>session</code> call (<a href="#8-the-sign-in-worker">section 8</a>), which asks Better Auth for the session and applies Vervoro&#39;s checks: the effective end and the setup-only states (a password without a confirmed authenticator, a backup code just used, a password past 365 days or forced to change). A freeze stops new sessions only (<a href="#11-incident-commands">section 11</a>); it does not end live ones (owner ruling, 22 October 2026). It answers the login id, the session id, whether it is an operator, when it started and when it ends, and full or setup-only (with the reason, for the sign-in pages), or nothing. The app treats setup-only as no session for everything but sending the person to the sign-in pages.</li>
 <li><strong>Every request reads the session; nothing is written per request.</strong> Revoking takes effect on the next request. <a href="../../runbooks/restore-a-company-full-rewind/">ADR-001&#39;s restore</a> and ADR-009&#39;s containment use the same revocation.</li>
 <li><strong>The fresh check</strong> is a session started within the last 5 minutes, which only a full sign-in makes. The app reads the start time from the <code>session</code> answer; the sign-in Worker checks it again itself before carrying out any reset or method change, so the app cannot claim one. Which changes need it is <a href="../../users-and-access/spec/#5-rules-for-every-action">ADR-010 SPEC 5</a>.</li>
 <li><strong>Before a session ends,</strong> the app asks for a full sign-in, which starts a new session; the old one is never extended. With a passkey it happens in place; a password sign-in returns to the same screen, and scans already on the open screen survive.</li>
