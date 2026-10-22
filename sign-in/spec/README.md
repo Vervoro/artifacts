@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-013: Sign-in](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-013-sign-in) |
-| **Date** | 21 October 2026; Better Auth replaces the in-house engine, owner approval of 21 October 2026; owner rulings on sessions, email and the passkey fallback the same day; amended by owner rulings: the sign-in mail provider chosen by configuration, sign-up with a password first, a forced change exempt from the 1-day minimum, an email-first sign-in page, its passkey offers worded to what a browser can tell, signing out other devices, the privacy notice link, the export and name calls, the freeze and the 365-day rule clarified, and an unknown passkey signalled to the device, 22 October 2026; the passkey prompt opened only on request, 23 October 2026 |
+| **Date** | 21 October 2026; Better Auth replaces the in-house engine, owner approval of 21 October 2026; owner rulings on sessions, email and the passkey fallback the same day; amended by owner rulings: the sign-in mail provider chosen by configuration, sign-up with a password first, a forced change exempt from the 1-day minimum, an email-first sign-in page, its passkey offers worded to what a browser can tell, signing out other devices, the privacy notice link, the export and name calls, the freeze and the 365-day rule clarified, and an unknown passkey signalled to the device, 22 October 2026; the passkey prompt opened only on request, and when sessions are deleted, 23 October 2026 |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-013 from. The record decides; this page says exactly how. Where this page and the ADR disagree, the ADR wins and this page is fixed. Who may do what once signed in is [ADR-010](../../users-and-access/spec/). The words used are defined in the [map and glossary](../../guide/).
@@ -59,7 +59,7 @@ Better Auth is exact-pinned with its plugins (the candidate is 1.7.12, the lates
 | Password hash | `auth.account` | Better Auth's own scrypt | The password is removed, or the login deleted |
 | Authenticator secret, backup codes | Two-factor table | Encrypted by Better Auth under its secret | The authenticator is removed |
 | Passkey public key, counter, device type | Passkey table | Better Auth's passkey check | The passkey is removed |
-| Session token, network address, browser | `auth.session` | The session; "recent sign-ins" on the security page; spotting odd sign-ins (Amazon 1.2.2) | 30 days after the session ends |
+| Session token, network address, browser | `auth.session` | The session; "recent sign-ins" on the security page; spotting odd sign-ins (Amazon 1.2.2) | 30 days after the session ends by time; a session signed out or revoked is deleted at once by Better Auth, and an ended one when its browser next comes back (its sign-in stays in the security log; owner ruling, 23 October 2026) |
 | Password history (hashes only) | `auth_policy` | Amazon's last-10 rule | Replaced by newer ones; the login is deleted |
 
 4. **A login with no membership is deleted after 30 days,** with its methods and sessions, through Better Auth's delete; the security log keeps only its id.
