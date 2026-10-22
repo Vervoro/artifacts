@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-013: Sign-in](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-013-sign-in) |
-| **Date** | 21 October 2026; Better Auth replaces the in-house engine, owner approval of 21 October 2026; owner rulings on sessions, email and the passkey fallback the same day; amended by owner rulings: the sign-in mail provider chosen by configuration, and sign-up with a password first, 22 October 2026 |
+| **Date** | 21 October 2026; Better Auth replaces the in-house engine, owner approval of 21 October 2026; owner rulings on sessions, email and the passkey fallback the same day; amended by owner rulings: the sign-in mail provider chosen by configuration, sign-up with a password first, and a forced change exempt from the 1-day minimum, 22 October 2026 |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-013 from. The record decides; this page says exactly how. Where this page and the ADR disagree, the ADR wins and this page is fixed. Who may do what once signed in is [ADR-010](../../users-and-access/spec/). The words used are defined in the [map and glossary](../../guide/).
@@ -99,7 +99,7 @@ A small Vervoro layer in Better Auth's `before` hooks on `/sign-up/email`, `/cha
 | At least 12 characters | Amazon 1.4.1 | Better Auth's `minPasswordLength` |
 | At least one upper-case letter, lower-case letter, number and symbol | Amazon 1.4.1 ("minimum requirements for each") | Policy hook |
 | No part of the person's name (words of 3 or more letters) or of the address before the @ | Amazon 1.4.1 | Policy hook, against `auth.user` |
-| At least 1 day since the last change | Amazon 1.4.1 | Policy hook on `/change-password`. A forgotten-password reset and a recovery are exempt (Vervoro's reading; confirm with Amazon) |
+| At least 1 day since the last change | Amazon 1.4.1 | Policy hook on `/change-password`. A forgotten-password reset, a recovery and a change forced by an incident command ([section 11](#11-incident-commands)) are exempt (Vervoro's reading; confirm with Amazon; owner ruling, 22 October 2026) |
 | Changed at least every 365 days | Amazon 1.4.1 | At sign-in, a password older than 365 days makes the session setup-only until it is changed |
 | None of the last 10 reused | Amazon 1.4.1 | Policy hook: the candidate is checked with Better Auth's own `password.verify` against the history a database trigger keeps (below) |
 | Not a known breached password | Vervoro (NIST advice Amazon allows) | Better Auth's breached-password plugin. It fails closed: if the lookup is down, the password cannot be set and a passkey still works |
