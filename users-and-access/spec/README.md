@@ -73,6 +73,7 @@ A module declares each action in its manifest ([ADR-000 SPEC 1](../../system-arc
 | Read the company's audit log | Yes | Yes | No | No | Yes | No | ADR-010 |
 | Handle a buyer's privacy request | Yes | Yes | No | No | No | No | [ADR-009](../../buyer-data/spec/#10-buyers-requests) |
 | Change the company's units (metric or imperial) | Yes | Yes | No | No | No | No | [ADR-003](../../product-model/spec/#15-units-of-measure) |
+| Switch a module on or off | Yes | Yes | No | No | No | No | [ADR-000 SPEC 3](../../system-architecture/spec/#3-assembly-per-company) (owner ruling, 22 October 2026) |
 | **Marketplaces and listings** | | | | | | | |
 | Connect or disconnect an account; switch a connector on or off | Yes | Yes | No | No | No | No | ADR-010; [ADR-004](../../channel-connectors/) |
 | Go live on an account | Yes | Yes | No | No | No | No | ADR-010 |
@@ -168,7 +169,7 @@ All of it happens within minutes, inside ADR-009's 24 hours.
 
 ## 7. Operator access to a company
 
-**Repairs need no grant.** They are recorded commands that run as system actors and show no company data: rebuilding a balance from the ledger ([ADR-006](../../stock-ledger/)), re-importing an order, and [ADR-001's](../../database-architecture/spec/#10-company-lifecycle) export, move and restore by the lifecycle tool. Each writes an `audit_log` entry naming the operator and the reason. Erasure is never an operator command; it runs on the seller's privacy request ([ADR-009](../../buyer-data/)) or 30 days after the company closes ([ADR-012 SPEC 16](../../billing-and-plans/spec/); owner ruling, 22 October 2026).
+**Repairs need no grant.** They are recorded commands that run as system actors and show no company data: rebuilding a balance from the ledger ([ADR-006](../../stock-ledger/)), re-importing an order, and [ADR-001's](../../database-architecture/spec/#10-company-lifecycle) export, move and restore by the lifecycle tool. Each writes an `audit_log` entry naming the operator and the reason. So do the operator's billing levers ([ADR-012 SPEC 19](../../billing-and-plans/spec/#19-who-may-manage-billing)) and switching a module on or off at an Owner's or Admin's request ([ADR-000 SPEC 3](../../system-architecture/spec/#3-assembly-per-company)), which also need no grant (owner ruling, 22 October 2026). Erasure is never an operator command; it runs on the seller's privacy request ([ADR-009](../../buyer-data/)) or 30 days after the company closes ([ADR-012 SPEC 16](../../billing-and-plans/spec/); owner ruling, 22 October 2026).
 
 **A grant is for looking**, at a company's screens or, at the seller's request, at old records in a restore branch ([ADR-001's look-back](../../runbooks/restore-a-company-look-back/)):
 

@@ -306,6 +306,16 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="../../product-model/spec/#15-units-of-measure">ADR-003</a></td>
 </tr>
 <tr>
+<td>Switch a module on or off</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td><a href="../../system-architecture/spec/#3-assembly-per-company">ADR-000 SPEC 3</a> (owner ruling, 22 October 2026)</td>
+</tr>
+<tr>
 <td><strong>Marketplaces and listings</strong></td>
 <td></td>
 <td></td>
@@ -818,7 +828,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ol>
 <p>All of it happens within minutes, inside ADR-009&#39;s 24 hours.</p>
 <h2 id="7-operator-access-to-a-company">7. Operator access to a company</h2>
-<p><strong>Repairs need no grant.</strong> They are recorded commands that run as system actors and show no company data: rebuilding a balance from the ledger (<a href="../../stock-ledger/">ADR-006</a>), re-importing an order, and <a href="../../database-architecture/spec/#10-company-lifecycle">ADR-001&#39;s</a> export, move and restore by the lifecycle tool. Each writes an <code>audit_log</code> entry naming the operator and the reason. Erasure is never an operator command; it runs on the seller&#39;s privacy request (<a href="../../buyer-data/">ADR-009</a>) or 30 days after the company closes (<a href="../../billing-and-plans/spec/">ADR-012 SPEC 16</a>; owner ruling, 22 October 2026).</p>
+<p><strong>Repairs need no grant.</strong> They are recorded commands that run as system actors and show no company data: rebuilding a balance from the ledger (<a href="../../stock-ledger/">ADR-006</a>), re-importing an order, and <a href="../../database-architecture/spec/#10-company-lifecycle">ADR-001&#39;s</a> export, move and restore by the lifecycle tool. Each writes an <code>audit_log</code> entry naming the operator and the reason. So do the operator&#39;s billing levers (<a href="../../billing-and-plans/spec/#19-who-may-manage-billing">ADR-012 SPEC 19</a>) and switching a module on or off at an Owner&#39;s or Admin&#39;s request (<a href="../../system-architecture/spec/#3-assembly-per-company">ADR-000 SPEC 3</a>), which also need no grant (owner ruling, 22 October 2026). Erasure is never an operator command; it runs on the seller&#39;s privacy request (<a href="../../buyer-data/">ADR-009</a>) or 30 days after the company closes (<a href="../../billing-and-plans/spec/">ADR-012 SPEC 16</a>; owner ruling, 22 October 2026).</p>
 <p><strong>A grant is for looking</strong>, at a company&#39;s screens or, at the seller&#39;s request, at old records in a restore branch (<a href="../../runbooks/restore-a-company-look-back/">ADR-001&#39;s look-back</a>):</p>
 <ol>
 <li>One company, a written reason, at most 8 hours (<a href="../../buyer-data/spec/#7-who-can-see-it">ADR-009</a>).</li>

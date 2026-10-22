@@ -75,7 +75,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>18 October 2026; split into ADR, SPEC and RUNBOOK with Billing as an always-on module outside the core, 21 October 2026</td>
+<td>18 October 2026; split into ADR, SPEC and RUNBOOK with Billing as an always-on module outside the core, 21 October 2026; operator assignments and who edits plan rows, owner ruling of 22 October 2026</td>
 </tr>
 <tr>
 <td><strong>Scope</strong></td>
@@ -114,6 +114,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Card data never touches Vervoro.</strong> Stripe is the payment provider, with cards and Bacs Direct Debit. Checkout is by redirect to Stripe&#39;s own pages, so Vervoro is eligible for SAQ A, the shortest PCI DSS self-assessment. Bank details for Direct Debit stay with Stripe.</li>
 <li><strong>Upgrades apply at once, downgrades and cancellations at the end of the paid period,</strong> and go through Vervoro&#39;s own screens, because they may end a module or stop sends. Part periods are not refunded; refunds and credits are only for Vervoro&#39;s mistakes.</li>
 <li><strong>Vervoro&#39;s invoices are Stripe&#39;s,</strong> in one sequence, never edited once issued, corrected only by credit notes, and kept 6 years after the end of Vervoro&#39;s financial year. UK businesses only at launch, charged UK VAT. <em>Later: businesses outside the UK under the reverse charge, when Vervoro&#39;s accountant approves the split of UK use.</em></li>
+<li><strong>The operator can assign a plan or one module to a company,</strong> with a reason the owners see, either <strong>complimentary</strong> (at no charge, until a date or until withdrawn) or <strong>charged from renewal</strong> (free until the first renewal at least 30 days after the owners are told, then charged unless the Owner declines). A complimentary plan is only for a company with no paid subscription, and ends the way a trial does. The operator never charges at once or without that notice; every other change to what a seller pays stays the Owner&#39;s step (<a href="spec/#14-plan-changes">SPEC 14</a>, owner ruling, 22 October 2026).</li>
 </ol>
 <h2 id="company-states">Company states</h2>
 <figure><svg class="diagram" viewBox="0 0 760 300" role="img" aria-label="A company moves from trial to active when it pays, or to restricted when the trial ends without a payment method; an active company with a payment failed for 14 days is restricted, and closed at day 30; paying in restricted returns it to active; a cancellation closes it at the end of the paid period; the stock path runs in trial, active and restricted; a closed company carries out each connection's stop choice, sending zero or lowering figures only, and is erased 30 days later" xmlns="http://www.w3.org/2000/svg" font-size="13">
@@ -170,7 +171,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </svg>
 </figure>
 
-<p>Who may do what in each state, the closing and reopening steps, and the three notices that carry the stop choice are in the <a href="spec/#7-company-states">SPEC</a>. Who may manage billing joins <a href="../users-and-access/spec/#4-who-may-do-what">ADR-010&#39;s table</a>: only the Owner pays, changes the plan or cancels.</p>
+<p>Who may do what in each state, the closing and reopening steps, and the three notices that carry the stop choice are in the <a href="spec/#7-company-states">SPEC</a>. Who may manage billing joins <a href="../users-and-access/spec/#4-who-may-do-what">ADR-010&#39;s table</a>: only the Owner pays, changes the plan or cancels. The operator may also assign a plan or module, free or charged from a renewal the Owner was told about (decision 11).</p>
 <h2 id="consequences">Consequences</h2>
 <p><strong>Gives</strong></p>
 <ul>
@@ -179,6 +180,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>A seller&#39;s bill changes only at a renewal they were warned about, never by overage.</li>
 <li>The operator does nothing on a schedule: state is a function of dates, Stripe runs the retries and payment emails, and dated steps re-read Stripe first.</li>
 <li>Plans are rows, so a new tier or add-on is a row and a price at the provider, not a code change.</li>
+<li>Pilot sellers, a module agreed on a call, a support fix or a goodwill gesture need no fake trial, no monthly credit note and no provider set-up.</li>
 </ul>
 <p><strong>Costs</strong></p>
 <ul>

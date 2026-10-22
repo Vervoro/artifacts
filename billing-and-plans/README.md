@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Status** | Proposed |
-| **Date** | 18 October 2026; split into ADR, SPEC and RUNBOOK with Billing as an always-on module outside the core, 21 October 2026 |
+| **Date** | 18 October 2026; split into ADR, SPEC and RUNBOOK with Billing as an always-on module outside the core, 21 October 2026; operator assignments and who edits plan rows, owner ruling of 22 October 2026 |
 | **Scope** | The Billing module and how Vervoro charges sellers: what a plan holds and limits, the trial, a company's states from sign-up to erasure, what runs in each, closing and reopening a company, the payment provider, plan changes, failed payments, Vervoro's own invoices and VAT, cancellation and refunds. Not how sellers invoice their own buyers ([ADR-011](../invoicing-and-vat/)) |
 | **Builds on** | [ADR-000](../system-architecture/), [ADR-001](../database-architecture/), [ADR-002](../data-retention/), [ADR-004](../channel-connectors/), [ADR-008](../inventory-sync/), [ADR-009](../buyer-data/), [ADR-010](../users-and-access/) |
 | **SPEC** | [The rules to build from, the evidence and how to check them](spec/) |
@@ -29,12 +29,13 @@
 8. **Card data never touches Vervoro.** Stripe is the payment provider, with cards and Bacs Direct Debit. Checkout is by redirect to Stripe's own pages, so Vervoro is eligible for SAQ A, the shortest PCI DSS self-assessment. Bank details for Direct Debit stay with Stripe.
 9. **Upgrades apply at once, downgrades and cancellations at the end of the paid period,** and go through Vervoro's own screens, because they may end a module or stop sends. Part periods are not refunded; refunds and credits are only for Vervoro's mistakes.
 10. **Vervoro's invoices are Stripe's,** in one sequence, never edited once issued, corrected only by credit notes, and kept 6 years after the end of Vervoro's financial year. UK businesses only at launch, charged UK VAT. *Later: businesses outside the UK under the reverse charge, when Vervoro's accountant approves the split of UK use.*
+11. **The operator can assign a plan or one module to a company,** with a reason the owners see, either **complimentary** (at no charge, until a date or until withdrawn) or **charged from renewal** (free until the first renewal at least 30 days after the owners are told, then charged unless the Owner declines). A complimentary plan is only for a company with no paid subscription, and ends the way a trial does. The operator never charges at once or without that notice; every other change to what a seller pays stays the Owner's step ([SPEC 14](spec/#14-plan-changes), owner ruling, 22 October 2026).
 
 ## Company states
 
 <!-- DIAGRAM -->
 
-Who may do what in each state, the closing and reopening steps, and the three notices that carry the stop choice are in the [SPEC](spec/#7-company-states). Who may manage billing joins [ADR-010's table](../users-and-access/spec/#4-who-may-do-what): only the Owner pays, changes the plan or cancels.
+Who may do what in each state, the closing and reopening steps, and the three notices that carry the stop choice are in the [SPEC](spec/#7-company-states). Who may manage billing joins [ADR-010's table](../users-and-access/spec/#4-who-may-do-what): only the Owner pays, changes the plan or cancels. The operator may also assign a plan or module, free or charged from a renewal the Owner was told about (decision 11).
 
 ## Consequences
 
@@ -45,6 +46,7 @@ Who may do what in each state, the closing and reopening steps, and the three no
 - A seller's bill changes only at a renewal they were warned about, never by overage.
 - The operator does nothing on a schedule: state is a function of dates, Stripe runs the retries and payment emails, and dated steps re-read Stripe first.
 - Plans are rows, so a new tier or add-on is a row and a price at the provider, not a code change.
+- Pilot sellers, a module agreed on a call, a support fix or a goodwill gesture need no fake trial, no monthly credit note and no provider set-up.
 
 **Costs**
 

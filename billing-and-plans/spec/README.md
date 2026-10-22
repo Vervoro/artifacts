@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-012: Billing and plans](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-012-billing-and-plans) |
-| **Date** | 21 October 2026 |
+| **Date** | 21 October 2026; operator assignments and who edits plan rows, owner ruling of 22 October 2026 |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-012 from: the Billing module, always on, outside the core, needing Access ([ADR-000 SPEC 4](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)). Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/).
@@ -20,7 +20,7 @@ The rules to build ADR-012 from: the Billing module, always on, outside the core
 ## 1. Who does what
 
 1. **Billing writes** the company's billing fields in control (section 21), the plan rows, its idempotency records, the provider's event ids and its notices. No other module writes them.
-2. **Composition reads** the plan, the company's add-ons, its trial grant and its state from control on each request, cached like every control read ([ADR-000 SPEC 3](../../system-architecture/spec/#3-assembly-per-company)). A module the plan lacks is unavailable with the reason "not in your plan".
+2. **Composition reads** the plan, the company's add-ons, its trial grant, its operator assignments and its state from control on each request, cached like every control read ([ADR-000 SPEC 3](../../system-architecture/spec/#3-assembly-per-company)). A module the plan lacks is unavailable with the reason "not in your plan".
 3. **Access stores the stock contact** as a company setting, and checks every billing action against the roles (section 19).
 4. **Channels keeps each connection's stop choice** ([ADR-004 SPEC 11](../../channel-connectors/spec/#11-shadow-mode-and-launch-gates)) and refuses going live until section 6 holds, reading billing readiness through composition.
 5. **Billing never calls Channels.** It publishes events: `company.restricted`, `company.closing_soon`, `company.closed`, `company.reopened`. Channels hears them: at closing it carries out each stop choice and sets decrease-only; at reopening it returns every account to shadow; for each notice it adds the block listing each connection's stop choice. Stock sync applies decrease-only ([ADR-008 SPEC 10](../../inventory-sync/spec/#10-listing-modes-and-stopping)).
@@ -33,6 +33,7 @@ The rules to build ADR-012 from: the Billing module, always on, outside the core
 3. **Monthly or yearly,** in pounds sterling.
 4. **Changing a row:** a change that adds something applies to everyone at once; one that takes something away applies to a paying company at its next renewal, after 30 days' notice.
 5. **Contract plans** are agreed by the operator and invoiced by hand at the provider, with payment terms. No flag or billing path for them at launch.
+6. **Plan rows and the add-on catalogue are written only by Billing's migrations,** run from CI like every migration ([ADR-001 SPEC 3](../../database-architecture/spec/#3-roles)). No screen, console or API edits them (owner ruling, 22 October 2026).
 
 ## 3. What billing may refuse
 
@@ -65,20 +66,20 @@ This section owns [the rulebook's billing rule](../../rulebook/#7-money-and-coun
 
 ## 6. Going live
 
-1. **Before a connection first goes live,** in a trial or on a plan, the company has a payment method, the connection has a stop choice, and the company has a stock contact. Channels refuses going live until all three hold ([Take a company live](../../runbooks/take-a-company-live/)).
+1. **Before a connection first goes live,** in a trial or on a plan, the company has a payment method, the connection has a stop choice, and the company has a stock contact. While a complimentary plan lasts, no payment method is needed (section 14; owner ruling, 22 October 2026). Channels refuses going live until all three hold ([Take a company live](../../runbooks/take-a-company-live/)).
 2. **The stop choice** is stored per connection and can be changed at any time in its settings.
 3. **Shadow needs none of them.**
 
 ## 7. Company states
 
-1. **Control keeps, per company:** when the trial ends, whether it has ever paid, when its oldest unpaid invoice first failed, whether a payment is processing, when its cancellation takes effect, when it closed, and any pause of its closing date.
+1. **Control keeps, per company:** when the trial ends, whether it has ever paid, when its oldest unpaid invoice first failed, whether a payment is processing, when its cancellation takes effect, when it closed, any pause of its closing date, and when a complimentary plan ends.
 2. **One pure function** of those dates and the current time returns the state. Composition reads it like the plan. The provider's own statuses are inputs, never the state.
 3. **Jobs run only on a date that must act:** carrying out the stop choices at closing, and erasure. Nothing else moves a company.
 
 | State | When | How it leaves |
 | --- | --- | --- |
 | **Trial** | From sign-up until the trial ends | Ends with a payment method: **active**, first charge made. Without one: **restricted** |
-| **Active** | On a paid subscription; with an unpaid invoice, a banner and Stripe's emails | Day 14 after a payment first failed, unless one is processing: **restricted**. Cancellation takes effect: **closed** |
+| **Active** | On a paid subscription, or a complimentary plan; with an unpaid invoice, a banner and Stripe's emails | Day 14 after a payment first failed, unless one is processing: **restricted**. Cancellation takes effect: **closed** |
 | **Restricted** | From day 14 after a payment first failed, or from the end of a trial with no payment method | Paid: **active** at once. Day 30 after the first failure, or 14 days after the trial ended: **closed** |
 | **Closed** | From the closing date | Paid: **active**, reopened (section 10). 30 days after closing, with no payment processing: **erased** |
 
@@ -132,12 +133,14 @@ Procedure: [Close and reopen a company for non-payment](../../runbooks/close-and
 ## 11. Notices
 
 1. **Stripe sends** its own payment emails: trial ending, payment failed, card expiring, and the notices Bacs rules require.
-2. **Vervoro sends three,** because only Vervoro knows the stop choices:
+2. **Vervoro sends these,** because only Vervoro knows the stop choices and the operator's assignments:
 
 | When | What it says |
 | --- | --- |
 | Entering restricted | What still runs; the closing date; each live connection's stop choice; how to pay |
 | 7 days before closing | The same, with the choices still open |
+| An operator assigns a plan or add-on | What, why, and whether it is complimentary (until when) or charged from which renewal; how to decline a charged one |
+| 30 and 7 days before a complimentary assignment ends, or a charged one is first charged | What ends or is charged, and on which date; for a complimentary plan, what happens without a payment method; how to keep it or decline |
 | Closing | What each choice did; that no listing will rise again; a file of the last figure sent to each listing, ready to upload to the marketplace by hand; the export link; the erasure date; how to reopen |
 
 3. **Who gets them:** every Owner, the billing contact and the stock contact, by email, with a banner for Owners and Admins. Dates are always named, never only a number of days.
@@ -174,6 +177,16 @@ Procedure: [Close and reopen a company for non-payment](../../runbooks/close-and
 3. **No plan change while an invoice is unpaid.**
 4. **A module that ends** is read-only from that day; its data stays visible and exportable until erasure, and taking it back restores everything. If ending it would stop sends to a live connection, the stop choice is shown and confirmed first.
 
+**Operator assignments** (owner ruling, 22 October 2026):
+
+5. **The operator assigns** a plan, or one add-on, to a company from the operator console, with a reason the owners see on the billing page, as one of two kinds below. Billing writes it in control, and it is available on the next request. The owners are told at once, by email and in the app.
+6. **Complimentary:** at no charge, until a date or until withdrawn. Nothing is sent to Stripe and nothing is invoiced, so it works before any payment is set up. A complimentary plan is only for a company with no paid subscription: in a trial, after one, or never paid. The company is active while it lasts, whatever its trial dates. A paying company may be given a complimentary add-on, never a complimentary plan.
+7. **Charged from renewal:** for a company with a paid subscription, a higher plan or an add-on. It is available at once, free until the first renewal at least 30 days after the owners were told, and joins the subscription at that renewal at its price. The Owner can decline it at any time before then; it then ends like a removed add-on (item 4) and nothing is charged.
+8. **Ending a complimentary assignment.** Withdrawing or shortening it takes effect no sooner than 30 days after the owners are told, as for a plan row (section 2). A complimentary plan then ends like a trial (section 7): with a payment method the subscription starts on the end date (section 5); without one the company is restricted at once and closed 14 days later. A complimentary add-on ends like a removed add-on (item 4), unless the Owner buys it first.
+9. **The order ceiling** still warns at 80 % and 100 % while a plan is complimentary, but never moves it up a tier (section 4); above the top tier's ceiling the operator is alerted.
+10. **Switching on or off stays the seller's,** for an included, assigned or bought module alike ([ADR-000 SPEC 3](../../system-architecture/spec/#3-assembly-per-company)): an assignment makes a module available, never forces it on.
+11. **The operator never charges at once or without notice.** A charge the operator starts is always a charged-from-renewal assignment the Owner could decline. Every other plan change, and any cancellation, is the Owner's step (section 19).
+
 ## 15. Failed payments
 
 1. **Retries:** cards by Stripe's Smart Retries in a 14-day window; Bacs payments that fail for lack of funds are retried by Stripe up to twice within 30 days.
@@ -209,7 +222,7 @@ Procedure: [Work a failed payment](../../runbooks/work-a-failed-payment/).
 
 1. **The billing rows** of [ADR-010's table](../../users-and-access/spec/#4-who-may-do-what) are this record's: only the Owner chooses, changes or cancels the plan, changes the payment method or billing details and pays; Owners and Admins set the stop choice at going live and name the stock contact; Owners, Admins and Managers change a stored stop choice; Owners, Admins and Accountants read Vervoro's invoices.
 2. **Every billing action** is written to `audit_log` with the person and time; the plan, payment and cancel steps need ADR-010's fresh check ([SPEC 5](../../users-and-access/spec/#5-rules-for-every-action)).
-3. **The operator's two levers,** extending a trial and pausing a closing date, each need a recorded reason the owners see. Credits are made at Stripe as credit notes.
+3. **The operator's three levers,** extending a trial, pausing a closing date, and assigning or withdrawing a plan or add-on (section 14), each need a recorded reason the owners see and write the company's `audit_log` entry naming the operator. None needs a grant to look inside the company, because none shows its data ([ADR-010 SPEC 7](../../users-and-access/spec/#7-operator-access-to-a-company)). Credits are made at Stripe as credit notes.
 
 ## 20. The payment simulator
 
@@ -224,6 +237,7 @@ All in control, written by Billing ([ADR-001 SPEC 7](../../database-architecture
 | --- | --- |
 | Plans | Section 2's rows and the add-on catalogue |
 | Company billing | Plan, add-ons, interval, Stripe customer and subscription ids, section 7.1's dates, billing contact |
+| Operator assignments | Company, the plan or add-on, complimentary or charged from renewal, until when (or none), the reason, the operator, when assigned, when the owners were told, any withdrawal or decline |
 | Payment method summary | Brand, last four digits, expiry; mandate status |
 | Billing intents | Each call to Stripe with its idempotency key and outcome |
 | Provider events | Event ids seen, for idempotency |
@@ -265,6 +279,7 @@ Checked against official sources on 18 October 2026.
 | Events | CI | Duplicated, late or out-of-order events leave control matching Stripe; a bad signature is refused before any read |
 | Order count | CI, real Postgres | Repeated dispatches, second parcels and reruns count an order once |
 | Idempotent calls | CI | A retried plan change with the same key charges once |
+| Operator assignments | CI, simulators | A complimentary plan makes a trial-ended company active with no Stripe call; its end restricts a company with no payment method and starts the subscription of one with a method; a complimentary add-on is available, then read-only after its end; a withdrawal takes effect no sooner than 30 days; a paying company cannot be given a complimentary plan; a charged assignment is free until the first renewal at least 30 days after the notice, charged at that renewal, and never charged if the Owner declined first |
 | Card data | Build check | No page takes a card number; payment pages are reached by redirect only |
 | Recorded replies | Before launch | Every Stripe call and event used matches Stripe's test mode |
 
@@ -273,7 +288,8 @@ Checked against official sources on 18 October 2026.
 For someone reviewing code an AI wrote. Each line says where to look.
 
 - [ ] **Module:** Billing's manifest says always on and needs Access only; it imports no other module.
-- [ ] **One writer:** only Billing's code writes plan rows and company billing fields in control.
+- [ ] **One writer:** only Billing's code writes company billing fields and operator assignments in control, and only Billing's migrations write plan rows.
+- [ ] **No surprise charge:** the operator console's billing commands are the three levers of section 19; the only Stripe change they make is adding a charged assignment at a renewal at least 30 days after the notice, and never after a decline.
 - [ ] **No price:** no amount in the plan rows, seeds or code; only provider price ids.
 - [ ] **State:** one pure function of dates and now; no stored status column; no job that changes state.
 - [ ] **Never refused:** stock and order commands have no billing check; the only plan refusal is in composition's module check.

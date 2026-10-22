@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-000: System architecture](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-000-system-architecture) |
-| **Date** | 20–21 October 2026; sign-in on Better Auth ([ADR-013](../../sign-in/)) 21 October 2026; amended by owner rulings: a tap's sending, done and not sure states (12.8) and the rollback window (11.2), 21 October 2026; decrease-only accounts through the gate (7.2) and Invoicing's needs (4), 22 October 2026 |
+| **Date** | 20–21 October 2026; sign-in on Better Auth ([ADR-013](../../sign-in/)) 21 October 2026; amended by owner rulings: a tap's sending, done and not sure states (12.8) and the rollback window (11.2), 21 October 2026; decrease-only accounts through the gate (7.2), Invoicing's needs (4) and who switches a module on or off (3.4), 22 October 2026 |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-000 from. Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins. Words are defined in the [map and glossary](../../guide/).
@@ -56,6 +56,7 @@ Extension points (several providers of one port, chosen per key, such as connect
 1. On every request and background job, composition reads the company's plan, modules, roles and variants. A module is available when its plan includes it, it is switched on, and every module it needs is available. An action is available when its module is and the person's role allows it.
 2. A module whose needs are off waits; it is not an error. Every "no" carries a reason, so the screen can say why.
 3. *Later* ([section 0](#0-at-launch-and-later)): **variants.** A port may have a `standard` provider and alternatives. The operator assigns a variant to a named company. The safety rules never change with a variant.
+4. **The seller switches each switchable module on or off,** whether the plan includes it, it is an add-on, or the operator assigned it, free or charged. Off hides its screens and menus and stops its work; its data is kept and comes back when it is switched on. Switching off changes no charge: a paid add-on stays billed until the Owner removes it ([ADR-012 SPEC 14](../../billing-and-plans/spec/#14-plan-changes)). Modules that need it wait (item 2), and the screen lists them before confirming. If it would stop sends to a live connection, the stop choice is shown and confirmed first, with ADR-010's fresh check. Who may do it is [ADR-010 SPEC 4](../../users-and-access/spec/#4-who-may-do-what). The operator may do it for the company when an Owner or Admin asks, with that request as the recorded reason and the owners told, but never a switch that would stop sends to a live connection: that one is the seller's own ([ADR-010 SPEC 7](../../users-and-access/spec/#7-operator-access-to-a-company)) (owner ruling, 22 October 2026).
 
 ## 4. The foundation and the launch modules
 
