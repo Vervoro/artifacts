@@ -150,9 +150,9 @@ While a company is restricted or closed, [ADR-012 SPEC 8](../../billing-and-plan
 **Invitations:**
 
 1. An Owner, or an Admin for roles below Admin, invites by the person's own email address, with a role and, where it applies, a scope.
-2. The link is single-use, valid for 7 days, and works only for the address it names. Accepting proves the address.
+2. The link is single-use, valid for 7 days, and works only for the address it names. Accepting proves the address. A person who already has a login joins only if the email address in their `session` answer ([ADR-013 SPEC 5](../../sign-in/spec/#5-sessions)) matches the invitation's, compared case-insensitively; otherwise acceptance is refused (owner ruling, 22 October 2026).
 3. A new person sets up sign-in on their own device, from a one-time link the app gets from the sign-in Worker's `enrol` call; a person with a login signs in, and the company joins their memberships.
-4. An invitation can be withdrawn until accepted. Acceptance, expiry and withdrawal are logged.
+4. An invitation can be withdrawn until accepted. Acceptance, expiry and withdrawal are logged. An invitation used, withdrawn or expired is deleted 30 days later; the audit log keeps the event (owner ruling, 22 October 2026).
 
 **Trials and paying.** Paying changes the plan and nothing moves, so nobody signs in again ([ADR-001](../../database-architecture/)). If a company moves cell, its member rows move with it; logins, memberships and sessions stay in control.
 
