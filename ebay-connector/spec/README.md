@@ -73,7 +73,7 @@ Only what is particular to eBay. Everything the host does (credentials, HTTP, ou
 ## 7. Cancellations and dispatch
 
 1. **Vervoro sends no cancellation and no answer to a buyer's request** ([ADR-007 SPEC 12](../../order-ingestion/spec/#12-cancellations-and-refunds)). No Post-Order call is made. The cancellations scope is still asked for, because the cancellation notice needs it. ADR-007 fetches the order again when eBay's 3-day answer window closes.
-2. **Dispatch:** one Fulfillment API call per shipment, with carrier and tracking, through the gate.
+2. **Dispatch:** one Fulfillment API call per shipment confirmed with its own carrier, with carrier and tracking, through the gate; none for a label bought on eBay ([ADR-007 SPEC 20.5](../../order-ingestion/spec/#20-deadlines-and-the-handover), owner ruling, 22 October 2026).
 
 ## 8. Account deletion notices
 

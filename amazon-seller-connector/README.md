@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Status** | Proposed |
-| **Date** | 17 October 2026; split into ADR, SPEC and RUNBOOK, 21 October 2026 |
+| **Date** | 17 October 2026; split into ADR, SPEC and RUNBOOK, 21 October 2026; the restricted role Later, with shipping labels (owner ruling, 22 October 2026) |
 | **Scope** | What Amazon's Selling Partner API adds to [ADR-004](../channel-connectors/), for a seller who ships their own orders and may also use Amazon's fulfilment |
 | **Builds on** | [ADR-004](../channel-connectors/), [ADR-003](../product-model/), [ADR-006](../stock-ledger/), [ADR-008](../inventory-sync/), [ADR-009](../buyer-data/) |
 | **SPEC** | [The Amazon rules, limits and checks](spec/) |
@@ -26,7 +26,7 @@
 5. **Every stock write is one listing at a time.** *Later: listings feeds for many raises if single writes fall short; a feed never carries a decrease.*
 6. **Amazon's `accepted` does not mean applied.** Every write is read back before Vervoro counts it as applied.
 7. **A listing Amazon ships on any of the account's marketplaces is never sent a figure.**
-8. **Buyer data is read only under the restricted role,** only for orders the seller ships, and anonymised 30 days after delivery ([ADR-009](../buyer-data/)).
+8. **Buyer data needs no restricted role at launch.** Orders carry the country and the territory worked out from the postcode, which is not kept ([ADR-004 SPEC 1](../channel-connectors/spec/#1-the-connector-contract)). *Later, with shipping labels: the Direct-to-Consumer Shipping role, only for orders the seller ships, anonymised 30 days after delivery ([ADR-009](../buyer-data/)).*
 9. **Stock in Amazon's warehouses is read daily and on Amazon's notice,** as a reading beside Vervoro's figures, never added to them ([ADR-006](../stock-ledger/)).
 10. **Approval lasts 365 days from the day the seller gives it,** because Amazon gives no expiry date. The seller is reminded 30 days ahead, and the operator rotates the app's client secret every 180 days.
 

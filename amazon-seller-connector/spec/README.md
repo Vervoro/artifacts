@@ -15,6 +15,7 @@ Only what is particular to Amazon. Everything the host does (credentials, HTTP, 
 | --- | --- | --- |
 | Listings feeds for many raises | Single patches fall short ([ADR-008](../../inventory-sync/spec/#0-at-launch-and-later)) | [5](#5-stock) |
 | Selling to Amazon as a vendor | ADR-004.4 is written | None here |
+| The Direct-to-Consumer Shipping (Restricted) role: name, address, phone, gift message and customisation for seller-shipped orders | Shipping labels in Vervoro; the application is sent once ADR-009's security controls are evidenced (owner ruling, 22 October 2026) | [8](#8-buyer-data) |
 
 ## 1. Connecting and renewing
 
@@ -84,6 +85,8 @@ A SKU Amazon fulfils on any of the account's marketplaces is Amazon's and is nev
 
 ## 8. Buyer data
 
+*Later*, with the role (section 0). At launch an Amazon order brings no recipient, gift message or customisation; the gift flag, where Amazon sends it without the role, tells the packer to print the message from Seller Central ([ADR-004 SPEC 1](../../channel-connectors/spec/#1-the-connector-contract)).
+
 1. **The restricted role** releases names, addresses and phones only for orders the seller ships, while unshipped or shipped.
 2. **Only what is needed to ship:** name, address, phone, gift message. What Amazon withholds or masks is left out, never stored blank, so it never erases an earlier value.
 3. **Orders Amazon ships carry no buyer data.**
@@ -140,6 +143,6 @@ Checked against Amazon's documentation on 17 October 2026; Amazon-held stock row
 - [ ] **No AWS credentials** in any Worker; nothing reads SQS in production.
 - [ ] **Accepted:** no code path marks an Amazon write applied without a read or notice.
 - [ ] **Amazon ships:** the write path refuses a fulfilled-by-Amazon SKU.
-- [ ] **Buyer data:** restricted fields read only under the restricted role and only for seller-shipped orders.
+- [ ] **Buyer data:** no restricted role is asked for at launch; no recipient field reaches Orders.
 - [ ] **Held stock:** the reading lives beside the ledger and is never summed into it.
 - [ ] **Later parts:** no feed path at launch.

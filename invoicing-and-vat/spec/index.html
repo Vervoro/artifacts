@@ -86,7 +86,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>The developer and coding agents building it, and the person reviewing their work</td>
 </tr>
 </tbody></table></div>
-<p>The rules to build ADR-011 from: the Invoicing module, switchable, needing Orders (<a href="../../system-architecture/spec/#4-the-foundation-and-the-launch-modules">ADR-000 SPEC 4</a>). Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the <a href="../../guide/">map and glossary</a>. Amounts in pounds below are legal thresholds, not prices.</p>
+<p>The rules to build ADR-011 from: the Invoicing module, switchable, needing Orders, Products and Buyer data (<a href="../../system-architecture/spec/#4-the-foundation-and-the-launch-modules">ADR-000 SPEC 4</a>). Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the <a href="../../guide/">map and glossary</a>. Amounts in pounds below are legal thresholds, not prices.</p>
 <h2 id="0-at-launch-and-later">0. At launch and later</h2>
 <div class="table-wrap"><table>
 <thead>
@@ -139,7 +139,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tbody></table></div>
 <h2 id="1-the-module">1. The module</h2>
 <ol>
-<li><strong>Switchable, needing Orders.</strong> It writes only its own <code>invoicing_</code> tables, through the typed query builder (<a href="../../database-architecture/spec/#5-declaring-tables">ADR-001 SPEC 5</a>). It calls the core&#39;s ports: Orders for order lines, Products for VAT classes and standard costs, Buyer data for the starting point of a customer block (<a href="../../buyer-data/spec/#1-who-does-what">ADR-009 SPEC 1</a>).</li>
+<li><strong>Switchable, needing Orders, Products and Buyer data.</strong> It writes only its own <code>invoicing_</code> tables, through the typed query builder (<a href="../../database-architecture/spec/#5-declaring-tables">ADR-001 SPEC 5</a>). It calls the core&#39;s ports: Orders for order lines, Products for VAT classes and standard costs, Buyer data for the starting point of a customer block (<a href="../../buyer-data/spec/#1-who-does-what">ADR-009 SPEC 1</a>).</li>
 <li><strong>It acts on events, after commit,</strong> never inside another module&#39;s transaction: Orders&#39; order imported, changed, shipped and refunded (<a href="../../order-ingestion/spec/#1-the-module">ADR-007 SPEC 1</a>); Fulfilment&#39;s shipment, for carrier and tracking (<a href="../../fulfilment/spec/#4-shipments">ADR-014</a>). Every handler is idempotent.</li>
 <li><strong>The rate table</strong> is ADR-003&#39;s, platform data in control. Invoicing only reads it.</li>
 <li><strong>Switched on after orders exist,</strong> it writes VAT records for every order whose tax point is on or after a start date the seller picks, by default the first day of their current VAT period. It never writes a record dated before that start date.</li>
@@ -280,7 +280,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </tbody></table></div>
 <ol start="2">
-<li><strong>The customer block</strong> is typed or confirmed by the issuer, starting from the delivery recipient and address, and a business buyer&#39;s company name, VAT number and purchase-order reference when the order has them. It is stored on the document only, never on the order, encrypted under the company&#39;s key (<a href="../../buyer-data/spec/#9-invoices-and-export-evidence">ADR-009 SPEC 9</a>).</li>
+<li><strong>The customer block</strong> is typed or confirmed by the issuer, starting from what Buyer data holds for the order (on a marketplace order at launch, only a business buyer&#39;s company name and VAT number; on a manual order, the delivery recipient and address), and the purchase-order reference when the order has one (owner ruling, 22 October 2026). It is stored on the document only, never on the order, encrypted under the company&#39;s key (<a href="../../buyer-data/spec/#9-invoices-and-export-evidence">ADR-009 SPEC 9</a>).</li>
 <li><strong>The seller&#39;s details</strong> come from the company&#39;s invoicing settings: registered name and address, VAT number and registration date. No logo, footer or trading name at launch. They are copied into each document at issue.</li>
 <li><strong>Charge lines</strong> appear beside the goods, each as its own line (<a href="../../product-model/spec/#11-charge-lines-and-listings-that-are-not-stock">ADR-003 SPEC 1.1</a>). An invoice never adds a charge its order does not hold. Their VAT is <a href="#7-working-out-the-vat">section 7.6</a>.</li>
 <li><strong>Not VAT-registered:</strong> no VAT, no rates, no VAT number; every line takes treatment <code>none</code>. Orders with a tax point on or after a registration date use the rates.</li>

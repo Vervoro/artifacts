@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Status** | Proposed |
-| **Date** | 17 October 2026; Trading API exception, 21 October 2026; split into ADR, SPEC and RUNBOOK, 21 October 2026 |
+| **Date** | 17 October 2026; Trading API exception, 21 October 2026; split into ADR, SPEC and RUNBOOK, 21 October 2026; no dispatch call for a label bought on eBay (owner ruling, 22 October 2026) |
 | **Scope** | What eBay adds to [ADR-004](../channel-connectors/) |
 | **Builds on** | [ADR-004](../channel-connectors/), [ADR-003](../product-model/), [ADR-005](../catalogue-sync/), [ADR-008](../inventory-sync/) |
 | **SPEC** | [The eBay rules, limits and checks](spec/) |

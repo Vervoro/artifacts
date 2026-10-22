@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Status** | Proposed |
-| **Date** | 18 October 2026; charge lines added with [ADR-003](../product-model/), and split into ADR, SPEC and RUNBOOK 21 October 2026 |
+| **Date** | 18 October 2026; charge lines added with [ADR-003](../product-model/), and split into ADR, SPEC and RUNBOOK 21 October 2026; needs and the customer block's starting point aligned with buyer data at launch (owner ruling, 22 October 2026) |
 | **Scope** | The Invoicing module: the invoices and credit notes a seller issues to buyers for marketplace and manual orders, and the VAT record of every sale: who issues, when, what a document holds, numbering, how VAT is worked out, differences from a marketplace's figure, refunds, keeping documents, sales outside the UK and the accounting export. Not how Vervoro bills its own sellers ([ADR-012](../billing-and-plans/)) |
 | **Builds on** | [ADR-000](../system-architecture/), [ADR-001](../database-architecture/), [ADR-002](../data-retention/), [ADR-003](../product-model/), [ADR-004](../channel-connectors/) with [ADR-004.1](../ebay-connector/) and [ADR-004.2](../amazon-seller-connector/), [ADR-007](../order-ingestion/), [ADR-009](../buyer-data/), [ADR-010](../users-and-access/), [ADR-014](../fulfilment/) |
 | **SPEC** | [The rules to build from, the constraints with their sources and how to check them](spec/) |

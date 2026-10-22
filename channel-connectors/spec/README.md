@@ -31,7 +31,7 @@ The rules to build ADR-004 from: the Channels module, switchable per company and
 | Read back | What a listing shows now, or what became of a submission | The figure, or the submission's final outcome |
 | Parse a notice | Reads a checked notice body; makes no call | Orders seen, order changed, listing changed, or ignored |
 
-2. **Contract types only.** An order carries its marketplace id, lines (SKU, quantity, line id), status, last change time and who ships it. Buyer details ride on the order to Orders and Buyer data and are not kept by Channels. A value the marketplace withheld or masked is left out, never made up.
+2. **Contract types only.** An order carries its marketplace id, lines (SKU, quantity, line id), status, last change time and who ships it. Buyer details ride on the order to Orders and Buyer data and are not kept by Channels. Until Vervoro prints labels ([ADR-000 SPEC 4.7](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)), an order carries none of the recipient's name, address lines, postcode or phone, whatever the marketplace sends: only the destination country and tax territory, worked out by the connector, the order note, the gift message and customisation, a business buyer's company name and VAT number, and the marketplace's buyer id for hashing ([ADR-009 SPEC 4](../../buyer-data/spec/#4-what-is-kept), owner ruling, 22 October 2026). A value the marketplace withheld or masked is left out, never made up.
 3. **Optional capabilities are declared, never discovered:** compare-and-set, batch write, dispatch notice, approval connect, account setup choices. The host calls only what is declared. A later record adds a capability as a typed addition, so connectors that do not declare it need no change.
 4. **What a connector cannot do,** enforced by the build: call the network (a lint bans every network global in connector code, with a test that it fires); see a credential (the binding adds it after the request is built); send a write outside the gate (each request names its operation, and the binding refuses a write operation that did not come from the gate); read the clock or a database.
 
@@ -223,6 +223,7 @@ Pure mappings run as unit tests; pools, leases and the queue path on real Postgr
 | Pool cap | An account whose share would fall below 50 cannot go live |
 | Notice check | A bad signature or secret is refused before any database read; a notice for an unheld account is answered and kept nowhere |
 | Ids only | No queue message carries a notice body or buyer field |
+| Recipient filter | No contract order carries a recipient name, address line, postcode or phone; a recorded order that has them yields an order without them |
 | Enqueue | A failed enqueue answers with an error |
 | Watermark | Only a complete read moves it; a notice never does |
 | Broken notices | An order found with no notice switches the account to 10-minute reads and alerts |

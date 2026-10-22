@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Status** | Proposed |
-| **Date** | 17 October 2026; unknown-write rule and its exception, 21 October 2026; split into ADR, SPEC and RUNBOOK, with launch gates measured in shadow and Shopify Later (owner rulings), 21 October 2026 |
+| **Date** | 17 October 2026; unknown-write rule and its exception, 21 October 2026; split into ADR, SPEC and RUNBOOK, with launch gates measured in shadow and Shopify Later (owner rulings), 21 October 2026; no recipient fields until Vervoro prints labels (owner ruling, 22 October 2026) |
 | **Scope** | The Channels module (the host) and the connector contract: what a connector does and may not do, what the host owns, shared daily pools, notices in and the completeness check behind them, shadow mode and its launch gates, simulators, switching marketplaces on and off, and keeping failures apart |
 | **Builds on** | [ADR-000](../system-architecture/), [ADR-001](../database-architecture/), [ADR-003](../product-model/) |
 | **SPEC** | [The rules to build from, and how to check them](spec/) |

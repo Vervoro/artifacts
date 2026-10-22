@@ -111,12 +111,17 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>A later record on uploading invoices to Amazon (<a href="../../invoicing-and-vat/">ADR-011</a>)</td>
 <td><a href="#161-amazon">16.1</a></td>
 </tr>
+<tr>
+<td>Recipient name, address and phone from marketplaces, the phone index, address screens, Amazon&#39;s Direct-to-Consumer Shipping role, Shopify level 2</td>
+<td>Shipping labels in Vervoro (owner ruling, 22 October 2026)</td>
+<td><a href="#4-what-is-kept">4</a>, <a href="#6-encryption-and-keys">6</a>, <a href="#7-who-can-see-it">7</a>, <a href="#16-per-marketplace">16</a></td>
+</tr>
 </tbody></table></div>
 <h2 id="1-who-does-what">1. Who does what</h2>
 <ol>
 <li><strong>Buyer data writes</strong> every buyer field, the eBay buyer hash, label files, privacy requests, the anonymisation of an order and the audit entry for each view. No other module writes them.</li>
-<li><strong>Orders hands over</strong> the buyer fields of a fetched order through Buyer data&#39;s port, in the import&#39;s transaction, only for orders the seller ships (<a href="../../order-ingestion/">ADR-007</a>). Buyer data never takes them from a notice body.</li>
-<li><strong>Other modules read</strong> through Buyer data&#39;s port, which checks the role and the order&#39;s state (section 7) and writes the view entry: Fulfilment for picking, packing and labels (<a href="../../fulfilment/">ADR-014</a>); Invoicing for the starting point of a customer block (<a href="../../invoicing-and-vat/">ADR-011</a>). A recall reads the country only.</li>
+<li><strong>Orders hands over</strong> the buyer fields of a fetched order through Buyer data&#39;s port, in the import&#39;s transaction, only for orders the seller ships (<a href="../../order-ingestion/">ADR-007</a>). Buyer data never takes them from a notice body. Only the fields section 4 marks &quot;at launch&quot;.</li>
+<li><strong>Other modules read</strong> through Buyer data&#39;s port, which checks the role and the order&#39;s state (section 7) and writes the view entry: Fulfilment for picking, packing and labels (<a href="../../fulfilment/">ADR-014</a>); Invoicing for the starting point of a customer block (<a href="../../invoicing-and-vat/">ADR-011</a>). A recall reads the order&#39;s country, not Buyer data (<a href="../../fulfilment/">ADR-014</a>).</li>
 <li><strong>Whoever buys a label</strong> hands the file to Buyer data&#39;s port, which encrypts and stores it.</li>
 <li><strong>Channels records a marketplace&#39;s privacy notice</strong> with its due date (<a href="../../channel-connectors/spec/#8-notices-in">ADR-004 SPEC 8</a>) and passes it to Buyer data&#39;s port, which opens the company&#39;s privacy request.</li>
 <li><strong>Access decides the role</strong> (<a href="../../users-and-access/spec/#4-who-may-do-what">ADR-010 SPEC 4</a>); Buyer data decides what that role sees of an order in its current state.</li>
@@ -166,58 +171,62 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </tbody></table></div>
 <h2 id="4-what-is-kept">4. What is kept</h2>
-<p>Each field only for its purpose, and only from the marketplaces that send it.</p>
+<p>Each field only for its purpose, and only from the marketplaces that send it. Until Vervoro prints labels, the recipient&#39;s name, address and phone have no purpose for a marketplace order, so no connector hands them over (<a href="../../channel-connectors/spec/#1-the-connector-contract">ADR-004 SPEC 1</a>, owner ruling, 22 October 2026).</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
 <th>Field</th>
 <th>Why</th>
+<th>At launch</th>
 <th>Until</th>
 </tr>
 </thead>
 <tbody><tr>
 <td>Recipient name</td>
 <td>Label and packing slip</td>
+<td>Manual orders only; from marketplaces with labels</td>
 <td>Anonymisation</td>
 </tr>
 <tr>
 <td>Delivery address lines, town, postcode</td>
 <td>Label</td>
+<td>Manual orders only; from marketplaces with labels</td>
 <td>Anonymisation</td>
-</tr>
-<tr>
-<td>Country, and tax territory where it differs (Northern Ireland, the Canary Islands)</td>
-<td>VAT, reports</td>
-<td>Kept with the order</td>
 </tr>
 <tr>
 <td>Delivery phone</td>
 <td>Carriers&#39; delivery notices and failed deliveries</td>
+<td>Manual orders only; from marketplaces with labels</td>
 <td>Anonymisation</td>
 </tr>
 <tr>
-<td>Order note, gift message</td>
+<td>Order note, gift message and customisation</td>
 <td>Read by the packer; the gift message is printed</td>
+<td>Yes, where the marketplace sends them</td>
 <td>Anonymisation</td>
 </tr>
 <tr>
 <td>Business buyer&#39;s company name and VAT number</td>
 <td>A business invoice</td>
+<td>Yes</td>
 <td>Anonymisation, except on an issued invoice</td>
 </tr>
 <tr>
 <td>eBay buyer&#39;s user id, as a keyed hash</td>
 <td>Matching eBay&#39;s account deletion notices</td>
+<td>Yes</td>
 <td>Anonymisation</td>
 </tr>
 <tr>
 <td>Tracking number</td>
 <td>Confirming and following the shipment</td>
+<td>Yes</td>
 <td>Anonymisation; for an order delivered outside the UK, kept as export evidence (section 9)</td>
 </tr>
 <tr>
 <td>Label file</td>
 <td>Printing and reprinting</td>
+<td>No: labels are bought on the marketplace</td>
 <td>Anonymisation</td>
 </tr>
 </tbody></table></div>
@@ -226,6 +235,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Used only to ship, for tax and for the seller&#39;s service to that order</strong> (<a href="#19-constraints">Amazon AUP</a>): never for marketing, reviews or profiling.</li>
 <li><strong>Masked and missing values stay missing.</strong> A withheld field is left out, never stored blank or made up, and a later read without it never erases what an earlier read kept (<a href="../../channel-connectors/spec/#1-the-connector-contract">ADR-004 SPEC 1</a>).</li>
 <li><strong>Every buyer field carries ADR-001&#39;s <code>pii</code> tag</strong> (<a href="../../database-architecture/spec/#5-declaring-tables">ADR-001 SPEC 5</a>). The tag drives encryption, masking, the logger&#39;s drop, anonymisation, export and the AI mask. A build check refuses a column holding buyer data without it.</li>
+<li><strong>The destination country and tax territory are Orders&#39; fields,</strong> not buyer data (<a href="../../order-ingestion/spec/#5-the-order-and-its-lines">ADR-007 SPEC 5</a>). A postcode a marketplace sends is used to work out the territory and is not kept.</li>
 </ol>
 <h2 id="5-where-it-lives">5. Where it lives</h2>
 <ol>
@@ -322,7 +332,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>The due time</strong> sits in the cell&#39;s <code>due</code> table (<a href="../../database-architecture/spec/#the-due-table">ADR-001 SPEC 9</a>). The sweeper, in one transaction per company: clears every <code>pii</code> field on the order and its lines; removes the phone index entry and the eBay hash; marks the order anonymised with the time and reason; deletes its label files.</li>
 <li><strong>Once anonymised, never again.</strong> A later read or notice that brings the details back stores nothing personal for that order.</li>
 <li><strong>Proof:</strong> a nightly check counts, per company, orders past their due time still holding buyer data. Anything but zero alerts the operator (<a href="../../runbooks/check-the-anonymisation-job/">runbook</a>).</li>
-<li><strong>What survives:</strong> the marketplace order id, dates, lines, prices, totals and fees (accounting records); the batch and lot shipped (a recall reaches buyers through the marketplace by order id, <a href="../../fulfilment/">ADR-014</a>); the country and tax territory (VAT); the carrier and service. Not the postcode district or the town: Amazon counts postal codes as personal data.</li>
+<li><strong>What survives:</strong> the marketplace order id, dates, lines, prices, totals and fees (accounting records); the batch and lot shipped (a recall reaches buyers through the marketplace by order id, <a href="../../fulfilment/">ADR-014</a>); the country and tax territory, on the order (VAT); the carrier and service. Not the postcode district or the town: Amazon counts postal codes as personal data.</li>
 </ol>
 <h2 id="9-invoices-and-export-evidence">9. Invoices and export evidence</h2>
 <ol>
@@ -526,6 +536,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ol>
 <h2 id="16-per-marketplace">16. Per marketplace</h2>
 <h3 id="161-amazon">16.1 Amazon</h3>
+<p><em>Later</em>, with shipping labels (section 0). At launch Vervoro holds no restricted role, and an Amazon order brings no recipient.</p>
 <ol>
 <li><strong>The restricted role for direct-to-consumer shipping</strong> only, which releases the recipient&#39;s name, address and phone on orders the seller ships. Not the tax roles (section 0).</li>
 <li><strong>The 2026 orders API</strong> releases them by role alone, with no Restricted Data Token. Vervoro asks only for the recipient and gift message, never the buyer&#39;s email, and only on seller-shipped orders not yet shipped (<a href="../../amazon-seller-connector/spec/#8-buyer-data">ADR-004.2 SPEC 8</a>).</li>
@@ -537,7 +548,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ol>
 <li><strong>eBay&#39;s terms:</strong> delete personal data when no longer needed or when asked, never store user ids, destroy within 10 days of leaving the developer programme.</li>
 <li><strong>Account deletion notices</strong> arrive for every eBay user who closes their account and are answered at once (<a href="../../ebay-connector/spec/">ADR-004.1 SPEC</a>). A connected seller&#39;s is a privacy request; anyone else&#39;s is matched.</li>
-<li><strong>The match:</strong> on import, a keyed hash of the buyer&#39;s user id is stored with the order and in <code>buyer_ref(hash, company_id, order_id)</code>. A notice is hashed and looked up in each cell with one indexed query through ADR-001&#39;s allow-listed function (<a href="../../database-architecture/spec/#4-functions">ADR-001 SPEC 4</a>). A match anonymises that buyer&#39;s orders at once. The notice is never kept; the lookup row goes when the order is anonymised.</li>
+<li><strong>The match:</strong> on import, a keyed hash of the buyer id eBay sends (its username, or its immutable user id) is stored with the order and in <code>buyer_ref(hash, company_id, order_id)</code>. A notice is hashed and looked up in each cell with one indexed query through ADR-001&#39;s allow-listed function (<a href="../../database-architecture/spec/#4-functions">ADR-001 SPEC 4</a>). A match anonymises that buyer&#39;s orders at once. The notice is never kept; the lookup row goes when the order is anonymised.</li>
 </ol>
 <h3 id="163-shopify">16.3 Shopify</h3>
 <p><em>Later, with <a href="../../shopify-connector/">ADR-004.3</a>.</em> Level 2 protected customer data for name, address and phone, not email; without approval the fields arrive empty. The three privacy webhooks are checked by signature (401 on a bad one) and handled as section 10 says (<a href="../../shopify-connector/spec/#8-buyer-data-and-privacy">ADR-004.3 SPEC 8</a>). Uninstalling ends the connection, so the shop&#39;s buyer data goes within 30 days even before <code>shop/redact</code>.</p>
@@ -632,7 +643,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Amazon: orders API 2026</td>
-<td>Buyer data by role, no Restricted Data Token; phone hidden after the latest delivery date</td>
+<td>Buyer data by role, no Restricted Data Token; phone hidden after the latest delivery date. Without a role: city, district, country and, outside the US, Japan and Singapore, the postcode (checked 22 October 2026)</td>
 <td><a href="https://developer-docs.amazon/sp-api/docs/access-orders-pii">Access orders PII</a></td>
 </tr>
 <tr>

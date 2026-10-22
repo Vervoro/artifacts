@@ -86,7 +86,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Vervoro as Manager or above. Tapping the lot that left can be done by anyone in the warehouse</td>
 </tr>
 </tbody></table></div>
-<p>The marketplace said units shipped that no Vervoro shipment covers, and Vervoro deducted what the line held. Most of the time that is right: the seller bought a label in the marketplace&#39;s tools. This procedure is for the times it is not.</p>
+<p>The marketplace said units shipped that no Vervoro shipment covers, and nothing was picked or packed in Vervoro by the order&#39;s leave-by (<a href="../../order-ingestion/spec/#17-shipped-outside-vervoro">ADR-007 SPEC 17.8</a>), so Vervoro deducted what the line held. Most of the time that is right: the parcel left without being packed in Vervoro. This procedure is for the times it is not.</p>
 <h2 id="steps">Steps</h2>
 <ol>
 <li>Open the order from the digest. Ask the warehouse whether the parcel left from the shelf.</li>

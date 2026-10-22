@@ -14,7 +14,7 @@ A recall must name whom the seller supplied, and the seller needs every buyer to
 1. Open the recall list and enter the lot number from the recall notice.
 2. Block the lot at once from the list. Every batch of that lot is held in every warehouse, and its unpacked reservations move to other batches or leave lines short.
 3. Check the parcels waiting in the packing spot. A unit of a blocked lot is refused at dispatch; the packer swaps it.
-4. Download the list: the orders that received the lot, with the order id, date and buyer's country, then the lines that may have received it ("batch assumed" or "lot not traced"), then any units handed to a marketplace's warehouse.
+4. Download the list: the orders that received the lot, with the order id, date and the order's destination country, then the lines that may have received it ("batch assumed", "lot not traced" or "label unchecked"), then any units handed to a marketplace's warehouse.
 5. Contact each buyer through the marketplace's own messaging, using the order id. Contact the "may have received it" buyers too, unless the recall notice says otherwise.
 6. For the stock still on hand, write it off with the reason "recall", or return it to the supplier, as the notice says.
 7. Keep the downloaded list with the recall notice. If the lot is old, the list includes archived months.

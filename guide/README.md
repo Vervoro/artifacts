@@ -170,7 +170,9 @@ One word per concept, defined once, with the record that owns it. Where two word
 | **Import problem** | An order that cannot be read into the contract's types. Never dropped: a problem row, retried on every notice and read, its lines' units kept off the figures (ADR-007 SPEC 9) |
 | **Waiting line** | An order line whose listing is unlinked or unknown. It reserves nothing until the listing is linked or a person attaches the line to a product (ADR-006 SPEC 6, ADR-007 SPEC 14) |
 | **Short line** | A line with part of its units reserved and the rest recorded missing. It fills when stock arrives; a short order waits (ADR-006 SPEC 5.3, ADR-007 SPEC 10) |
-| **Shipped outside Vervoro** | Units the marketplace says shipped that no Vervoro shipment covers. Deducted once, in shadow too (ADR-007 SPEC 17) |
+| **Shipped outside Vervoro** | Units the marketplace says shipped that no Vervoro shipment covers. Deducted once, in shadow too. A label bought on the marketplace for an order Vervoro has not closed is "label bought", not shipped outside, unless nothing was picked or packed by leave-by (ADR-007 SPEC 17.8) |
+| **Label bought** | A marketplace's report that its own label was bought for an order Vervoro has not closed. It moves no stock; the shipment closes once the order is packed, with no dispatch notice (ADR-007 SPEC 17, ADR-014 SPEC 4) |
+| **Label unchecked** | A shipment closed by a marketplace label without the label being scanned. A recall lists it apart (ADR-014 SPEC 4, 7) |
 | **Manual order** | A phone, email or business order, or a counter sale, made in Vervoro. A draft reserves nothing; confirming reserves (ADR-007 SPEC 18) |
 | **Ship-by and leave-by** | Ship-by is the marketplace's deadline; leave-by is the warehouse's last collection cut-off at or before it, by which the picking list is sorted (ADR-007 SPEC 20) |
 | **Shipment** | One per order, possibly in several boxes. Confirming it deducts exactly what was packed for it, once (ADR-014 SPEC 4) |
@@ -225,6 +227,7 @@ One word per concept, defined once, with the record that owns it. Where two word
 | **`audit_log`** | The company's own record, in its cell, of what happened in that company, read by the seller. Append-only, never holds buyer data (ADR-010 SPEC 8) |
 | **Platform security log** | Control's record of sign-in and security events, with no buyer data and no email address (ADR-010 SPEC 8) |
 | **Field tags** | The `pii`, `secret` and `retention` tags a module puts on its columns, which drive encryption, the logger's drop, anonymisation, erasure, export and the AI mask (ADR-001 SPEC 5, ADR-009 SPEC 4) |
+| **Recipient fields** | A buyer's name, delivery address and phone. Taken from marketplaces only once Vervoro prints labels; at launch held only for manual orders (ADR-009 SPEC 4) |
 | **Anonymisation** | Clearing every `pii` field of an order 30 days after delivery, dispatch as the fallback, or at once on a buyer's erasure. An anonymised order never stores personal data again (ADR-009 SPEC 8) |
 | **Archive** | *Later.* Compressed files in object storage, one per table per company per month, for months older than 24 months; a **checkpoint** keeps the stock proof when a ledger month leaves (ADR-002) |
 
@@ -236,7 +239,7 @@ One word per concept, defined once, with the record that owns it. Where two word
 | **Hold, held, held raise** | A reason pausing an order (ADR-007); stock that is not sellable (ADR-006); a raise Stock sync keeps back (ADR-008) |
 | **Short, short-dated** | A line missing stock (ADR-006 SPEC 5); a batch too close to its date to sell (ADR-006 SPEC 4) |
 | **Paused** | An account mode (ADR-004); a membership waiting for an Owner or Admin to confirm it (ADR-010) |
-| **Restricted** | A company state (ADR-012); Amazon's restricted role for buyer data (ADR-004.2) |
+| **Restricted** | A company state (ADR-012); Amazon's restricted role for buyer data, *Later*, with shipping labels (ADR-004.2) |
 | **Audit, `audit_log`** | The production check of every database and Worker (ADR-001 SPEC 11); the company's own activity record (ADR-010) |
 | **Variant** | *Later:* an alternative provider of a port for a named company (ADR-000); a Shopify product option, which is a listing (ADR-004.3) |
 | **Lock, lockout** | The company's stock lock (ADR-006); a sign-in method locked after failures (ADR-013) |

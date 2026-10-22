@@ -597,7 +597,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </li>
 <li><p><strong><code>date_kind = use_by</code></strong> is a hard stop: <code>min_days_to_sell</code> is required and at least 1 plus the company&#39;s delivery days, and a use-by batch is never reserved, packed or dispatched on or after its date (<a href="../../stock-ledger/#decision">ADR-006</a>).</p>
 </li>
-<li><p><strong><code>tracks_lot</code> on:</strong> no stock enters without a lot, and every dispatch records which lot went to which order line, bundles included. A recall is one search from the lot to every order, buyer country and date, and to the stock still on hand, which can be blocked at once.</p>
+<li><p><strong><code>tracks_lot</code> on:</strong> no stock enters without a lot, and every dispatch records which lot went to which order line, bundles included. A recall is one search from the lot to every order, its destination country and date, and to the stock still on hand, which can be blocked at once.</p>
 </li>
 <li><p><strong>A pack follows its content product:</strong> a six-pack of a dated product is dated too. Repacking keeps the batch, date and lot.</p>
 </li>

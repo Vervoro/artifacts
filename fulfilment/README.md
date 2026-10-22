@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Status** | Proposed |
-| **Date** | 21 October 2026, split out of [ADR-006](../stock-ledger/) (decided 18 October 2026) so that each module has one record (owner ruling, 21 October 2026) |
+| **Date** | 21 October 2026, split out of [ADR-006](../stock-ledger/) (decided 18 October 2026) so that each module has one record (owner ruling, 21 October 2026); labels bought on the marketplace (owner ruling, 22 October 2026) |
 | **Scope** | The Fulfilment module: pick lists, packing that records the batch that left, shipments that carry a whole order, put-back after a cancellation, returns inspection, and the recall list |
 | **Builds on** | [ADR-000](../system-architecture/), [ADR-006](../stock-ledger/), [ADR-007](../order-ingestion/), [ADR-009](../buyer-data/), [ADR-010](../users-and-access/) |
 | **SPEC** | [The rules to build from, and how to check them](spec/) |
@@ -24,10 +24,10 @@ Parts marked *Later* keep their rules in the SPEC but are built only when their 
 2. **Picking chooses the spots.** When an order starts picking, the pick list takes each reservation from the spot of that batch with the fewest units first. Inventory records the claim, so counts allow for it. Starting to pick moves no stock. *Later: recording every pick as a move at the shelf, once the phone can queue picks offline.*
 3. **Packing records the batch of every unit.** The batch is implied when only one is eligible. Otherwise the packer taps the date or lot printed on the unit, or scans a barcode that carries it. Another eligible batch than planned may be taken without a manager. When nobody says, the line ships its reserved batch, marked "batch assumed". Packed units move, still reserved, to the packing spot.
 4. **A unit the picker cannot find leaves sale at once,** and its spot goes on the count list. A unit picked where the books do not show it is a move, and only a unit no spot holds is a find for a manager to review.
-5. **Stock leaves only when a shipment is confirmed.** One shipment carries the whole order, possibly in several boxes, and deducts exactly what was packed for it, once. A short order waits. *Later: serial numbers, recorded at packing and checked on return, when ADR-003's serial tracking is built.*
+5. **Stock leaves only when a shipment is confirmed.** One shipment carries the whole order, possibly in several boxes, and deducts exactly what was packed for it, once. A short order waits. A label bought on the marketplace closes the shipment once the order is packed, and Vervoro sends no dispatch notice for it. *Later: serial numbers, recorded at packing and checked on return, when ADR-003's serial tracking is built.*
 6. **Cancelled units go back by a task.** Units picked or packed for a confirmed cancellation are sellable again at once, and a put-back task stays open until each one is confirmed back on a shelf.
 7. **A return is held until a person inspects it.** It comes back into the batch it left from. Inspection restocks it, keeps it as damaged, or writes it off. A refund never restocks, and a restock never refunds.
-8. **The recall list joins Inventory's lot trace with the orders** that received the lot, with each buyer's country and the date. It lists the lines marked "batch assumed" separately, so the seller can reach every buyer through the marketplace.
+8. **The recall list joins Inventory's lot trace with the orders** that received the lot, with each order's destination country and the date. It lists the lines marked "batch assumed" separately, so the seller can reach every buyer through the marketplace.
 9. **Floor work belongs to the floor, and decisions to a manager.** A Warehouse user picks, packs, ships and inspects. Write-offs, a use-by restock, reversals and batch pins need a manager ([ADR-010](../users-and-access/)).
 
 ## Consequences

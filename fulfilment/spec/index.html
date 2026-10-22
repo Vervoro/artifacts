@@ -144,13 +144,14 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ol>
 <h2 id="4-shipments">4. Shipments</h2>
 <ol>
-<li><strong>One shipment per order.</strong> It carries every unit still to ship, possibly in several boxes, and names the lines, quantities, carrier and tracking.</li>
-<li><strong>Confirming it,</strong> in one transaction, keyed by the shipment id: Inventory&#39;s dispatch port deducts exactly what was packed for it; Orders records the status shipped and the outbox note for the dispatch notice through the egress gate (<a href="../../system-architecture/spec/#7-the-egress-gate">ADR-000 SPEC 7</a>). A repeat returns &quot;already confirmed&quot;.</li>
+<li><strong>One shipment per order.</strong> It carries every unit still to ship, possibly in several boxes, and names the lines, quantities, carrier and tracking. The packer chooses &quot;label on the marketplace&quot; (the default) or &quot;own carrier&quot;, which takes a carrier and tracking and sends the dispatch notice.</li>
+<li><strong>Confirming it,</strong> in one transaction, keyed by the shipment id: Inventory&#39;s dispatch port deducts exactly what was packed for it; Orders records the status shipped and, for an own-carrier shipment, the outbox note for the dispatch notice through the egress gate (<a href="../../system-architecture/spec/#7-the-egress-gate">ADR-000 SPEC 7</a>). A repeat returns &quot;already confirmed&quot;.</li>
 <li><strong>A line never ships more than it reserved,</strong> so an order with a short line waits. A bundle line ships whole sets.</li>
 <li><strong>Part shipped</strong> only when the marketplace reports part shipped outside Vervoro (<a href="../../order-ingestion/spec/#17-shipped-outside-vervoro">ADR-007</a>); the rest ships whole.</li>
 <li><strong>Dispatch without packing in Vervoro</strong> (confirmed at the bench) is allowed: Inventory packs by the dispatch itself.</li>
 <li><strong>Shipped outside Vervoro</strong> is Orders&#39; import calling Inventory directly; Fulfilment shows the task asking which lot left, and a manager may reverse it (&quot;Not from our stock&quot;).</li>
 <li>Sellable does not change on dispatch, so it sends Stock sync no note.</li>
+<li><strong>A label bought on the marketplace</strong> (owner ruling, 22 October 2026). The shipment closes when both have happened, in either order: the order is packed in Vervoro, and the marketplace has reported its label (<a href="../../order-ingestion/spec/#17-shipped-outside-vervoro">ADR-007 SPEC 17.8</a>). It deducts exactly what was packed, line by line, with its batches, and sends no dispatch notice. The packer scans the label by default; the scan opens the label&#39;s own order, so the goods packed are the label&#39;s. A shipment closed without a scan is marked &quot;label unchecked&quot;. A voided label leaves the order &quot;label bought&quot;; the next report replaces the tracking.</li>
 </ol>
 <h2 id="5-cancellations-on-the-floor">5. Cancellations on the floor</h2>
 <ol>
@@ -168,8 +169,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ol>
 <h2 id="7-the-recall-list">7. The recall list</h2>
 <ol>
-<li>From a lot number, Inventory&#39;s lot trace gives the demands that received it (<a href="../../stock-ledger/spec/#10-lot-trace-and-recalls">ADR-006 SPEC 10</a>). Fulfilment joins each with its order: the order id, the date and the buyer&#39;s country, never the buyer&#39;s name or address (<a href="../../buyer-data/spec/#1-who-does-what">ADR-009 SPEC 1</a>).</li>
-<li>The lines that may have received it, as the lot trace defines them (<a href="../../stock-ledger/spec/#10-lot-trace-and-recalls">ADR-006 SPEC 10.1</a>), are listed apart.</li>
+<li>From a lot number, Inventory&#39;s lot trace gives the demands that received it (<a href="../../stock-ledger/spec/#10-lot-trace-and-recalls">ADR-006 SPEC 10</a>). Fulfilment joins each with its order: the order id, the date and the order&#39;s destination country (<a href="../../order-ingestion/spec/#5-the-order-and-its-lines">ADR-007 SPEC 5</a>), never the buyer&#39;s name or address.</li>
+<li>The lines that may have received it, as the lot trace defines them (<a href="../../stock-ledger/spec/#10-lot-trace-and-recalls">ADR-006 SPEC 10.1</a>), are listed apart, and so are lines shipped &quot;label unchecked&quot; (section 4.8).</li>
 <li>The stock of that lot on hand is shown per warehouse, with a button to block the lot (a manager).</li>
 <li>The seller reaches buyers through the marketplace&#39;s own messaging, with the order id. Procedure: <a href="../../runbooks/run-a-recall/">Run a recall</a>.</li>
 </ol>
@@ -239,6 +240,10 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>A bundle line ships whole sets only</td>
 </tr>
 <tr>
+<td>Marketplace label</td>
+<td>Packing then the label report, or the report then packing, closes one shipment that deducts what was packed and writes no dispatch notice; an unscanned close is marked &quot;label unchecked&quot;</td>
+</tr>
+<tr>
 <td>Put-back</td>
 <td>A confirmed cancellation of picked or packed units leaves a put-back task open until each unit is confirmed</td>
 </tr>
@@ -262,7 +267,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><input disabled="" type="checkbox"> <strong>One transaction:</strong> each floor command writes its row and calls the ports inside one transaction with its key.</li>
 <li><input disabled="" type="checkbox"> <strong>Packing:</strong> the batch rule (implied, tap, scan) is one function; there is no path that packs without naming a batch or marking &quot;batch assumed&quot;.</li>
 <li><input disabled="" type="checkbox"> <strong>Shipment:</strong> one shipment per order; the confirm command refuses an order with a short or waiting line.</li>
-<li><input disabled="" type="checkbox"> <strong>Recall:</strong> the query reads Buyer data&#39;s country only; no name or address field is selected.</li>
+<li><input disabled="" type="checkbox"> <strong>Recall:</strong> the query reads the order&#39;s country; it selects no Buyer data field.</li>
 <li><input disabled="" type="checkbox"> <strong>No outside call</strong> in a transaction; the dispatch notice goes through the egress gate after commit.</li>
 <li><input disabled="" type="checkbox"> <strong>Later parts:</strong> no serial field, no marketplace-warehouse handover and no Vendor shipment at launch.</li>
 </ul>

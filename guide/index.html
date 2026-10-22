@@ -516,7 +516,15 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Shipped outside Vervoro</strong></td>
-<td>Units the marketplace says shipped that no Vervoro shipment covers. Deducted once, in shadow too (ADR-007 SPEC 17)</td>
+<td>Units the marketplace says shipped that no Vervoro shipment covers. Deducted once, in shadow too. A label bought on the marketplace for an order Vervoro has not closed is &quot;label bought&quot;, not shipped outside, unless nothing was picked or packed by leave-by (ADR-007 SPEC 17.8)</td>
+</tr>
+<tr>
+<td><strong>Label bought</strong></td>
+<td>A marketplace&#39;s report that its own label was bought for an order Vervoro has not closed. It moves no stock; the shipment closes once the order is packed, with no dispatch notice (ADR-007 SPEC 17, ADR-014 SPEC 4)</td>
+</tr>
+<tr>
+<td><strong>Label unchecked</strong></td>
+<td>A shipment closed by a marketplace label without the label being scanned. A recall lists it apart (ADR-014 SPEC 4, 7)</td>
 </tr>
 <tr>
 <td><strong>Manual order</strong></td>
@@ -691,6 +699,10 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>The <code>pii</code>, <code>secret</code> and <code>retention</code> tags a module puts on its columns, which drive encryption, the logger&#39;s drop, anonymisation, erasure, export and the AI mask (ADR-001 SPEC 5, ADR-009 SPEC 4)</td>
 </tr>
 <tr>
+<td><strong>Recipient fields</strong></td>
+<td>A buyer&#39;s name, delivery address and phone. Taken from marketplaces only once Vervoro prints labels; at launch held only for manual orders (ADR-009 SPEC 4)</td>
+</tr>
+<tr>
 <td><strong>Anonymisation</strong></td>
 <td>Clearing every <code>pii</code> field of an order 30 days after delivery, dispatch as the fallback, or at once on a buyer&#39;s erasure. An anonymised order never stores personal data again (ADR-009 SPEC 8)</td>
 </tr>
@@ -725,7 +737,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Restricted</strong></td>
-<td>A company state (ADR-012); Amazon&#39;s restricted role for buyer data (ADR-004.2)</td>
+<td>A company state (ADR-012); Amazon&#39;s restricted role for buyer data, <em>Later</em>, with shipping labels (ADR-004.2)</td>
 </tr>
 <tr>
 <td><strong>Audit, <code>audit_log</code></strong></td>

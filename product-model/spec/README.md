@@ -233,7 +233,7 @@ Batches, dates and lots live on stock ([ADR-006](../../stock-ledger/spec/#4-date
 
 1. **`tracks_best_before` on:** no stock enters (receiving, a count that finds stock, a return) without a date. Expired stock is never sellable or reserved. Stock with fewer than `min_days_to_sell` days left is held back from sale but stays on hand. Stock arriving with fewer than `min_days_on_receipt` days left needs a manager to accept it.
 2. **`date_kind = use_by`** is a hard stop: `min_days_to_sell` is required and at least 1 plus the company's delivery days, and a use-by batch is never reserved, packed or dispatched on or after its date ([ADR-006](../../stock-ledger/#decision)).
-3. **`tracks_lot` on:** no stock enters without a lot, and every dispatch records which lot went to which order line, bundles included. A recall is one search from the lot to every order, buyer country and date, and to the stock still on hand, which can be blocked at once.
+3. **`tracks_lot` on:** no stock enters without a lot, and every dispatch records which lot went to which order line, bundles included. A recall is one search from the lot to every order, its destination country and date, and to the stock still on hand, which can be blocked at once.
 4. **A pack follows its content product:** a six-pack of a dated product is dated too. Repacking keeps the batch, date and lot.
 5. **Switching on while stock is on hand** flags that stock for a count to fill in the dates or lots. Until then it stays sellable, shown as missing them, except under use-by: undated use-by stock is held until its date is entered ([ADR-006 SPEC 4.4](../../stock-ledger/spec/#4-dates-blocks-and-the-date-pass)).
 6. A company setting gives new products their defaults, so a food seller starts with both on.

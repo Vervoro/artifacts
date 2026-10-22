@@ -106,6 +106,11 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>ADR-004.4 is written</td>
 <td>None here</td>
 </tr>
+<tr>
+<td>The Direct-to-Consumer Shipping (Restricted) role: name, address, phone, gift message and customisation for seller-shipped orders</td>
+<td>Shipping labels in Vervoro; the application is sent once ADR-009&#39;s security controls are evidenced (owner ruling, 22 October 2026)</td>
+<td><a href="#8-buyer-data">8</a></td>
+</tr>
 </tbody></table></div>
 <h2 id="1-connecting-and-renewing">1. Connecting and renewing</h2>
 <ol>
@@ -203,6 +208,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Role:</strong> Product Listing or Amazon Fulfillment, neither restricted; Product Listing is already asked for.</li>
 </ol>
 <h2 id="8-buyer-data">8. Buyer data</h2>
+<p><em>Later</em>, with the role (section 0). At launch an Amazon order brings no recipient, gift message or customisation; the gift flag, where Amazon sends it without the role, tells the packer to print the message from Seller Central (<a href="../../channel-connectors/spec/#1-the-connector-contract">ADR-004 SPEC 1</a>).</p>
 <ol>
 <li><strong>The restricted role</strong> releases names, addresses and phones only for orders the seller ships, while unshipped or shipped.</li>
 <li><strong>Only what is needed to ship:</strong> name, address, phone, gift message. What Amazon withholds or masks is left out, never stored blank, so it never erases an earlier value.</li>
@@ -333,7 +339,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><input disabled="" type="checkbox"> <strong>No AWS credentials</strong> in any Worker; nothing reads SQS in production.</li>
 <li><input disabled="" type="checkbox"> <strong>Accepted:</strong> no code path marks an Amazon write applied without a read or notice.</li>
 <li><input disabled="" type="checkbox"> <strong>Amazon ships:</strong> the write path refuses a fulfilled-by-Amazon SKU.</li>
-<li><input disabled="" type="checkbox"> <strong>Buyer data:</strong> restricted fields read only under the restricted role and only for seller-shipped orders.</li>
+<li><input disabled="" type="checkbox"> <strong>Buyer data:</strong> no restricted role is asked for at launch; no recipient field reaches Orders.</li>
 <li><input disabled="" type="checkbox"> <strong>Held stock:</strong> the reading lives beside the ledger and is never summed into it.</li>
 <li><input disabled="" type="checkbox"> <strong>Later parts:</strong> no feed path at launch.</li>
 </ul>

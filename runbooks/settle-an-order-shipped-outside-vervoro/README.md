@@ -7,7 +7,7 @@
 | **Who runs it** | The seller's Manager, from the daily digest, or when an order is held "step undone" |
 | **Role or credential** | Vervoro as Manager or above. Tapping the lot that left can be done by anyone in the warehouse |
 
-The marketplace said units shipped that no Vervoro shipment covers, and Vervoro deducted what the line held. Most of the time that is right: the seller bought a label in the marketplace's tools. This procedure is for the times it is not.
+The marketplace said units shipped that no Vervoro shipment covers, and nothing was picked or packed in Vervoro by the order's leave-by ([ADR-007 SPEC 17.8](../../order-ingestion/spec/#17-shipped-outside-vervoro)), so Vervoro deducted what the line held. Most of the time that is right: the parcel left without being packed in Vervoro. This procedure is for the times it is not.
 
 ## Steps
 

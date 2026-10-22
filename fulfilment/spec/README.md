@@ -46,13 +46,14 @@ Packing (ADR-007's "packed") is a server command, keyed by the packing id. For e
 
 ## 4. Shipments
 
-1. **One shipment per order.** It carries every unit still to ship, possibly in several boxes, and names the lines, quantities, carrier and tracking.
-2. **Confirming it,** in one transaction, keyed by the shipment id: Inventory's dispatch port deducts exactly what was packed for it; Orders records the status shipped and the outbox note for the dispatch notice through the egress gate ([ADR-000 SPEC 7](../../system-architecture/spec/#7-the-egress-gate)). A repeat returns "already confirmed".
+1. **One shipment per order.** It carries every unit still to ship, possibly in several boxes, and names the lines, quantities, carrier and tracking. The packer chooses "label on the marketplace" (the default) or "own carrier", which takes a carrier and tracking and sends the dispatch notice.
+2. **Confirming it,** in one transaction, keyed by the shipment id: Inventory's dispatch port deducts exactly what was packed for it; Orders records the status shipped and, for an own-carrier shipment, the outbox note for the dispatch notice through the egress gate ([ADR-000 SPEC 7](../../system-architecture/spec/#7-the-egress-gate)). A repeat returns "already confirmed".
 3. **A line never ships more than it reserved,** so an order with a short line waits. A bundle line ships whole sets.
 4. **Part shipped** only when the marketplace reports part shipped outside Vervoro ([ADR-007](../../order-ingestion/spec/#17-shipped-outside-vervoro)); the rest ships whole.
 5. **Dispatch without packing in Vervoro** (confirmed at the bench) is allowed: Inventory packs by the dispatch itself.
 6. **Shipped outside Vervoro** is Orders' import calling Inventory directly; Fulfilment shows the task asking which lot left, and a manager may reverse it ("Not from our stock").
 7. Sellable does not change on dispatch, so it sends Stock sync no note.
+8. **A label bought on the marketplace** (owner ruling, 22 October 2026). The shipment closes when both have happened, in either order: the order is packed in Vervoro, and the marketplace has reported its label ([ADR-007 SPEC 17.8](../../order-ingestion/spec/#17-shipped-outside-vervoro)). It deducts exactly what was packed, line by line, with its batches, and sends no dispatch notice. The packer scans the label by default; the scan opens the label's own order, so the goods packed are the label's. A shipment closed without a scan is marked "label unchecked". A voided label leaves the order "label bought"; the next report replaces the tracking.
 
 ## 5. Cancellations on the floor
 
@@ -70,8 +71,8 @@ Packing (ADR-007's "packed") is a server command, keyed by the packing id. For e
 
 ## 7. The recall list
 
-1. From a lot number, Inventory's lot trace gives the demands that received it ([ADR-006 SPEC 10](../../stock-ledger/spec/#10-lot-trace-and-recalls)). Fulfilment joins each with its order: the order id, the date and the buyer's country, never the buyer's name or address ([ADR-009 SPEC 1](../../buyer-data/spec/#1-who-does-what)).
-2. The lines that may have received it, as the lot trace defines them ([ADR-006 SPEC 10.1](../../stock-ledger/spec/#10-lot-trace-and-recalls)), are listed apart.
+1. From a lot number, Inventory's lot trace gives the demands that received it ([ADR-006 SPEC 10](../../stock-ledger/spec/#10-lot-trace-and-recalls)). Fulfilment joins each with its order: the order id, the date and the order's destination country ([ADR-007 SPEC 5](../../order-ingestion/spec/#5-the-order-and-its-lines)), never the buyer's name or address.
+2. The lines that may have received it, as the lot trace defines them ([ADR-006 SPEC 10.1](../../stock-ledger/spec/#10-lot-trace-and-recalls)), are listed apart, and so are lines shipped "label unchecked" (section 4.8).
 3. The stock of that lot on hand is shown per warehouse, with a button to block the lot (a manager).
 4. The seller reaches buyers through the marketplace's own messaging, with the order id. Procedure: [Run a recall](../../runbooks/run-a-recall/).
 
@@ -98,6 +99,7 @@ Database tests run on real Postgres under the runtime role ([ADR-000 SPEC 15](..
 | Use-by | A use-by unit on or after its date, or of a blocked lot, is refused at packing and at dispatch |
 | Shipment | A shipment deducts only what was packed for it and carries every unit still to ship; an order with a short line cannot ship; confirming twice deducts once |
 | Whole sets | A bundle line ships whole sets only |
+| Marketplace label | Packing then the label report, or the report then packing, closes one shipment that deducts what was packed and writes no dispatch notice; an unscanned close is marked "label unchecked" |
 | Put-back | A confirmed cancellation of picked or packed units leaves a put-back task open until each unit is confirmed |
 | Returns | A return enters held, into a batch the line dispatched, at most what it dispatched; inspection outcomes write the right entries |
 | Recall | The list includes bundles and lists "batch assumed" lines apart; it shows no buyer name or address |
@@ -111,6 +113,6 @@ For someone reviewing code an AI wrote. Each line says where to look.
 - [ ] **One transaction:** each floor command writes its row and calls the ports inside one transaction with its key.
 - [ ] **Packing:** the batch rule (implied, tap, scan) is one function; there is no path that packs without naming a batch or marking "batch assumed".
 - [ ] **Shipment:** one shipment per order; the confirm command refuses an order with a short or waiting line.
-- [ ] **Recall:** the query reads Buyer data's country only; no name or address field is selected.
+- [ ] **Recall:** the query reads the order's country; it selects no Buyer data field.
 - [ ] **No outside call** in a transaction; the dispatch notice goes through the egress gate after commit.
 - [ ] **Later parts:** no serial field, no marketplace-warehouse handover and no Vendor shipment at launch.
