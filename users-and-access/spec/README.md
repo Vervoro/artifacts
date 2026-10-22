@@ -144,7 +144,7 @@ While a company is restricted or closed, [ADR-012 SPEC 8](../../billing-and-plan
 **Sign-up:**
 
 1. The person enters their email address on the sign-in Worker's page and passes the bot check; a link valid for 24 hours proves the address.
-2. The sign-in Worker creates the login, a Better Auth user, with its first sign-in method: a passkey, or a password with a confirmed authenticator and its backup codes ([ADR-013 SPEC 3](../../sign-in/spec/#3-sign-in-methods)). The login exists before the company does.
+2. The sign-in Worker creates the login, a Better Auth user, with a password, a confirmed authenticator and its backup codes, then offers a passkey ([ADR-013 SPEC 3](../../sign-in/spec/#3-sign-in-methods), owner ruling, 22 October 2026). The login exists before the company does.
 3. The person names their company. One cell transaction in the newest open shared cell opens the company as a trial and writes its member row (Owner) and an outbox note; then control gets the registry row and the membership ([ADR-001 SPEC 8](../../database-architecture/spec/#adding-a-company)). A failed control write is repaired from the outbox.
 4. An address that is already a login makes no second login: the person signs in, and the new company becomes another membership.
 5. **The sign-up route is a bootstrap route, not a company route** (owner ruling, 22 October 2026). Access owns `/api/access/sign-up-company`, mounted from Access's manifest in its own pre-company context: no company is entered and no company id is faked or bypassed. It accepts only a signed-in login, and does exactly step 3 through `app.open_tenant` (the company, its first Owner member row and the outbox note), then nothing else. The sign-in Worker never touches a cell.

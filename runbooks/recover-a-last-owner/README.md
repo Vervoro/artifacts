@@ -15,7 +15,7 @@ Use it only for a company's last Owner who has lost every sign-in method and eve
 2. The Owner approves Vervoro again on one of the company's connected marketplace accounts. It must return the seller account the company already holds in the external directory. The approval's tokens are discarded at once; the live connection is not touched.
 3. The 72-hour wait starts in the sign-in Worker. Every member of the company is told by email.
 4. If an Owner or Admin objects, stop and pass it to Vervoro's owner.
-5. After 72 hours, the sign-in Worker removes every old method and session of that login through Better Auth, and the Owner sets up new methods from a one-time link, a passkey first.
+5. After 72 hours, the sign-in Worker removes every old method and session of that login through Better Auth, and the Owner sets up new methods from a one-time link: a password and an authenticator, then a passkey if the device can hold one.
 
 A company with no connected marketplace is a trial: the person signs up again. Any other case goes to Vervoro's owner, decided on documents.
 

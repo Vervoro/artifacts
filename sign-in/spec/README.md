@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-013: Sign-in](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-013-sign-in) |
-| **Date** | 21 October 2026; Better Auth replaces the in-house engine, owner approval of 21 October 2026; owner rulings on sessions, email and the passkey fallback the same day; amended by owner ruling: the sign-in mail provider chosen by configuration, 22 October 2026 |
+| **Date** | 21 October 2026; Better Auth replaces the in-house engine, owner approval of 21 October 2026; owner rulings on sessions, email and the passkey fallback the same day; amended by owner rulings: the sign-in mail provider chosen by configuration, and sign-up with a password first, 22 October 2026 |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-013 from. The record decides; this page says exactly how. Where this page and the ADR disagree, the ADR wins and this page is fixed. Who may do what once signed in is [ADR-010](../../users-and-access/spec/). The words used are defined in the [map and glossary](../../guide/).
@@ -29,7 +29,7 @@ Better Auth is exact-pinned with its plugins (the candidate is 1.7.12, the lates
 | Feature | Setting | Why |
 | --- | --- | --- |
 | Email and password | On, with `requireEmailVerification`, `minPasswordLength` 12, `maxPasswordLength` 128, `revokeSessionsOnPasswordReset`, `autoSignIn` only after a proved address | The fallback; the policy layer adds Amazon's rules ([section 4](#4-password-policy)) |
-| Passkey plugin | On: `rpID` and `origin` set explicitly to the app's address, `authenticatorSelection.userVerification: "required"`, `registration.requireSession: false` with `resolveUser` for passkey-first sign-up | The default method |
+| Passkey plugin | On: `rpID` and `origin` set explicitly to the app's address, `authenticatorSelection.userVerification: "required"`, registration only from a signed-in session (`registration.requireSession` left on), so no `resolveUser` | The default way to sign in, added after sign-up (owner ruling, 22 October 2026) |
 | Two-factor plugin | On: TOTP (6 digits, 30-second steps), backup codes stored encrypted (its default), `accountLockout` 10 failures for 30 minutes, `skipVerificationOnEnable` off | The password's second factor |
 | Captcha plugin | On, Turnstile, on `/sign-up/email`, `/sign-in/email` and `/request-password-reset` | The bot check before any password is hashed |
 | Breached-password plugin | On, on sign-up, change and reset | Refuses known breached passwords |
@@ -67,13 +67,13 @@ Better Auth is exact-pinned with its plugins (the candidate is 1.7.12, the lates
 
 ## 3. Sign-in methods
 
-Every person has a passkey, or a password with an authenticator app, or both.
+Every person signs up with a password and an authenticator app, and may add passkeys. Operators have passkeys only ([section 10](#10-operators)).
 
 **Passkeys:**
 
 1. The fingerprint, face or PIN check is required at registration and at every sign-in ([section 1](#1-better-auth-and-what-is-switched-on), conflict 1). A response for another site or origin, or with a used challenge, is refused by Better Auth. No attestation.
 2. Synced passkeys are accepted. Only the public key is stored.
-3. Sign-up and every invitation start with creating a passkey; "use a password instead" is a smaller link below it. After a password sign-in on a device that can hold a passkey, the sign-in page offers one.
+3. Sign-up and every invitation start with a password and an authenticator app. Right after, on a device that can hold a passkey, the page offers to create one ("Add a passkey"; it can be skipped). The sign-in page leads with "Sign in with a passkey"; email and password is the smaller choice below it. After a password sign-in on a device that can hold a passkey and has none for this login, the page offers one (owner ruling, 22 October 2026).
 4. On a phone with a passkey, signing in needs no email address. A laptop without one uses the phone through the browser's cross-device sign-in, or the password and code.
 5. Passkey sign-in is not challenged for a code: with the check it counts as both factors, the device held and the fingerprint, face or PIN (NIST SP 800-63B). Amazon's text neither accepts nor refuses passkeys: its policy says only "Multi-Factor Authentication", and its guidance approves TOTP, hardware tokens and biometrics. The operator asks Amazon through a developer support case and files the answer here. **If Amazon says no** (owner ruling, 21 October 2026): every login must also confirm an authenticator, and an `after` hook on passkey sign-in turns the session into a code challenge, as Better Auth's documentation advises for methods it does not challenge itself. Nothing else changes.
 
@@ -261,7 +261,7 @@ Database tests run on real Postgres ([ADR-000 SPEC 15](../../system-architecture
 | --- | --- |
 | Passkeys | Enrolment; sign-in; a response without the user-verified flag is refused; a replayed response is refused; another site name or origin is refused |
 | Password and code | Password alone gives no full session; with a correct code, accepted; with a wrong code, refused; a code used twice is refused, also when two requests race (conflict 3); a backup code works once and leaves a setup-only session; "trust this device" is refused; a password login without a confirmed authenticator is setup-only |
-| Enrolment | An invited person sets up a passkey, or a password and authenticator, only through their own link |
+| Enrolment | An invited person sets up a password and authenticator only through their own link, then is offered a passkey; a passkey cannot be registered without a signed-in session |
 | Password rules | Each rule of section 4; the last 10 passwords refused on change and on reset; a failed change leaves password and history unchanged; a passkey-only login has none |
 | Sessions | Expired and revoked sessions are refused; every session ends at 24 hours; a session is never extended; the fresh check is refused after 5 minutes and cannot come from the app |
 | Hand-off to ADR-010 | A valid sign-in with no membership reaches no company; removal from a company stops the next request there; one company's actions never change another company's access |
