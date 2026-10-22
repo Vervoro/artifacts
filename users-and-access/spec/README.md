@@ -146,11 +146,12 @@ While a company is restricted or closed, [ADR-012 SPEC 8](../../billing-and-plan
 2. The sign-in Worker creates the login, a Better Auth user, with its first sign-in method: a passkey, or a password with a confirmed authenticator and its backup codes ([ADR-013 SPEC 3](../../sign-in/spec/#3-sign-in-methods)). The login exists before the company does.
 3. The person names their company. One cell transaction in the newest open shared cell opens the company as a trial and writes its member row (Owner) and an outbox note; then control gets the registry row and the membership ([ADR-001 SPEC 8](../../database-architecture/spec/#adding-a-company)). A failed control write is repaired from the outbox.
 4. An address that is already a login makes no second login: the person signs in, and the new company becomes another membership.
+5. **The sign-up route is a bootstrap route, not a company route** (owner ruling, 22 October 2026). Access owns `/api/access/sign-up-company`, mounted from Access's manifest in its own pre-company context: no company is entered and no company id is faked or bypassed. It accepts only a signed-in login, and does exactly step 3 through `app.open_tenant` (the company, its first Owner member row and the outbox note), then nothing else. The sign-in Worker never touches a cell.
 
 **Invitations:**
 
 1. An Owner, or an Admin for roles below Admin, invites by the person's own email address, with a role and, where it applies, a scope.
-2. The link is single-use, valid for 7 days, and works only for the address it names. Accepting proves the address. A person who already has a login joins only if the email address in their `session` answer ([ADR-013 SPEC 5](../../sign-in/spec/#5-sessions)) matches the invitation's, compared case-insensitively; otherwise acceptance is refused (owner ruling, 22 October 2026).
+2. The link is single-use, valid for 7 days, and works only for the address it names. Accepting proves the address. A person who already has a login joins only if the sign-in Worker's `matchesAddress` call ([ADR-013 SPEC 8](../../sign-in/spec/#8-the-sign-in-worker)) answers yes for the invitation's address; otherwise acceptance is refused. Access still learns only the login id (owner ruling, 22 October 2026).
 3. A new person sets up sign-in on their own device, from a one-time link the app gets from the sign-in Worker's `enrol` call; a person with a login signs in, and the company joins their memberships.
 4. An invitation can be withdrawn until accepted. Acceptance, expiry and withdrawal are logged. An invitation used, withdrawn or expired is deleted 30 days later; the audit log keeps the event (owner ruling, 22 October 2026).
 
