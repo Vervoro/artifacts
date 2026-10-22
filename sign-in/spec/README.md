@@ -190,7 +190,7 @@ No sign-in page takes a web address to return to; return targets are names of th
 | `revoke(login ids, or everyone)` | Ends sessions |
 | `matchesAddress(cookie, address)` | Whether the signed-in login's email address is this address, compared case-insensitively: a yes or no only, so the app never learns the login's address; used when a person with a login accepts an invitation ([ADR-010 SPEC 6](../../users-and-access/spec/#6-invitations-sign-up-and-removal)) (owner ruling, 22 October 2026) |
 | `setEmail(login, address)` | After the app has proved a new address ([ADR-010 SPEC 2](../../users-and-access/spec/#2-logins-and-member-rows)) |
-| `setName(login, name)` | When the person corrects their own name ([ADR-010 SPEC 2](../../users-and-access/spec/#2-logins-and-member-rows)) (owner ruling, 22 October 2026) |
+| `setName(login, name)` | When the person corrects their own name, 2 to 70 characters once trimmed ([ADR-010 SPEC 2](../../users-and-access/spec/#2-logins-and-member-rows)) (owner rulings, 22 October 2026) |
 | `export(login)` | From the operator console, for a person's own data request: the login's email address, name, sign-in methods without secrets, sessions with network address and browser, and security events ([runbook](../../runbooks/answer-a-sellers-data-request/)) (owner ruling, 22 October 2026) |
 | `incident(command)` | [Section 11](#11-incident-commands) |
 
