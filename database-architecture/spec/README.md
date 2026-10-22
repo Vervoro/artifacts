@@ -175,7 +175,7 @@ It also fails on:
 10. `app.company()` not `STABLE` and `PARALLEL SAFE`, or labelled `SECURITY DEFINER`;
 11. an extension that runs SQL given as text, such as `dblink`. The runtime role still able to execute a function in [section 4](#4-functions)'s list, or to read `pg_stats`, is a **warning**, not a failure, where the platform refused the revoke (owner ruling, 21 October 2026).
 
-Named exceptions: the `tenant` table, keyed by its own `id`; the definer owner's read policies on `due` and `buyer_ref`; and each cell's migration ledger, which is the owner's alone, in its own schema, with no grants (owner ruling, 21 October 2026).
+Named exceptions: the `tenant` table, keyed by its own `id`; the definer owner's read policies on `due` and `buyer_ref`; and each cell's migration ledger, which is the owner's alone, in its own schema, with no grants (owner ruling, 21 October 2026). The two views of the `pg_stat_statements` extension, `public.pg_stat_statements` and `public.pg_stat_statements_info`, by name: Neon's admin role owns them, so they cannot be made `security_invoker`. They read no table, only the statistics function, which shows each login its own statements with constants replaced; the lint fails if either view comes to depend on a table (owner ruling, 22 October 2026).
 
 ## 7. Control database and routing
 
