@@ -47,6 +47,8 @@ The published list names each provider, what it does and where. A change is anno
 | Email delivery provider, not yet chosen | Mail to the seller's users other than sign-in | None: mail names an order, never a buyer. It receives the user's own address |
 | AI provider | Answers the seller's users' questions | None: buyer fields are masked before any call |
 
+Staging holds synthetic data only ([ADR-001 SPEC 3](../../database-architecture/spec/#3-roles)), so a provider used only on staging is not a sub-processor and is not listed: staging's sign-in mail may go through Resend ([ADR-013 SPEC 8](../../sign-in/spec/#8-the-sign-in-worker), owner ruling, 22 October 2026).
+
 ## 4. What is kept
 
 Each field only for its purpose, and only from the marketplaces that send it. Until Vervoro prints labels, the recipient's name, address and phone have no purpose for a marketplace order, so no connector hands them over ([ADR-004 SPEC 1](../../channel-connectors/spec/#1-the-connector-contract), owner ruling, 22 October 2026).
