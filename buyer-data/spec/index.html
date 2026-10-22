@@ -146,7 +146,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </thead>
 <tbody><tr>
 <td>Cloudflare</td>
-<td>Runs the application in the EU; queues and Durable Objects in the EU jurisdiction carrying ids only; object storage; Email Service for sign-in mail (<a href="../../system-architecture/spec/#10-runtime">ADR-000 SPEC 10</a>). Requests pass through its global network</td>
+<td>Runs the application in the EU; queues and Durable Objects in the EU jurisdiction carrying ids only; object storage (<a href="../../system-architecture/spec/#10-runtime">ADR-000 SPEC 10</a>); Email Service for sign-in mail and the app&#39;s mail to the seller&#39;s users, which names an order, never a buyer, and receives only the user&#39;s own address (<a href="../../sign-in/spec/#8-the-sign-in-worker">ADR-013 SPEC 8</a>; owner ruling, 23 October 2026). Requests pass through its global network</td>
 <td>All of it while serving requests; label files at rest</td>
 </tr>
 <tr>
@@ -160,17 +160,12 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Amazon&#39;s order notices, which carry a destination postcode and no name or address; nothing stored beyond the queue&#39;s own retries</td>
 </tr>
 <tr>
-<td>Email delivery provider, not yet chosen</td>
-<td>Mail to the seller&#39;s users other than sign-in</td>
-<td>None: mail names an order, never a buyer. It receives the user&#39;s own address</td>
-</tr>
-<tr>
 <td>AI provider</td>
 <td>Answers the seller&#39;s users&#39; questions</td>
 <td>None: buyer fields are masked before any call</td>
 </tr>
 </tbody></table></div>
-<p>Staging holds synthetic data only (<a href="../../database-architecture/spec/#3-roles">ADR-001 SPEC 3</a>), so a provider used only on staging is not a sub-processor and is not listed: staging&#39;s sign-in mail may go through Resend (<a href="../../sign-in/spec/#8-the-sign-in-worker">ADR-013 SPEC 8</a>, owner ruling, 22 October 2026).</p>
+<p>Staging holds synthetic data only (<a href="../../database-architecture/spec/#3-roles">ADR-001 SPEC 3</a>), so a provider used only on staging is not a sub-processor and is not listed: staging&#39;s sign-in mail and the app&#39;s mail may go through Resend (<a href="../../sign-in/spec/#8-the-sign-in-worker">ADR-013 SPEC 8</a>, owner ruling, 22 October 2026).</p>
 <h2 id="4-what-is-kept">4. What is kept</h2>
 <p>Each field only for its purpose, and only from the marketplaces that send it. Until Vervoro prints labels, the recipient&#39;s name, address and phone have no purpose for a marketplace order, so no connector hands them over (<a href="../../channel-connectors/spec/#1-the-connector-contract">ADR-004 SPEC 1</a>, owner ruling, 22 October 2026).</p>
 <div class="table-wrap"><table>
@@ -557,7 +552,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p>Not buyer data: Vervoro is its controller, under its privacy notice. Listed here so one record shows every place personal data lives.</p>
 <ol>
 <li><strong>What:</strong> each login&#39;s email address and name, password hash, authenticator secret, backup codes, passkey public keys, sessions with network address and browser, password history, and a sign-up link&#39;s email address and network address until it is used (<a href="../../sign-in/spec/#2-the-login-and-its-data">ADR-013 SPEC 2</a>). The email address is stored readable, because Better Auth signs people in and mails them by it.</li>
-<li><strong>Where:</strong> the control database&#39;s <code>auth</code> and <code>auth_policy</code> schemas, in the EU. No third-party identity provider owns or acts as the system of record for Vervoro user identities or email addresses. Authentication data remains in Vervoro-controlled infrastructure. Sign-in mail goes through Cloudflare&#39;s Email Service, which receives an address only to deliver that email; any other email provider would too (open item in the ADR).</li>
+<li><strong>Where:</strong> the control database&#39;s <code>auth</code> and <code>auth_policy</code> schemas, in the EU. No third-party identity provider owns or acts as the system of record for Vervoro user identities or email addresses. Authentication data remains in Vervoro-controlled infrastructure. Sign-in mail and the app&#39;s mail to the seller&#39;s users go through Cloudflare&#39;s Email Service, which receives an address only to deliver that email (owner ruling, 23 October 2026).</li>
 <li><strong>Who:</strong> only the sign-in Worker, through the sign-in role. The owner role only in an emergency (<a href="../../runbooks/use-the-owner-role/">runbook</a>). Passwords, codes, secrets and tokens are never logged.</li>
 <li><strong>Protection:</strong> TLS, storage encryption, authenticator secrets and backup codes also encrypted under the sign-in Worker&#39;s secret, every sign-in event in the security log.</li>
 <li><strong>Retention:</strong> sessions deleted at most 30 days after they end (<a href="../../sign-in/spec/#2-the-login-and-its-data">ADR-013 SPEC 2</a>); a sign-up link once used, or 24 hours after it was sent, by the sign-in Worker&#39;s hourly sweep; a login with no membership deleted after 30 days with its address and name (<a href="../../users-and-access/spec/#6-invitations-sign-up-and-removal">ADR-010 SPEC 6</a>); control&#39;s backups hold it until they expire, within 30 days. A user&#39;s own request: <a href="../../runbooks/answer-a-sellers-data-request/">Answer a seller&#39;s data request</a>.</li>

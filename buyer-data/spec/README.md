@@ -41,13 +41,12 @@ The published list names each provider, what it does and where. A change is anno
 
 | Sub-processor | What it does | Buyer data it handles |
 | --- | --- | --- |
-| Cloudflare | Runs the application in the EU; queues and Durable Objects in the EU jurisdiction carrying ids only; object storage; Email Service for sign-in mail ([ADR-000 SPEC 10](../../system-architecture/spec/#10-runtime)). Requests pass through its global network | All of it while serving requests; label files at rest |
+| Cloudflare | Runs the application in the EU; queues and Durable Objects in the EU jurisdiction carrying ids only; object storage ([ADR-000 SPEC 10](../../system-architecture/spec/#10-runtime)); Email Service for sign-in mail and the app's mail to the seller's users, which names an order, never a buyer, and receives only the user's own address ([ADR-013 SPEC 8](../../sign-in/spec/#8-the-sign-in-worker); owner ruling, 23 October 2026). Requests pass through its global network | All of it while serving requests; label files at rest |
 | Neon | Runs the Postgres databases in the EU | All of it, at rest, encrypted field by field |
 | Amazon Web Services | The notice bridge, in an EU region ([ADR-004.2](../../amazon-seller-connector/)) | Amazon's order notices, which carry a destination postcode and no name or address; nothing stored beyond the queue's own retries |
-| Email delivery provider, not yet chosen | Mail to the seller's users other than sign-in | None: mail names an order, never a buyer. It receives the user's own address |
 | AI provider | Answers the seller's users' questions | None: buyer fields are masked before any call |
 
-Staging holds synthetic data only ([ADR-001 SPEC 3](../../database-architecture/spec/#3-roles)), so a provider used only on staging is not a sub-processor and is not listed: staging's sign-in mail may go through Resend ([ADR-013 SPEC 8](../../sign-in/spec/#8-the-sign-in-worker), owner ruling, 22 October 2026).
+Staging holds synthetic data only ([ADR-001 SPEC 3](../../database-architecture/spec/#3-roles)), so a provider used only on staging is not a sub-processor and is not listed: staging's sign-in mail and the app's mail may go through Resend ([ADR-013 SPEC 8](../../sign-in/spec/#8-the-sign-in-worker), owner ruling, 22 October 2026).
 
 ## 4. What is kept
 
@@ -231,7 +230,7 @@ Amazon's schedule is the strictest, so it is the schedule for every marketplace 
 Not buyer data: Vervoro is its controller, under its privacy notice. Listed here so one record shows every place personal data lives.
 
 1. **What:** each login's email address and name, password hash, authenticator secret, backup codes, passkey public keys, sessions with network address and browser, password history, and a sign-up link's email address and network address until it is used ([ADR-013 SPEC 2](../../sign-in/spec/#2-the-login-and-its-data)). The email address is stored readable, because Better Auth signs people in and mails them by it.
-2. **Where:** the control database's `auth` and `auth_policy` schemas, in the EU. No third-party identity provider owns or acts as the system of record for Vervoro user identities or email addresses. Authentication data remains in Vervoro-controlled infrastructure. Sign-in mail goes through Cloudflare's Email Service, which receives an address only to deliver that email; any other email provider would too (open item in the ADR).
+2. **Where:** the control database's `auth` and `auth_policy` schemas, in the EU. No third-party identity provider owns or acts as the system of record for Vervoro user identities or email addresses. Authentication data remains in Vervoro-controlled infrastructure. Sign-in mail and the app's mail to the seller's users go through Cloudflare's Email Service, which receives an address only to deliver that email (owner ruling, 23 October 2026).
 3. **Who:** only the sign-in Worker, through the sign-in role. The owner role only in an emergency ([runbook](../../runbooks/use-the-owner-role/)). Passwords, codes, secrets and tokens are never logged.
 4. **Protection:** TLS, storage encryption, authenticator secrets and backup codes also encrypted under the sign-in Worker's secret, every sign-in event in the security log.
 5. **Retention:** sessions deleted at most 30 days after they end ([ADR-013 SPEC 2](../../sign-in/spec/#2-the-login-and-its-data)); a sign-up link once used, or 24 hours after it was sent, by the sign-in Worker's hourly sweep; a login with no membership deleted after 30 days with its address and name ([ADR-010 SPEC 6](../../users-and-access/spec/#6-invitations-sign-up-and-removal)); control's backups hold it until they expire, within 30 days. A user's own request: [Answer a seller's data request](../../runbooks/answer-a-sellers-data-request/).

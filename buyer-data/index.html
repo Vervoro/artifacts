@@ -75,7 +75,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>18 October 2026; the seller&#39;s users&#39; sign-in data added with <a href="../sign-in/">ADR-013</a>, and split into ADR, SPEC and RUNBOOK with Buyer data as the core module that alone writes buyers&#39; names and addresses, 21 October 2026; no recipient fields from marketplaces until Vervoro prints labels (owner ruling, 22 October 2026)</td>
+<td>18 October 2026; the seller&#39;s users&#39; sign-in data added with <a href="../sign-in/">ADR-013</a>, and split into ADR, SPEC and RUNBOOK with Buyer data as the core module that alone writes buyers&#39; names and addresses, 21 October 2026; no recipient fields from marketplaces until Vervoro prints labels (owner ruling, 22 October 2026); the app&#39;s mail through the sign-in mail provider (owner ruling, 23 October 2026)</td>
 </tr>
 <tr>
 <td><strong>Scope</strong></td>
@@ -186,7 +186,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ul>
 <h2 id="open-items">Open items</h2>
 <ul>
-<li><strong>The email provider for mail other than sign-in</strong> (alerts and digests to the seller&#39;s users) is not chosen, nor its data-processing terms and region. Sign-in mail goes through Cloudflare&#39;s Email Service.</li>
+<li><strong>Email delivery:</strong> all mail to the seller&#39;s users, sign-in mail and the app&#39;s own, goes through Cloudflare&#39;s Email Service, and staging may use Resend (owner ruling, 23 October 2026). A fallback provider and bounce handling wait for the email-delivery record.</li>
 <li><strong>The data processing agreement, the sub-processor page and the privacy notice</strong> need writing and legal review before the first seller connects.</li>
 <li><strong>The incident response plan</strong> needs writing, approval and a first test before launch; Amazon asks for it reviewed every six months.</li>
 <li><strong>The first penetration test, vulnerability scanning and the risk assessment</strong> are pre-launch work with no date yet.</li>

@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Status** | Proposed |
-| **Date** | 18 October 2026; the seller's users' sign-in data added with [ADR-013](../sign-in/), and split into ADR, SPEC and RUNBOOK with Buyer data as the core module that alone writes buyers' names and addresses, 21 October 2026; no recipient fields from marketplaces until Vervoro prints labels (owner ruling, 22 October 2026) |
+| **Date** | 18 October 2026; the seller's users' sign-in data added with [ADR-013](../sign-in/), and split into ADR, SPEC and RUNBOOK with Buyer data as the core module that alone writes buyers' names and addresses, 21 October 2026; no recipient fields from marketplaces until Vervoro prints labels (owner ruling, 22 October 2026); the app's mail through the sign-in mail provider (owner ruling, 23 October 2026) |
 | **Scope** | The Buyer data module and the personal data of marketplace buyers: who is responsible for it, what is kept, where, who sees it, how long it is kept, how it is erased, buyers' requests, incidents, the security controls marketplaces ask for, and each marketplace's own rules |
 | **Builds on** | [ADR-000](../system-architecture/), [ADR-001](../database-architecture/), [ADR-002](../data-retention/), [ADR-004](../channel-connectors/) with [ADR-004.1](../ebay-connector/), [ADR-004.2](../amazon-seller-connector/) and [ADR-004.3](../shopify-connector/), [ADR-010](../users-and-access/), [ADR-013](../sign-in/); used by [ADR-007](../order-ingestion/), [ADR-011](../invoicing-and-vat/) and [ADR-014](../fulfilment/) |
 | **SPEC** | [The rules to build from, the evidence and how to check them](spec/) |
@@ -79,7 +79,7 @@ Marketplaces read this record in their data-protection reviews. The SPEC holds t
 
 ## Open items
 
-- **The email provider for mail other than sign-in** (alerts and digests to the seller's users) is not chosen, nor its data-processing terms and region. Sign-in mail goes through Cloudflare's Email Service.
+- **Email delivery:** all mail to the seller's users, sign-in mail and the app's own, goes through Cloudflare's Email Service, and staging may use Resend (owner ruling, 23 October 2026). A fallback provider and bounce handling wait for the email-delivery record.
 - **The data processing agreement, the sub-processor page and the privacy notice** need writing and legal review before the first seller connects.
 - **The incident response plan** needs writing, approval and a first test before launch; Amazon asks for it reviewed every six months.
 - **The first penetration test, vulnerability scanning and the risk assessment** are pre-launch work with no date yet.
