@@ -239,7 +239,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Email address and network address of a sign-up link</td>
 <td><code>auth_policy.address_proof</code></td>
 <td>Proving the address before a login exists (<a href="../../users-and-access/spec/#6-invitations-sign-up-and-removal">ADR-010 SPEC 6</a>); the limits on sending links (<a href="#7-lockouts-rate-limits-and-bots">section 7</a>)</td>
-<td>The link is used, or 24 hours after it was sent (the sign-in Worker&#39;s hourly sweep). A first-step answer to an address that already has a login is noted the same way, for the limits, and kept the same 24 hours (owner ruling, 23 October 2026)</td>
+<td>The link is used, or 24 hours after it was sent (the sign-in Worker&#39;s hourly sweep). A first-step answer to an address that already has a login, and any first-step answer past the minute&#39;s limit, sent or not, is noted the same way, for the limits, and kept the same 24 hours (owner rulings, 23 October 2026)</td>
 </tr>
 <tr>
 <td>Password history (hashes only)</td>
@@ -451,7 +451,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td>Request rate per network address</td>
 <td>Better Auth</td>
-<td>Its rate limiter, stored in the database. <code>/sign-in/email</code> and <code>/two-factor/*</code> allow 30 attempts a minute per address, enough for 30 phones on one connection; and the sign-up first step allows one link a minute per address, at most 3 links per address in 24 hours, and 30 a minute per network address, and sends an address that already has a login at most one &quot;sign in instead&quot; mail a day, all counted from <code>auth_policy.address_proof</code>; past a limit it sends nothing and answers the same for every address (owner ruling, 23 October 2026)</td>
+<td>Its rate limiter, stored in the database. <code>/sign-in/email</code> and <code>/two-factor/*</code> allow 30 attempts a minute per address, enough for 30 phones on one connection; and the sign-up first step allows one link a minute per address, at most 3 links per address in 24 hours, and 30 a minute per network address, and sends an address that already has a login at most one &quot;sign in instead&quot; mail a day, all counted from <code>auth_policy.address_proof</code>, where every answer past the minute&#39;s limit is noted, sent or not; past a limit it sends nothing and answers the same for every address (past the network address&#39;s limit, a &quot;too many tries&quot; for every address) (owner rulings, 23 October 2026)</td>
 </tr>
 <tr>
 <td>Bot check</td>
