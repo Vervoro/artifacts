@@ -152,6 +152,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Switching company</strong> is a menu. The session belongs to the login, and every request names its company, so two tabs can work in two companies. Switching asks for no new sign-in; account changes still ask for a fresh check (<a href="../../sign-in/spec/#5-sessions">ADR-013 SPEC 5</a>).</li>
 <li><strong>Email to a person</strong> from the app reads their address from any company where they are active. Sign-in mail (address proofs, resets, sign-in notices) is the sign-in Worker&#39;s, to the login&#39;s own address (<a href="../../sign-in/spec/#8-the-sign-in-worker">ADR-013 SPEC 8</a>).</li>
 <li><strong>Changing email</strong> proves the new address, changes it in every company where the person is a member, then asks the sign-in Worker to set the login&#39;s address, retried from the outbox (<a href="../../database-architecture/spec/#7-control-database-and-routing">ADR-001 SPEC 7</a>). Both the old and the new address are told.</li>
+<li><strong>Correcting one&#39;s name:</strong> each person can correct their own name on their profile. It changes in every company where they are a member, then the app asks the sign-in Worker to set the login&#39;s name, retried from the outbox. Past audit entries keep the name they were written with (owner ruling, 22 October 2026).</li>
 </ol>
 <h2 id="3-roles-and-warehouse-scope">3. Roles and warehouse scope</h2>
 <div class="table-wrap"><table>
@@ -304,6 +305,16 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>No</td>
 <td>No</td>
 <td><a href="../../product-model/spec/#15-units-of-measure">ADR-003</a></td>
+</tr>
+<tr>
+<td>Leave the company yourself</td>
+<td>Yes, unless the last Owner</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>ADR-010 (owner ruling, 22 October 2026)</td>
 </tr>
 <tr>
 <td>Switch a module on or off</td>
@@ -813,7 +824,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ol>
 <p><strong>Invitations:</strong></p>
 <ol>
-<li>An Owner, or an Admin for roles below Admin, invites by the person&#39;s own email address, with a role and, where it applies, a scope.</li>
+<li>An Owner, or an Admin for roles below Admin, invites by the person&#39;s own email address, with a role and, where it applies, a scope. The invitation email links Vervoro&#39;s privacy notice (owner ruling, 22 October 2026).</li>
 <li>The link is single-use, valid for 7 days, and works only for the address it names. Accepting proves the address. A person who already has a login joins only if the sign-in Worker&#39;s <code>matchesAddress</code> call (<a href="../../sign-in/spec/#8-the-sign-in-worker">ADR-013 SPEC 8</a>) answers yes for the invitation&#39;s address; otherwise acceptance is refused. Access still learns only the login id (owner ruling, 22 October 2026).</li>
 <li>A new person sets up sign-in on their own device, from a one-time link the app gets from the sign-in Worker&#39;s <code>enrol</code> call; a person with a login signs in, and the company joins their memberships.</li>
 <li>An invitation can be withdrawn until accepted. Acceptance, expiry and withdrawal are logged. An invitation used, withdrawn or expired is deleted 30 days later; the audit log keeps the event (owner ruling, 22 October 2026).</li>
@@ -826,6 +837,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>Their membership in control is removed, through the outbox if that write fails.</li>
 <li>A login left with no membership, by removal or by the company&#39;s erasure, is deleted after 30 days with its sign-in methods, email address and sessions, by the sign-in Worker through Better Auth; the security log keeps only its id.</li>
 </ol>
+<p><strong>Leaving a company:</strong> any person can remove themselves, with a fresh check; it runs the same steps as a removal, and the company&#39;s Owners and Admins are told. The last Owner cannot leave until another person is Owner (owner ruling, 22 October 2026).</p>
 <p>All of it happens within minutes, inside ADR-009&#39;s 24 hours.</p>
 <h2 id="7-operator-access-to-a-company">7. Operator access to a company</h2>
 <p><strong>Repairs need no grant.</strong> They are recorded commands that run as system actors and show no company data: rebuilding a balance from the ledger (<a href="../../stock-ledger/">ADR-006</a>), re-importing an order, and <a href="../../database-architecture/spec/#10-company-lifecycle">ADR-001&#39;s</a> export, move and restore by the lifecycle tool. Each writes an <code>audit_log</code> entry naming the operator and the reason. So do the operator&#39;s billing levers (<a href="../../billing-and-plans/spec/#19-who-may-manage-billing">ADR-012 SPEC 19</a>) and switching a module on or off at an Owner&#39;s or Admin&#39;s request (<a href="../../system-architecture/spec/#3-assembly-per-company">ADR-000 SPEC 3</a>), which also need no grant (owner ruling, 22 October 2026). Erasure is never an operator command; it runs on the seller&#39;s privacy request (<a href="../../buyer-data/">ADR-009</a>) or 30 days after the company closes (<a href="../../billing-and-plans/spec/">ADR-012 SPEC 16</a>; owner ruling, 22 October 2026).</p>

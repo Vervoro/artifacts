@@ -5,7 +5,7 @@
 | **Built** | At launch |
 | **Record** | [ADR-009](../../buyer-data/), rules in [SPEC 17](../../buyer-data/spec/#17-the-sellers-users-sign-in-data) |
 | **Who runs it** | The operator, when a seller's user, or a former user, asks Vervoro to see or erase the personal data it holds about them as controller |
-| **Role or credential** | The operator console. Sign-in data is read only through the sign-in Worker's export command; nobody queries the `auth` schema |
+| **Role or credential** | The operator console. Sign-in data is read only through the sign-in Worker's `export` call ([ADR-013 SPEC 8](../../sign-in/spec/#8-the-sign-in-worker)); nobody queries the `auth` schema |
 
 A seller asking for their **company's** data is not this procedure: use [Export a company](../export-a-company/) or [Erase a company](../erase-a-company/). Buyer data is the seller's to answer: [Answer a buyer's data request](../answer-a-buyers-data-request/).
 

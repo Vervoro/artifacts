@@ -38,6 +38,7 @@ Buyers and suppliers sign in to nothing. Every login belongs to one person, iden
 4. **Switching company** is a menu. The session belongs to the login, and every request names its company, so two tabs can work in two companies. Switching asks for no new sign-in; account changes still ask for a fresh check ([ADR-013 SPEC 5](../../sign-in/spec/#5-sessions)).
 5. **Email to a person** from the app reads their address from any company where they are active. Sign-in mail (address proofs, resets, sign-in notices) is the sign-in Worker's, to the login's own address ([ADR-013 SPEC 8](../../sign-in/spec/#8-the-sign-in-worker)).
 6. **Changing email** proves the new address, changes it in every company where the person is a member, then asks the sign-in Worker to set the login's address, retried from the outbox ([ADR-001 SPEC 7](../../database-architecture/spec/#7-control-database-and-routing)). Both the old and the new address are told.
+7. **Correcting one's name:** each person can correct their own name on their profile. It changes in every company where they are a member, then the app asks the sign-in Worker to set the login's name, retried from the outbox. Past audit entries keep the name they were written with (owner ruling, 22 October 2026).
 
 ## 3. Roles and warehouse scope
 
@@ -73,6 +74,7 @@ A module declares each action in its manifest ([ADR-000 SPEC 1](../../system-arc
 | Read the company's audit log | Yes | Yes | No | No | Yes | No | ADR-010 |
 | Handle a buyer's privacy request | Yes | Yes | No | No | No | No | [ADR-009](../../buyer-data/spec/#10-buyers-requests) |
 | Change the company's units (metric or imperial) | Yes | Yes | No | No | No | No | [ADR-003](../../product-model/spec/#15-units-of-measure) |
+| Leave the company yourself | Yes, unless the last Owner | Yes | Yes | Yes | Yes | Yes | ADR-010 (owner ruling, 22 October 2026) |
 | Switch a module on or off | Yes | Yes | No | No | No | No | [ADR-000 SPEC 3](../../system-architecture/spec/#3-assembly-per-company) (owner ruling, 22 October 2026) |
 | **Marketplaces and listings** | | | | | | | |
 | Connect or disconnect an account; switch a connector on or off | Yes | Yes | No | No | No | No | ADR-010; [ADR-004](../../channel-connectors/) |
@@ -151,7 +153,7 @@ While a company is restricted or closed, [ADR-012 SPEC 8](../../billing-and-plan
 
 **Invitations:**
 
-1. An Owner, or an Admin for roles below Admin, invites by the person's own email address, with a role and, where it applies, a scope.
+1. An Owner, or an Admin for roles below Admin, invites by the person's own email address, with a role and, where it applies, a scope. The invitation email links Vervoro's privacy notice (owner ruling, 22 October 2026).
 2. The link is single-use, valid for 7 days, and works only for the address it names. Accepting proves the address. A person who already has a login joins only if the sign-in Worker's `matchesAddress` call ([ADR-013 SPEC 8](../../sign-in/spec/#8-the-sign-in-worker)) answers yes for the invitation's address; otherwise acceptance is refused. Access still learns only the login id (owner ruling, 22 October 2026).
 3. A new person sets up sign-in on their own device, from a one-time link the app gets from the sign-in Worker's `enrol` call; a person with a login signs in, and the company joins their memberships.
 4. An invitation can be withdrawn until accepted. Acceptance, expiry and withdrawal are logged. An invitation used, withdrawn or expired is deleted 30 days later; the audit log keeps the event (owner ruling, 22 October 2026).
@@ -164,6 +166,8 @@ While a company is restricted or closed, [ADR-012 SPEC 8](../../billing-and-plan
 2. Their next request in that company is refused, because the membership check fails; if they have no membership left, the sign-in Worker revokes every session of the login.
 3. Their membership in control is removed, through the outbox if that write fails.
 4. A login left with no membership, by removal or by the company's erasure, is deleted after 30 days with its sign-in methods, email address and sessions, by the sign-in Worker through Better Auth; the security log keeps only its id.
+
+**Leaving a company:** any person can remove themselves, with a fresh check; it runs the same steps as a removal, and the company's Owners and Admins are told. The last Owner cannot leave until another person is Owner (owner ruling, 22 October 2026).
 
 All of it happens within minutes, inside ADR-009's 24 hours.
 
