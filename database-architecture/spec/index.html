@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>20 October 2026; hosting reviewed 21 October 2026; sign-in data aligned with Better Auth (<a href="../../sign-in/">ADR-013</a>) 21 October 2026; amended by owner rulings: control unreachable (7) and the sign-in role&#39;s rights (3), 21 October 2026; one Neon project per database (7, 8), Neon&#39;s internal roles and the staging rule (3), append-only and partitioned tables declared per table (5), the audit over every project, staging&#39;s audit and an audit failure on control (11), 22 October 2026</td>
+<td>20 October 2026; hosting reviewed 21 October 2026; sign-in data aligned with Better Auth (<a href="../../sign-in/">ADR-013</a>) 21 October 2026; amended by owner rulings: control unreachable (7) and the sign-in role&#39;s rights (3), 21 October 2026; one Neon project per database (7, 8), Neon&#39;s internal roles and the staging rule (3), append-only and partitioned tables declared per table (5), the audit over every project, staging&#39;s audit and an audit failure on control (11), the sign-in role reading the security log for a data request (3, 11), 22 October 2026</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -278,7 +278,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>SQL</td>
 <td>Yes</td>
 <td>No</td>
-<td><code>SELECT, INSERT, UPDATE, DELETE</code> on the <code>auth</code> schema (Better Auth&#39;s tables) and the <code>auth_policy</code> schema (Vervoro&#39;s sign-in policy tables); <code>INSERT</code> on the platform security log, with <code>USAGE</code> on its schema; nothing else (owner ruling, 21 October 2026; <a href="../../sign-in/spec/#8-the-sign-in-worker">ADR-013 SPEC 8</a>). Owns nothing; the owner role creates both schemas by migration</td>
+<td><code>SELECT, INSERT, UPDATE, DELETE</code> on the <code>auth</code> schema (Better Auth&#39;s tables) and the <code>auth_policy</code> schema (Vervoro&#39;s sign-in policy tables); <code>INSERT</code> and <code>SELECT</code> on the platform security log (<code>SELECT</code> for a login&#39;s own data request: the <code>export</code> call, <a href="../../sign-in/spec/#8-the-sign-in-worker">ADR-013 SPEC 8</a>; owner ruling, 22 October 2026), with <code>USAGE</code> on its schema; nothing else (owner ruling, 21 October 2026; <a href="../../sign-in/spec/#8-the-sign-in-worker">ADR-013 SPEC 8</a>). Owns nothing; the owner role creates both schemas by migration</td>
 <td>The sign-in Worker, through its own Hyperdrive configuration</td>
 </tr>
 <tr>
@@ -826,7 +826,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p><strong>Audit, at every deploy and every night,</strong> over every Neon project and branch in the account and every Hyperdrive configuration in the account:</p>
 <ol>
 <li>The only login roles are the owner, runtime and lifecycle roles, plus the sign-in role on control.</li>
-<li>The runtime role has no usage on the <code>auth</code> and <code>auth_policy</code> schemas; the sign-in role has no right outside them but its insert on the security log. No role but the owner and Neon&#39;s named internal roles may hold <code>BYPASSRLS</code> or be in <code>neon_superuser</code>; a change to Neon&#39;s list alerts. No runtime or lifecycle role owns a table.</li>
+<li>The runtime role has no usage on the <code>auth</code> and <code>auth_policy</code> schemas; the sign-in role has no right outside them but its insert into and read of the security log (owner ruling, 22 October 2026). No role but the owner and Neon&#39;s named internal roles may hold <code>BYPASSRLS</code> or be in <code>neon_superuser</code>; a change to Neon&#39;s list alerts. No runtime or lifecycle role owns a table.</li>
 <li>The definer owner cannot log in, is not in <code>neon_superuser</code>, has no members, and has only the rights in <a href="#3-roles">section 3</a>.</li>
 <li>Every Hyperdrive configuration has caching off.</li>
 <li>The catalogue lint passes on the live catalogue, and the next two months&#39; partitions exist.</li>

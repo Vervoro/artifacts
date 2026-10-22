@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-001: Multi-tenant database architecture](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-001-multi-tenant-database-architecture) |
-| **Date** | 20 October 2026; hosting reviewed 21 October 2026; sign-in data aligned with Better Auth ([ADR-013](../../sign-in/)) 21 October 2026; amended by owner rulings: control unreachable (7) and the sign-in role's rights (3), 21 October 2026; one Neon project per database (7, 8), Neon's internal roles and the staging rule (3), append-only and partitioned tables declared per table (5), the audit over every project, staging's audit and an audit failure on control (11), 22 October 2026 |
+| **Date** | 20 October 2026; hosting reviewed 21 October 2026; sign-in data aligned with Better Auth ([ADR-013](../../sign-in/)) 21 October 2026; amended by owner rulings: control unreachable (7) and the sign-in role's rights (3), 21 October 2026; one Neon project per database (7, 8), Neon's internal roles and the staging rule (3), append-only and partitioned tables declared per table (5), the audit over every project, staging's audit and an audit failure on control (11), the sign-in role reading the security log for a data request (3, 11), 22 October 2026 |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-001 from. Each section is a rule set, a table or a list of states. The record decides; this page says exactly how. Where this page and the ADR disagree, the ADR wins and this page is fixed. The words used are defined in the [map and glossary](../../guide/).
@@ -70,7 +70,7 @@ A move or restore changes the source row first, so a stale route to the old data
 | **Owner** | Every database | Neon, with the project | Yes | Only if it holds `BYPASSRLS` itself. Neon makes it a member of `neon_superuser`, but Postgres does not pass `BYPASSRLS` on through membership, so `FORCE` binds it otherwise (checked on the project; owner ruling, 21 October 2026) | Owns every table. Migrations, partitions, creating the other roles | The CI migration job only |
 | **Runtime** | Every database | SQL | Yes, as itself | No (`NOBYPASSRLS`) | `SELECT, INSERT, UPDATE, DELETE` on tenant tables, minus the append-only revoke. `SELECT` on `tenant`. No usage on control's `auth` and `auth_policy` schemas. Owns nothing | The app Worker, through Hyperdrive |
 | **Lifecycle** | Every database | SQL | Yes | No | Reads and deletes through parent tables for the slice operation, including append-only tables. Enters the states in [section 1](#tenant-states). No DDL. Owns nothing | The operations job only, never a serving Worker |
-| **Sign-in** | Control only | SQL | Yes | No | `SELECT, INSERT, UPDATE, DELETE` on the `auth` schema (Better Auth's tables) and the `auth_policy` schema (Vervoro's sign-in policy tables); `INSERT` on the platform security log, with `USAGE` on its schema; nothing else (owner ruling, 21 October 2026; [ADR-013 SPEC 8](../../sign-in/spec/#8-the-sign-in-worker)). Owns nothing; the owner role creates both schemas by migration | The sign-in Worker, through its own Hyperdrive configuration |
+| **Sign-in** | Control only | SQL | Yes | No | `SELECT, INSERT, UPDATE, DELETE` on the `auth` schema (Better Auth's tables) and the `auth_policy` schema (Vervoro's sign-in policy tables); `INSERT` and `SELECT` on the platform security log (`SELECT` for a login's own data request: the `export` call, [ADR-013 SPEC 8](../../sign-in/spec/#8-the-sign-in-worker); owner ruling, 22 October 2026), with `USAGE` on its schema; nothing else (owner ruling, 21 October 2026; [ADR-013 SPEC 8](../../sign-in/spec/#8-the-sign-in-worker)). Owns nothing; the owner role creates both schemas by migration | The sign-in Worker, through its own Hyperdrive configuration |
 | **Definer owner** | Every cell | SQL | No | No | Owns the three allow-listed functions. Its own read policy on `due` and `buyer_ref`; insert on `tenant` | Nobody |
 
 Rules:
@@ -407,7 +407,7 @@ CI proves the schema it builds. These prove the databases running, because a con
 **Audit, at every deploy and every night,** over every Neon project and branch in the account and every Hyperdrive configuration in the account:
 
 1. The only login roles are the owner, runtime and lifecycle roles, plus the sign-in role on control.
-2. The runtime role has no usage on the `auth` and `auth_policy` schemas; the sign-in role has no right outside them but its insert on the security log. No role but the owner and Neon's named internal roles may hold `BYPASSRLS` or be in `neon_superuser`; a change to Neon's list alerts. No runtime or lifecycle role owns a table.
+2. The runtime role has no usage on the `auth` and `auth_policy` schemas; the sign-in role has no right outside them but its insert into and read of the security log (owner ruling, 22 October 2026). No role but the owner and Neon's named internal roles may hold `BYPASSRLS` or be in `neon_superuser`; a change to Neon's list alerts. No runtime or lifecycle role owns a table.
 3. The definer owner cannot log in, is not in `neon_superuser`, has no members, and has only the rights in [section 3](#3-roles).
 4. Every Hyperdrive configuration has caching off.
 5. The catalogue lint passes on the live catalogue, and the next two months' partitions exist.
