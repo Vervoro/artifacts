@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-001: Multi-tenant database architecture](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-001-multi-tenant-database-architecture) |
-| **Date** | 20 October 2026; hosting reviewed 21 October 2026; sign-in data aligned with Better Auth ([ADR-013](../../sign-in/)) 21 October 2026; amended by owner rulings: control unreachable (7) and the sign-in role's rights (3), 21 October 2026; one Neon project per database (7, 8), Neon's internal roles and the staging rule (3), append-only and partitioned tables declared per table (5), the audit over every project, staging's audit and an audit failure on control (11), the sign-in role reading the security log for a data request (3, 11), and who refuses a database from before the reset (12), 22 October 2026 |
+| **Date** | 20 October 2026; hosting reviewed 21 October 2026; sign-in data aligned with Better Auth ([ADR-013](../../sign-in/)) 21 October 2026; amended by owner rulings: control unreachable (7) and the sign-in role's rights (3), 21 October 2026; one Neon project per database (7, 8), Neon's internal roles and the staging rule (3), append-only and partitioned tables declared per table (5), the audit over every project, staging's audit and an audit failure on control (11), the sign-in role reading the security log for a data request (3, 11), and who refuses a database from before the reset (12), 22 October 2026; a sign-up link's address in control (7), 23 October 2026 |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-001 from. Each section is a rule set, a table or a list of states. The record decides; this page says exactly how. Where this page and the ADR disagree, the ADR wins and this page is fixed. The words used are defined in the [map and glossary](../../guide/).
@@ -199,7 +199,7 @@ Control is its own database on its own compute. A cell credential can never read
 | Platform data | Settings, the platform security log, shared marketplace quotas, usage rollups, alerts |
 | Migration summary | Per database, the version the last deploy reached ([section 12](#12-operations)) |
 
-**Emails in control** are stored readable, once per login, in Better Auth's user table in the `auth` schema, reachable only by the sign-in role; storage encryption covers it at rest and control's backups hold it for their 30 days. No outside identity service holds it ([ADR-009](../../buyer-data/spec/#17-the-sellers-users-sign-in-data)). Each company's users table holds its own copy.
+**Emails in control** are stored readable, once per login, in Better Auth's user table in the `auth` schema, and a sign-up link's address in `auth_policy.address_proof` until the link is used or 24 hours pass (owner ruling, 23 October 2026), reachable only by the sign-in role; storage encryption covers it at rest and control's backups hold it for their 30 days. No outside identity service holds it ([ADR-009](../../buyer-data/spec/#17-the-sellers-users-sign-in-data)). Each company's users table holds its own copy.
 
 **Routing:**
 
