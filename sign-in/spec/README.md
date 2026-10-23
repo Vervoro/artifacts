@@ -197,7 +197,7 @@ No sign-in page takes a web address to return to; return targets are names of th
 | Call | Does |
 | --- | --- |
 | `session(cookie)` | [Section 5](#5-sessions), rule 4 |
-| `enrol(address, name, purpose)` | When the app finds a live invitation for the address, before it is accepted: a one-time link to set up the first method, valid 24 hours; for an address that already has a login, the sign-in page. The name is not kept: the person types their own on the link's page, as at sign-up (owner ruling, 24 October 2026). A sign-up's link is the sign-in Worker's own first step ([section 3](#3-sign-in-methods)), not this call (owner ruling, 23 October 2026) |
+| `enrol(address, purpose)` | When the app finds a live invitation for the address, before it is accepted: a one-time link to set up the first method, valid 24 hours; for an address that already has a login, the sign-in page. An invitation names no one, so the person types their own name on the link's page, as at sign-up (owner rulings, 24 October 2026). A sign-up's link is the sign-in Worker's own first step ([section 3](#3-sign-in-methods)), not this call (owner ruling, 23 October 2026) |
 | `reset(actor's cookie, login, company)` | A reset or a last-Owner completion; re-checks the actor's fresh check |
 | `revoke(login ids, or everyone)` | Ends sessions |
 | `matchesAddress(cookie, address)` | Whether the signed-in login's email address is this address, compared case-insensitively: a yes or no only, so the app never learns the login's address; used when a person with a login accepts an invitation ([ADR-010 SPEC 6](../../users-and-access/spec/#6-invitations-sign-up-and-removal)) (owner ruling, 22 October 2026) |
