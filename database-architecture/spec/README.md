@@ -53,7 +53,7 @@ A move or restore changes the source row first, so a stale route to the old data
 
 | Rule | Detail |
 | --- | --- |
-| `company_id` leads every key | The first column of every primary key, unique key, foreign key and index |
+| `company_id` leads every key | The first column of every primary key, unique key, foreign key and index, but one: a definer-only lookup across companies may have an index that does not, and `app.buyer_ref (hash)`, read by `app.buyer_ref_companies`, is the one case; the catalogue lint names it (owner ruling, 23 October 2026) |
 | Composite foreign keys | `(company_id, x)` references `(company_id, x)`, so a row cannot point at another company's row. Postgres runs key checks outside row-level security, so these keys hold even where policies do not |
 | Cascade to `tenant` | Every table has `company_id → tenant(id) ON DELETE CASCADE`. Deleting the tenant row is the last step of an erase ([section 10](#10-company-lifecycle)); the cascade guarantees nothing is left |
 | IDs | uuidv7. No `serial` or identity columns, so nothing is numbered across companies and no id reveals a company's database |
