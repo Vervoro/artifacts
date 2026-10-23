@@ -37,7 +37,7 @@ Buyers and suppliers sign in to nothing. Every login belongs to one person, iden
 3. **The member row** is in the company's own users table, in its cell: email address, name, role, warehouse scope, status (`invited`, `active`, `removed`) and when each changed. It alone decides what the person may do in that company, and it is exported, restored and erased with the company.
 4. **Switching company** is a menu that lists each of the login's companies by its name, read in that company's own transaction (owner ruling, 23 October 2026). The session belongs to the login, and every request names its company, so two tabs can work in two companies. Switching asks for no new sign-in; account changes still ask for a fresh check ([ADR-013 SPEC 5](../../sign-in/spec/#5-sessions)).
 5. **Email to a person** from the app reads their address from any company where they are active. Sign-in mail (address proofs, resets, sign-in notices) is the sign-in Worker's, to the login's own address ([ADR-013 SPEC 8](../../sign-in/spec/#8-the-sign-in-worker)).
-6. **Changing email** proves the new address, changes it in every company where the person is a member, then asks the sign-in Worker to set the login's address, retried from the outbox ([ADR-001 SPEC 7](../../database-architecture/spec/#7-control-database-and-routing)). Both the old and the new address are told.
+6. **A login's email address is not changed.** To use a new address, an Owner or Admin invites the person at it and removes the old membership; the old login's history keeps its name and id. Changing an address in place is revisited only if a real need arises (owner ruling, 23 October 2026).
 7. **Correcting one's name:** each person can correct their own name on their profile. It changes in every company where they are a member, then the app asks the sign-in Worker to set the login's name, retried from the outbox. Past audit entries keep the name they were written with. A name is 2 to 70 characters once trimmed: the sign-in Worker's sign-up page and `setName` refuse any other ([ADR-013 SPEC 8](../../sign-in/spec/#8-the-sign-in-worker)), and the app checks it before saving a correction (owner rulings, 22 October 2026).
 
 ## 3. Roles and warehouse scope
@@ -75,6 +75,7 @@ A module declares each action in its manifest ([ADR-000 SPEC 1](../../system-arc
 | Handle a buyer's privacy request | Yes | Yes | No | No | No | No | [ADR-009](../../buyer-data/spec/#10-buyers-requests) |
 | Change the company's name | Yes | Yes | No | No | No | No | ADR-010 (owner ruling, 23 October 2026) |
 | Change the company's units (metric or imperial) | Yes | Yes | No | No | No | No | [ADR-003](../../product-model/spec/#15-units-of-measure) |
+| Correct your own name | Yes | Yes | Yes | Yes | Yes | Yes | ADR-010 (owner ruling, 23 October 2026) |
 | Leave the company yourself | Yes, unless the last Owner | Yes | Yes | Yes | Yes | Yes | ADR-010 (owner ruling, 22 October 2026) |
 | Switch a module on or off | Yes | Yes | No | No | No | No | [ADR-000 SPEC 3](../../system-architecture/spec/#3-assembly-per-company) (owner ruling, 22 October 2026) |
 | **Marketplaces and listings** | | | | | | | |
