@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>21 October 2026; Better Auth replaces the in-house engine, owner approval of 21 October 2026; owner rulings on sessions, email and the passkey fallback the same day; amended by owner rulings: the sign-in mail provider chosen by configuration, sign-up with a password first, a forced change exempt from the 1-day minimum, an email-first sign-in page, its passkey offers worded to what a browser can tell, signing out other devices, the privacy notice link, the export and name calls, the freeze and the 365-day rule clarified, and an unknown passkey signalled to the device, 22 October 2026; the passkey prompt opened only on request, when sessions are deleted, sign-up proving the address first, the app&#39;s mail through the same provider, no email change (the <code>setEmail</code> call removed before it was built), the company named in the sign-up form, the passkey offer skipped when the login has one, and security shown in the app, 23 October 2026; <code>enrol</code> asked before an invitation is accepted, 24 October 2026</td>
+<td>21 October 2026; Better Auth replaces the in-house engine, owner approval of 21 October 2026; owner rulings on sessions, email and the passkey fallback the same day; amended by owner rulings: the sign-in mail provider chosen by configuration, sign-up with a password first, a forced change exempt from the 1-day minimum, an email-first sign-in page, its passkey offers worded to what a browser can tell, signing out other devices, the privacy notice link, the export and name calls, the freeze and the 365-day rule clarified, and an unknown passkey signalled to the device, 22 October 2026; the passkey prompt opened only on request, when sessions are deleted, sign-up proving the address first, the app&#39;s mail through the same provider, no email change (the <code>setEmail</code> call removed before it was built), the company named in the sign-up form, the passkey offer skipped when the login has one, and security shown in the app, 23 October 2026; <code>enrol</code> asked before an invitation is accepted, the recent sign-ins listed, and a new authenticator kept pending until confirmed, 24 October 2026</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -183,6 +183,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Backup codes belong to the two-factor plugin.</strong> They exist only for people with an authenticator app and are entered only after the password. A passkey-only person cannot hold them, so the old recovery codes for passkey-only Owners, Admins, Accountants and operators have no Better Auth home; Vervoro keeps no second code store. Passkey-only people recover with a second passkey or through their company (<a href="#6-recovery">section 6</a>); operators keep a third passkey offline (<a href="#10-operators">section 10</a>).</li>
 <li><strong>The password and the code are no longer judged together.</strong> Better Auth answers a correct password with the code challenge, so a correct password is visible before the code. Accepted: the lockout, the rate limit and the bot check cover guessing.</li>
 <li><strong>Signing the new login in after a proved sign-up</strong> uses Better Auth&#39;s <code>createEmailVerificationToken</code> (exported by <code>better-auth/api</code>) for its own <code>/verify-email</code>; if an upgrade removes or changes it, sign-up&#39;s second step fails its tests and needs a new way in (owner ruling, 23 October 2026).</li>
+<li><strong>An authenticator that is on cannot be replaced.</strong> Better Auth&#39;s <code>/two-factor/enable</code> refuses a login whose authenticator is confirmed (<code>TOTP_ALREADY_ENABLED</code>), and switching it off first would leave a password login without a second factor until the new app is confirmed. Decided (owner, 24 October 2026): the sign-in Worker keeps the new secret pending, encrypted under Better Auth&#39;s secret with its own <code>symmetricEncrypt</code>, checks the typed code itself, claiming it as in conflict 3, and only then replaces the row in Better Auth&#39;s two-factor table, with 10 new backup codes, in one transaction. If an upgrade changes that table, moving to a new app fails its tests.</li>
 </ol>
 <h2 id="2-the-login-and-its-data">2. The login and its data</h2>
 <ol>
@@ -222,6 +223,12 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Two-factor table</td>
 <td>Encrypted by Better Auth under its secret</td>
 <td>The authenticator is removed</td>
+</tr>
+<tr>
+<td>A new authenticator&#39;s secret, before it is confirmed</td>
+<td><code>auth_policy</code></td>
+<td>Moving to a new authenticator app (<a href="#3-sign-in-methods">section 3</a>); encrypted the same way</td>
+<td>The new app is confirmed, or 10 minutes (owner ruling, 24 October 2026)</td>
 </tr>
 <tr>
 <td>Passkey public key, counter, device type</td>
@@ -283,7 +290,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p><strong>A new authenticator app</strong> (owner ruling, 23 October 2026). A login holds one authenticator; to keep it on two apps, the person scans the same code into both. Moving to a new app replaces it:</p>
 <ol>
 <li>After the fresh check, the page shows a new code to scan, and the person types back a code from the new app.</li>
-<li>Only then does the new app take over: the old app&#39;s codes stop working, and 10 new backup codes are shown once, replacing the old ones. Until the new app is confirmed, the old one keeps working.</li>
+<li>Only then does the new app take over: the old app&#39;s codes stop working, and 10 new backup codes are shown once, replacing the old ones. Until the new app is confirmed, the old one keeps working; a new code not confirmed within 10 minutes is dropped (<a href="#1-better-auth-and-what-is-switched-on">section 1</a>, conflict 7).</li>
 <li>A password login cannot remove its authenticator without a new one, since a password never signs in alone. A lost authenticator is replaced through a backup code (<a href="#6-recovery">section 6</a>).</li>
 <li>The person is told by email, like any added or removed method.</li>
 </ol>
@@ -531,7 +538,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><code>securityView(login)</code></td>
-<td>The login&#39;s methods without secrets and its recent sign-ins (browser, network address, time), as the security page shows them, for the app&#39;s Settings screen (owner ruling, 23 October 2026)</td>
+<td>The login&#39;s methods without secrets and its recent sign-ins (browser, network address, start and end; the 20 most recent, newest first, ended ones while section 2 keeps them), as the security page shows them, for the app&#39;s Settings screen (owner ruling, 23 October 2026)</td>
 </tr>
 <tr>
 <td><code>setName(login, name)</code></td>
