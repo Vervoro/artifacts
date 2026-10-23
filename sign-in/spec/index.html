@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>21 October 2026; Better Auth replaces the in-house engine, owner approval of 21 October 2026; owner rulings on sessions, email and the passkey fallback the same day; amended by owner rulings: the sign-in mail provider chosen by configuration, sign-up with a password first, a forced change exempt from the 1-day minimum, an email-first sign-in page, its passkey offers worded to what a browser can tell, signing out other devices, the privacy notice link, the export and name calls, the freeze and the 365-day rule clarified, and an unknown passkey signalled to the device, 22 October 2026; the passkey prompt opened only on request, when sessions are deleted, sign-up proving the address first, the app&#39;s mail through the same provider, no email change (the <code>setEmail</code> call removed before it was built), the company named in the sign-up form, the passkey offer skipped when the login has one, and security shown in the app, 23 October 2026</td>
+<td>21 October 2026; Better Auth replaces the in-house engine, owner approval of 21 October 2026; owner rulings on sessions, email and the passkey fallback the same day; amended by owner rulings: the sign-in mail provider chosen by configuration, sign-up with a password first, a forced change exempt from the 1-day minimum, an email-first sign-in page, its passkey offers worded to what a browser can tell, signing out other devices, the privacy notice link, the export and name calls, the freeze and the 365-day rule clarified, and an unknown passkey signalled to the device, 22 October 2026; the passkey prompt opened only on request, when sessions are deleted, sign-up proving the address first, the app&#39;s mail through the same provider, no email change (the <code>setEmail</code> call removed before it was built), the company named in the sign-up form, the passkey offer skipped when the login has one, and security shown in the app, 23 October 2026; <code>enrol</code> asked before an invitation is accepted, 24 October 2026</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -236,7 +236,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>30 days after the session ends by time; a session signed out or revoked is deleted at once by Better Auth, and an ended one when its browser next comes back (its sign-in stays in the security log; owner ruling, 23 October 2026)</td>
 </tr>
 <tr>
-<td>Email address and network address of a sign-up link</td>
+<td>Email address and network address of a sign-up link, and the email address of an <code>enrol</code> link (no network address, not mailed; owner ruling, 24 October 2026)</td>
 <td><code>auth_policy.address_proof</code></td>
 <td>Proving the address before a login exists (<a href="../../users-and-access/spec/#6-invitations-sign-up-and-removal">ADR-010 SPEC 6</a>); the limits on sending links (<a href="#7-lockouts-rate-limits-and-bots">section 7</a>)</td>
 <td>The link is used, or 24 hours after it was sent (the sign-in Worker&#39;s hourly sweep). A first-step answer to an address that already has a login, and any first-step answer past the minute&#39;s limit, sent or not, is noted the same way, for the limits, and kept the same 24 hours (owner rulings, 23 October 2026)</td>
@@ -507,7 +507,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><code>enrol(address, name, purpose)</code></td>
-<td>After the app accepts an invitation: a one-time link to set up the first method, valid 24 hours. A sign-up&#39;s link is the sign-in Worker&#39;s own first step (<a href="#3-sign-in-methods">section 3</a>), not this call (owner ruling, 23 October 2026)</td>
+<td>When the app finds a live invitation for the address, before it is accepted: a one-time link to set up the first method, valid 24 hours; for an address that already has a login, the sign-in page. The name is not kept: the person types their own on the link&#39;s page, as at sign-up (owner ruling, 24 October 2026). A sign-up&#39;s link is the sign-in Worker&#39;s own first step (<a href="#3-sign-in-methods">section 3</a>), not this call (owner ruling, 23 October 2026)</td>
 </tr>
 <tr>
 <td><code>reset(actor&#39;s cookie, login, company)</code></td>
