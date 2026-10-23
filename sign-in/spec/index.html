@@ -515,8 +515,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Whether the signed-in login&#39;s email address is this address, compared case-insensitively: a yes or no only, so the app never learns the login&#39;s address; used when a person with a login accepts an invitation (<a href="../../users-and-access/spec/#6-invitations-sign-up-and-removal">ADR-010 SPEC 6</a>) (owner ruling, 22 October 2026)</td>
 </tr>
 <tr>
-<td><code>takeSignUpCompany(login)</code></td>
-<td>The company name the login&#39;s sign-up gave, once: the app opens the company with it, and the call answers the same name until the app confirms the company is opened; then the record is deleted (<a href="../../users-and-access/spec/#6-invitations-sign-up-and-removal">ADR-010 SPEC 6</a>, owner ruling, 23 October 2026)</td>
+<td><code>takeSignUpCompany(login, opened?)</code></td>
+<td>The company name the login&#39;s sign-up gave, with the login&#39;s own name and email address for the Owner&#39;s member row (<a href="../../users-and-access/spec/#2-logins-and-member-rows">ADR-010 SPEC 2</a>), and a claim: the first call claims the record atomically and returns these with a claim token; a later call returns the same claim, never a second one. The app opens the company with the claim token as its key, so a second open answers the company the first made. The app then calls it again with the company it opened, which deletes the record (<a href="../../users-and-access/spec/#6-invitations-sign-up-and-removal">ADR-010 SPEC 6</a>, owner ruling, 23 October 2026)</td>
 </tr>
 <tr>
 <td><code>setName(login, name)</code></td>
