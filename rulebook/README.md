@@ -34,6 +34,7 @@ Load this page with any task. Load the linked record before changing the area it
 | Buyer data anonymised 30 days after delivery, and erasure through backups and restores | [ADR-009 SPEC 8](../buyer-data/spec/#8-retention-and-anonymisation) and [SPEC 11](../buyer-data/spec/#11-erasure-backups-and-restores) |
 | Who is told of an incident, and when | [ADR-009 SPEC 13](../buyer-data/spec/#13-incidents) |
 | Nothing that moves orders or stock is refused for a billing reason | [ADR-012 decision 3](../billing-and-plans/#decision) and [SPEC 3](../billing-and-plans/spec/#3-what-billing-may-refuse) |
+| Who sends which mail, from which sender and key, through which provider | [ADR-013 SPEC 8.5](../sign-in/spec/#8-the-sign-in-worker) |
 | Layered testing, and when a test may change | [ADR-000 SPEC 15](../system-architecture/spec/#15-testing-and-verification) |
 | VAT on a sale: one issuer, a VAT record per line from import, what the buyer paid wins, the 1p difference flag | [ADR-011 decisions 2, 5 and 6](../invoicing-and-vat/#decision), [SPEC 2](../invoicing-and-vat/spec/#2-who-issues) and [SPEC 6–8](../invoicing-and-vat/spec/#6-the-vat-record) |
 | VAT rounding and splits: per line half up, bundles by cost, delivery following the goods | [ADR-011 SPEC 7](../invoicing-and-vat/spec/#7-working-out-the-vat) |
@@ -110,6 +111,21 @@ Load this page with any task. Load the linked record before changing the area it
 50. **Nothing that moves orders or stock is ever refused for a billing reason.** A plan refuses only switching on a module it does not include. [ADR-012 decision 3](../billing-and-plans/#decision), [SPEC 3](../billing-and-plans/spec/#3-what-billing-may-refuse)
 51. **An issued invoice or credit note never changes.** One gap-free series per company, numbered in the issuing transaction; a mistake is corrected only by a credit note. Vervoro refuses to issue for an account whose marketplace invoices its orders. [ADR-011 decisions 2 and 8](../invoicing-and-vat/#decision), [SPEC 5](../invoicing-and-vat/spec/#5-numbering)
 
+## Writing a rule
+
+How a rule in any record is written, so that building it needs no second ruling. These rules decide nothing new about the product; each points to where its area is owned (owner ruling, 23 October 2026).
+
+W1. **Numbers.** Every limit names its number, its window and what it counts. Every field a person types names its length. Anything mailed to an address a stranger typed has a daily cap per address ([ADR-013 SPEC 7](../sign-in/spec/#7-lockouts-rate-limits-and-bots)).
+W2. **Retention.** Every stored item names how long it is kept, what deletes it (a sweep, a library or the end of its parent) and whether its end is logged. A library that deletes on its own is named, with when it does. A SPEC's data table carries a "Kept until" column, added when the record is next amended ([ADR-002 SPEC 2](../data-retention/spec/#2-the-retention-schedule)).
+W3. **Mail.** Every rule that sends mail names who sends it, the sign-in Worker or the app, each with its own sender and key, through the one provider choice. A send that fails never fails the request; it is logged with codes only ([ADR-013 SPEC 8.5](../sign-in/spec/#8-the-sign-in-worker)).
+W4. **Repeats and claims.** Every action that may be repeated names its key, the key's scope (actor, route and request), how long the key is kept and what a repeat is answered. A claim across a boundary returns the same claim on every call, never a second one ([ADR-001 SPEC 5](../database-architecture/spec/#5-declaring-tables), [ADR-000 SPEC 12](../system-architecture/spec/#12-the-client)).
+W5. **What an answer reveals.** Every call across a boundary, and every page answer, names what it tells the caller. An answer to an address someone typed never shows whether it has a login: not by words, by time taken or by counts ([ADR-013 SPEC 7](../sign-in/spec/#7-lockouts-rate-limits-and-bots)).
+W6. **When a rule is judged.** A rule that changes someone's state says when it is judged (at sign-in, on each request, or when something happens) and what it does to sessions and work already running. If it is silent, it applies from the next start, and work that is running carries on. A rule that must end live work says so.
+W7. **Browsers.** A screen rule says what the page does where the browser cannot do the thing, or cannot tell whether it can. The server never assumes what a device holds ([ADR-000 SPEC 12](../system-architecture/spec/#12-the-client)).
+W8. **Libraries and platforms.** A rule that a library or platform carries out names the setting, call or behaviour that does it, checked against the pinned version before the record is Accepted. What cannot be checked is an open item with its fallback ([ADR-000 SPEC 16](../system-architecture/spec/#16-how-work-is-done)).
+
 ## Changing a rule
 
 A rule changes only when its record changes. Amend or replace the record first, with the owner's approval, then update this page in the same change.
+
+Small gaps found while building (a silent edge, a number, a way of doing what a rule intends) come as proposed SPEC wording, gathered per record and approved by the owner in one batch, then published as one amendment per record. Such wording may only describe what a rule already intends, or fill a silent edge with the least strict default that matches the other rules; it never relaxes a rule the code broke. Product decisions, and anything that touches isolation, stock, buyer data, the sign-in Worker's closed list or the security log, still come to the owner one by one (owner ruling, 23 October 2026).

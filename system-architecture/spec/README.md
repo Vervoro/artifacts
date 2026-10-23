@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-000: System architecture](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-000-system-architecture) |
-| **Date** | 20–21 October 2026; sign-in on Better Auth ([ADR-013](../../sign-in/)) 21 October 2026; amended by owner rulings: a tap's sending, done and not sure states (12.8) and the rollback window (11.2), 21 October 2026; decrease-only accounts through the gate (7.2), Invoicing's needs (4) and who switches a module on or off (3.4), 22 October 2026; every change's key kept on the server (12.8), 23 October 2026 |
+| **Date** | 20–21 October 2026; sign-in on Better Auth ([ADR-013](../../sign-in/)) 21 October 2026; amended by owner rulings: a tap's sending, done and not sure states (12.8) and the rollback window (11.2), 21 October 2026; decrease-only accounts through the gate (7.2), Invoicing's needs (4) and who switches a module on or off (3.4), 22 October 2026; every change's key kept on the server (12.8), browser limits on screens (12.9) and libraries checked against the pinned version (16.5), 23 October 2026 |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-000 from. Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins. Words are defined in the [map and glossary](../../guide/).
@@ -200,7 +200,8 @@ Procedure: [Deploy and roll back](../../runbooks/deploy-and-roll-back/).
 5. Every status has an icon and a word, never colour alone. Every control is at least one touch target. Focus is always visible.
 6. Every interactive element has a stable test id.
 7. No screen waits for a marketplace ([section 10](#10-runtime), rule 8).
-8. **A tap that changes something shows sending, done or not sure,** and shows done only on the server's answer. Not sure (no answer, or the connection dropped) retries with the same key and holds that item's next step until it settles. The server keeps each change's key with its answer, in the company's cell, written in the change's own transaction: a repeat with the same key gets the first answer and changes nothing ([ADR-001 SPEC 5](../../database-architecture/spec/#5-declaring-tables); stock commands in `stock_command`, [ADR-006 SPEC 12.4](../../stock-ledger/spec/#12-the-lock-keys-and-the-sequence); owner ruling, 23 October 2026). It holds that item's next step until it settles, so a worker never repeats the physical step to find out. There is no offline queue at launch.
+8. **A tap that changes something shows sending, done or not sure,** and shows done only on the server's answer. Not sure (no answer, or the connection dropped) retries with the same key. The server keeps each change's key with its answer, in the company's cell, written in the change's own transaction: a repeat with the same key gets the first answer and changes nothing ([ADR-001 SPEC 5](../../database-architecture/spec/#5-declaring-tables); stock commands in `stock_command`, [ADR-006 SPEC 12.4](../../stock-ledger/spec/#12-the-lock-keys-and-the-sequence); owner ruling, 23 October 2026). It holds that item's next step until it settles, so a worker never repeats the physical step to find out. There is no offline queue at launch.
+9. **A screen rule says what the page does where the browser cannot do the thing, or cannot tell whether it can.** The server never assumes what a device holds; the sign-in pages follow this too ([ADR-013 SPEC 8](../../sign-in/spec/#8-the-sign-in-worker), owner ruling, 23 October 2026).
 
 ## 13. Languages and formats
 
@@ -238,6 +239,7 @@ Procedure: [Deploy and roll back](../../runbooks/deploy-and-roll-back/).
 2. A migration already merged is never edited. The one pre-launch reset is [ADR-001 SPEC 12](../../database-architecture/spec/#12-operations).
 3. Docs follow the code in the same change: the design decision, the package's own documentation, and the launch checklist row the work serves.
 4. AI coding agents follow the same rules, with checks they cannot skip: a hook refuses edits that delete or skip tests or touch secrets; verify runs at the end of any turn that changed code; parallel work runs in separate worktrees with disjoint files; one read-only review runs on each integrated change.
+5. A rule that a library or platform carries out names the setting, call or behaviour that does it, checked against the pinned version before the record is Accepted; what cannot be checked is an open item with its fallback (owner ruling, 23 October 2026).
 
 ## 17. Questions the review raised, answered
 

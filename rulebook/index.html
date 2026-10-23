@@ -177,6 +177,10 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="../billing-and-plans/#decision">ADR-012 decision 3</a> and <a href="../billing-and-plans/spec/#3-what-billing-may-refuse">SPEC 3</a></td>
 </tr>
 <tr>
+<td>Who sends which mail, from which sender and key, through which provider</td>
+<td><a href="../sign-in/spec/#8-the-sign-in-worker">ADR-013 SPEC 8.5</a></td>
+</tr>
+<tr>
 <td>Layered testing, and when a test may change</td>
 <td><a href="../system-architecture/spec/#15-testing-and-verification">ADR-000 SPEC 15</a></td>
 </tr>
@@ -261,8 +265,19 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Nothing that moves orders or stock is ever refused for a billing reason.</strong> A plan refuses only switching on a module it does not include. <a href="../billing-and-plans/#decision">ADR-012 decision 3</a>, <a href="../billing-and-plans/spec/#3-what-billing-may-refuse">SPEC 3</a></li>
 <li><strong>An issued invoice or credit note never changes.</strong> One gap-free series per company, numbered in the issuing transaction; a mistake is corrected only by a credit note. Vervoro refuses to issue for an account whose marketplace invoices its orders. <a href="../invoicing-and-vat/#decision">ADR-011 decisions 2 and 8</a>, <a href="../invoicing-and-vat/spec/#5-numbering">SPEC 5</a></li>
 </ol>
+<h2 id="writing-a-rule">Writing a rule</h2>
+<p>How a rule in any record is written, so that building it needs no second ruling. These rules decide nothing new about the product; each points to where its area is owned (owner ruling, 23 October 2026).</p>
+<p>W1. <strong>Numbers.</strong> Every limit names its number, its window and what it counts. Every field a person types names its length. Anything mailed to an address a stranger typed has a daily cap per address (<a href="../sign-in/spec/#7-lockouts-rate-limits-and-bots">ADR-013 SPEC 7</a>).
+W2. <strong>Retention.</strong> Every stored item names how long it is kept, what deletes it (a sweep, a library or the end of its parent) and whether its end is logged. A library that deletes on its own is named, with when it does. A SPEC&#39;s data table carries a &quot;Kept until&quot; column, added when the record is next amended (<a href="../data-retention/spec/#2-the-retention-schedule">ADR-002 SPEC 2</a>).
+W3. <strong>Mail.</strong> Every rule that sends mail names who sends it, the sign-in Worker or the app, each with its own sender and key, through the one provider choice. A send that fails never fails the request; it is logged with codes only (<a href="../sign-in/spec/#8-the-sign-in-worker">ADR-013 SPEC 8.5</a>).
+W4. <strong>Repeats and claims.</strong> Every action that may be repeated names its key, the key&#39;s scope (actor, route and request), how long the key is kept and what a repeat is answered. A claim across a boundary returns the same claim on every call, never a second one (<a href="../database-architecture/spec/#5-declaring-tables">ADR-001 SPEC 5</a>, <a href="../system-architecture/spec/#12-the-client">ADR-000 SPEC 12</a>).
+W5. <strong>What an answer reveals.</strong> Every call across a boundary, and every page answer, names what it tells the caller. An answer to an address someone typed never shows whether it has a login: not by words, by time taken or by counts (<a href="../sign-in/spec/#7-lockouts-rate-limits-and-bots">ADR-013 SPEC 7</a>).
+W6. <strong>When a rule is judged.</strong> A rule that changes someone&#39;s state says when it is judged (at sign-in, on each request, or when something happens) and what it does to sessions and work already running. If it is silent, it applies from the next start, and work that is running carries on. A rule that must end live work says so.
+W7. <strong>Browsers.</strong> A screen rule says what the page does where the browser cannot do the thing, or cannot tell whether it can. The server never assumes what a device holds (<a href="../system-architecture/spec/#12-the-client">ADR-000 SPEC 12</a>).
+W8. <strong>Libraries and platforms.</strong> A rule that a library or platform carries out names the setting, call or behaviour that does it, checked against the pinned version before the record is Accepted. What cannot be checked is an open item with its fallback (<a href="../system-architecture/spec/#16-how-work-is-done">ADR-000 SPEC 16</a>).</p>
 <h2 id="changing-a-rule">Changing a rule</h2>
 <p>A rule changes only when its record changes. Amend or replace the record first, with the owner&#39;s approval, then update this page in the same change.</p>
+<p>Small gaps found while building (a silent edge, a number, a way of doing what a rule intends) come as proposed SPEC wording, gathered per record and approved by the owner in one batch, then published as one amendment per record. Such wording may only describe what a rule already intends, or fill a silent edge with the least strict default that matches the other rules; it never relaxes a rule the code broke. Product decisions, and anything that touches isolation, stock, buyer data, the sign-in Worker&#39;s closed list or the security log, still come to the owner one by one (owner ruling, 23 October 2026).</p>
 
 <footer>Vervoro</footer>
 </main>

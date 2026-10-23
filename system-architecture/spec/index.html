@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>20–21 October 2026; sign-in on Better Auth (<a href="../../sign-in/">ADR-013</a>) 21 October 2026; amended by owner rulings: a tap&#39;s sending, done and not sure states (12.8) and the rollback window (11.2), 21 October 2026; decrease-only accounts through the gate (7.2), Invoicing&#39;s needs (4) and who switches a module on or off (3.4), 22 October 2026; every change&#39;s key kept on the server (12.8), 23 October 2026</td>
+<td>20–21 October 2026; sign-in on Better Auth (<a href="../../sign-in/">ADR-013</a>) 21 October 2026; amended by owner rulings: a tap&#39;s sending, done and not sure states (12.8) and the rollback window (11.2), 21 October 2026; decrease-only accounts through the gate (7.2), Invoicing&#39;s needs (4) and who switches a module on or off (3.4), 22 October 2026; every change&#39;s key kept on the server (12.8), browser limits on screens (12.9) and libraries checked against the pinned version (16.5), 23 October 2026</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -818,7 +818,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>Every status has an icon and a word, never colour alone. Every control is at least one touch target. Focus is always visible.</li>
 <li>Every interactive element has a stable test id.</li>
 <li>No screen waits for a marketplace (<a href="#10-runtime">section 10</a>, rule 8).</li>
-<li><strong>A tap that changes something shows sending, done or not sure,</strong> and shows done only on the server&#39;s answer. Not sure (no answer, or the connection dropped) retries with the same key and holds that item&#39;s next step until it settles. The server keeps each change&#39;s key with its answer, in the company&#39;s cell, written in the change&#39;s own transaction: a repeat with the same key gets the first answer and changes nothing (<a href="../../database-architecture/spec/#5-declaring-tables">ADR-001 SPEC 5</a>; stock commands in <code>stock_command</code>, <a href="../../stock-ledger/spec/#12-the-lock-keys-and-the-sequence">ADR-006 SPEC 12.4</a>; owner ruling, 23 October 2026). It holds that item&#39;s next step until it settles, so a worker never repeats the physical step to find out. There is no offline queue at launch.</li>
+<li><strong>A tap that changes something shows sending, done or not sure,</strong> and shows done only on the server&#39;s answer. Not sure (no answer, or the connection dropped) retries with the same key. The server keeps each change&#39;s key with its answer, in the company&#39;s cell, written in the change&#39;s own transaction: a repeat with the same key gets the first answer and changes nothing (<a href="../../database-architecture/spec/#5-declaring-tables">ADR-001 SPEC 5</a>; stock commands in <code>stock_command</code>, <a href="../../stock-ledger/spec/#12-the-lock-keys-and-the-sequence">ADR-006 SPEC 12.4</a>; owner ruling, 23 October 2026). It holds that item&#39;s next step until it settles, so a worker never repeats the physical step to find out. There is no offline queue at launch.</li>
+<li><strong>A screen rule says what the page does where the browser cannot do the thing, or cannot tell whether it can.</strong> The server never assumes what a device holds; the sign-in pages follow this too (<a href="../../sign-in/spec/#8-the-sign-in-worker">ADR-013 SPEC 8</a>, owner ruling, 23 October 2026).</li>
 </ol>
 <h2 id="13-languages-and-formats">13. Languages and formats</h2>
 <ol>
@@ -866,6 +867,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>A migration already merged is never edited. The one pre-launch reset is <a href="../../database-architecture/spec/#12-operations">ADR-001 SPEC 12</a>.</li>
 <li>Docs follow the code in the same change: the design decision, the package&#39;s own documentation, and the launch checklist row the work serves.</li>
 <li>AI coding agents follow the same rules, with checks they cannot skip: a hook refuses edits that delete or skip tests or touch secrets; verify runs at the end of any turn that changed code; parallel work runs in separate worktrees with disjoint files; one read-only review runs on each integrated change.</li>
+<li>A rule that a library or platform carries out names the setting, call or behaviour that does it, checked against the pinned version before the record is Accepted; what cannot be checked is an open item with its fallback (owner ruling, 23 October 2026).</li>
 </ol>
 <h2 id="17-questions-the-review-raised-answered">17. Questions the review raised, answered</h2>
 <p>A review of the first implementation listed where ADR-000 was unclear.</p>
