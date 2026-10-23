@@ -76,6 +76,7 @@ Parts marked *Later* keep their rules in the SPEC but are built only when their 
 ## Open items
 
 - **Re-check before launch** the Neon, Hyperdrive and Workers limits ([SPEC 13](spec/#13-platform-constraints)), last checked 21 October 2026.
+- **A sign-up opened in two cells** is possible only if the first open's control write fails and is repeated while a new cell is being added, by deploy. Accepted for now; the fix, if needed, stores the chosen database with the sign-up's claim ([ADR-013 SPEC 8](../sign-in/spec/#8-the-sign-in-worker); owner ruling, 23 October 2026).
 - **Fair-share numbers** (40 sweeper slots per cell, 8 jobs per company) are guesses until a load test.
 - **The cell cap is soft** (owner, 20 October 2026): simultaneous sign-ups may pass 200 slightly.
 - **Restoring control** has a drill but no written procedure.

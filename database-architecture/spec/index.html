@@ -228,8 +228,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Keyed <code>(company_id, account)</code></td>
 </tr>
 <tr>
-<td>Idempotency keys</td>
-<td>Unique per <code>(company_id, key)</code>, in an unpartitioned table where the rows they guard are partitioned (<a href="#5-declaring-tables">section 5</a>)</td>
+<td>Idempotency and request keys</td>
+<td>Unique per <code>(company_id, key)</code>, or per <code>(company_id, actor, key)</code> for request keys (<a href="#5-declaring-tables">section 5</a> rule 8), in an unpartitioned table where the rows they guard are partitioned (<a href="#5-declaring-tables">section 5</a>)</td>
 </tr>
 </tbody></table></div>
 <h2 id="3-roles">3. Roles</h2>
@@ -378,7 +378,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Logs:</strong> one table per retention class. <code>audit_log</code> holds security and access events, kept at least a year for live companies. <code>event_log</code> holds module activity, kept 90 days by whole months (<a href="../../data-retention/spec/#2-the-retention-schedule">ADR-002 SPEC 2</a>).</li>
 <li><strong>Operational state</strong> (rate buckets, leases, nonces, staging) lives in tenant tables like everything else.</li>
 <li><strong>Secrets:</strong> one table, <code>secrets(company_id, purpose)</code>.</li>
-<li><strong>Request keys:</strong> <code>app.request_key(company_id, actor, key, route, request_hash, answer, at)</code>, unique per company, actor and key, a tenant table under the company policy like every other. It is written in the transaction of the person&#39;s change it names, so a repeat with the same key gets the first answer and changes nothing. A repeat is answered only for the same actor, route and request, after the current request&#39;s own access check; any difference is refused, never replayed; the sweeper deletes keys after 7 days. Stock commands keep theirs in <code>stock_command</code> (<a href="../../stock-ledger/spec/#12-the-lock-keys-and-the-sequence">ADR-006 SPEC 12</a>). Sign-up keeps none: it opens a company that does not exist yet, and taking its name once is its key (owner ruling, 23 October 2026).</li>
+<li><strong>Request keys:</strong> <code>app.request_key(company_id, actor, key, route, request_hash, answer, at)</code>, unique per company, actor and key, a tenant table under the company policy like every other. It is written in the transaction of the person&#39;s change it names, so a repeat with the same key gets the first answer and changes nothing. A repeat is answered only for the same actor, route and request, after the current request&#39;s own access check; any difference is refused, never replayed. <code>answer</code> holds ids and an outcome only: never a secret, a tagged field or a page of rows. A key is kept at least 7 days, and deleted by the sweeper within the hour after; until then it is still replayed. Stock commands keep theirs in <code>stock_command</code> (<a href="../../stock-ledger/spec/#12-the-lock-keys-and-the-sequence">ADR-006 SPEC 12</a>). Sign-up keeps none: it opens a company that does not exist yet, and taking its name once is its key (owner ruling, 23 October 2026).</li>
 </ol>
 <h2 id="6-guard-rails">6. Guard rails</h2>
 <p>This section and <a href="#1-tenancy-inside-a-cell">section 1</a> own tenant isolation; other records link here. Isolation has two tiers.</p>
