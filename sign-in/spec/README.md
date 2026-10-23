@@ -91,7 +91,14 @@ Every person signs up with a password and an authenticator app, and may add pass
 1. Better Auth issues 10 single-use codes when an authenticator is confirmed, shown once; setup does not finish until the person confirms they saved them.
 2. A backup code is entered in place of the code after the password. It signs in once, the person and their Owners and Admins are told, and the session is setup-only until a new authenticator is confirmed.
 
-**The security page.** Each person sees their methods and recent sign-ins, can remove a lost passkey, and can sign out every other device, which ends every session of the login but the current one (Better Auth's `revokeOtherSessions`; owner ruling, 22 October 2026). Adding or removing a method needs a session started in the last 5 minutes (Better Auth's `freshAge`). Adding or removing a method, changing the password and using a backup code are told to the person by email. Changing the password ends every other session of the login (`revokeOtherSessions` on change; owner ruling, 22 October 2026).
+**The security page.** Each person sees their methods and recent sign-ins, can remove a lost passkey, can move to a new authenticator app, and can sign out every other device, which ends every session of the login but the current one (Better Auth's `revokeOtherSessions`; owner ruling, 22 October 2026). Adding or removing a method needs a session started in the last 5 minutes (Better Auth's `freshAge`). Adding or removing a method, changing the password and using a backup code are told to the person by email. Changing the password ends every other session of the login (`revokeOtherSessions` on change; owner ruling, 22 October 2026).
+
+**A new authenticator app** (owner ruling, 23 October 2026). A login holds one authenticator; to keep it on two apps, the person scans the same code into both. Moving to a new app replaces it:
+
+1. After the fresh check, the page shows a new code to scan, and the person types back a code from the new app.
+2. Only then does the new app take over: the old app's codes stop working, and 10 new backup codes are shown once, replacing the old ones. Until the new app is confirmed, the old one keeps working.
+3. A password login cannot remove its authenticator without a new one, since a password never signs in alone. A lost authenticator is replaced through a backup code ([section 6](#6-recovery)).
+4. The person is told by email, like any added or removed method.
 
 ## 4. Password policy
 
