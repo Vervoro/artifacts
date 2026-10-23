@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-000: System architecture](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-000-system-architecture) |
-| **Date** | 20–21 October 2026; sign-in on Better Auth ([ADR-013](../../sign-in/)) 21 October 2026; amended by owner rulings: a tap's sending, done and not sure states (12.8) and the rollback window (11.2), 21 October 2026; decrease-only accounts through the gate (7.2), Invoicing's needs (4) and who switches a module on or off (3.4), 22 October 2026 |
+| **Date** | 20–21 October 2026; sign-in on Better Auth ([ADR-013](../../sign-in/)) 21 October 2026; amended by owner rulings: a tap's sending, done and not sure states (12.8) and the rollback window (11.2), 21 October 2026; decrease-only accounts through the gate (7.2), Invoicing's needs (4) and who switches a module on or off (3.4), 22 October 2026; every change's key kept on the server (12.8), 23 October 2026 |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-000 from. Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins. Words are defined in the [map and glossary](../../guide/).
@@ -200,7 +200,7 @@ Procedure: [Deploy and roll back](../../runbooks/deploy-and-roll-back/).
 5. Every status has an icon and a word, never colour alone. Every control is at least one touch target. Focus is always visible.
 6. Every interactive element has a stable test id.
 7. No screen waits for a marketplace ([section 10](#10-runtime), rule 8).
-8. **A tap that changes something shows sending, done or not sure,** and shows done only on the server's answer. Not sure (no answer, or the connection dropped) retries with the same key ([ADR-006 SPEC 12.4](../../stock-ledger/spec/#12-the-lock-keys-and-the-sequence)) and holds that item's next step until it settles, so a worker never repeats the physical step to find out. There is no offline queue at launch.
+8. **A tap that changes something shows sending, done or not sure,** and shows done only on the server's answer. Not sure (no answer, or the connection dropped) retries with the same key and holds that item's next step until it settles. The server keeps each change's key with its answer, in the company's cell, written in the change's own transaction: a repeat with the same key gets the first answer and changes nothing ([ADR-001 SPEC 5](../../database-architecture/spec/#5-declaring-tables); stock commands in `stock_command`, [ADR-006 SPEC 12.4](../../stock-ledger/spec/#12-the-lock-keys-and-the-sequence); owner ruling, 23 October 2026). It holds that item's next step until it settles, so a worker never repeats the physical step to find out. There is no offline queue at launch.
 
 ## 13. Languages and formats
 

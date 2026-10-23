@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>20 October 2026; hosting reviewed 21 October 2026; sign-in data aligned with Better Auth (<a href="../../sign-in/">ADR-013</a>) 21 October 2026; amended by owner rulings: control unreachable (7) and the sign-in role&#39;s rights (3), 21 October 2026; one Neon project per database (7, 8), Neon&#39;s internal roles and the staging rule (3), append-only and partitioned tables declared per table (5), the audit over every project, staging&#39;s audit and an audit failure on control (11), the sign-in role reading the security log for a data request (3, 11), and who refuses a database from before the reset (12), 22 October 2026; a sign-up link&#39;s address in control (7), 23 October 2026</td>
+<td>20 October 2026; hosting reviewed 21 October 2026; sign-in data aligned with Better Auth (<a href="../../sign-in/">ADR-013</a>) 21 October 2026; amended by owner rulings: control unreachable (7) and the sign-in role&#39;s rights (3), 21 October 2026; one Neon project per database (7, 8), Neon&#39;s internal roles and the staging rule (3), append-only and partitioned tables declared per table (5), the audit over every project, staging&#39;s audit and an audit failure on control (11), the sign-in role reading the security log for a data request (3, 11), and who refuses a database from before the reset (12), 22 October 2026; a sign-up link&#39;s address in control (7), the sign-up company name (7) and request keys (5, 9), 23 October 2026</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -378,6 +378,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Logs:</strong> one table per retention class. <code>audit_log</code> holds security and access events, kept at least a year for live companies. <code>event_log</code> holds module activity, kept 90 days by whole months (<a href="../../data-retention/spec/#2-the-retention-schedule">ADR-002 SPEC 2</a>).</li>
 <li><strong>Operational state</strong> (rate buckets, leases, nonces, staging) lives in tenant tables like everything else.</li>
 <li><strong>Secrets:</strong> one table, <code>secrets(company_id, purpose)</code>.</li>
+<li><strong>Request keys:</strong> <code>app.request_key(company_id, key, module, answer, at)</code>, unique per company and key, a tenant table under the company policy like every other. It is written in the transaction of the person&#39;s change it names, so a repeat with the same key gets the first answer and changes nothing; the sweeper deletes keys after 7 days. Stock commands keep theirs in <code>stock_command</code> (<a href="../../stock-ledger/spec/#12-the-lock-keys-and-the-sequence">ADR-006 SPEC 12</a>). Sign-up keeps none: it opens a company that does not exist yet, and taking its name once is its key (owner ruling, 23 October 2026).</li>
 </ol>
 <h2 id="6-guard-rails">6. Guard rails</h2>
 <p>This section and <a href="#1-tenancy-inside-a-cell">section 1</a> own tenant isolation; other records link here. Isolation has two tiers.</p>
@@ -499,7 +500,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Sign-in data</td>
-<td>Better Auth&#39;s tables in the <code>auth</code> schema (logins with their email address and name, sessions, passwords, passkeys, authenticators, backup codes, verifications, rate counts) and Vervoro&#39;s sign-in policy tables in <code>auth_policy</code> (<a href="../../sign-in/spec/#2-the-login-and-its-data">ADR-013 SPEC 2</a>); only the sign-in role touches these</td>
+<td>Better Auth&#39;s tables in the <code>auth</code> schema (logins with their email address and name, sessions, passwords, passkeys, authenticators, backup codes, verifications, rate counts) and Vervoro&#39;s sign-in policy tables in <code>auth_policy</code>, including the company name a sign-up gave until the app opens it (<code>auth_policy.sign_up_company</code>; owner ruling, 23 October 2026) (<a href="../../sign-in/spec/#2-the-login-and-its-data">ADR-013 SPEC 2</a>); only the sign-in role touches these</td>
 </tr>
 <tr>
 <td>Memberships and operator data</td>
@@ -651,6 +652,11 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </thead>
 <tbody><tr>
+<td>Request key expiry</td>
+<td>Kernel</td>
+<td>A key in <code>app.request_key</code> is older than 7 days (<a href="#5-declaring-tables">section 5</a>)</td>
+</tr>
+<tr>
 <td>Outbox delivery</td>
 <td>Kernel</td>
 <td>A note has no receipt for one of its handlers. A control write still needed is an outbox note too, whose handler runs outside the transaction: one kind, not two (owner ruling, 21 October 2026)</td>

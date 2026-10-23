@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-001: Multi-tenant database architecture](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-001-multi-tenant-database-architecture) |
-| **Date** | 20 October 2026; hosting reviewed 21 October 2026; sign-in data aligned with Better Auth ([ADR-013](../../sign-in/)) 21 October 2026; amended by owner rulings: control unreachable (7) and the sign-in role's rights (3), 21 October 2026; one Neon project per database (7, 8), Neon's internal roles and the staging rule (3), append-only and partitioned tables declared per table (5), the audit over every project, staging's audit and an audit failure on control (11), the sign-in role reading the security log for a data request (3, 11), and who refuses a database from before the reset (12), 22 October 2026; a sign-up link's address in control (7), 23 October 2026 |
+| **Date** | 20 October 2026; hosting reviewed 21 October 2026; sign-in data aligned with Better Auth ([ADR-013](../../sign-in/)) 21 October 2026; amended by owner rulings: control unreachable (7) and the sign-in role's rights (3), 21 October 2026; one Neon project per database (7, 8), Neon's internal roles and the staging rule (3), append-only and partitioned tables declared per table (5), the audit over every project, staging's audit and an audit failure on control (11), the sign-in role reading the security log for a data request (3, 11), and who refuses a database from before the reset (12), 22 October 2026; a sign-up link's address in control (7), the sign-up company name (7) and request keys (5, 9), 23 October 2026 |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-001 from. Each section is a rule set, a table or a list of states. The record decides; this page says exactly how. Where this page and the ADR disagree, the ADR wins and this page is fixed. The words used are defined in the [map and glossary](../../guide/).
@@ -121,6 +121,7 @@ Modules never write `CREATE TABLE`. They declare tables through `tenantTable()`,
 5. **Logs:** one table per retention class. `audit_log` holds security and access events, kept at least a year for live companies. `event_log` holds module activity, kept 90 days by whole months ([ADR-002 SPEC 2](../../data-retention/spec/#2-the-retention-schedule)).
 6. **Operational state** (rate buckets, leases, nonces, staging) lives in tenant tables like everything else.
 7. **Secrets:** one table, `secrets(company_id, purpose)`.
+8. **Request keys:** `app.request_key(company_id, key, module, answer, at)`, unique per company and key, a tenant table under the company policy like every other. It is written in the transaction of the person's change it names, so a repeat with the same key gets the first answer and changes nothing; the sweeper deletes keys after 7 days. Stock commands keep theirs in `stock_command` ([ADR-006 SPEC 12](../../stock-ledger/spec/#12-the-lock-keys-and-the-sequence)). Sign-up keeps none: it opens a company that does not exist yet, and taking its name once is its key (owner ruling, 23 October 2026).
 
 ## 6. Guard rails
 
@@ -191,7 +192,7 @@ Control is its own database on its own compute. A cell credential can never read
 | --- | --- |
 | Company registry | Plan (trial or paid), tombstones and `database_id`. No stored status: a company's state is computed from dates ([ADR-012 SPEC 7](../../billing-and-plans/spec/#7-company-states)), and billing adds its own fields (owner ruling, 21 October 2026) |
 | Database registry | `database(id, region, kind shared or dedicated, state open, closed or draining, cap)` |
-| Sign-in data | Better Auth's tables in the `auth` schema (logins with their email address and name, sessions, passwords, passkeys, authenticators, backup codes, verifications, rate counts) and Vervoro's sign-in policy tables in `auth_policy` ([ADR-013 SPEC 2](../../sign-in/spec/#2-the-login-and-its-data)); only the sign-in role touches these |
+| Sign-in data | Better Auth's tables in the `auth` schema (logins with their email address and name, sessions, passwords, passkeys, authenticators, backup codes, verifications, rate counts) and Vervoro's sign-in policy tables in `auth_policy`, including the company name a sign-up gave until the app opens it (`auth_policy.sign_up_company`; owner ruling, 23 October 2026) ([ADR-013 SPEC 2](../../sign-in/spec/#2-the-login-and-its-data)); only the sign-in role touches these |
 | Memberships and operator data | Memberships, operator accounts and grants. Written by the runtime role |
 | External directory | Marketplace seller id → company |
 | Erasure register | Every buyer erasure and company tombstone, by id and time only. Also written, entry by entry, to an append-only log in object storage, so a restore of control cannot lose an erasure |
@@ -307,6 +308,7 @@ Launch kinds, taken from the records:
 
 | Kind | Owner | Due when |
 | --- | --- | --- |
+| Request key expiry | Kernel | A key in `app.request_key` is older than 7 days ([section 5](#5-declaring-tables)) |
 | Outbox delivery | Kernel | A note has no receipt for one of its handlers. A control write still needed is an outbox note too, whose handler runs outside the transaction: one kind, not two (owner ruling, 21 October 2026) |
 | Egress send and read-back | Channels ([ADR-004](../../channel-connectors/)) | A recorded send is due, or a send passed its deadline unconfirmed |
 | Backup order read | Channels, importing into Orders ([ADR-007](../../order-ingestion/spec/#2-how-an-order-comes-in)) | An account's scheduled read is due |
