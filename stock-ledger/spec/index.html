@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>21 October 2026</td>
+<td>21 October 2026; amended by owner rulings of 25 October 2026: a Warehouse user&#39;s receipt quarantined only when unusual (8.4), the batch-assumed target for use-by and business-buyer lines (18)</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -353,7 +353,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Pack.</strong> For each unit, the batch that left: moves it, still reserved, to the warehouse&#39;s packing spot (<code>transferred</code>, source &quot;packing&quot;). Another eligible batch than planned (in date, not blocked, meeting the demand&#39;s need) moves the reservation with it; if that batch has no free units, the reservation is exchanged with the newest unpacked reservation of the same batch on another line. With nothing to exchange, the line keeps its reserved batch, marked &quot;batch assumed&quot;, with any lot the packer tapped.</li>
 <li><strong>Put back.</strong> Moves packed units back to a storage spot, or leaves them in the packing spot for put-away.</li>
 <li><strong>Dispatch.</strong> Writes <code>dispatched</code> for each packed reservation the shipment uses (on hand in the packing spot and reserved down together), marks them dispatched, and records each line&#39;s lots. A reservation can never dispatch more than it packed, nor pack more than it reserved. An order dispatched without packing in Vervoro is packed by the dispatch itself: one eligible batch is implied, otherwise the reserved batch, marked &quot;batch assumed&quot;.</li>
-<li><strong>Shipped outside Vervoro.</strong> When the marketplace reports a line shipped with no shipment in Vervoro, except a label bought on the marketplace (<a href="../../order-ingestion/spec/#17-shipped-outside-vervoro">ADR-007 SPEC 17.8</a>), Orders calls dispatch with source &quot;marketplace said shipped&quot;: packed units first, unpacked marked &quot;batch assumed&quot;; in shadow, marked &quot;lot not traced&quot;. When it had to choose between eligible batches of a dated product, a task asks the warehouse to tap the lot; it never blocks. A manager reverses a wrong one with <code>adjusted</code> and a reason.</li>
+<li><strong>Shipped outside Vervoro.</strong> When the marketplace reports a line shipped with no shipment in Vervoro, except a label bought on the marketplace (<a href="../../order-ingestion/spec/#17-shipped-outside-vervoro">ADR-007 SPEC 17.8</a>), Orders calls dispatch with source &quot;marketplace said shipped&quot;: packed units first, unpacked marked &quot;batch assumed&quot;; in shadow, marked &quot;lot not traced&quot;. When it had to choose between eligible batches of a use-by product, or for a business buyer&#39;s line, a task asks the warehouse to tap the lot; it never blocks. Any other line stays &quot;batch assumed&quot; (<a href="../../fulfilment/spec/#3-packing">ADR-014 SPEC 3</a>, owner ruling, 25 October 2026). A manager reverses a wrong one with <code>adjusted</code> and a reason.</li>
 <li><strong>Release.</strong> A confirmed cancellation releases exactly what each line held, batch by batch. A request releases nothing (<a href="../../order-ingestion/spec/#12-cancellations-and-refunds">ADR-007</a>). After dispatch, a cancellation moves nothing.</li>
 <li><strong>Quarantine at a pick (&quot;not found&quot;).</strong> Quarantines the unit with that reason, moves the reservation to another qualifying batch or leaves the line short, and puts the spot on the count list.</li>
 <li><strong>A unit picked where the books do not show it</strong> is a move from the spot where the books hold that batch, and both spots go on the count list. Only when no spot holds that batch is it <strong>found</strong>: received with reason &quot;found at pick&quot; and packed in one transaction, listed for a manager.</li>
@@ -365,7 +365,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>A confirmed receipt line,</strong> in one locked transaction, creates a batch (lot, date, supplier, units per box, provisional landed cost), writes <code>received</code> into the chosen spot or the default spot, and fills short lines in that warehouse.</li>
 <li><strong>Checks:</strong> a product that tracks dates or lots refuses a receipt without them; fewer days left than <code>min_days_on_receipt</code> is received quarantined (&quot;short-dated receipt&quot;) until a manager accepts or refuses it; a box barcode adds its units (<a href="../../product-model/spec/#7-box-and-pallet-sizes">ADR-003 SPEC 7</a>); warehouse users never see costs.</li>
 <li><strong>Put-away is a move</strong> (<code>transferred</code> between spots). Nobody confirms put-away before stock goes on sale.</li>
-<li><strong>Without a purchase order:</strong> a manager receives directly, with a reason from a short list (supplier extra, sample, opening stock, found, other with a note), sellable at once. A Warehouse user&#39;s receipt enters quarantined until a manager accepts it, at launch too, while every receipt is without a purchase order (owner ruling, 21 October 2026). A manager accepts (<code>inspected</code>) or refuses (write-off or return to supplier). Cost may be blank; reports then use the product&#39;s standard cost and say so. Each such receipt is in the activity view and a reconciliation report.</li>
+<li><strong>Without a purchase order:</strong> a manager receives directly, with a reason from a short list (supplier extra, sample, opening stock, found, other with a note), sellable at once. A Warehouse user&#39;s receipt is sellable at once unless it looks unusual: more units than 3 times the product&#39;s largest earlier receipt in that warehouse that a manager made or accepted, or, for its first receipt there, more than the company&#39;s first-receipt limit (a setting, default 100 units). An unusual receipt enters quarantined until a manager accepts it (owner ruling, 25 October 2026, replacing the ruling of 21 October 2026 that quarantined every one). Every receipt without a purchase order is on the manager&#39;s daily list. A manager accepts (<code>inspected</code>) or refuses (write-off or return to supplier). Cost may be blank; reports then use the product&#39;s standard cost and say so. Each such receipt is in the activity view and a reconciliation report.</li>
 <li><em>Later (Purchasing):</em> <strong>against a purchase order,</strong> each delivery is its own batch; fewer than ordered leave the rest incoming until a manager closes the line; more are received as counted and the surplus is shown for a manager. A receipt made without one can be attached to its line later; stock does not move again.</li>
 <li><strong>Cost is not stock.</strong> Changing a landed cost never touches quantities or the ledger.</li>
 </ol>
@@ -575,7 +575,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </thead>
 <tbody><tr>
-<td>Receive (without a purchase order: quarantined), move, repack, count, mark damaged or quarantined</td>
+<td>Receive (without a purchase order: an unusual one quarantined, section 8.4), move, repack, count, mark damaged or quarantined</td>
 <td>Yes</td>
 <td>Yes</td>
 </tr>
@@ -703,7 +703,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Batch assumed</td>
-<td>At most 1 % of lines on the simulated reference seller&#39;s day</td>
+<td>At most 1 % of use-by and business-buyer lines on the simulated reference seller&#39;s day (<a href="../../fulfilment/spec/#3-packing">ADR-014 SPEC 3</a>)</td>
 </tr>
 </tbody></table></div>
 <h2 id="how-to-check-it-was-built-right">How to check it was built right</h2>

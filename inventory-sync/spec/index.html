@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>21 October 2026</td>
+<td>21 October 2026; amended by owner rulings of 25 October 2026: the sync epoch read once per sending job</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -445,7 +445,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>One job per write target at a time.</strong> A batch takes the lease of every member; a member already leased is left out.</li>
 <li><strong>A lease</strong> lasts the call&#39;s timeout plus 15 seconds. An expired lease is written <code>unknown</code> and settled first.</li>
 <li><strong>The idempotency key</strong> is the company&#39;s sync epoch, the write target, the version, the figure, and how many writes of that figure at that version have already settled. A repeat after a crash carries the same key; a deliberate second write of the same figure gets a new one.</li>
-<li><strong>The sync epoch</strong> is one number per company in the control database (<a href="../../database-architecture/spec/#7-control-database-and-routing">ADR-001 SPEC 7</a>), so a restore never rolls it back. Every restore raises it.</li>
+<li><strong>The sync epoch</strong> is one number per company in the control database (<a href="../../database-architecture/spec/#7-control-database-and-routing">ADR-001 SPEC 7</a>), so a restore never rolls it back. Every restore raises it. A job that sends reads it from control once, when it starts, and uses it for every key it makes; nothing carries it from one job to the next (owner ruling, 25 October 2026).</li>
 </ol>
 <h2 id="14-shadow-and-going-live">14. Shadow and going live</h2>
 <p>Every account starts in shadow by <a href="../../channel-connectors/spec/#11-shadow-mode-and-launch-gates">ADR-004&#39;s rule</a>. This section adds what going live needs.</p>
@@ -657,7 +657,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><input disabled="" type="checkbox"> <strong>No SQL:</strong> every query uses the typed query builder; no <code>sql</code> or <code>raw</code> import in the module.</li>
 <li><input disabled="" type="checkbox"> <strong>Work list:</strong> the dispatcher reads a query over rows, never a message queue.</li>
 <li><input disabled="" type="checkbox"> <strong>Order read:</strong> the raise path compares the watermark with the due time plus 2 minutes in one function used by every marketplace.</li>
-<li><input disabled="" type="checkbox"> <strong>Keys:</strong> the idempotency key includes the epoch read from control; nothing caches the epoch across a restore.</li>
+<li><input disabled="" type="checkbox"> <strong>Keys:</strong> the idempotency key includes the epoch the sending job read from control when it started; nothing carries the epoch from one job to the next.</li>
 <li><input disabled="" type="checkbox"> <strong>Egress:</strong> every write goes through the gate; no connector call from Stock sync directly.</li>
 <li><input disabled="" type="checkbox"> <strong>Unknown:</strong> the settle step runs before any other write to that target, using ADR-004&#39;s rule.</li>
 <li><input disabled="" type="checkbox"> <strong>Later parts:</strong> no Vendor figure, no second warehouse per account, no Amazon feed path, no display cap at launch.</li>

@@ -24,7 +24,7 @@ Rules: [ADR-001 SPEC](../database-architecture/spec/).
 | [Restore a company: look back](restore-a-company-look-back/) | A seller made a mistake, such as one bad bulk edit |
 | [Restore a company: full rewind](restore-a-company-full-rewind/) | A company's data is corrupt |
 | [Restore a whole cell](restore-a-whole-cell/) | A cell is lost |
-| [Drills](drills/) | Weekly, monthly and nightly, unattended |
+| [Drills](drills/) | Quarterly by the operator at launch; monthly and unattended from 50 companies; the canary nightly once a second cell exists |
 | [Use the owner role](use-the-owner-role/) | An emergency that no other role can fix |
 | [Control database unreachable](control-database-unreachable/) | Control has been unreachable for 5 minutes |
 

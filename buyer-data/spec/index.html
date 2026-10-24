@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>21 October 2026</td>
+<td>21 October 2026; amended by owner rulings of 25 October 2026: <code>audit_log</code> kept 13 months (7), anonymisation once a day, 48 hours ahead (8.2), views logged once per person, order and day, and the restricted role applied for ahead of labels (7.2, 16.1)</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -285,7 +285,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tbody></table></div>
 <ol>
 <li><strong>Everyone else sees the order masked:</strong> number, country and lines.</li>
-<li><strong>Every view writes one <code>audit_log</code> entry:</strong> opening an order with buyer data, the packing screen, printing or reprinting a label, a buyer search, an export. It names the user, the order, the fields shown (never their values), the screen and the time. Lists show no buyer data and write nothing. The seller sees the entries; <code>audit_log</code> is kept at least a year (<a href="../../users-and-access/spec/#8-audit">ADR-010 SPEC 8</a>).</li>
+<li><strong>Every view is logged, once per person, order and day:</strong> opening an order with buyer data, the packing screen, printing or reprinting a label each write the day&#39;s one <code>audit_log</code> entry for that person and order, by a single insert that writes nothing when the day&#39;s entry exists. It names the user, the order, the fields shown (never their values), the screen and the first time that day. A buyer search and an export each write an entry of their own, every time (owner ruling, 25 October 2026). Lists show no buyer data and write nothing. The seller sees the entries; <code>audit_log</code> is kept 13 months (<a href="../../users-and-access/spec/#8-audit">ADR-010 SPEC 8</a>).</li>
 <li><strong>The operator</strong> reaches a company only under a grant: one company, a written reason, at most 8 hours, seen by the seller and ended by them at will. Buyer fields stay encrypted unless the seller&#39;s owner or admin switches them on for that grant (<a href="../../users-and-access/spec/#7-operator-access-to-a-company">ADR-010 SPEC 7</a>).</li>
 <li><strong>Developers</strong> have no access to production data. The database owner role is used only through the CI migration job, with the reason recorded first and an alert (<a href="../../database-architecture/spec/#3-roles">ADR-001 SPEC 3</a>); even then buyer fields are ciphertext.</li>
 <li><strong>Leavers:</strong> a person&#39;s platform access ends within 24 hours of leaving or changing role, and access is reviewed every quarter.</li>
@@ -325,7 +325,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tbody></table></div>
 <ol>
 <li><strong>An order still to be shipped keeps its address.</strong> Delivery is the rule and dispatch the fallback; this is the rule ADR-002 cites (<a href="../../data-retention/">ADR-002</a>).</li>
-<li><strong>The due time</strong> sits in the cell&#39;s <code>due</code> table (<a href="../../database-architecture/spec/#the-due-table">ADR-001 SPEC 9</a>). The sweeper, in one transaction per company: clears every <code>pii</code> field on the order and its lines; removes the phone index entry and the eBay hash; marks the order anonymised with the time and reason; deletes its label files.</li>
+<li><strong>Once a day</strong> the sweeper takes every order of the company due within the next 48 hours, so none passes its 30 days (<a href="../../database-architecture/spec/#the-due-table">ADR-001 SPEC 9</a>; owner ruling, 25 October 2026), and in one transaction per company: clears every <code>pii</code> field on the order and its lines; removes the phone index entry and the eBay hash; marks the order anonymised with the time and reason; deletes its label files.</li>
 <li><strong>Once anonymised, never again.</strong> A later read or notice that brings the details back stores nothing personal for that order.</li>
 <li><strong>Proof:</strong> a nightly check counts, per company, orders past their due time still holding buyer data. Anything but zero alerts the operator (<a href="../../runbooks/check-the-anonymisation-job/">runbook</a>).</li>
 <li><strong>What survives:</strong> the marketplace order id, dates, lines, prices, totals and fees (accounting records); the batch and lot shipped (a recall reaches buyers through the marketplace by order id, <a href="../../fulfilment/">ADR-014</a>); the country and tax territory, on the order (VAT); the carrier and service. Not the postcode district or the town: Amazon counts postal codes as personal data.</li>
@@ -532,7 +532,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ol>
 <h2 id="16-per-marketplace">16. Per marketplace</h2>
 <h3 id="161-amazon">16.1 Amazon</h3>
-<p><em>Later</em>, with shipping labels (section 0). At launch Vervoro holds no restricted role, and an Amazon order brings no recipient.</p>
+<p><em>Later</em>, with shipping labels (section 0): an Amazon order brings no recipient until then. Vervoro applies for the restricted role ahead of labels, so its review is passed by the time they are built; until labels nothing it releases is asked for or stored (owner ruling, 25 October 2026).</p>
 <ol>
 <li><strong>The restricted role for direct-to-consumer shipping</strong> only, which releases the recipient&#39;s name, address and phone on orders the seller ships. Not the tax roles (section 0).</li>
 <li><strong>The 2026 orders API</strong> releases them by role alone, with no Restricted Data Token. Vervoro asks only for the recipient and gift message, never the buyer&#39;s email, and only on seller-shipped orders not yet shipped (<a href="../../amazon-seller-connector/spec/#8-buyer-data">ADR-004.2 SPEC 8</a>).</li>
@@ -745,7 +745,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td>Role and state</td>
 <td>CI</td>
-<td>Each role sees buyer data only as section 7 allows; every view writes one audit entry with no values</td>
+<td>Each role sees buyer data only as section 7 allows; the first view of an order by a person in a day writes one audit entry with no values, a second that day writes nothing; every search and export writes its own</td>
 </tr>
 <tr>
 <td>Operator grant</td>

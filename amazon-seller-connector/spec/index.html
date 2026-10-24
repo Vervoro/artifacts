@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>21 October 2026</td>
+<td>21 October 2026; amended by owner rulings of 25 October 2026: the backup read hourly (4.1)</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -159,7 +159,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p>Procedure: <a href="../../runbooks/set-up-the-amazon-notice-bridge/">Set up the Amazon notice bridge</a>.</p>
 <h2 id="4-orders">4. Orders</h2>
 <ol>
-<li><strong>Every 10 minutes,</strong> on every marketplace of the region in one search (up to 50). An early read is never closer than three minutes, because the search refills that slowly.</li>
+<li><strong>Hourly,</strong> and every 10 minutes while the account&#39;s notices look broken or after a failed launch gate (<a href="../../channel-connectors/spec/#9-the-completeness-check">ADR-004 SPEC 9</a>; owner ruling, 25 October 2026), on every marketplace of the region in one search (up to 50). An early read is never closer than three minutes, because the search refills that slowly.</li>
 <li><strong>Each page carries its orders&#39; items,</strong> so nothing is fetched per order.</li>
 <li><strong>Amazon stops a search two minutes before its own clock</strong> and says where it stopped; that bound is the window&#39;s completeness.</li>
 </ol>

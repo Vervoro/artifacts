@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-010: Users, roles and access](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-010-users-roles-and-access) |
-| **Date** | 21 October 2026 |
+| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: `audit_log` kept 13 months (8), a receipt quarantined only when unusual (4) |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-010 from. The record decides; this page says exactly how. Where this page and the ADR disagree, the ADR wins and this page is fixed. How a person signs in is [ADR-013](../../sign-in/spec/). The words used are defined in the [map and glossary](../../guide/).
@@ -90,7 +90,7 @@ A module declares each action in its manifest ([ADR-000 SPEC 1](../../system-arc
 | See costs, landed cost and margins | Yes | Yes | Yes | No | Yes | No | ADR-010 |
 | **Stock** | | | | | | | |
 | Receive, move between spots, repack between a pack and its singles, count | Yes | Yes | Yes | Yes | No | No | [ADR-006](../../stock-ledger/) |
-| Record a receipt without a purchase order (quarantined, waits for a manager) | Yes | Yes | Yes | Yes | No | No | [ADR-006](../../stock-ledger/) |
+| Record a receipt without a purchase order (an unusual one is quarantined until a manager accepts it, ADR-006 SPEC 8.4) | Yes | Yes | Yes | Yes | No | No | [ADR-006](../../stock-ledger/) |
 | Approve a count; confirm reserved units are gone (packed outside Vervoro) | Yes | Yes | Yes | No | No | No | [ADR-006](../../stock-ledger/) |
 | Adjust, write off (reason required) | Yes | Yes | Yes | No | No | No | [ADR-006](../../stock-ledger/) |
 | Accept or refuse a quarantined receipt | Yes | Yes | Yes | No | No | No | [ADR-006](../../stock-ledger/) |
@@ -203,7 +203,7 @@ All of it happens within minutes, inside ADR-009's 24 hours.
 | **Each entry** | Time, actor (person, operator with grant, or system actor), action, the ids it named, result | Time, login or operator id, event, network address and device kind, result |
 | **Never holds** | Buyer data (a view records which fields were shown, not their values) | Buyer data, email addresses, names, passwords or codes |
 | **Read by** | Owner, Admin, Accountant | The operator; each person sees their own sign-ins |
-| **Kept** | At least a year in the cell, then 6 years in the archive ([ADR-002 SPEC 2](../../data-retention/spec/#2-the-retention-schedule)); erased with the company | 12 months ([ADR-009](../../buyer-data/spec/#14-security-controls)) |
+| **Kept** | 13 months in the cell, then dropped by whole months ([ADR-002 SPEC 2](../../data-retention/spec/#2-the-retention-schedule); owner ruling, 25 October 2026); erased with the company | 12 months ([ADR-009](../../buyer-data/spec/#14-security-controls)) |
 | **Protected** | Append-only: the runtime role cannot update, delete or truncate it ([ADR-001 SPEC 5](../../database-architecture/spec/#5-declaring-tables)) | The same |
 
 ADR-009's alerts read these trails: every grant, every use of the owner role, a burst of failed sign-ins, a last-Owner recovery, and a person viewing far more buyers than their packing explains.

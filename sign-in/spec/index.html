@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>21 October 2026; Better Auth replaces the in-house engine, owner approval of 21 October 2026; owner rulings on sessions, email and the passkey fallback the same day; amended by owner rulings: the sign-in mail provider chosen by configuration, sign-up with a password first, a forced change exempt from the 1-day minimum, an email-first sign-in page, its passkey offers worded to what a browser can tell, signing out other devices, the privacy notice link, the export and name calls, the freeze and the 365-day rule clarified, and an unknown passkey signalled to the device, 22 October 2026; the passkey prompt opened only on request, when sessions are deleted, sign-up proving the address first, the app&#39;s mail through the same provider, no email change (the <code>setEmail</code> call removed before it was built), the company named in the sign-up form, the passkey offer skipped when the login has one, and security shown in the app, 23 October 2026; <code>enrol</code> asked before an invitation is accepted, the recent sign-ins listed, a new authenticator kept pending until confirmed, and <code>loginFacts</code> for an invited person joining, 24 October 2026</td>
+<td>21 October 2026; Better Auth replaces the in-house engine, owner approval of 21 October 2026; owner rulings on sessions, email and the passkey fallback the same day; amended by owner rulings: the sign-in mail provider chosen by configuration, sign-up with a password first, a forced change exempt from the 1-day minimum, an email-first sign-in page, its passkey offers worded to what a browser can tell, signing out other devices, the privacy notice link, the export and name calls, the freeze and the 365-day rule clarified, and an unknown passkey signalled to the device, 22 October 2026; the passkey prompt opened only on request, when sessions are deleted, sign-up proving the address first, the app&#39;s mail through the same provider, no email change (the <code>setEmail</code> call removed before it was built), the company named in the sign-up form, the passkey offer skipped when the login has one, and security shown in the app, 23 October 2026; <code>enrol</code> asked before an invitation is accepted, the recent sign-ins listed, a new authenticator kept pending until confirmed, and <code>loginFacts</code> for an invited person joining, 24 October 2026; amended by owner rulings of 25 October 2026: the rate limit on attempt routes, and a Cloudflare rule on the sign-in paths (1, 7)</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -156,7 +156,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Rate limit</td>
-<td>On, stored in the database (memory is unsuitable on Workers), keyed by <code>cf-connecting-ip</code></td>
+<td>On, stored in the database (memory is unsuitable on Workers), keyed by <code>cf-connecting-ip</code>, on every route but three named reads that try nothing: Better Auth&#39;s <code>/get-session</code>, <code>/ok</code> and <code>/passkey/list-user-passkeys</code>. A new route is counted unless it is added to that list (owner ruling, 25 October 2026)</td>
 <td><a href="#7-lockouts-rate-limits-and-bots">Section 7</a></td>
 </tr>
 <tr>
@@ -491,7 +491,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td>Network attacks in bulk</td>
 <td>Cloudflare</td>
-<td>Its standard protection in front of every Worker; no extra rule</td>
+<td>Its standard protection in front of every Worker, and one rate-limiting rule on the sign-in paths (owner ruling, 25 October 2026)</td>
 </tr>
 </tbody></table></div>
 <p>No sign-in page takes a web address to return to; return targets are names of the app&#39;s own screens.</p>
@@ -860,7 +860,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><input disabled="" type="checkbox"> <strong>Password policy:</strong> in hooks only, with source per rule; history kept by the trigger in Better Auth&#39;s transaction and verified with its <code>password.verify</code>; no second hash function.</li>
 <li><input disabled="" type="checkbox"> <strong>Sessions:</strong> refresh off; 24 hours from Better Auth&#39;s <code>expiresIn</code> and again by <code>session</code>; cookie flags as section 5; no Vervoro session table.</li>
 <li><input disabled="" type="checkbox"> <strong>Fresh check:</strong> start time from Better Auth, re-checked by the sign-in Worker before any reset or method change.</li>
-<li><input disabled="" type="checkbox"> <strong>Lockouts and limits:</strong> owners as section 7; rate limit stored in the database; the bot check on every password route.</li>
+<li><input disabled="" type="checkbox"> <strong>Lockouts and limits:</strong> owners as section 7; rate limit stored in the database, on every route but the three named reads; the bot check on every password route.</li>
 <li><input disabled="" type="checkbox"> <strong>Recovery:</strong> section 6&#39;s split; a reset touches only the resetter&#39;s company; the last-Owner wait cancels on any sign-in.</li>
 <li><input disabled="" type="checkbox"> <strong>Migrations:</strong> the <code>auth</code> schema from reviewed, committed <code>generate</code> output; no <code>migrate</code> at start-up; a removing step ships only in a release after the one that first needs the new schema.</li>
 <li><input disabled="" type="checkbox"> <strong>Secrets:</strong> <code>BETTER_AUTH_SECRETS</code> only in the sign-in Worker; the rotation was rehearsed.</li>

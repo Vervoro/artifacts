@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-006: Stock ledger and reservations](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-006-stock-ledger-and-reservations) |
-| **Date** | 21 October 2026 |
+| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: a Warehouse user's receipt quarantined only when unusual (8.4), the batch-assumed target for use-by and business-buyer lines (18) |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-006 from: the Inventory module. Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/). Picking, packing, shipments, put-back and returns inspection are the Fulfilment module's ([ADR-014 SPEC](../../fulfilment/spec/)); this page defines the Inventory ports they call.
@@ -141,7 +141,7 @@ Each port is a command under the company's lock with its key (section 12). The f
 2. **Pack.** For each unit, the batch that left: moves it, still reserved, to the warehouse's packing spot (`transferred`, source "packing"). Another eligible batch than planned (in date, not blocked, meeting the demand's need) moves the reservation with it; if that batch has no free units, the reservation is exchanged with the newest unpacked reservation of the same batch on another line. With nothing to exchange, the line keeps its reserved batch, marked "batch assumed", with any lot the packer tapped.
 3. **Put back.** Moves packed units back to a storage spot, or leaves them in the packing spot for put-away.
 4. **Dispatch.** Writes `dispatched` for each packed reservation the shipment uses (on hand in the packing spot and reserved down together), marks them dispatched, and records each line's lots. A reservation can never dispatch more than it packed, nor pack more than it reserved. An order dispatched without packing in Vervoro is packed by the dispatch itself: one eligible batch is implied, otherwise the reserved batch, marked "batch assumed".
-5. **Shipped outside Vervoro.** When the marketplace reports a line shipped with no shipment in Vervoro, except a label bought on the marketplace ([ADR-007 SPEC 17.8](../../order-ingestion/spec/#17-shipped-outside-vervoro)), Orders calls dispatch with source "marketplace said shipped": packed units first, unpacked marked "batch assumed"; in shadow, marked "lot not traced". When it had to choose between eligible batches of a dated product, a task asks the warehouse to tap the lot; it never blocks. A manager reverses a wrong one with `adjusted` and a reason.
+5. **Shipped outside Vervoro.** When the marketplace reports a line shipped with no shipment in Vervoro, except a label bought on the marketplace ([ADR-007 SPEC 17.8](../../order-ingestion/spec/#17-shipped-outside-vervoro)), Orders calls dispatch with source "marketplace said shipped": packed units first, unpacked marked "batch assumed"; in shadow, marked "lot not traced". When it had to choose between eligible batches of a use-by product, or for a business buyer's line, a task asks the warehouse to tap the lot; it never blocks. Any other line stays "batch assumed" ([ADR-014 SPEC 3](../../fulfilment/spec/#3-packing), owner ruling, 25 October 2026). A manager reverses a wrong one with `adjusted` and a reason.
 6. **Release.** A confirmed cancellation releases exactly what each line held, batch by batch. A request releases nothing ([ADR-007](../../order-ingestion/spec/#12-cancellations-and-refunds)). After dispatch, a cancellation moves nothing.
 7. **Quarantine at a pick ("not found").** Quarantines the unit with that reason, moves the reservation to another qualifying batch or leaves the line short, and puts the spot on the count list.
 8. **A unit picked where the books do not show it** is a move from the spot where the books hold that batch, and both spots go on the count list. Only when no spot holds that batch is it **found**: received with reason "found at pick" and packed in one transaction, listed for a manager.
@@ -153,7 +153,7 @@ Each port is a command under the company's lock with its key (section 12). The f
 1. **A confirmed receipt line,** in one locked transaction, creates a batch (lot, date, supplier, units per box, provisional landed cost), writes `received` into the chosen spot or the default spot, and fills short lines in that warehouse.
 2. **Checks:** a product that tracks dates or lots refuses a receipt without them; fewer days left than `min_days_on_receipt` is received quarantined ("short-dated receipt") until a manager accepts or refuses it; a box barcode adds its units ([ADR-003 SPEC 7](../../product-model/spec/#7-box-and-pallet-sizes)); warehouse users never see costs.
 3. **Put-away is a move** (`transferred` between spots). Nobody confirms put-away before stock goes on sale.
-4. **Without a purchase order:** a manager receives directly, with a reason from a short list (supplier extra, sample, opening stock, found, other with a note), sellable at once. A Warehouse user's receipt enters quarantined until a manager accepts it, at launch too, while every receipt is without a purchase order (owner ruling, 21 October 2026). A manager accepts (`inspected`) or refuses (write-off or return to supplier). Cost may be blank; reports then use the product's standard cost and say so. Each such receipt is in the activity view and a reconciliation report.
+4. **Without a purchase order:** a manager receives directly, with a reason from a short list (supplier extra, sample, opening stock, found, other with a note), sellable at once. A Warehouse user's receipt is sellable at once unless it looks unusual: more units than 3 times the product's largest earlier receipt in that warehouse that a manager made or accepted, or, for its first receipt there, more than the company's first-receipt limit (a setting, default 100 units). An unusual receipt enters quarantined until a manager accepts it (owner ruling, 25 October 2026, replacing the ruling of 21 October 2026 that quarantined every one). Every receipt without a purchase order is on the manager's daily list. A manager accepts (`inspected`) or refuses (write-off or return to supplier). Cost may be blank; reports then use the product's standard cost and say so. Each such receipt is in the activity view and a reconciliation report.
 5. *Later (Purchasing):* **against a purchase order,** each delivery is its own batch; fewer than ordered leave the rest incoming until a manager closes the line; more are received as counted and the surplus is shown for a manager. A receipt made without one can be attached to its line later; stock does not move again.
 6. **Cost is not stock.** Changing a landed cost never touches quantities or the ledger.
 
@@ -260,7 +260,7 @@ Roles are [ADR-010's](../../users-and-access/spec/#4-who-may-do-what). A person 
 
 | Action | Warehouse | Manager, Admin, Owner |
 | --- | --- | --- |
-| Receive (without a purchase order: quarantined), move, repack, count, mark damaged or quarantined | Yes | Yes |
+| Receive (without a purchase order: an unusual one quarantined, section 8.4), move, repack, count, mark damaged or quarantined | Yes | Yes |
 | Approve a count; confirm reserved units gone | No | Yes |
 | Adjust, write off, restore damaged units (reason required) | No | Yes |
 | Accept or refuse a quarantined receipt; receive without a purchase order directly | No | Yes |
@@ -298,7 +298,7 @@ Database tests run on real Postgres under the runtime role ([ADR-000 SPEC 15](..
 | Links | A link change never changes an open line; linking reserves waiting lines oldest first after the link commits |
 | Notes | Every command that changes sellable writes one outbox note with its sequence; one that does not, writes none |
 | Lock | Every stock command's first statement takes the company's lock; an order import takes about eight round trips |
-| Batch assumed | At most 1 % of lines on the simulated reference seller's day |
+| Batch assumed | At most 1 % of use-by and business-buyer lines on the simulated reference seller's day ([ADR-014 SPEC 3](../../fulfilment/spec/#3-packing)) |
 
 ## How to check it was built right
 

@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-013: Sign-in](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-013-sign-in) |
-| **Date** | 21 October 2026; Better Auth replaces the in-house engine, owner approval of 21 October 2026; owner rulings on sessions, email and the passkey fallback the same day; amended by owner rulings: the sign-in mail provider chosen by configuration, sign-up with a password first, a forced change exempt from the 1-day minimum, an email-first sign-in page, its passkey offers worded to what a browser can tell, signing out other devices, the privacy notice link, the export and name calls, the freeze and the 365-day rule clarified, and an unknown passkey signalled to the device, 22 October 2026; the passkey prompt opened only on request, when sessions are deleted, sign-up proving the address first, the app's mail through the same provider, no email change (the `setEmail` call removed before it was built), the company named in the sign-up form, the passkey offer skipped when the login has one, and security shown in the app, 23 October 2026; `enrol` asked before an invitation is accepted, the recent sign-ins listed, a new authenticator kept pending until confirmed, and `loginFacts` for an invited person joining, 24 October 2026 |
+| **Date** | 21 October 2026; Better Auth replaces the in-house engine, owner approval of 21 October 2026; owner rulings on sessions, email and the passkey fallback the same day; amended by owner rulings: the sign-in mail provider chosen by configuration, sign-up with a password first, a forced change exempt from the 1-day minimum, an email-first sign-in page, its passkey offers worded to what a browser can tell, signing out other devices, the privacy notice link, the export and name calls, the freeze and the 365-day rule clarified, and an unknown passkey signalled to the device, 22 October 2026; the passkey prompt opened only on request, when sessions are deleted, sign-up proving the address first, the app's mail through the same provider, no email change (the `setEmail` call removed before it was built), the company named in the sign-up form, the passkey offer skipped when the login has one, and security shown in the app, 23 October 2026; `enrol` asked before an invitation is accepted, the recent sign-ins listed, a new authenticator kept pending until confirmed, and `loginFacts` for an invited person joining, 24 October 2026; amended by owner rulings of 25 October 2026: the rate limit on attempt routes, and a Cloudflare rule on the sign-in paths (1, 7) |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-013 from. The record decides; this page says exactly how. Where this page and the ADR disagree, the ADR wins and this page is fixed. Who may do what once signed in is [ADR-010](../../users-and-access/spec/). The words used are defined in the [map and glossary](../../guide/).
@@ -33,7 +33,7 @@ Better Auth is exact-pinned with its plugins (the candidate is 1.7.12, the lates
 | Two-factor plugin | On: TOTP (6 digits, 30-second steps), backup codes stored encrypted (its default), `accountLockout` 10 failures for 30 minutes, `skipVerificationOnEnable` off | The password's second factor |
 | Captcha plugin | On, Turnstile, on `/sign-up/email`, `/sign-in/email` and `/request-password-reset` | The bot check before any password is hashed |
 | Breached-password plugin | On, on sign-up, change and reset | Refuses known breached passwords |
-| Rate limit | On, stored in the database (memory is unsuitable on Workers), keyed by `cf-connecting-ip` | [Section 7](#7-lockouts-rate-limits-and-bots) |
+| Rate limit | On, stored in the database (memory is unsuitable on Workers), keyed by `cf-connecting-ip`, on every route but three named reads that try nothing: Better Auth's `/get-session`, `/ok` and `/passkey/list-user-passkeys`. A new route is counted unless it is added to that list (owner ruling, 25 October 2026) | [Section 7](#7-lockouts-rate-limits-and-bots) |
 | Sessions | `expiresIn` 24 hours for everyone, `disableSessionRefresh`, `freshAge` 5 minutes, cookie cache off | [Section 5](#5-sessions) |
 | Telemetry | Off | Nothing leaves |
 | Off, and never switched on without changing this record | Social and single sign-on providers, magic links, email codes, phone numbers, anonymous users, organisation, admin, multi-session, one-time tokens, bearer tokens, JWT, trusted devices | ADR-013 decisions 3 and 5 |
@@ -183,7 +183,7 @@ A company with no connected marketplace is a trial with little in it: the person
 | Bot check | Better Auth's captcha plugin with Turnstile | Before any password is hashed: password sign-in, sign-up and reset requests. Sign-up's first step (the address alone) is checked by the sign-in Worker through Turnstile's own siteverify, since it is not a Better Auth route; step 2 keeps the captcha plugin on `/sign-up/email` (owner ruling, 23 October 2026). Passkey sign-in has none |
 | Enumeration | Better Auth | One error for a wrong address or password; an unknown address still runs a full hash. Sign-up and reset answer the same whether the address exists |
 | Odd sign-ins | Vervoro | The security log alerts on a burst of failures or resets ([ADR-010 SPEC 8](../../users-and-access/spec/#8-audit)) |
-| Network attacks in bulk | Cloudflare | Its standard protection in front of every Worker; no extra rule |
+| Network attacks in bulk | Cloudflare | Its standard protection in front of every Worker, and one rate-limiting rule on the sign-in paths (owner ruling, 25 October 2026) |
 
 No sign-in page takes a web address to return to; return targets are names of the app's own screens.
 
@@ -335,7 +335,7 @@ For someone reviewing code an AI wrote. Each line says where to look and which t
 - [ ] **Password policy:** in hooks only, with source per rule; history kept by the trigger in Better Auth's transaction and verified with its `password.verify`; no second hash function.
 - [ ] **Sessions:** refresh off; 24 hours from Better Auth's `expiresIn` and again by `session`; cookie flags as section 5; no Vervoro session table.
 - [ ] **Fresh check:** start time from Better Auth, re-checked by the sign-in Worker before any reset or method change.
-- [ ] **Lockouts and limits:** owners as section 7; rate limit stored in the database; the bot check on every password route.
+- [ ] **Lockouts and limits:** owners as section 7; rate limit stored in the database, on every route but the three named reads; the bot check on every password route.
 - [ ] **Recovery:** section 6's split; a reset touches only the resetter's company; the last-Owner wait cancels on any sign-in.
 - [ ] **Migrations:** the `auth` schema from reviewed, committed `generate` output; no `migrate` at start-up; a removing step ships only in a release after the one that first needs the new schema.
 - [ ] **Secrets:** `BETTER_AUTH_SECRETS` only in the sign-in Worker; the rotation was rehearsed.

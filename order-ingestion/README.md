@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Status** | Proposed |
-| **Date** | 18 October 2026, revised after a design review the same day; split into ADR, SPEC and RUNBOOK, with Orders as the core module that alone writes orders, 21 October 2026; no recipient fields until labels, the destination country on the order, labels bought on the marketplace (owner ruling, 22 October 2026) |
+| **Date** | 18 October 2026, revised after a design review the same day; split into ADR, SPEC and RUNBOOK, with Orders as the core module that alone writes orders, 21 October 2026; no recipient fields until labels, the destination country on the order, labels bought on the marketplace (owner ruling, 22 October 2026); amended by owner rulings of 25 October 2026: orders not partitioned |
 | **Scope** | The Orders module: importing each order once, the order watermark, the status and the marketplace mappings, reserving on import, import problems, holds, cancellations and refunds, unlinked, marketplace-shipped and shipped-outside lines, manual orders, and the deadlines handed to Fulfilment |
 | **Builds on** | [ADR-000](../system-architecture/), [ADR-001](../database-architecture/), [ADR-003](../product-model/), [ADR-004](../channel-connectors/) with [ADR-004.1](../ebay-connector/), [ADR-004.2](../amazon-seller-connector/) and [ADR-004.3](../shopify-connector/), [ADR-005](../catalogue-sync/), [ADR-006](../stock-ledger/), [ADR-009](../buyer-data/), [ADR-010](../users-and-access/); used by [ADR-008](../inventory-sync/), [ADR-011](../invoicing-and-vat/) and [ADR-014](../fulfilment/) |
 | **SPEC** | [The rules to build from, and how to check them](spec/) |
@@ -54,13 +54,12 @@ Channels fetches the order on a notice or the completeness check and hands it to
 - A short order waits for stock or for a change on the marketplace; Vervoro never ships part of it.
 - Holds stop some orders that were fine to ship; a seller with many pending orders has more to release.
 - A shipment outside Vervoro is trusted to have left the warehouse until a manager says otherwise; in shadow its batch is not traced.
-- A lost eBay notice leaves an order unreserved until the completeness check, up to an hour.
+- A lost eBay or Amazon notice leaves an order unreserved until the completeness check, up to an hour.
 
 ## Alternatives rejected
 
 - **Poll orders as the main path:** the owner's rule is webhooks; polling spends shared allowances and brings orders late.
 - **Import the notice body:** it may be older than the order, carries buyer data, and some carry only ids.
-- **A unique index on the partitioned order table:** it must include the month, so the same order in two months would not be caught.
 - **A status moved step by step, refusing other moves:** a refused import stalls the watermark, and a stored "packed" stays packed when the order changes underneath.
 - **Holds as statuses:** an order can be held for several reasons, and releasing one must not hide another.
 - **A per-person "trusted" mark for releasing holds:** the kind of the hold gives the same safety with fixed roles ([ADR-010](../users-and-access/)).

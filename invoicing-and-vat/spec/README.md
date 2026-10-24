@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-011: Invoicing and VAT](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-011-invoicing-and-vat) |
-| **Date** | 21 October 2026 |
+| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: VAT records not partitioned (14) |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-011 from: the Invoicing module, switchable, needing Orders, Products and Buyer data ([ADR-000 SPEC 4](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)). Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/). Amounts in pounds below are legal thresholds, not prices.
@@ -169,7 +169,7 @@ The rows are in [ADR-010 SPEC 4](../../users-and-access/spec/#4-who-may-do-what)
 | Table | Rules |
 | --- | --- |
 | `invoicing_settings` | Registered details, VAT number and registration date, first number, the issuer per account; the first number fixed after the first document |
-| `invoicing_vat_line` | The record of section 6; append-only; partitioned by month of tax point, archived with its month |
+| `invoicing_vat_line` | The record of section 6; append-only; archived by month of tax point |
 | `invoicing_document` | An issued invoice or credit note as issued, with override reason, eBay confirmation, file keys and hashes; unique (company, number); never updated; customer fields tagged `pii` |
 
 Orders and products are named by plain id, never by foreign key ([ADR-000 SPEC 2](../../system-architecture/spec/#2-tables)). Counters are ADR-001's.

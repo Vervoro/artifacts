@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>21 October 2026</td>
+<td>21 October 2026; amended by owner rulings of 25 October 2026: orders not partitioned (3.2, 23)</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -149,7 +149,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2 id="3-one-order-per-marketplace-order">3. One order per marketplace order</h2>
 <ol>
 <li><strong>The key</strong> is the account and the marketplace&#39;s order id: eBay&#39;s <code>orderId</code>, Amazon&#39;s <code>orderId</code> (one id across the region), <em>Later:</em> Shopify&#39;s numeric order id, never its editable name. A manual order takes the next number from the company&#39;s counter (<a href="../../database-architecture/">ADR-001</a>).</li>
-<li><strong>One unpartitioned key table.</strong> Orders and lines are partitioned by month of purchase, and a unique index on a partitioned table must include the month. So <code>sales_order_key</code> is unique on company, account and marketplace order id, and every import reads it first, under the company&#39;s lock.</li>
+<li><strong>One key.</strong> <code>sales_order</code> is unique on company, account and marketplace order id, and every import reads the order by it first, under the company&#39;s lock. Orders are not partitioned (<a href="../../database-architecture/spec/#5-declaring-tables">ADR-001 SPEC 5</a>; owner ruling, 25 October 2026).</li>
 <li><strong>Which fetch wins,</strong> by the marketplace&#39;s own change time (eBay&#39;s <code>lastModifiedDate</code>, Amazon&#39;s <code>lastUpdatedTime</code>, <em>Later:</em> Shopify&#39;s <code>updatedAt</code>), never Vervoro&#39;s clock:</li>
 </ol>
 <div class="table-wrap"><table>
@@ -817,23 +817,19 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </thead>
 <tbody><tr>
 <td><code>sales_order</code></td>
-<td>The order fields of section 5; partitioned by month of purchase; no buyer field, those are Buyer data&#39;s (<a href="../../buyer-data/spec/#18-storage">ADR-009 SPEC 18</a>)</td>
-</tr>
-<tr>
-<td><code>sales_order_key</code></td>
-<td>Company, account, marketplace order id → order id and month; unpartitioned, unique, read first</td>
+<td>The order fields of section 5; unique on company, account and marketplace order id; no buyer field, those are Buyer data&#39;s (<a href="../../buyer-data/spec/#18-storage">ADR-009 SPEC 18</a>)</td>
 </tr>
 <tr>
 <td><code>sales_order_line</code></td>
-<td>The line fields of section 5, partitioned with its order; a charge line has no product, link or reservation; no stored stock state</td>
+<td>The line fields of section 5; a charge line has no product, link or reservation; no stored stock state</td>
 </tr>
 <tr>
 <td><code>sales_order_hold</code></td>
-<td>Each hold placed and cleared: reason, kind, note, by whom, decide-by, when; append-only; partitioned by its order&#39;s month, archived with it (<a href="../../data-retention/spec/#2-the-retention-schedule">ADR-002</a>)</td>
+<td>Each hold placed and cleared: reason, kind, note, by whom, decide-by, when; append-only; archived with its order&#39;s month (<a href="../../data-retention/spec/#2-the-retention-schedule">ADR-002</a>)</td>
 </tr>
 <tr>
 <td><code>sales_order_cancellation</code></td>
-<td>Each buyer request and change: lines, quantities, marketplace id, deadline, state, times; append-only; partitioned by its order&#39;s month, archived with it (<a href="../../data-retention/spec/#2-the-retention-schedule">ADR-002</a>)</td>
+<td>Each buyer request and change: lines, quantities, marketplace id, deadline, state, times; append-only; archived with its order&#39;s month (<a href="../../data-retention/spec/#2-the-retention-schedule">ADR-002</a>)</td>
 </tr>
 <tr>
 <td><code>sales_order_refund</code></td>
@@ -1018,7 +1014,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><input disabled="" type="checkbox"> <strong>One writer:</strong> only Orders&#39; code writes <code>sales_</code> tables; Channels and Fulfilment import only its port.</li>
 <li><input disabled="" type="checkbox"> <strong>No marketplace in the core:</strong> Orders imports nothing from Channels or any connector; re-fetches are asked by event.</li>
 <li><input disabled="" type="checkbox"> <strong>No SQL:</strong> every query uses the typed query builder; no <code>sql</code> or <code>raw</code> import in the module.</li>
-<li><input disabled="" type="checkbox"> <strong>Key first:</strong> the import reads <code>sales_order_key</code> under the company&#39;s lock before anything else.</li>
+<li><input disabled="" type="checkbox"> <strong>Key first:</strong> the import reads the order by its key under the company&#39;s lock before anything else.</li>
 <li><input disabled="" type="checkbox"> <strong>Target, not delta:</strong> one function works out each line&#39;s target; nothing adds or subtracts reservations directly.</li>
 <li><input disabled="" type="checkbox"> <strong>One status function,</strong> versioned, called in every transaction that changes an order fact; no code sets a status directly.</li>
 <li><input disabled="" type="checkbox"> <strong>Holds:</strong> read from the append-only table; the release command checks kind against role in one place.</li>

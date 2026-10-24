@@ -93,7 +93,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>Read the three figures: notice miss rate, 99th-percentile detection delay, and unreserved-order exposure. Compare each with its gate.</li>
 <li><strong>All pass:</strong> mark the marketplace&#39;s gates passed. Its accounts may now go live by <a href="../take-a-company-live/">Take a company live</a>.</li>
 <li><strong>One fails, first time:</strong> list the orders behind it. Check whether one account explains them (a broken subscription is <a href="../repair-a-notice-subscription/">Repair a notice subscription</a>). If so, fix it and measure again.</li>
-<li>Otherwise shorten the marketplace&#39;s scheduled read. On eBay, go from hourly to 15 minutes, after checking the order allowance has room for 96 reads a day per account plus the order fetches. Record the change and its date.</li>
+<li>Otherwise shorten the marketplace&#39;s scheduled read. On eBay, go from hourly to 15 minutes, after checking the order allowance has room for 96 reads a day per account plus the order fetches. On Amazon, go from hourly to 10 minutes; its order limit is each seller&#39;s own. Record the change and its date.</li>
 <li>Measure for 7 more days, then repeat from step 2.</li>
 <li><strong>Fails again:</strong> leave live stock sync off for that marketplace. Its accounts stay in shadow; orders are still imported and reserved. Tell the owner, with the figures, and open a decision.</li>
 </ol>

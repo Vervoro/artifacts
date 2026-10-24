@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Status** | Proposed |
-| **Date** | 21 October 2026, split out of [ADR-006](../stock-ledger/) (decided 18 October 2026) so that each module has one record (owner ruling, 21 October 2026); labels bought on the marketplace (owner ruling, 22 October 2026) |
+| **Date** | 21 October 2026, split out of [ADR-006](../stock-ledger/) (decided 18 October 2026) so that each module has one record (owner ruling, 21 October 2026); labels bought on the marketplace (owner ruling, 22 October 2026); amended by owner rulings of 25 October 2026: a lot tapped at packing only for use-by products and business buyers |
 | **Scope** | The Fulfilment module: pick lists, packing that records the batch that left, shipments that carry a whole order, put-back after a cancellation, returns inspection, and the recall list |
 | **Builds on** | [ADR-000](../system-architecture/), [ADR-006](../stock-ledger/), [ADR-007](../order-ingestion/), [ADR-009](../buyer-data/), [ADR-010](../users-and-access/) |
 | **SPEC** | [The rules to build from, and how to check them](spec/) |
@@ -22,7 +22,7 @@ Parts marked *Later* keep their rules in the SPEC but are built only when their 
 
 1. **Fulfilment is an always-on module outside the core** ([ADR-000](../system-architecture/spec/#4-the-foundation-and-the-launch-modules)). It owns pick lists, packing records, shipments, put-back tasks and return inspections. Every stock change it causes is a call to Inventory's ports ([ADR-006](../stock-ledger/)), and every status change a call to Orders'. It never writes stock or an order's status itself.
 2. **Picking chooses the spots.** When an order starts picking, the pick list takes each reservation from the spot of that batch with the fewest units first. Inventory records the claim, so counts allow for it. Starting to pick moves no stock. *Later: recording every pick as a move at the shelf, once the phone can queue picks offline.*
-3. **Packing records the batch of every unit.** The batch is implied when only one is eligible. Otherwise the packer taps the date or lot printed on the unit, or scans a barcode that carries it. Another eligible batch than planned may be taken without a manager. When nobody says, the line ships its reserved batch, marked "batch assumed". Packed units move, still reserved, to the packing spot.
+3. **Packing records the batch of every unit.** The batch is implied when only one is eligible. Otherwise, for a use-by product or a business buyer's line, the packer taps the date or lot printed on the unit, or scans a barcode that carries it; any other product ships its reserved batch unless a scanned barcode carries the lot (owner ruling, 25 October 2026). Another eligible batch than planned may be taken without a manager. When nobody says, the line ships its reserved batch, marked "batch assumed". Packed units move, still reserved, to the packing spot.
 4. **A unit the picker cannot find leaves sale at once,** and its spot goes on the count list. A unit picked where the books do not show it is a move, and only a unit no spot holds is a find for a manager to review.
 5. **Stock leaves only when a shipment is confirmed.** One shipment carries the whole order, possibly in several boxes, and deducts exactly what was packed for it, once. A short order waits. A label bought on the marketplace closes the shipment once the order is packed, and Vervoro sends no dispatch notice for it. *Later: serial numbers, recorded at packing and checked on return, when ADR-003's serial tracking is built.*
 6. **Cancelled units go back by a task.** Units picked or packed for a confirmed cancellation are sellable again at once, and a put-back task stays open until each one is confirmed back on a shelf.
@@ -41,7 +41,7 @@ Parts marked *Later* keep their rules in the SPEC but are built only when their 
 
 **Costs**
 
-- Packing asks for a tap whenever more than one batch of a product is in the spot.
+- Packing asks for a tap when a use-by product, or a business buyer's line, has more than one batch in the spot.
 - A pick list can change after it was printed (a date pass or a lot block), so packing checks every unit.
 - Some lines ship "batch assumed", and a recall lists them apart.
 - An order with a short line waits; nothing ships in part unless the marketplace shipped part itself.
@@ -58,7 +58,7 @@ Parts marked *Later* keep their rules in the SPEC but are built only when their 
 
 ## Open items
 
-- **"Batch assumed" at most 1 % of lines** on a simulated day is a target, measured in shadow before launch.
+- **"Batch assumed" at most 1 % of use-by and business-buyer lines** on a simulated day is a target, measured in shadow before launch.
 - **Serial tracking is deferred** ([ADR-003](../product-model/)); its stock side lands here when it is built.
 - **Marketplace warehouse shipments and Amazon Vendor shipments** are *Later*. Their packing and handover will reuse this record's shipment, once FBA shipments and ADR-004.4 have records.
 - **Number.** ADR-014 is the next free number; a planned record (MCP access) has no number yet.

@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>21 October 2026</td>
+<td>21 October 2026; amended by owner rulings of 25 October 2026: a lot tapped at packing only for use-by products and business buyers (3.2)</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -136,7 +136,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p>Packing (ADR-007&#39;s &quot;packed&quot;) is a server command, keyed by the packing id. For each unit it names the batch:</p>
 <ol>
 <li><strong>One eligible batch</strong> of the product in the spot (or the warehouse, without spots): implied.</li>
-<li><strong>Several:</strong> the packer taps the date or lot on the unit, or scans a barcode that carries it. A product barcode alone names no batch.</li>
+<li><strong>Several:</strong> for a use-by product, or a line of an order to a business buyer, the packer taps the date or lot on the unit, or scans a barcode that carries it. A product barcode alone names no batch. Any other product packs as its reserved batch, marked &quot;batch assumed&quot;, unless a scanned barcode carries the lot (owner ruling, 25 October 2026).</li>
 <li><strong>Another eligible batch than planned</strong> (in date, not blocked, meeting the demand&#39;s need) is taken without a manager; Inventory moves or exchanges the reservation. Choices of a later date than planned are listed daily for a manager.</li>
 <li><strong>Nothing to exchange, or nobody says:</strong> the line keeps its reserved batch, marked &quot;batch assumed&quot;, with any lot tapped.</li>
 <li><strong>Packed units</strong> move, still reserved, to the packing spot. Units there for more than 24 hours are listed on Home.</li>
@@ -225,7 +225,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Packing</td>
-<td>One eligible batch is implied; several need a tap; a product barcode alone never names a batch; another eligible batch moves or exchanges the reservation; nothing to exchange ends &quot;batch assumed&quot;</td>
+<td>One eligible batch is implied; several need a tap for a use-by product or a business buyer&#39;s line, and otherwise pack as the reserved batch, &quot;batch assumed&quot;, unless a scanned barcode carries the lot; a product barcode alone never names a batch; another eligible batch moves or exchanges the reservation; nothing to exchange ends &quot;batch assumed&quot;</td>
 </tr>
 <tr>
 <td>Use-by</td>

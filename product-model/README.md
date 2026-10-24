@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Status** | Proposed |
-| **Date** | 17 October 2026; charge lines, a units setting and barcodes without a type question (owner rulings), split into ADR, SPEC and RUNBOOK, 21 October 2026; serial tracking deferred 21 October 2026 |
+| **Date** | 17 October 2026; charge lines, a units setting and barcodes without a type question (owner rulings), split into ADR, SPEC and RUNBOOK, 21 October 2026; serial tracking deferred 21 October 2026; amended by owner rulings of 25 October 2026: lot questions at packing for use-by products and business buyers |
 | **Scope** | What a product is and what it holds: the SKU, packs, bundles, box sizes, barcodes, size and colour families, VAT classes, best-before and lot tracking (serial tracking *Later*), the link from a listing, units of measure, and how products are created |
 | **Builds on** | [ADR-000](../system-architecture/), [ADR-001](../database-architecture/); used by [ADR-005](../catalogue-sync/), [ADR-006](../stock-ledger/), [ADR-007](../order-ingestion/) and [ADR-011](../invoicing-and-vat/) |
 | **SPEC** | [The rules to build from, and how to check them](spec/) |
@@ -49,7 +49,7 @@ The Products module, a core module, is the only writer of these ([ADR-000](../sy
 - One component sale changes every bundle and listing that uses it; that must stay fast.
 - A wrong SKU or kind found after first use means a new product and a retired one, not an edit.
 - The operator keeps the VAT rate table up to date.
-- With lot tracking on, every receipt and dispatch asks warehouse staff one more question.
+- With lot tracking on, every receipt asks warehouse staff one more question, and packing asks it for use-by products and business buyers ([ADR-014 SPEC 3](../fulfilment/spec/#3-packing)).
 - Charges that are not stock live on orders and invoices, so the product list cannot report on them.
 
 ## Alternatives rejected

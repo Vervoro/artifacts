@@ -4,14 +4,14 @@
 | --- | --- |
 | **Decision** | [ADR-002: Data retention and archiving](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-002-data-retention-and-archiving) |
-| **Date** | 21 October 2026 |
+| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: `audit_log` kept 13 months, never archived, a whole table's month deleted in batches (1, 3) |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-002 from: how long a company's data stays in its cell, the archive, and deletion. Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/).
 
 ## 0. At launch and later
 
-At launch only the deletions in [section 2](#2-the-retention-schedule) run (`event_log` at 90 days; outbound sends, sync attempts, operational state and delivered outbox notes at 30 days), and buyer anonymisation runs by [ADR-009](../../buyer-data/spec/#8-retention-and-anonymisation). Every other month stays in the cell.
+At launch only the deletions in [section 2](#2-the-retention-schedule) run (`event_log` at 90 days; `audit_log` at 13 months; outbound sends, sync attempts, operational state and delivered outbox notes at 30 days), and buyer anonymisation runs by [ADR-009](../../buyer-data/spec/#8-retention-and-anonymisation). Every other month stays in the cell.
 
 | Later part | Trigger | Rules |
 | --- | --- | --- |
@@ -21,7 +21,7 @@ At launch only the deletions in [section 2](#2-the-retention-schedule) run (`eve
 ## 1. Who does what
 
 1. **The archiver** exports, verifies and catalogues a month, and writes the stock checkpoints through Inventory's rules ([ADR-006 SPEC 14](../../stock-ledger/spec/#14-the-nightly-check-and-checkpoints)). It reads through parent tables only, never a partition ([ADR-001 SPEC 10](../../database-architecture/spec/#the-slice-operation)).
-2. **The monthly migration run** detaches and drops a month of an archived table, and drops a month of `event_log` once its newest row is 90 days old, as the owner role ([ADR-001 SPEC 12](../../database-architecture/spec/#12-operations)).
+2. **The monthly migration run** detaches and drops a month of an archived partitioned table (a whole table's month is deleted by the archiver instead, [section 3](#3-archiving-a-month)), drops a month of `event_log` once its newest row is 90 days old, and a month of `audit_log` once its newest row is 13 months old, as the owner role ([ADR-001 SPEC 12](../../database-architecture/spec/#12-operations)).
 
 ## 2. The retention schedule
 
@@ -32,7 +32,7 @@ At launch only the deletions in [section 2](#2-the-retention-schedule) run (`eve
 | Invoices, credit notes, VAT records, export evidence and payments ([ADR-011](../../invoicing-and-vat/)) | 24 months | Until 7 years after the month ends | Deleted |
 | Stock ledger entries | 24 months, then a checkpoint | Until 7 years after the month ends | Deleted |
 | Batches with no stock left | 24 months after the last movement | Until 7 years after the month ends | Deleted |
-| `audit_log` (security and access) | At least a year ([ADR-001 SPEC 5](../../database-architecture/spec/#5-declaring-tables)) | 6 years | Deleted |
+| `audit_log` (security and access) | 13 months, by whole months: a month is dropped once its newest row is 13 months old ([ADR-001 SPEC 5](../../database-architecture/spec/#5-declaring-tables); owner ruling, 25 October 2026) | Never | Dropped; a company's export holds its log, for a seller who must keep it longer |
 | `event_log` (module activity) | 90 days, by whole months: a month is dropped once its newest row is 90 days old, so a row stays 90 to about 121 days | Never | Dropped |
 | Outbound sends, sync attempts, operational state | 30 days | Never | Dropped |
 | Invitations used, withdrawn or expired ([ADR-010 SPEC 6](../../users-and-access/spec/#6-invitations-sign-up-and-removal)) | 30 days after use, withdrawal or expiry | Never | Deleted; `audit_log` keeps the event (owner ruling, 22 October 2026) |
@@ -46,9 +46,9 @@ Every period applies while the company exists. A closed company is erased by [AD
 1. **Pick the month** that has just passed 24 months. A month that still holds an open order is not archived: its open orders are shown to the seller and the operator, and the month waits until they close. Later months go ahead.
 2. **Checkpoint the stock ledger** for every company in the cell ([ADR-006 SPEC 14](../../stock-ledger/spec/#14-the-nightly-check-and-checkpoints)).
 3. **Export the month** per company: one file per table per company, encrypted with the company's data key ([ADR-001 SPEC 10](../../database-architecture/spec/#encryption)).
-4. **Verify:** row counts and checksums of each file match the partition, per company and table.
+4. **Verify:** row counts and checksums of each file match the month in the cell, per company and table.
 5. **Record** each file in the archive catalogue: company, table, month, object key, row count, checksum.
-6. **Detach and drop the partition** only when every company's files for that month are verified. Detaching is instant and rewrites no rows.
+6. **Remove the month** only when every company's files for that month are verified. A partitioned table (the stock ledger) detaches and drops it, which is instant and rewrites no rows; a whole table (orders, their lines, holds and cancellations, VAT records) has the month deleted in small batches at night, as the lifecycle role, one company at a time through the parent tables, each company's deleted count checked against its catalogue row (owner ruling, 25 October 2026).
 
 A run that stops part way resumes from the catalogue. A month left unverified stays attached; the operator follows [Check an archive month](../../runbooks/check-an-archive-month/).
 
@@ -93,9 +93,9 @@ Checked against GOV.UK and the Companies Act on 18 October 2026.
 
 | Test or check | Where | Proves |
 | --- | --- | --- |
-| Deletions | CI | `event_log` months whose newest row is older than 90 days, and outbound sends, sync attempts, operational state and delivered outbox notes older than 30 days, are gone; an undelivered note and everything else stay |
-| Detach waits for verification | CI | A month with one company's file missing or its checksum wrong stays attached |
-| Open orders | CI | A month holding an open order stays attached and is listed; the next month is archived |
+| Deletions | CI | `audit_log` months whose newest row is older than 13 months, `event_log` months whose newest row is older than 90 days, and outbound sends, sync attempts, operational state and delivered outbox notes older than 30 days, are gone; an undelivered note and everything else stay |
+| Removal waits for verification | CI | A month with one company's file missing or its checksum wrong stays, attached or undeleted |
+| Open orders | CI | A month holding an open order stays in the cell and is listed; the next month is archived |
 | Resume | CI | An archiver stopped after some companies resumes from the catalogue and writes no file twice |
 | Checkpoint | CI | After a ledger month is archived, the nightly check still passes for every company |
 | Deletion date | CI | Files are deleted 7 years after the month ends, and the notice goes 90 days before |
@@ -109,7 +109,7 @@ For someone reviewing code an AI wrote. Each line says where to look.
 
 - [ ] **Later parts:** no archiver, bucket or catalogue at launch; the deletions run from day one.
 - [ ] **Parent tables:** the archiver's reads name parent tables, never a partition.
-- [ ] **Detach:** only the monthly migration run detaches, and only after its catalogue query shows every company verified.
+- [ ] **Removal:** only the monthly migration run detaches, and the archiver's batched delete runs, only after the catalogue query shows every company verified.
 - [ ] **Encryption:** each file is encrypted with the company's data key before upload.
 - [ ] **Bucket:** versioning or soft delete is on in its configuration; uploads never overwrite.
 - [ ] **Checkpoint:** written through Inventory's code under the company's lock, not by the archiver directly.

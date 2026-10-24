@@ -75,7 +75,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>18 October 2026, revised after review the same day; split into ADR, SPEC and RUNBOOK 21 October 2026, with picking, packing, dispatch and returns moved to <a href="../fulfilment/">ADR-014</a> and each listing&#39;s figure left to Stock sync (<a href="../system-architecture/spec/#4-the-foundation-and-the-launch-modules">ADR-000 SPEC 4.6</a>); labels bought on the marketplace excepted from shipped outside (owner ruling, 22 October 2026)</td>
+<td>18 October 2026, revised after review the same day; split into ADR, SPEC and RUNBOOK 21 October 2026, with picking, packing, dispatch and returns moved to <a href="../fulfilment/">ADR-014</a> and each listing&#39;s figure left to Stock sync (<a href="../system-architecture/spec/#4-the-foundation-and-the-launch-modules">ADR-000 SPEC 4.6</a>); labels bought on the marketplace excepted from shipped outside (owner ruling, 22 October 2026); amended by owner rulings of 25 October 2026: the batch-assumed target for use-by and business-buyer lines</td>
 </tr>
 <tr>
 <td><strong>Scope</strong></td>
@@ -224,7 +224,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Lock thresholds.</strong> The target command time and the lock-wait share that trigger a revisit are set from the load test before launch; until then <a href="spec/#12-the-lock-keys-and-the-sequence">SPEC 12.3</a> holds proposals.</li>
 <li><strong>Amazon&#39;s 90 days at check-in</strong> binds only shipments into Amazon&#39;s warehouses, which are <em>Later</em>. Recheck it when that record is written.</li>
 <li><strong>Serial tracking is deferred</strong> (<a href="../product-model/">ADR-003</a>). When it is built, ADR-014 takes recording a serial at packing and checking it on return; this record takes no serial rules.</li>
-<li><strong>&quot;Batch assumed&quot; at most 1 % of lines</strong> on a simulated day is a target, measured in shadow before launch.</li>
+<li><strong>&quot;Batch assumed&quot; at most 1 % of use-by and business-buyer lines</strong> on a simulated day is a target, measured in shadow before launch.</li>
 </ul>
 
 <footer>Vervoro</footer>

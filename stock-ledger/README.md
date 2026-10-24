@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Status** | Proposed |
-| **Date** | 18 October 2026, revised after review the same day; split into ADR, SPEC and RUNBOOK 21 October 2026, with picking, packing, dispatch and returns moved to [ADR-014](../fulfilment/) and each listing's figure left to Stock sync ([ADR-000 SPEC 4.6](../system-architecture/spec/#4-the-foundation-and-the-launch-modules)); labels bought on the marketplace excepted from shipped outside (owner ruling, 22 October 2026) |
+| **Date** | 18 October 2026, revised after review the same day; split into ADR, SPEC and RUNBOOK 21 October 2026, with picking, packing, dispatch and returns moved to [ADR-014](../fulfilment/) and each listing's figure left to Stock sync ([ADR-000 SPEC 4.6](../system-architecture/spec/#4-the-foundation-and-the-launch-modules)); labels bought on the marketplace excepted from shipped outside (owner ruling, 22 October 2026); amended by owner rulings of 25 October 2026: the batch-assumed target for use-by and business-buyer lines |
 | **Scope** | The Inventory module: the append-only ledger and its nightly proof, the four stock numbers per product, batch and spot, reservations for every demand, use-by and best-before dates, lot blocks and the lot trace, receiving, counts and adjustments, negative stock, the company's lock and commands safe to repeat |
 | **Builds on** | [ADR-000](../system-architecture/), [ADR-001](../database-architecture/), [ADR-002](../data-retention/), [ADR-003](../product-model/), [ADR-005](../catalogue-sync/); used by [ADR-007](../order-ingestion/), [ADR-008](../inventory-sync/) and [ADR-014](../fulfilment/) |
 | **SPEC** | [The rules to build from, and how to check them](spec/) |
@@ -80,4 +80,4 @@ Units arrive by receiving or by a return. Received units are sellable, unless th
 - **Lock thresholds.** The target command time and the lock-wait share that trigger a revisit are set from the load test before launch; until then [SPEC 12.3](spec/#12-the-lock-keys-and-the-sequence) holds proposals.
 - **Amazon's 90 days at check-in** binds only shipments into Amazon's warehouses, which are *Later*. Recheck it when that record is written.
 - **Serial tracking is deferred** ([ADR-003](../product-model/)). When it is built, ADR-014 takes recording a serial at packing and checking it on return; this record takes no serial rules.
-- **"Batch assumed" at most 1 % of lines** on a simulated day is a target, measured in shadow before launch.
+- **"Batch assumed" at most 1 % of use-by and business-buyer lines** on a simulated day is a target, measured in shadow before launch.

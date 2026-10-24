@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-003: Product model](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-003-product-model) |
-| **Date** | 21 October 2026 |
+| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: the rate table kept 5 minutes (11.2) |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-003 from. Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/).
@@ -220,7 +220,7 @@ Listings and how they are read and matched are [ADR-005](../../catalogue-sync/).
 ## 11. VAT
 
 1. **The classes:** `standard`, `reduced`, `second_reduced`, `super_reduced`, `zero`, `exempt`. They cover every kind of rate UK and EU law allows (section 16). A country with a new kind of rate gets a class in a release, never free text.
-2. **The rate table** is platform data in control, the same for every company, changed only by the operator ([runbook](../../runbooks/change-a-vat-rate/)). At launch it holds the UK's rows. Rows for one country and class never overlap or leave a gap, and a row whose dates have passed is never changed. A temporary rate is rows with their dates. A class a country lacks is not offered there.
+2. **The rate table** is platform data in control, the same for every company, changed only by the operator ([runbook](../../runbooks/change-a-vat-rate/)). A Worker keeps it at most 5 minutes; each row carries its own dates, so a kept row is still right (owner ruling, 25 October 2026). At launch it holds the UK's rows. Rows for one country and class never overlap or leave a gap, and a row whose dates have passed is never changed. A temporary rate is rows with their dates. A class a country lacks is not offered there.
 3. **The screen shows the class with the home rate:** "Standard (20%)", "Zero (0%)", "Exempt".
 4. **Zero is not exempt:** a zero-rated sale is taxable at 0% and is on the VAT return; an exempt sale is outside VAT.
 5. **Every order line, charge line, invoice line and purchase order line** stores the country, class and rate it used; a later rate change never rewrites it. Which rate applies to a sale is [ADR-011](../../invoicing-and-vat/spec/#7-working-out-the-vat).
@@ -322,7 +322,7 @@ For someone reviewing code an AI wrote. Each line says where to look.
 - [ ] **Bundles:** no stored sellable for a bundle; the ledger's insert refuses a bundle; component kinds checked in the same transaction as the write.
 - [ ] **Packs:** the repack command takes one number and writes both entries in one transaction.
 - [ ] **Charge lines:** no product kind, flag or setting for services; charge lines have no product id and no path into reservations or pick lists.
-- [ ] **VAT:** lines store country, class and rate; nothing reads a rate from the product; the rate table is read from control, never copied into cells.
+- [ ] **VAT:** lines store country, class and rate; nothing reads a rate from the product; the rate table is read from control, kept at most 5 minutes by a Worker, never copied into cells.
 - [ ] **Version:** every update command compares `version` and raises it.
 - [ ] **Spreadsheet:** blank means unchanged in the parser, `(clear)` is the only way to empty; the preview and the write share one validation; the write is one transaction.
 - [ ] **Activity:** every product command writes an activity entry with old and new values.

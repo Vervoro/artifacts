@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-009: Buyer data and privacy](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-009-buyer-data-and-privacy) |
-| **Date** | 21 October 2026 |
+| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: `audit_log` kept 13 months (7), anonymisation once a day, 48 hours ahead (8.2), views logged once per person, order and day, and the restricted role applied for ahead of labels (7.2, 16.1) |
 | **For** | The developer and coding agents building it, the person reviewing their work, and marketplaces' data-protection reviewers |
 
 The rules to build ADR-009 from: the Buyer data module, core and always on, needing nothing ([ADR-000 SPEC 4](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)), and the privacy rules every other module keeps. Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/).
@@ -99,7 +99,7 @@ Each field only for its purpose, and only from the marketplaces that send it. Un
 | Staff | No | Never |
 
 1. **Everyone else sees the order masked:** number, country and lines.
-2. **Every view writes one `audit_log` entry:** opening an order with buyer data, the packing screen, printing or reprinting a label, a buyer search, an export. It names the user, the order, the fields shown (never their values), the screen and the time. Lists show no buyer data and write nothing. The seller sees the entries; `audit_log` is kept at least a year ([ADR-010 SPEC 8](../../users-and-access/spec/#8-audit)).
+2. **Every view is logged, once per person, order and day:** opening an order with buyer data, the packing screen, printing or reprinting a label each write the day's one `audit_log` entry for that person and order, by a single insert that writes nothing when the day's entry exists. It names the user, the order, the fields shown (never their values), the screen and the first time that day. A buyer search and an export each write an entry of their own, every time (owner ruling, 25 October 2026). Lists show no buyer data and write nothing. The seller sees the entries; `audit_log` is kept 13 months ([ADR-010 SPEC 8](../../users-and-access/spec/#8-audit)).
 3. **The operator** reaches a company only under a grant: one company, a written reason, at most 8 hours, seen by the seller and ended by them at will. Buyer fields stay encrypted unless the seller's owner or admin switches them on for that grant ([ADR-010 SPEC 7](../../users-and-access/spec/#7-operator-access-to-a-company)).
 4. **Developers** have no access to production data. The database owner role is used only through the CI migration job, with the reason recorded first and an alert ([ADR-001 SPEC 3](../../database-architecture/spec/#3-roles)); even then buyer fields are ciphertext.
 5. **Leavers:** a person's platform access ends within 24 hours of leaving or changing role, and access is reviewed every quarter.
@@ -116,7 +116,7 @@ Each field only for its purpose, and only from the marketplaces that send it. Un
 | Named in a buyer's erasure | No wait: at once |
 
 1. **An order still to be shipped keeps its address.** Delivery is the rule and dispatch the fallback; this is the rule ADR-002 cites ([ADR-002](../../data-retention/)).
-2. **The due time** sits in the cell's `due` table ([ADR-001 SPEC 9](../../database-architecture/spec/#the-due-table)). The sweeper, in one transaction per company: clears every `pii` field on the order and its lines; removes the phone index entry and the eBay hash; marks the order anonymised with the time and reason; deletes its label files.
+2. **Once a day** the sweeper takes every order of the company due within the next 48 hours, so none passes its 30 days ([ADR-001 SPEC 9](../../database-architecture/spec/#the-due-table); owner ruling, 25 October 2026), and in one transaction per company: clears every `pii` field on the order and its lines; removes the phone index entry and the eBay hash; marks the order anonymised with the time and reason; deletes its label files.
 3. **Once anonymised, never again.** A later read or notice that brings the details back stores nothing personal for that order.
 4. **Proof:** a nightly check counts, per company, orders past their due time still holding buyer data. Anything but zero alerts the operator ([runbook](../../runbooks/check-the-anonymisation-job/)).
 5. **What survives:** the marketplace order id, dates, lines, prices, totals and fees (accounting records); the batch and lot shipped (a recall reaches buyers through the marketplace by order id, [ADR-014](../../fulfilment/)); the country and tax territory, on the order (VAT); the carrier and service. Not the postcode district or the town: Amazon counts postal codes as personal data.
@@ -207,7 +207,7 @@ Amazon's schedule is the strictest, so it is the schedule for every marketplace 
 
 ### 16.1 Amazon
 
-*Later*, with shipping labels (section 0). At launch Vervoro holds no restricted role, and an Amazon order brings no recipient.
+*Later*, with shipping labels (section 0): an Amazon order brings no recipient until then. Vervoro applies for the restricted role ahead of labels, so its review is passed by the time they are built; until labels nothing it releases is asked for or stored (owner ruling, 25 October 2026).
 
 1. **The restricted role for direct-to-consumer shipping** only, which releases the recipient's name, address and phone on orders the seller ships. Not the tax roles (section 0).
 2. **The 2026 orders API** releases them by role alone, with no Restricted Data Token. Vervoro asks only for the recipient and gift message, never the buyer's email, and only on seller-shipped orders not yet shipped ([ADR-004.2 SPEC 8](../../amazon-seller-connector/spec/#8-buyer-data)).
@@ -282,7 +282,7 @@ Checked against the official sources on 18 October 2026; Amazon's Data Protectio
 | Redaction | CI | A `pii` value given to the logger, an error report, telemetry, a queue message or an event never appears |
 | Due times | CI | Each row of the section 8 table gives the right due time; an anonymised order stores nothing from a later read |
 | Overdue count | Production, nightly | No order past its due time holds buyer data |
-| Role and state | CI | Each role sees buyer data only as section 7 allows; every view writes one audit entry with no values |
+| Role and state | CI | Each role sees buyer data only as section 7 allows; the first view of an order by a person in a day writes one audit entry with no values, a second that day writes nothing; every search and export writes its own |
 | Operator grant | CI | An operator's read decrypts buyer fields only when the grant has them switched on |
 | Erasure replay | CI and the quarterly restore test | A restore to before an erasure opens with it applied |
 | eBay match | CI | A buyer's deletion notice anonymises their orders in every cell and stores nothing |

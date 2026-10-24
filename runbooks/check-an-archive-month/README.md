@@ -7,7 +7,7 @@
 | **Who runs it** | The operator, when the monthly run leaves a month attached because some company's archive files are not verified |
 | **Role or credential** | The operator console. The archive catalogue shows company ids, tables, row counts and checksums, never row contents, and needs no grant |
 
-A month that stays attached costs nothing but space. Never detach or drop a partition by hand: the monthly migration run does it once every company is verified.
+A month that stays in the cell costs nothing but space. Never detach, drop or delete a month by hand: once every company is verified, the monthly migration run detaches a partitioned table's month and the archiver deletes a whole table's month in batches.
 
 ## Steps
 
@@ -21,7 +21,7 @@ A month that stays attached costs nothing but space. Never detach or drop a part
 ## Verify
 
 - The catalogue shows every company in the cell verified for that month, for every table.
-- The next monthly run detaches and drops the month, and the next nightly stock check passes.
+- The month leaves the cell (the next monthly run detaches a partitioned table's month; the archiver deletes a whole table's), and the next nightly stock check passes.
 
 ## If it stops halfway
 

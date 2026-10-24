@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>21 October 2026</td>
+<td>21 October 2026; amended by owner rulings of 25 October 2026: a shared pool claimed in blocks, Amazon&#39;s backup read hourly (9.2), per-order timings kept 30 days after the gates (10, 15)</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -298,7 +298,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ol>
 <h2 id="7-shared-daily-pools">7. Shared daily pools</h2>
 <ol>
-<li><strong>One counter per pool, for the whole platform,</strong> in control (<a href="../../database-architecture/spec/#7-control-database-and-routing">ADR-001 SPEC 7</a>). Each call takes one in a single statement that refuses once the day is spent, so the count is exact and the pool never overruns.</li>
+<li><strong>One counter per pool, for the whole platform,</strong> in control (<a href="../../database-architecture/spec/#7-control-database-and-routing">ADR-001 SPEC 7</a>). A job claims its calls in a block of up to 10 in a single statement that refuses once the day is spent, so the pool never overruns; the calls it did not use go back when it ends, and a block held by a job that crashed is freed when its lease ends. Within the reserve (rule 3) a block is one call, so blocks never take the safety lane&#39;s share. A pool of 50,000 calls a day or more (eBay&#39;s order calls) is counted from the hourly usage rollups until its day passes half its size, then claimed in blocks like any other; until then its calls take no token and control&#39;s count is the rollups (such a pool carries reads only, never a send) (owner ruling, 25 October 2026).</li>
 <li><strong>Two lanes.</strong> The safety lane carries the calls that protect a seller: a decrease, or any figure near zero. The bulk lane carries the rest.</li>
 <li><strong>The reserve</strong> is a tenth of the pool, split equally among the accounts using it, with no fixed floor. Once the day&#39;s count reaches the pool less the reserve, the bulk lane pauses for everyone until the reset. The safety lane goes on until the account&#39;s share is spent, never past the pool.</li>
 <li><strong>The pool caps how many accounts it serves.</strong> When an account&#39;s share would fall below 50 calls a day, the operator is alerted and a new account that needs the pool waits in shadow until the pool is raised.</li>
@@ -322,7 +322,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2 id="9-the-completeness-check">9. The completeness check</h2>
 <ol>
 <li><strong>It reads the orders changed since the watermark,</strong> with a small overlap, and is the only thing that moves the watermark, and only after a complete window (<a href="../../order-ingestion/spec/#2-how-an-order-comes-in">ADR-007 SPEC 2.3</a>).</li>
-<li><strong>The interval is per marketplace,</strong> by whether the order limit is shared: hourly where it is (eBay), every 10 minutes where it is per seller (Amazon, Shopify). The operator can change it per connector without code.</li>
+<li><strong>The interval is per marketplace:</strong> hourly on eBay and Amazon, and every 10 minutes on Shopify (<em>Later</em>), whose order limit is each shop&#39;s own. Notices are how orders arrive; this read only catches one that was lost (owner ruling, 25 October 2026: Amazon from 10 minutes to hourly). Rule 4 and a failed launch gate (11.6) shorten it. The operator can change it per connector without code.</li>
 <li><strong>Any complete read resets the timer,</strong> including one a raise asks for.</li>
 <li><strong>Broken notices are read every 10 minutes:</strong> an account whose subscription is failing, or whose read finds an order no notice announced, until its notices work again. The operator is alerted.</li>
 <li><strong>On demand:</strong> after an outage, and before a raise is sent unless a complete read already covers the moment it became due. Decreases never wait. How long a raise may wait is <a href="../../inventory-sync/spec/#5-the-order-read-before-a-raise">ADR-008 SPEC 5</a>.</li>
@@ -335,7 +335,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Detection delay:</strong> from the order&#39;s placed time to its import, as a 99th percentile.</li>
 <li><strong>Unreserved-order exposure:</strong> orders that waited unreserved while their product&#39;s sellable stock was within the near-zero zone (<a href="../../inventory-sync/spec/#3-when-a-figure-is-sent">ADR-008 SPEC 3</a>), and for how long.</li>
 </ol>
-<p>The operator sees all three per marketplace and per account.</p>
+<p>The operator sees all three per marketplace and per account. Once a marketplace passes its launch gates, each order&#39;s timings are kept 30 days, then only daily counts per account (owner ruling, 25 October 2026).</p>
 <h2 id="11-shadow-mode-and-launch-gates">11. Shadow mode and launch gates</h2>
 <p>This section owns shadow mode; other records link here.</p>
 <ol>
@@ -441,7 +441,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><code>chan_order_timing</code></td>
-<td>Per order: placed, notice and import times, for <a href="#10-what-is-measured">10</a></td>
+<td>Per order: placed, notice and import times, for <a href="#10-what-is-measured">10</a>; after the launch gates pass, kept 30 days, then daily counts</td>
 </tr>
 <tr>
 <td>Kernel <code>secrets</code></td>
@@ -514,7 +514,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Pool</td>
-<td>Under parallel calls the counter never passes the pool; at pool less reserve, bulk pauses and safety goes on to each account&#39;s share</td>
+<td>Under parallel calls, with blocks claimed and unused calls returned, the counter never passes the pool; within the reserve a block is one call; at pool less reserve, bulk pauses and safety goes on to each account&#39;s share; a large pool switches from the rollups to blocks at half its day</td>
 </tr>
 <tr>
 <td>Pool cap</td>
@@ -573,7 +573,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><input disabled="" type="checkbox"> <strong>Gate:</strong> write operations reach the binding only from the gate; the mode is read from the database on each send.</li>
 <li><input disabled="" type="checkbox"> <strong>Unknown:</strong> one settle step runs before any other write to that target; the resend path exists only where a connector&#39;s record names it.</li>
 <li><input disabled="" type="checkbox"> <strong>Expiry:</strong> token lifetimes come from the reply; no fixed lifetime in host code.</li>
-<li><input disabled="" type="checkbox"> <strong>Pools:</strong> the counter is one statement in control; no block claims; the reserve and the 50-call alert are platform settings.</li>
+<li><input disabled="" type="checkbox"> <strong>Pools:</strong> a block of up to 10 is claimed in one statement in control and its unused calls returned at the job&#39;s end; one call a block within the reserve; a pool of 50,000 a day or more is counted from the rollups until half spent; the reserve and the 50-call alert are platform settings.</li>
 <li><input disabled="" type="checkbox"> <strong>Notices:</strong> checked before any database read; the queue message holds ids only; answer after enqueue.</li>
 <li><input disabled="" type="checkbox"> <strong>Completeness check:</strong> only it moves the watermark; intervals are per connector settings; broken notices drop to 10 minutes.</li>
 <li><input disabled="" type="checkbox"> <strong>Gates:</strong> the three measurements are recorded per order, and going live checks the marketplace&#39;s gates.</li>

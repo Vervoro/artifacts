@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>20 October 2026; hosting reviewed 21 October 2026; sign-in data aligned with Better Auth (<a href="../../sign-in/">ADR-013</a>) 21 October 2026; amended by owner rulings: control unreachable (7) and the sign-in role&#39;s rights (3), 21 October 2026; one Neon project per database (7, 8), Neon&#39;s internal roles and the staging rule (3), append-only and partitioned tables declared per table (5), the audit over every project, staging&#39;s audit and an audit failure on control (11), the sign-in role reading the security log for a data request (3, 11), and who refuses a database from before the reset (12), 22 October 2026; a sign-up link&#39;s address in control (7), the sign-up company name (7) and request keys (5, 9), 23 October 2026; an invitation&#39;s page in the request guard (6), 24 October 2026</td>
+<td>20 October 2026; hosting reviewed 21 October 2026; sign-in data aligned with Better Auth (<a href="../../sign-in/">ADR-013</a>) 21 October 2026; amended by owner rulings: control unreachable (7) and the sign-in role&#39;s rights (3), 21 October 2026; one Neon project per database (7, 8), Neon&#39;s internal roles and the staging rule (3), append-only and partitioned tables declared per table (5), the audit over every project, staging&#39;s audit and an audit failure on control (11), the sign-in role reading the security log for a data request (3, 11), and who refuses a database from before the reset (12), 22 October 2026; a sign-up link&#39;s address in control (7), the sign-up company name (7) and request keys (5, 9), 23 October 2026; an invitation&#39;s page in the request guard (6), 24 October 2026; amended by owner rulings of 25 October 2026: the sync epoch read once per sending job (7), <code>audit_log</code> kept 13 months (5, 10), orders not partitioned (5, 12), restore drills quarterly at launch (0, 10, 14), request keys deleted daily (5), fair shares kept 5 minutes and one nightly job per company (9)</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -124,7 +124,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="#11-production-checks">11</a></td>
 </tr>
 <tr>
-<td>Weekly restore drills (monthly at launch)</td>
+<td>Unattended monthly restore drills (quarterly by the runbook at launch), then the random drill weekly</td>
 <td>50 companies</td>
 <td><a href="#drills">10</a></td>
 </tr>
@@ -372,13 +372,13 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tbody></table></div>
 <ol>
 <li><strong>Field tags</strong> drive buyer anonymisation, a buyer&#39;s erasure, AI masking and export redaction from one declaration.</li>
-<li><strong>Append-only tables</strong> have <code>UPDATE</code>, <code>DELETE</code> and <code>TRUNCATE</code> revoked from the runtime role. Each table declares it through <code>tenantTable()</code>, and the lint reads the declarations; the tables named here are examples (owner ruling, 22 October 2026). At launch they include the stock ledger, the order hold table (every hold and release is a row; the current set is read from it, <a href="../../order-ingestion/spec/#11-holds">ADR-007</a>), the outbox and <code>audit_log</code>. Rows leave only through the slice operation, as the lifecycle role, by a whole month detached after the archiver verified it (<a href="../../data-retention/spec/#3-archiving-a-month">ADR-002 SPEC 3</a>), or, for outbox notes every handler has received, deleted 30 days after the last receipt by the lifecycle role (<a href="../../data-retention/spec/#2-the-retention-schedule">ADR-002 SPEC 2</a>, owner ruling, 21 October 2026).</li>
+<li><strong>Append-only tables</strong> have <code>UPDATE</code>, <code>DELETE</code> and <code>TRUNCATE</code> revoked from the runtime role. Each table declares it through <code>tenantTable()</code>, and the lint reads the declarations; the tables named here are examples (owner ruling, 22 October 2026). At launch they include the stock ledger, the order hold table (every hold and release is a row; the current set is read from it, <a href="../../order-ingestion/spec/#11-holds">ADR-007</a>), the outbox and <code>audit_log</code>. Rows leave only through the slice operation, as the lifecycle role, by a whole month detached, or deleted in batches from a whole table, after the archiver verified it (<a href="../../data-retention/spec/#3-archiving-a-month">ADR-002 SPEC 3</a>), or, for outbox notes every handler has received, deleted 30 days after the last receipt by the lifecycle role (<a href="../../data-retention/spec/#2-the-retention-schedule">ADR-002 SPEC 2</a>, owner ruling, 21 October 2026), or, for <code>audit_log</code>, a whole month dropped by the monthly migration run once its newest row is 13 months old, never archived (<a href="../../data-retention/spec/#2-the-retention-schedule">ADR-002 SPEC 2</a>, owner ruling, 25 October 2026).</li>
 <li><strong>Partitions.</strong> A partition named directly ignores its parent&#39;s policies and grants, because partitions follow Postgres&#39;s inheritance rules (<a href="https://www.postgresql.org/docs/17/ddl-inherit.html">inheritance</a>, <a href="https://www.postgresql.org/docs/17/ddl-partitioning.html">partitioning</a>). So every partition gets its own <code>ENABLE</code>, <code>FORCE</code> and policy, and no grant to the runtime or lifecycle role. No default privileges grant the runtime role anything. Only the monthly migration run names a partition.</li>
-<li><strong>Partitioned by month:</strong> each table declares it through <code>tenantTable()</code>, and the monthly migration run reads the declarations (owner ruling, 22 October 2026). At launch they include <code>audit_log</code>, <code>event_log</code>, orders, order holds and order cancellations (by their order&#39;s month, so they leave with it; owner rulings, 21 October 2026), the stock ledger and outbound sends. A unique index on a partitioned table must hold the partition column, so outbound sends keep their idempotency keys in an unpartitioned <code>(company_id, key)</code> table kept for the retention window. Until that table exists, outbound sends are unpartitioned (owner ruling, 21 October 2026).</li>
-<li><strong>Logs:</strong> one table per retention class. <code>audit_log</code> holds security and access events, kept at least a year for live companies. <code>event_log</code> holds module activity, kept 90 days by whole months (<a href="../../data-retention/spec/#2-the-retention-schedule">ADR-002 SPEC 2</a>).</li>
+<li><strong>Partitioned by month:</strong> each table declares it through <code>tenantTable()</code>, and the monthly migration run reads the declarations (owner ruling, 22 October 2026). At launch they are <code>audit_log</code>, <code>event_log</code>, the stock ledger and outbound sends. Orders, their lines, holds and cancellations and the VAT records are whole tables: once archiving is switched on (<a href="../../data-retention/spec/#0-at-launch-and-later">ADR-002 SPEC 0</a>) the archiver copies their months and deletes them in small batches (<a href="../../data-retention/spec/#3-archiving-a-month">ADR-002 SPEC 3</a>; owner ruling, 25 October 2026). A unique index on a partitioned table must hold the partition column, so outbound sends keep their idempotency keys in an unpartitioned <code>(company_id, key)</code> table kept for the retention window. Until that table exists, outbound sends are unpartitioned (owner ruling, 21 October 2026).</li>
+<li><strong>Logs:</strong> one table per retention class. <code>audit_log</code> holds security and access events, kept 13 months for live companies (owner ruling, 25 October 2026). <code>event_log</code> holds module activity, kept 90 days by whole months (<a href="../../data-retention/spec/#2-the-retention-schedule">ADR-002 SPEC 2</a>).</li>
 <li><strong>Operational state</strong> (rate buckets, leases, nonces, staging) lives in tenant tables like everything else.</li>
 <li><strong>Secrets:</strong> one table, <code>secrets(company_id, purpose)</code>.</li>
-<li><strong>Request keys:</strong> <code>app.request_key(company_id, actor, key, route, request_hash, answer, at)</code>, unique per company, actor and key, a tenant table under the company policy like every other. It is written in the transaction of the person&#39;s change it names, so a repeat with the same key gets the first answer and changes nothing. A repeat is answered only for the same actor, route and request, after the current request&#39;s own access check; any difference is refused, never replayed. <code>answer</code> holds ids and an outcome only: never a secret, a tagged field or a page of rows. A key is kept at least 7 days, and deleted by the sweeper within the hour after; until then it is still replayed. Stock commands keep theirs in <code>stock_command</code> (<a href="../../stock-ledger/spec/#12-the-lock-keys-and-the-sequence">ADR-006 SPEC 12</a>). Sign-up keeps none: it opens a company that does not exist yet, and taking its name once is its key (owner ruling, 23 October 2026).</li>
+<li><strong>Request keys:</strong> <code>app.request_key(company_id, actor, key, route, request_hash, answer, at)</code>, unique per company, actor and key, a tenant table under the company policy like every other. It is written in the transaction of the person&#39;s change it names, so a repeat with the same key gets the first answer and changes nothing. A repeat is answered only for the same actor, route and request, after the current request&#39;s own access check; any difference is refused, never replayed. <code>answer</code> holds ids and an outcome only: never a secret, a tagged field or a page of rows. A key is kept at least 7 days, and deleted by the sweeper within a day after (owner ruling, 25 October 2026); until then it is still replayed. Stock commands keep theirs in <code>stock_command</code> (<a href="../../stock-ledger/spec/#12-the-lock-keys-and-the-sequence">ADR-006 SPEC 12</a>). Sign-up keeps none: it opens a company that does not exist yet, and taking its name once is its key (owner ruling, 23 October 2026).</li>
 </ol>
 <h2 id="6-guard-rails">6. Guard rails</h2>
 <p>This section and <a href="#1-tenancy-inside-a-cell">section 1</a> own tenant isolation; other records link here. Isolation has two tiers.</p>
@@ -432,7 +432,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td>Caches</td>
 <td>Data layer</td>
-<td>Hyperdrive query caching is off. Any other cache is reached only through one key builder that takes the company id. Logs carry ids, never field values</td>
+<td>Hyperdrive query caching is off. Any other cache is reached only through one key builder that takes the company id; platform data from control that is the same for every company (the VAT rate table, the fair shares) may be kept up to 5 minutes under a platform key; a value held in a Worker&#39;s memory that is the same for every company counts as one, and never holds a company&#39;s or a request&#39;s data (owner ruling, 25 October 2026). Logs carry ids, never field values</td>
 <td>Lint error</td>
 </tr>
 <tr>
@@ -546,7 +546,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p><strong>When control is unreachable</strong> (owner, 21 October 2026). Every session check, route, shared pool token and sync epoch comes from control, so work stops safely and waits rather than guessing:</p>
 <ol>
 <li><strong>People:</strong> a session check needs control (<a href="../../sign-in/spec/#1-better-auth-and-what-is-switched-on">ADR-013 SPEC 1</a>, cookie cache off), so screens say Vervoro is unavailable. A tap that got no answer shows &quot;not sure&quot; (<a href="../../system-architecture/spec/#12-the-client">ADR-000 SPEC 12</a>).</li>
-<li><strong>Background work and sends:</strong> a job that needs control waits and retries. Nothing is sent to a marketplace, a decrease included, without its pool token and the sync epoch read from control. Inbound notices wait in the inbound queue; any that reach the dead-letter queue are replayed (<a href="../../runbooks/replay-dead-letters/">Replay dead letters</a>).</li>
+<li><strong>Background work and sends:</strong> a job that needs control waits and retries. Nothing is sent to a marketplace, a decrease included, without its pool token and the sync epoch read from control by the job that sends it (the epoch once per job: <a href="../../inventory-sync/spec/#13-one-writer-per-listing">ADR-008 SPEC 13</a>; owner ruling, 25 October 2026). Inbound notices wait in the inbound queue; any that reach the dead-letter queue are replayed (<a href="../../runbooks/replay-dead-letters/">Replay dead letters</a>).</li>
 <li><strong>Nothing is trusted from a cache</strong> in its place: no session, pool count or epoch. A stale route is still harmless (rule 2 above).</li>
 <li><strong>Paging:</strong> control unreachable for 5 minutes pages the operator (owner ruling, 21 October 2026). Procedure: <a href="../../runbooks/control-database-unreachable/">Control database unreachable</a>.</li>
 <li><strong>Recovered</strong> when sign-in works, every account&#39;s order watermark has caught up, the dead-letter queue is empty, and every <code>unknown</code> write is settled before new sends (<a href="../../channel-connectors/spec/#5-retries-and-outcomes">ADR-004 SPEC 5</a>).</li>
@@ -641,6 +641,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>The job that does the work sets the next time, or deletes the row, in its own transaction.</li>
 <li>A kind is declared by the module that owns the work. The sweeper refuses an undeclared kind.</li>
 <li>A move copies the company&#39;s <code>due</code> rows with its slice.</li>
+<li><strong>A company&#39;s nightly work is one job</strong> (owner ruling, 25 October 2026): each module declares its nightly step (Inventory&#39;s stock check and date pass, Buyer data&#39;s anonymisation proof, Orders&#39; census), and the sweeper runs a company&#39;s steps in one job, each step in its own transaction and alerting on its own, so one failing step never stops the others.</li>
 </ol>
 <p>Launch kinds, taken from the records:</p>
 <div class="table-wrap"><table>
@@ -677,14 +678,14 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>An account&#39;s daily read is due</td>
 </tr>
 <tr>
-<td>Nightly stock check</td>
-<td>Inventory (<a href="../../stock-ledger/">ADR-006</a>)</td>
+<td>Nightly work</td>
+<td>Each module&#39;s nightly step, such as Inventory&#39;s stock check (<a href="../../stock-ledger/">ADR-006</a>); rule 5</td>
 <td>Once a night</td>
 </tr>
 <tr>
 <td>Buyer anonymisation</td>
 <td>Buyer data (<a href="../../buyer-data/spec/#8-retention-and-anonymisation">ADR-009</a>)</td>
-<td>30 days after delivery</td>
+<td>Once a day, for orders due within 48 hours</td>
 </tr>
 <tr>
 <td>Erasure after closing</td>
@@ -693,7 +694,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </tbody></table></div>
 <h3 id="fair-shares">Fair shares</h3>
-<p>Platform settings in control, changed without a deploy (owner ruling, 20 October 2026). Starting values:</p>
+<p>Platform settings in control, changed without a deploy (owner ruling, 20 October 2026); a sweeper keeps them at most 5 minutes (owner ruling, 25 October 2026). Starting values:</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -749,7 +750,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>a generated count over every table is 0 for the company;</li>
 <li>the company&#39;s data key is destroyed.</li>
 </ol>
-<p>Erase also purges the company&#39;s files and any soft-deleted or versioned copies in object storage, and releases its marketplace seller ids in control. It removes the company&#39;s <code>audit_log</code>, so the one-year retention applies to live companies only. Steps: <a href="../../runbooks/erase-a-company/">runbook</a>.</p>
+<p>Erase also purges the company&#39;s files and any soft-deleted or versioned copies in object storage, and releases its marketplace seller ids in control. It removes the company&#39;s <code>audit_log</code>, so the 13-month retention applies to live companies only. Steps: <a href="../../runbooks/erase-a-company/">runbook</a>.</p>
 <h3 id="export">Export</h3>
 <p>A bundle: a manifest with per-table row counts and hashes, machine-readable files the slice operation can load again, and readable CSV files. Bound to the company id, refused if loaded under another company, and logged as a view of buyer data. Steps: <a href="../../runbooks/export-a-company/">runbook</a>.</p>
 <h3 id="move">Move</h3>
@@ -826,7 +827,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>The wrapped keys stay in the database. Which buyer fields, and the search they allow, are <a href="../../buyer-data/spec/#6-encryption-and-keys">ADR-009&#39;s</a>.</li>
 </ol>
 <h3 id="drills">Drills</h3>
-<p>Monthly at launch, a random real company and each cell&#39;s largest company are restored unattended; control has a drill of its own. <em>Later</em> (<a href="#0-at-launch-and-later">section 0</a>): the random drill weekly, and the canary moved and moved back nightly. Steps: <a href="../../runbooks/drills/">runbook</a>.</p>
+<p>Quarterly at launch, by the runbook, a random real company and each cell&#39;s largest company are restored; control has a drill of its own. That meets Amazon&#39;s quarterly backup test (<a href="../../buyer-data/spec/#14-security-controls">ADR-009 SPEC 14</a>; owner ruling, 25 October 2026). <em>Later</em> (<a href="#0-at-launch-and-later">section 0</a>): monthly and unattended from 50 companies, then the random drill weekly, and the canary moved and moved back nightly. Steps: <a href="../../runbooks/drills/">runbook</a>.</p>
 <h2 id="11-production-checks">11. Production checks</h2>
 <p>CI proves the schema it builds. These prove the databases running, because a console role, a partition made after deploy or a hand-edited configuration is invisible to CI. Each failure pages the operator and closes egress for the affected database.</p>
 <p><strong>Audit, at every deploy and every night,</strong> over every Neon project and branch in the account and every Hyperdrive configuration in the account:</p>
@@ -851,7 +852,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Schema changes expand, then contract,</strong> by <a href="../../system-architecture/spec/#11-deploying">ADR-000 SPEC 11</a>. A migration already merged is never edited.</li>
 <li><strong>One-time reset before launch</strong> (owner ruling, 20 October 2026). Before launch, every module&#39;s migrations were squashed into one new first migration. This was allowed once, only because no production database existed. Development databases from before the reset are recreated, and a database that still holds objects from before it is refused by the catalogue lint at <code>cell:add</code> and by every deploy&#39;s audit, before the data layer serves it (owner ruling, 22 October 2026: the data layer opens a database on every request, so it does not scan the catalogue itself). From then on rule 3 has no exception.</li>
 <li><strong>Migration ledger.</strong> Each database&#39;s own ledger, committed with each migration, is the authority on what it has applied. Control keeps, per database, the version the last deploy reached; the deploy writes it after reading each database&#39;s ledger.</li>
-<li><strong>Partitions.</strong> A monthly scheduled run of the CI migration job creates partitions three months ahead, so a failed run waits for the next. It detaches and drops a month of an archived table only after the archiver has written and verified that month&#39;s per-company files (<a href="../../data-retention/spec/#3-archiving-a-month">ADR-002 SPEC 3</a>). A table that is never archived, such as <code>event_log</code>, loses a month when its retention ends (<a href="../../data-retention/spec/#2-the-retention-schedule">ADR-002 SPEC 2</a>, owner ruling, 21 October 2026).</li>
+<li><strong>Partitions.</strong> A monthly scheduled run of the CI migration job creates partitions three months ahead, so a failed run waits for the next. It detaches and drops a month of an archived partitioned table (the archiver deletes a whole table&#39;s month in batches) only after the archiver has written and verified that month&#39;s per-company files (<a href="../../data-retention/spec/#3-archiving-a-month">ADR-002 SPEC 3</a>). A table that is never archived, such as <code>event_log</code>, loses a month when its retention ends (<a href="../../data-retention/spec/#2-the-retention-schedule">ADR-002 SPEC 2</a>, owner ruling, 21 October 2026).</li>
 <li><strong>Hot rows.</strong> <code>due</code> and the counter table get a lower fillfactor and their own autovacuum thresholds.</li>
 <li><strong>Alerts</strong> on transaction-id age, long-running transactions and leftover replication slots.</li>
 <li><strong>Scale to zero is off</strong> for production databases.</li>
@@ -1080,8 +1081,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Restore drill</td>
-<td>Production, monthly (weekly later)</td>
-<td>A real company restores unattended into a branch the runtime role cannot enter, neighbours unchanged, time per gigabyte recorded</td>
+<td>Production, quarterly at launch (monthly from 50 companies, weekly later)</td>
+<td>A real company restores (by the runbook at launch, unattended from 50 companies) into a branch the runtime role cannot enter, neighbours unchanged, time per gigabyte recorded</td>
 <td>10</td>
 </tr>
 <tr>

@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-008: Inventory sync](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-008-inventory-sync) |
-| **Date** | 21 October 2026 |
+| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: the sync epoch read once per sending job |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-008 from: the Stock sync module, switchable per company, needing Inventory, Listings, Orders and Channels ([ADR-000 SPEC 4](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)). Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/).
@@ -172,7 +172,7 @@ One patch sets one quantity for every marketplace the account serves ([ADR-004.2
 1. **One job per write target at a time.** A batch takes the lease of every member; a member already leased is left out.
 2. **A lease** lasts the call's timeout plus 15 seconds. An expired lease is written `unknown` and settled first.
 3. **The idempotency key** is the company's sync epoch, the write target, the version, the figure, and how many writes of that figure at that version have already settled. A repeat after a crash carries the same key; a deliberate second write of the same figure gets a new one.
-4. **The sync epoch** is one number per company in the control database ([ADR-001 SPEC 7](../../database-architecture/spec/#7-control-database-and-routing)), so a restore never rolls it back. Every restore raises it.
+4. **The sync epoch** is one number per company in the control database ([ADR-001 SPEC 7](../../database-architecture/spec/#7-control-database-and-routing)), so a restore never rolls it back. Every restore raises it. A job that sends reads it from control once, when it starts, and uses it for every key it makes; nothing carries it from one job to the next (owner ruling, 25 October 2026).
 
 ## 14. Shadow and going live
 
@@ -262,7 +262,7 @@ For someone reviewing code an AI wrote. Each line says where to look.
 - [ ] **No SQL:** every query uses the typed query builder; no `sql` or `raw` import in the module.
 - [ ] **Work list:** the dispatcher reads a query over rows, never a message queue.
 - [ ] **Order read:** the raise path compares the watermark with the due time plus 2 minutes in one function used by every marketplace.
-- [ ] **Keys:** the idempotency key includes the epoch read from control; nothing caches the epoch across a restore.
+- [ ] **Keys:** the idempotency key includes the epoch the sending job read from control when it started; nothing carries the epoch from one job to the next.
 - [ ] **Egress:** every write goes through the gate; no connector call from Stock sync directly.
 - [ ] **Unknown:** the settle step runs before any other write to that target, using ADR-004's rule.
 - [ ] **Later parts:** no Vendor figure, no second warehouse per account, no Amazon feed path, no display cap at launch.

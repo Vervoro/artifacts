@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-004: Channel connectors](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-004-channel-connectors) |
-| **Date** | 21 October 2026 |
+| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: a shared pool claimed in blocks, Amazon's backup read hourly (9.2), per-order timings kept 30 days after the gates (10, 15) |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-004 from: the Channels module, switchable per company and needing Listings and Orders, and the connector modules, each switchable and needing Channels ([ADR-000 SPEC 4](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)). What each marketplace adds is in its own record: [ADR-004.1 eBay](../../ebay-connector/spec/), [ADR-004.2 Amazon Seller](../../amazon-seller-connector/spec/), [ADR-004.3 Shopify](../../shopify-connector/spec/). Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/).
@@ -97,7 +97,7 @@ This section owns the unknown-write rule; other records link here.
 
 ## 7. Shared daily pools
 
-1. **One counter per pool, for the whole platform,** in control ([ADR-001 SPEC 7](../../database-architecture/spec/#7-control-database-and-routing)). Each call takes one in a single statement that refuses once the day is spent, so the count is exact and the pool never overruns.
+1. **One counter per pool, for the whole platform,** in control ([ADR-001 SPEC 7](../../database-architecture/spec/#7-control-database-and-routing)). A job claims its calls in a block of up to 10 in a single statement that refuses once the day is spent, so the pool never overruns; the calls it did not use go back when it ends, and a block held by a job that crashed is freed when its lease ends. Within the reserve (rule 3) a block is one call, so blocks never take the safety lane's share. A pool of 50,000 calls a day or more (eBay's order calls) is counted from the hourly usage rollups until its day passes half its size, then claimed in blocks like any other; until then its calls take no token and control's count is the rollups (such a pool carries reads only, never a send) (owner ruling, 25 October 2026).
 2. **Two lanes.** The safety lane carries the calls that protect a seller: a decrease, or any figure near zero. The bulk lane carries the rest.
 3. **The reserve** is a tenth of the pool, split equally among the accounts using it, with no fixed floor. Once the day's count reaches the pool less the reserve, the bulk lane pauses for everyone until the reset. The safety lane goes on until the account's share is spent, never past the pool.
 4. **The pool caps how many accounts it serves.** When an account's share would fall below 50 calls a day, the operator is alerted and a new account that needs the pool waits in shadow until the pool is raised.
@@ -122,7 +122,7 @@ Orders arrive by notice; the scheduled read is only the backup ([9](#9-the-compl
 ## 9. The completeness check
 
 1. **It reads the orders changed since the watermark,** with a small overlap, and is the only thing that moves the watermark, and only after a complete window ([ADR-007 SPEC 2.3](../../order-ingestion/spec/#2-how-an-order-comes-in)).
-2. **The interval is per marketplace,** by whether the order limit is shared: hourly where it is (eBay), every 10 minutes where it is per seller (Amazon, Shopify). The operator can change it per connector without code.
+2. **The interval is per marketplace:** hourly on eBay and Amazon, and every 10 minutes on Shopify (*Later*), whose order limit is each shop's own. Notices are how orders arrive; this read only catches one that was lost (owner ruling, 25 October 2026: Amazon from 10 minutes to hourly). Rule 4 and a failed launch gate (11.6) shorten it. The operator can change it per connector without code.
 3. **Any complete read resets the timer,** including one a raise asks for.
 4. **Broken notices are read every 10 minutes:** an account whose subscription is failing, or whose read finds an order no notice announced, until its notices work again. The operator is alerted.
 5. **On demand:** after an outage, and before a raise is sent unless a complete read already covers the moment it became due. Decreases never wait. How long a raise may wait is [ADR-008 SPEC 5](../../inventory-sync/spec/#5-the-order-read-before-a-raise).
@@ -136,7 +136,7 @@ Every account, in shadow and live, records for each order: when the marketplace 
 2. **Detection delay:** from the order's placed time to its import, as a 99th percentile.
 3. **Unreserved-order exposure:** orders that waited unreserved while their product's sellable stock was within the near-zero zone ([ADR-008 SPEC 3](../../inventory-sync/spec/#3-when-a-figure-is-sent)), and for how long.
 
-The operator sees all three per marketplace and per account.
+The operator sees all three per marketplace and per account. Once a marketplace passes its launch gates, each order's timings are kept 30 days, then only daily counts per account (owner ruling, 25 October 2026).
 
 ## 11. Shadow mode and launch gates
 
@@ -193,7 +193,7 @@ Channels' tables carry the `chan_` prefix, are declared through `tenantTable()` 
 | `chan_order_read` | Per account: the watermark, the last complete read, the next one due, whether notices look broken |
 | `chan_wait` | Per account and operation: the marketplace's wait and the bucket |
 | `chan_privacy_request` | Privacy requests from marketplaces, with their due dates |
-| `chan_order_timing` | Per order: placed, notice and import times, for [10](#10-what-is-measured) |
+| `chan_order_timing` | Per order: placed, notice and import times, for [10](#10-what-is-measured); after the launch gates pass, kept 30 days, then daily counts |
 | Kernel `secrets` | Sealed credentials, purpose per account |
 | Control | External directory, shared pool counters, usage rollups, per-connector platform settings |
 
@@ -219,7 +219,7 @@ Pure mappings run as unit tests; pools, leases and the queue path on real Postgr
 | Gate only | The binding refuses a write operation not sent by the gate |
 | Outcomes | Every recorded reply maps to one outcome; a timeout that applied is `unknown` and settled by read-back (or the named resend) before the next write |
 | Wait | A 429 with a wait holds every job on that operation for the account; over an hour alerts |
-| Pool | Under parallel calls the counter never passes the pool; at pool less reserve, bulk pauses and safety goes on to each account's share |
+| Pool | Under parallel calls, with blocks claimed and unused calls returned, the counter never passes the pool; within the reserve a block is one call; at pool less reserve, bulk pauses and safety goes on to each account's share; a large pool switches from the rollups to blocks at half its day |
 | Pool cap | An account whose share would fall below 50 cannot go live |
 | Notice check | A bad signature or secret is refused before any database read; a notice for an unheld account is answered and kept nowhere |
 | Ids only | No queue message carries a notice body or buyer field |
@@ -242,7 +242,7 @@ For someone reviewing code an AI wrote. Each line says where to look.
 - [ ] **Gate:** write operations reach the binding only from the gate; the mode is read from the database on each send.
 - [ ] **Unknown:** one settle step runs before any other write to that target; the resend path exists only where a connector's record names it.
 - [ ] **Expiry:** token lifetimes come from the reply; no fixed lifetime in host code.
-- [ ] **Pools:** the counter is one statement in control; no block claims; the reserve and the 50-call alert are platform settings.
+- [ ] **Pools:** a block of up to 10 is claimed in one statement in control and its unused calls returned at the job's end; one call a block within the reserve; a pool of 50,000 a day or more is counted from the rollups until half spent; the reserve and the 50-call alert are platform settings.
 - [ ] **Notices:** checked before any database read; the queue message holds ids only; answer after enqueue.
 - [ ] **Completeness check:** only it moves the watermark; intervals are per connector settings; broken notices drop to 10 minutes.
 - [ ] **Gates:** the three measurements are recorded per order, and going live checks the marketplace's gates.

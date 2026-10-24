@@ -15,7 +15,7 @@ No account on a marketplace goes live until shadow on that marketplace passes it
 2. Read the three figures: notice miss rate, 99th-percentile detection delay, and unreserved-order exposure. Compare each with its gate.
 3. **All pass:** mark the marketplace's gates passed. Its accounts may now go live by [Take a company live](../take-a-company-live/).
 4. **One fails, first time:** list the orders behind it. Check whether one account explains them (a broken subscription is [Repair a notice subscription](../repair-a-notice-subscription/)). If so, fix it and measure again.
-5. Otherwise shorten the marketplace's scheduled read. On eBay, go from hourly to 15 minutes, after checking the order allowance has room for 96 reads a day per account plus the order fetches. Record the change and its date.
+5. Otherwise shorten the marketplace's scheduled read. On eBay, go from hourly to 15 minutes, after checking the order allowance has room for 96 reads a day per account plus the order fetches. On Amazon, go from hourly to 10 minutes; its order limit is each seller's own. Record the change and its date.
 6. Measure for 7 more days, then repeat from step 2.
 7. **Fails again:** leave live stock sync off for that marketplace. Its accounts stay in shadow; orders are still imported and reserved. Tell the owner, with the figures, and open a decision.
 

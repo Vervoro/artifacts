@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Status** | Proposed |
-| **Date** | 17 October 2026; unknown-write rule and its exception, 21 October 2026; split into ADR, SPEC and RUNBOOK, with launch gates measured in shadow and Shopify Later (owner rulings), 21 October 2026; no recipient fields until Vervoro prints labels (owner ruling, 22 October 2026) |
+| **Date** | 17 October 2026; unknown-write rule and its exception, 21 October 2026; split into ADR, SPEC and RUNBOOK, with launch gates measured in shadow and Shopify Later (owner rulings), 21 October 2026; no recipient fields until Vervoro prints labels (owner ruling, 22 October 2026); amended by owner rulings of 25 October 2026: Amazon's backup read hourly |
 | **Scope** | The Channels module (the host) and the connector contract: what a connector does and may not do, what the host owns, shared daily pools, notices in and the completeness check behind them, shadow mode and its launch gates, simulators, switching marketplaces on and off, and keeping failures apart |
 | **Builds on** | [ADR-000](../system-architecture/), [ADR-001](../database-architecture/), [ADR-003](../product-model/) |
 | **SPEC** | [The rules to build from, and how to check them](spec/) |
@@ -24,9 +24,9 @@ Parts marked *Later* keep their rules in the SPEC but are built only when their 
 1. **A connector only translates.** It turns five contract calls (read orders, read listings, write stock, read back, parse a notice) into a marketplace's requests, and the replies into contract types. It has no network access, no credentials, no clock and no database. Anything more a marketplace offers is an optional capability the connector declares.
 2. **Channels, the host, owns everything that can hurt:** credentials and the seller's approval, HTTP, retries, rate budgets, shared pools, checking notices, and the sending half of the egress gate ([ADR-000 SPEC 7](../system-architecture/spec/#7-the-egress-gate)). Channels and each connector are switchable modules, so a marketplace is added or removed without touching the core. A token's expiry is taken from the marketplace's reply.
 3. **Every write ends in one outcome, and an unknown one is settled first.** A write with no clear answer is `unknown`, and nothing else is sent to that listing until it is settled. Reading back is the default; resending the absolute figure Vervoro wants now, where it only sets a value, is the named exception; resending the same absolute figure is allowed only as an exception a connector's record names. The SPEC owns this rule.
-4. **Shared daily pools are counted exactly,** one call at a time, for the whole platform. A tenth of each pool is a safety reserve split equally between the accounts on it. The operator is alerted when an account's share would fall below 50 calls a day, and a new account that needs the pool then waits in shadow.
+4. **Shared daily pools are counted for the whole platform,** claimed in blocks of up to 10 calls, one call within the reserve, so a pool never runs over ([SPEC 7](spec/#7-shared-daily-pools); owner ruling, 25 October 2026). A tenth of each pool is a safety reserve split equally between the accounts on it. The operator is alerted when an account's share would fall below 50 calls a day, and a new account that needs the pool then waits in shadow.
 5. **Orders arrive by notice.** A notice is checked before anything is read, queued as ids only, and answered at once. The order is then fetched and imported. A notice is a hint, never the order.
-6. **A scheduled read checks that no order was missed.** It runs hourly where the order limit is shared by every seller (eBay) and every 10 minutes where it is each seller's own (Amazon, Shopify). An account whose notices look broken is read every 10 minutes. Only a complete read moves the order watermark, and no raise leaves before one covers it.
+6. **A scheduled read checks that no order was missed.** It runs hourly on eBay and Amazon, and every 10 minutes on Shopify, whose order limit is each shop's own (owner ruling, 25 October 2026). An account whose notices look broken is read every 10 minutes. Only a complete read moves the order watermark, and no raise leaves before one covers it.
 7. **Every account starts in shadow.** Reads happen and writes are only recorded until the seller has explained every difference. Before any account on a marketplace goes live, shadow must pass three launch gates for it: few lost notices, a short delay before an order is seen, and no order left unreserved while its stock was short. A marketplace that fails gets a shorter scheduled read, or keeps live stock sync off. The SPEC owns shadow mode.
 8. **Every connector runs against its simulator** through one shared contract suite. Simulators are trimmed to the calls the launch connectors make and kept honest by recorded real replies.
 9. **On and off at three levels, and failures kept apart.** A marketplace is switched at the platform, the company and the account; the operator can also hold every send to one marketplace during its incident. A throttle, outage or refused approval holds only the account, job or pool it touches.
@@ -53,7 +53,7 @@ Out: Stock sync decides a figure and the egress gate records it. Channels sends 
 - The host is large: approval flows, token refresh, signing, budgets, pools and notice checks all live there.
 - Amazon's notices need an AWS bridge: a second cloud to deploy, watch and keep a secret for.
 - Every marketplace needs a simulator and recorded replies, and the contract suite grows with each capability.
-- A raise waits for a complete order read: up to a few minutes on Amazon, and a lost eBay notice is found within the hour.
+- A raise waits for a complete order read: up to a few minutes on Amazon, and a lost eBay or Amazon notice is found within the hour.
 - The shared pools cap how many accounts can go live until a marketplace raises its limit.
 
 ## Alternatives rejected
@@ -65,7 +65,6 @@ Out: Stock sync decides a figure and the egress gate records it. Channels sends 
 - **Trusting the notice body as the order:** notices arrive late, twice or out of order, and some carry only ids.
 - **Reading Amazon's queue from Vervoro directly:** a Worker would hold AWS credentials; the bridge keeps one inbound path.
 - **Rate limits per account only, or a pool without a reserve:** whoever calls first spends the day, and a decrease can be left without a call.
-- **Claiming pool calls in blocks:** saves round trips only far above any daily pool, and lets a pool run over.
 - **No scheduled read, one a day, or the same short interval everywhere:** a lost notice would be found too late, or eBay's shared order allowance would not last the day.
 - **Raising on notices alone:** a notice proves an order exists, never that none is missing.
 - **Testing against marketplace sandboxes:** slow, limited and unable to produce the failures that matter.

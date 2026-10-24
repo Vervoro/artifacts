@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-007: Order ingestion](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-007-order-ingestion) |
-| **Date** | 21 October 2026 |
+| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: orders not partitioned (3.2, 23) |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-007 from: the Orders module, core and always on, needing Products, Listings, Inventory and Buyer data ([ADR-000 SPEC 4](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)). Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/).
@@ -42,7 +42,7 @@ The rules to build ADR-007 from: the Orders module, core and always on, needing 
 ## 3. One order per marketplace order
 
 1. **The key** is the account and the marketplace's order id: eBay's `orderId`, Amazon's `orderId` (one id across the region), *Later:* Shopify's numeric order id, never its editable name. A manual order takes the next number from the company's counter ([ADR-001](../../database-architecture/)).
-2. **One unpartitioned key table.** Orders and lines are partitioned by month of purchase, and a unique index on a partitioned table must include the month. So `sales_order_key` is unique on company, account and marketplace order id, and every import reads it first, under the company's lock.
+2. **One key.** `sales_order` is unique on company, account and marketplace order id, and every import reads the order by it first, under the company's lock. Orders are not partitioned ([ADR-001 SPEC 5](../../database-architecture/spec/#5-declaring-tables); owner ruling, 25 October 2026).
 3. **Which fetch wins,** by the marketplace's own change time (eBay's `lastModifiedDate`, Amazon's `lastUpdatedTime`, *Later:* Shopify's `updatedAt`), never Vervoro's clock:
 
 | The fetched order is | What happens |
@@ -357,11 +357,10 @@ Orders' tables carry the `sales_` prefix, are declared through `tenantTable()` a
 
 | Table | Holds |
 | --- | --- |
-| `sales_order` | The order fields of section 5; partitioned by month of purchase; no buyer field, those are Buyer data's ([ADR-009 SPEC 18](../../buyer-data/spec/#18-storage)) |
-| `sales_order_key` | Company, account, marketplace order id → order id and month; unpartitioned, unique, read first |
-| `sales_order_line` | The line fields of section 5, partitioned with its order; a charge line has no product, link or reservation; no stored stock state |
-| `sales_order_hold` | Each hold placed and cleared: reason, kind, note, by whom, decide-by, when; append-only; partitioned by its order's month, archived with it ([ADR-002](../../data-retention/spec/#2-the-retention-schedule)) |
-| `sales_order_cancellation` | Each buyer request and change: lines, quantities, marketplace id, deadline, state, times; append-only; partitioned by its order's month, archived with it ([ADR-002](../../data-retention/spec/#2-the-retention-schedule)) |
+| `sales_order` | The order fields of section 5; unique on company, account and marketplace order id; no buyer field, those are Buyer data's ([ADR-009 SPEC 18](../../buyer-data/spec/#18-storage)) |
+| `sales_order_line` | The line fields of section 5; a charge line has no product, link or reservation; no stored stock state |
+| `sales_order_hold` | Each hold placed and cleared: reason, kind, note, by whom, decide-by, when; append-only; archived with its order's month ([ADR-002](../../data-retention/spec/#2-the-retention-schedule)) |
+| `sales_order_cancellation` | Each buyer request and change: lines, quantities, marketplace id, deadline, state, times; append-only; archived with its order's month ([ADR-002](../../data-retention/spec/#2-the-retention-schedule)) |
 | `sales_order_refund` | Amount, currency, lines, time |
 | `sales_order_problem` | Section 9; no order body and no buyer data |
 | `sales_cutoff` | Each warehouse's collection cut-off and dated exceptions, by warehouse id |
@@ -422,7 +421,7 @@ For someone reviewing code an AI wrote. Each line says where to look.
 - [ ] **One writer:** only Orders' code writes `sales_` tables; Channels and Fulfilment import only its port.
 - [ ] **No marketplace in the core:** Orders imports nothing from Channels or any connector; re-fetches are asked by event.
 - [ ] **No SQL:** every query uses the typed query builder; no `sql` or `raw` import in the module.
-- [ ] **Key first:** the import reads `sales_order_key` under the company's lock before anything else.
+- [ ] **Key first:** the import reads the order by its key under the company's lock before anything else.
 - [ ] **Target, not delta:** one function works out each line's target; nothing adds or subtracts reservations directly.
 - [ ] **One status function,** versioned, called in every transaction that changes an order fact; no code sets a status directly.
 - [ ] **Holds:** read from the append-only table; the release command checks kind against role in one place.

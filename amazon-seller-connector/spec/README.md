@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-004.2: Amazon Seller connector](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-0042-amazon-seller-connector) |
-| **Date** | 21 October 2026 |
+| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: the backup read hourly (4.1) |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 Only what is particular to Amazon. Everything the host does (credentials, HTTP, outcomes, notices in, the completeness check, shadow mode) is [ADR-004 SPEC](../../channel-connectors/spec/) and is not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed.
@@ -51,7 +51,7 @@ Procedure: [Set up the Amazon notice bridge](../../runbooks/set-up-the-amazon-no
 
 ## 4. Orders
 
-1. **Every 10 minutes,** on every marketplace of the region in one search (up to 50). An early read is never closer than three minutes, because the search refills that slowly.
+1. **Hourly,** and every 10 minutes while the account's notices look broken or after a failed launch gate ([ADR-004 SPEC 9](../../channel-connectors/spec/#9-the-completeness-check); owner ruling, 25 October 2026), on every marketplace of the region in one search (up to 50). An early read is never closer than three minutes, because the search refills that slowly.
 2. **Each page carries its orders' items,** so nothing is fetched per order.
 3. **Amazon stops a search two minutes before its own clock** and says where it stopped; that bound is the window's completeness.
 

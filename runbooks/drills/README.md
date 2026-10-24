@@ -3,12 +3,12 @@
 | | |
 | --- | --- |
 | **Record** | [ADR-001](../../database-architecture/), rules in [SPEC 10](../../database-architecture/spec/#drills) |
-| **Who runs it** | The operations job, unattended. The operator reads the results |
+| **Who runs it** | The operator, by these steps, quarterly at launch; the operations job, unattended, from 50 companies. The operator reads the results |
 | **Role or credential** | The lifecycle role |
 
-## Restore drill: monthly
+## Restore drill: quarterly at launch
 
-Monthly a random real company and each cell's largest company (the random one weekly from 50 companies):
+Quarterly a random real company and each cell's largest company; monthly and unattended from 50 companies, the random one weekly later (owner ruling, 25 October 2026):
 
 1. Branch the cell; set every tenant row on the branch to `lookback`.
 2. Check that the runtime role is refused on the branch.

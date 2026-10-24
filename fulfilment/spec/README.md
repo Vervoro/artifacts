@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-014: Fulfilment](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-014-fulfilment) |
-| **Date** | 21 October 2026 |
+| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: a lot tapped at packing only for use-by products and business buyers (3.2) |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-014 from: the Fulfilment module. Every stock change below is a call to an Inventory port defined in [ADR-006 SPEC 7](../../stock-ledger/spec/#7-ports-fulfilment-and-orders-call), and every status change a call to Orders ([ADR-007](../../order-ingestion/spec/#1-the-module)). Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/).
@@ -38,7 +38,7 @@ The rules to build ADR-014 from: the Fulfilment module. Every stock change below
 Packing (ADR-007's "packed") is a server command, keyed by the packing id. For each unit it names the batch:
 
 1. **One eligible batch** of the product in the spot (or the warehouse, without spots): implied.
-2. **Several:** the packer taps the date or lot on the unit, or scans a barcode that carries it. A product barcode alone names no batch.
+2. **Several:** for a use-by product, or a line of an order to a business buyer, the packer taps the date or lot on the unit, or scans a barcode that carries it. A product barcode alone names no batch. Any other product packs as its reserved batch, marked "batch assumed", unless a scanned barcode carries the lot (owner ruling, 25 October 2026).
 3. **Another eligible batch than planned** (in date, not blocked, meeting the demand's need) is taken without a manager; Inventory moves or exchanges the reservation. Choices of a later date than planned are listed daily for a manager.
 4. **Nothing to exchange, or nobody says:** the line keeps its reserved batch, marked "batch assumed", with any lot tapped.
 5. **Packed units** move, still reserved, to the packing spot. Units there for more than 24 hours are listed on Home.
@@ -95,7 +95,7 @@ Database tests run on real Postgres under the runtime role ([ADR-000 SPEC 15](..
 | Test | Proves |
 | --- | --- |
 | Pick claims | Starting to pick writes no ledger entry and claims the spot with the fewest units first |
-| Packing | One eligible batch is implied; several need a tap; a product barcode alone never names a batch; another eligible batch moves or exchanges the reservation; nothing to exchange ends "batch assumed" |
+| Packing | One eligible batch is implied; several need a tap for a use-by product or a business buyer's line, and otherwise pack as the reserved batch, "batch assumed", unless a scanned barcode carries the lot; a product barcode alone never names a batch; another eligible batch moves or exchanges the reservation; nothing to exchange ends "batch assumed" |
 | Use-by | A use-by unit on or after its date, or of a blocked lot, is refused at packing and at dispatch |
 | Shipment | A shipment deducts only what was packed for it and carries every unit still to ship; an order with a short line cannot ship; confirming twice deducts once |
 | Whole sets | A bundle line ships whole sets only |

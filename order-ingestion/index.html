@@ -75,7 +75,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>18 October 2026, revised after a design review the same day; split into ADR, SPEC and RUNBOOK, with Orders as the core module that alone writes orders, 21 October 2026; no recipient fields until labels, the destination country on the order, labels bought on the marketplace (owner ruling, 22 October 2026)</td>
+<td>18 October 2026, revised after a design review the same day; split into ADR, SPEC and RUNBOOK, with Orders as the core module that alone writes orders, 21 October 2026; no recipient fields until labels, the destination country on the order, labels bought on the marketplace (owner ruling, 22 October 2026); amended by owner rulings of 25 October 2026: orders not partitioned</td>
 </tr>
 <tr>
 <td><strong>Scope</strong></td>
@@ -195,13 +195,12 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>A short order waits for stock or for a change on the marketplace; Vervoro never ships part of it.</li>
 <li>Holds stop some orders that were fine to ship; a seller with many pending orders has more to release.</li>
 <li>A shipment outside Vervoro is trusted to have left the warehouse until a manager says otherwise; in shadow its batch is not traced.</li>
-<li>A lost eBay notice leaves an order unreserved until the completeness check, up to an hour.</li>
+<li>A lost eBay or Amazon notice leaves an order unreserved until the completeness check, up to an hour.</li>
 </ul>
 <h2 id="alternatives-rejected">Alternatives rejected</h2>
 <ul>
 <li><strong>Poll orders as the main path:</strong> the owner&#39;s rule is webhooks; polling spends shared allowances and brings orders late.</li>
 <li><strong>Import the notice body:</strong> it may be older than the order, carries buyer data, and some carry only ids.</li>
-<li><strong>A unique index on the partitioned order table:</strong> it must include the month, so the same order in two months would not be caught.</li>
 <li><strong>A status moved step by step, refusing other moves:</strong> a refused import stalls the watermark, and a stored &quot;packed&quot; stays packed when the order changes underneath.</li>
 <li><strong>Holds as statuses:</strong> an order can be held for several reasons, and releasing one must not hide another.</li>
 <li><strong>A per-person &quot;trusted&quot; mark for releasing holds:</strong> the kind of the hold gives the same safety with fixed roles (<a href="../users-and-access/">ADR-010</a>).</li>

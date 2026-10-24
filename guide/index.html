@@ -419,7 +419,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Completeness check</strong></td>
-<td>The scheduled order read behind the notices, hourly on eBay and every 10 minutes on Amazon. &quot;Backup read&quot; and &quot;scheduled read&quot; mean the same thing (ADR-004 SPEC 9)</td>
+<td>The scheduled order read behind the notices, hourly on eBay and Amazon, every 10 minutes while an account&#39;s notices look broken. &quot;Backup read&quot; and &quot;scheduled read&quot; mean the same thing (ADR-004 SPEC 9)</td>
 </tr>
 <tr>
 <td><strong>Order watermark</strong></td>
@@ -427,7 +427,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Shared pool</strong></td>
-<td>A marketplace allowance shared by every seller, such as eBay&#39;s Trading API calls, counted exactly in control. Its <strong>safety lane</strong> carries decreases and any figure near zero, its <strong>bulk lane</strong> the rest, and a tenth is a reserve split between its accounts (ADR-004 SPEC 7)</td>
+<td>A marketplace allowance shared by every seller, such as eBay&#39;s Trading API calls, counted in control, claimed in blocks. Its <strong>safety lane</strong> carries decreases and any figure near zero, its <strong>bulk lane</strong> the rest, and a tenth is a reserve split between its accounts (ADR-004 SPEC 7)</td>
 </tr>
 <tr>
 <td><strong>External directory</strong></td>

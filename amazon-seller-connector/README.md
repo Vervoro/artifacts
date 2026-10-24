@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Status** | Proposed |
-| **Date** | 17 October 2026; split into ADR, SPEC and RUNBOOK, 21 October 2026; the restricted role Later, with shipping labels (owner ruling, 22 October 2026) |
+| **Date** | 17 October 2026; split into ADR, SPEC and RUNBOOK, 21 October 2026; the restricted role Later, with shipping labels (owner ruling, 22 October 2026); amended by owner rulings of 25 October 2026: the backup read hourly |
 | **Scope** | What Amazon's Selling Partner API adds to [ADR-004](../channel-connectors/), for a seller who ships their own orders and may also use Amazon's fulfilment |
 | **Builds on** | [ADR-004](../channel-connectors/), [ADR-003](../product-model/), [ADR-006](../stock-ledger/), [ADR-008](../inventory-sync/), [ADR-009](../buyer-data/) |
 | **SPEC** | [The Amazon rules, limits and checks](spec/) |
@@ -22,7 +22,7 @@
 1. **The seller approves Vervoro in Seller Central,** from Vervoro or from Amazon's app store. One read with the new token proves the seller id before it is claimed.
 2. **One account is one seller id in one region,** serving the marketplaces the seller picks there. One figure goes to all of them.
 3. **Notices come through a small no-code AWS bridge in an EU region** ([ADR-000 SPEC 8](../system-architecture/spec/#8-connectors-and-orders-in)), which posts each one to the notice endpoint with a shared secret. The endpoint also checks the notice names Vervoro's application.
-4. **Each order notice is answered by fetching the order.** The backup read runs every 10 minutes, because the order limit is the seller's own, and never closer than three minutes apart.
+4. **Each order notice is answered by fetching the order.** The backup read runs hourly, every 10 minutes while the account's notices look broken, and never closer than three minutes apart (owner ruling, 25 October 2026).
 5. **Every stock write is one listing at a time.** *Later: listings feeds for many raises if single writes fall short; a feed never carries a decrease.*
 6. **Amazon's `accepted` does not mean applied.** Every write is read back before Vervoro counts it as applied.
 7. **A listing Amazon ships on any of the account's marketplaces is never sent a figure.**
@@ -38,7 +38,7 @@
 - A slow order search is spent only as a backup, and no decrease waits behind a feed.
 - A listing Amazon ships can never be given a merchant figure.
 - Buyer data is held only as long as Amazon allows, and only for orders the seller ships.
-- A lost bridge costs speed, not orders: the 10-minute read still finds them.
+- A lost bridge costs speed, not orders: the backup read still finds them, every 10 minutes once notices look broken.
 
 **Costs**
 
