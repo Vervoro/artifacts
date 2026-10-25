@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>21 October 2026; Better Auth replaces the in-house engine, owner approval of 21 October 2026; owner rulings on sessions, email and the passkey fallback the same day; amended by owner rulings: the sign-in mail provider chosen by configuration, sign-up with a password first, a forced change exempt from the 1-day minimum, an email-first sign-in page, its passkey offers worded to what a browser can tell, signing out other devices, the privacy notice link, the export and name calls, the freeze and the 365-day rule clarified, and an unknown passkey signalled to the device, 22 October 2026; the passkey prompt opened only on request, when sessions are deleted, sign-up proving the address first, the app&#39;s mail through the same provider, no email change (the <code>setEmail</code> call removed before it was built), the company named in the sign-up form, the passkey offer skipped when the login has one, and security shown in the app, 23 October 2026; <code>enrol</code> asked before an invitation is accepted, the recent sign-ins listed, a new authenticator kept pending until confirmed, and <code>loginFacts</code> for an invited person joining, 24 October 2026; amended by owner rulings of 25 October 2026: the rate limit on attempt routes, and a Cloudflare rule on the sign-in paths (1, 7), rate-limit counters deleted an hour after their last request, and listing one&#39;s own methods not logged (2, 8.7, 12), the session pass of at most 60 seconds (1, 2, 5, 6, 9, 11, 15), the session pass naming only a session the sign-in Worker proved, and no pass in a session&#39;s first 5 minutes (5, 8, 9)</td>
+<td>21 October 2026; Better Auth replaces the in-house engine, owner approval of 21 October 2026; owner rulings on sessions, email and the passkey fallback the same day; amended by owner rulings: the sign-in mail provider chosen by configuration, sign-up with a password first, a forced change exempt from the 1-day minimum, an email-first sign-in page, its passkey offers worded to what a browser can tell, signing out other devices, the privacy notice link, the export and name calls, the freeze and the 365-day rule clarified, and an unknown passkey signalled to the device, 22 October 2026; the passkey prompt opened only on request, when sessions are deleted, sign-up proving the address first, the app&#39;s mail through the same provider, no email change (the <code>setEmail</code> call removed before it was built), the company named in the sign-up form, the passkey offer skipped when the login has one, and security shown in the app, 23 October 2026; <code>enrol</code> asked before an invitation is accepted, the recent sign-ins listed, a new authenticator kept pending until confirmed, and <code>loginFacts</code> for an invited person joining, 24 October 2026; amended by owner rulings of 25 October 2026: the rate limit on attempt routes, and a Cloudflare rule on the sign-in paths (1, 7), rate-limit counters deleted an hour after their last request, and listing one&#39;s own methods not logged (2, 8.7, 12), the session pass of at most 60 seconds (1, 2, 5, 6, 9, 11, 15), the session pass naming only a session the sign-in Worker proved, and no pass in a session&#39;s first 5 minutes (5, 8, 9), the operator console written in, with decision 5&#39;s one exception for an operator&#39;s first sign-in link (1, 2, 8, 9, 10, 12)</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -170,8 +170,13 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Nothing leaves</td>
 </tr>
 <tr>
+<td>The operator console</td>
+<td>A second set-up on the console&#39;s own address, passkeys only (email and password off, no two-factor or captcha), its own <code>rpID</code>, origin and cookie prefix <code>__Host-vervoro-ops</code>, the same database, sessions and rate limit, signing with its own key (section 9). Its address proof signs in only a login with no password and no passkey: the operator&#39;s one-time link (section 10)</td>
+<td>ADR-013 decision 5&#39;s one exception; owner rulings, 24 October 2026 and owner ruling, 25 October 2026</td>
+</tr>
+<tr>
 <td>Off, and never switched on without changing this record</td>
-<td>Social and single sign-on providers, magic links, email codes, phone numbers, anonymous users, organisation, admin, multi-session, one-time tokens, bearer tokens, JWT, trusted devices</td>
+<td>Social and single sign-on providers, magic links (but the operator&#39;s one-time link, section 10), email codes, phone numbers, anonymous users, organisation, admin, multi-session, one-time tokens, bearer tokens, JWT, trusted devices</td>
 <td>ADR-013 decisions 3 and 5</td>
 </tr>
 </tbody></table></div>
@@ -249,7 +254,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>60 seconds, ended by <code>Max-Age</code>; cleared as <a href="#5-sessions">section 5</a> rule 3 says (owner decision, 25 October 2026)</td>
 </tr>
 <tr>
-<td>Email address and network address of a sign-up link, and the email address of an <code>enrol</code> link (no network address, not mailed; owner ruling, 24 October 2026)</td>
+<td>Email address and network address of a sign-up link, and the email address of an <code>enrol</code> or <code>enrolOperator</code> link (no network address, not mailed; owner rulings, 24 and 25 October 2026)</td>
 <td><code>auth_policy.address_proof</code></td>
 <td>Proving the address before a login exists (<a href="../../users-and-access/spec/#6-invitations-sign-up-and-removal">ADR-010 SPEC 6</a>); the limits on sending links (<a href="#7-lockouts-rate-limits-and-bots">section 7</a>)</td>
 <td>The link is used, or 24 hours after it was sent (the sign-in Worker&#39;s hourly sweep). A first-step answer to an address that already has a login, and any first-step answer past the minute&#39;s limit, sent or not, is noted the same way, for the limits, and kept the same 24 hours (owner rulings, 23 October 2026)</td>
@@ -510,7 +515,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2 id="8-the-sign-in-worker">8. The sign-in Worker</h2>
 <p><strong>What it is, and must stay.</strong> Adding a page or a call needs a change to this record.</p>
 <ol>
-<li><strong>Pages,</strong> served on a path of the app&#39;s own address, so the cookie stays host-only: signing in, signing up (the address first, then its link&#39;s page, which takes the company&#39;s name, 1 to 100 characters, before the person&#39;s own), setting and resetting a password, adding and removing methods, showing a reset code, recovery. Plain pages with the design tokens and none of the app&#39;s components. The sign-up page links Vervoro&#39;s privacy notice before the address is submitted (<a href="../../buyer-data/spec/#2-roles-and-agreements">ADR-009 SPEC 2</a>; owner ruling, 22 October 2026). The app registers no service worker over them and never renders a password field. The app shows Sign-in and security as a Settings screen: the login&#39;s methods and recent sign-ins, read through <code>securityView</code>. Each change (password, passkey added or removed, signing out other devices) opens the sign-in Worker&#39;s page for that one step, which returns to the app. The sign-in Worker&#39;s own security page stays for a session the app cannot serve (owner ruling, 23 October 2026).</li>
+<li><strong>Pages,</strong> served on a path of the app&#39;s own address, so the cookie stays host-only: signing in, signing up (the address first, then its link&#39;s page, which takes the company&#39;s name, 1 to 100 characters, before the person&#39;s own), setting and resetting a password, adding and removing methods, showing a reset code, recovery. Plain pages with the design tokens and none of the app&#39;s components. The sign-up page links Vervoro&#39;s privacy notice before the address is submitted (<a href="../../buyer-data/spec/#2-roles-and-agreements">ADR-009 SPEC 2</a>; owner ruling, 22 October 2026). The app registers no service worker over them and never renders a password field. The app shows Sign-in and security as a Settings screen: the login&#39;s methods and recent sign-ins, read through <code>securityView</code>. Each change (password, passkey added or removed, signing out other devices) opens the sign-in Worker&#39;s page for that one step, which returns to the app. The sign-in Worker&#39;s own security page stays for a session the app cannot serve (owner ruling, 23 October 2026). On the operator console&#39;s own address (section 10): passkey sign-in, an operator&#39;s one-time link, which a button spends to start their first session and add their first passkey, their passkeys (add, with section 10&#39;s asks; the last one stays) and sign-out (owner rulings, 24 October 2026).</li>
 <li><strong>Calls</strong> over the service binding (the whole contract; calls only ever add, never change, so an older app works with a newer sign-in Worker):</li>
 </ol>
 <div class="table-wrap"><table>
@@ -559,6 +564,10 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td><code>export(login)</code></td>
 <td>From the operator console, for a person&#39;s own data request: the login&#39;s email address, name, sign-in methods without secrets, sessions with network address and browser, and security events (<a href="../../runbooks/answer-a-sellers-data-request/">runbook</a>) (owner ruling, 22 October 2026)</td>
+</tr>
+<tr>
+<td><code>enrolOperator(address, name)</code></td>
+<td>For the platform admin, and once to make the admin: a login with that name and address and no way in yet, and a single-use link, valid 24 hours, to the console&#39;s page; none for an address that already has a way in; asked again before the first passkey, a new link for the same login (section 10; owner rulings, 24 October 2026)</td>
 </tr>
 <tr>
 <td><code>incident(command)</code></td>
@@ -615,12 +624,14 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tbody></table></div>
 <ol>
 <li><strong>Better Auth&#39;s secret</strong> signs the session cookies and encrypts the authenticator secrets and backup codes. A new version goes first in the list; older versions stay to decrypt. Signed cookies are checked only against the current version, so a rotation signs everyone out. Encrypted values are re-encrypted only when next written, and an authenticator secret is not rewritten when used, so an old version can be removed only once nothing is stored under it.</li>
-<li><strong>No other sign-in key exists</strong> but the session proof&#39;s (the table above). The in-house sign-in key and the email-hash key are gone with the code they served. The app&#39;s own secrets (<a href="../../buyer-data/spec/#6-encryption-and-keys">ADR-009 SPEC 6</a>) never reach the sign-in Worker, and its secrets never reach the app.</li>
+<li><strong>No other sign-in key exists</strong> but the session proof&#39;s (the table above). The in-house sign-in key and the email-hash key are gone with the code they served. The app&#39;s own secrets (<a href="../../buyer-data/spec/#6-encryption-and-keys">ADR-009 SPEC 6</a>) never reach the sign-in Worker, and its secrets never reach the app. The operator console&#39;s set-up signs with a key derived from each version of <code>BETTER_AUTH_SECRETS</code> (HMAC-SHA-256 with a fixed label), so neither set-up&#39;s cookies or address proofs pass in the other; it is not a second secret to hold, and rotating the secret rotates it (owner ruling, 24 October 2026).</li>
 </ol>
 <h2 id="10-operators">10. Operators</h2>
 <ol>
 <li>Operators sign in only to the operator console, on its own address with its own passkey site name and cookie, with passkeys from Vervoro&#39;s managed laptops: at least two per operator, on two devices, and a third on a hardware security key kept offline. No password, so no authenticator or backup codes.</li>
 <li>Operator sessions last at most 24 hours, like everyone&#39;s (<a href="#5-sessions">section 5</a>); their grants are <a href="../../users-and-access/spec/#7-operator-access-to-a-company">ADR-010&#39;s</a>.</li>
+<li><strong>The platform admin</strong> (Vervoro&#39;s owner) is made once, by a script with the deploy&#39;s ops token, while there is none; only the admin adds operators, and is an operator too. An operator&#39;s last passkey cannot be removed (owner rulings, 24 October 2026).</li>
+<li><strong>An operator&#39;s first sign-in</strong> is the one exception to decision 5: a single-use link the platform admin&#39;s <code>enrolOperator</code> makes, valid 24 hours, opened by a button on the console&#39;s page (so a mail scanner spends nothing). It starts one session, only for a login with no password and no passkey, to add the first passkey. Spending it writes the security event <code>operator/enrol</code> and pages the platform admin, ids only (owner ruling, 25 October 2026).</li>
 <li>Nobody resets their own operator access. The operator and Vervoro&#39;s owner, as deputy (<a href="../../buyer-data/spec/#13-incidents">ADR-009 SPEC 13</a>), reset each other; using the offline key alerts (<a href="../../runbooks/recover-an-operator/">runbook</a>).</li>
 </ol>
 <h2 id="11-incident-commands">11. Incident commands</h2>
@@ -661,7 +672,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tbody></table></div>
 <p>A poisoned package follows its own <a href="../../runbooks/contain-a-poisoned-package/">runbook</a>.</p>
 <h2 id="12-security-events">12. Security events</h2>
-<p>Written to the platform security log (<a href="../../users-and-access/spec/#8-audit">ADR-010 SPEC 8</a>) from Better Auth&#39;s hooks and Vervoro&#39;s policy layer: every sign-in and its result, failed attempts, lockouts, bot-check failures, passkeys and authenticators added or removed, backup codes used, password changes and resets, sessions revoked, recoveries (last Owner and operator included), resets and paused memberships, every incident command. Listing one&#39;s own sign-in methods changes nothing and is not an event (owner ruling, 25 October 2026). Never logged: a password, a code, an authenticator secret, a backup code, a session token or any passkey private material.</p>
+<p>Written to the platform security log (<a href="../../users-and-access/spec/#8-audit">ADR-010 SPEC 8</a>) from Better Auth&#39;s hooks and Vervoro&#39;s policy layer: every sign-in and its result, failed attempts, lockouts, bot-check failures, passkeys and authenticators added or removed, backup codes used, password changes and resets, sessions revoked, recoveries (last Owner and operator included), resets and paused memberships, every incident command, every operator link made and spent. Listing one&#39;s own sign-in methods changes nothing and is not an event (owner ruling, 25 October 2026). Never logged: a password, a code, an authenticator secret, a backup code, a session token or any passkey private material.</p>
 <h2 id="13-upgrades-and-migrations">13. Upgrades and migrations</h2>
 <ol>
 <li><strong>No schema change at start-up.</strong> Better Auth&#39;s <code>migrate</code> command is never run against a shared database.</li>
