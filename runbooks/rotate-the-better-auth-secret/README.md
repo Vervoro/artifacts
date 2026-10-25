@@ -20,7 +20,7 @@ Better Auth signs session cookies with the current version and encrypts authenti
 ## Verify
 
 - A passkey sign-in, and a password sign-in with an authenticator code, work on a test login.
-- A request with a cookie from before the rotation is refused.
+- A request with a cookie from before the rotation is refused within 60 seconds (the session pass, [ADR-013 SPEC 5](../../sign-in/spec/#5-sessions)).
 - The platform security log holds the rotation, who ran it and when.
 
 ## If it stops halfway

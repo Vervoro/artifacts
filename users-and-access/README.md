@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Status** | Accepted, 21 October 2026, after the developer's review and the owner's sign-off |
-| **Date** | 18 October 2026, revised 18 October 2026; sign-in moved to [ADR-013](../sign-in/), split into ADR, SPEC and RUNBOOK, 21 October 2026; aligned with Better Auth as ADR-013's engine the same day |
+| **Date** | 18 October 2026, revised 18 October 2026; sign-in moved to [ADR-013](../sign-in/), split into ADR, SPEC and RUNBOOK, 21 October 2026; aligned with Better Auth as ADR-013's engine the same day; amended by owner rulings of 25 October 2026: a revoked session and a pause within 60 seconds |
 | **Scope** | Who uses Vervoro and what each may do: the people, one login across companies, the seller's roles and warehouse scope, the permission matrix, invitations, sign-up and removal, operator access to a company, the audit trails, and API tokens |
 | **Builds on** | [ADR-000](../system-architecture/), [ADR-001](../database-architecture/), [ADR-002](../data-retention/), [ADR-006](../stock-ledger/), [ADR-007](../order-ingestion/), [ADR-009](../buyer-data/); sign-in is [ADR-013](../sign-in/) |
 | **SPEC** | [The rules to build from, and how to check them](spec/) |
@@ -36,14 +36,14 @@ Parts marked *Later* keep their rules in the SPEC but are built only when their 
 
 <!-- DIAGRAM -->
 
-**Every request answers three questions:** who is it, which company, and may they do this here. The first is ADR-013's: the sign-in Worker, running Better Auth, answers with a login id or nothing ([ADR-013](../sign-in/)). The other two are this record's, and Better Auth plays no part in them. The app Worker checks the membership, or an operator's live grant, in control, then opens the company's transaction in its cell. The first read there is the person's member row; the action runs only if the role holds it, the scope covers it and the person is active. Revoking a session or removing a person therefore stops their very next request.
+**Every request answers three questions:** who is it, which company, and may they do this here. The first is ADR-013's: the sign-in Worker, running Better Auth, answers with a login id or nothing ([ADR-013](../sign-in/)). The other two are this record's, and Better Auth plays no part in them. The app Worker checks the membership, or an operator's live grant, in control, then opens the company's transaction in its cell. The first read there is the person's member row; the action runs only if the role holds it, the scope covers it and the person is active. Removing a person or changing their role therefore stops their very next request; a revoked session or a paused membership stops within 60 seconds, the session pass's life ([ADR-013 SPEC 5](../sign-in/spec/#5-sessions), owner decision, 25 October 2026).
 
 ## Consequences
 
 **Gives**
 
 - Every pick, pack and address view has one person's name on it.
-- Removal, role changes and incidents take effect on the next request.
+- Removal and role changes take effect on the next request; a revoked session, a pause and an incident within 60 seconds.
 - Every operator look has a reason, an end time and an entry the seller can read and end, and sees only one company.
 - One login for a person in several companies, while each company holds its own member rows, so export, restore and erasure work by company.
 - Six roles that support can explain and a test can cover action by action.
@@ -52,7 +52,7 @@ Parts marked *Later* keep their rules in the SPEC but are built only when their 
 
 - Every worker needs a phone of their own.
 - Fixed roles will not fit every company; some will want, for example, a packer who can hold an order.
-- Every request reads its member row first, and its membership in control.
+- Every request reads its member row first, and its membership in control at most every 60 seconds.
 - No API tokens: a seller who wants their own integration waits for a later record.
 - The matrix grows with every module, and each row needs a test per role.
 

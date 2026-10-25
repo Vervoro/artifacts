@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-010: Users, roles and access](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-010-users-roles-and-access) |
-| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: `audit_log` kept 13 months (8), a receipt quarantined only when unusual (4) |
+| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: `audit_log` kept 13 months (8), a receipt quarantined only when unusual (4), the session pass's 60 seconds for revocation and pauses (5, 6, 11), admission in the first statement (5.1), an operator's off-module request refused after its entry (7), the first invitation mail's link (6) |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-010 from. The record decides; this page says exactly how. Where this page and the ADR disagree, the ADR wins and this page is fixed. How a person signs in is [ADR-013](../../sign-in/spec/). The words used are defined in the [map and glossary](../../guide/).
@@ -130,8 +130,8 @@ While a company is restricted or closed, [ADR-012 SPEC 8](../../billing-and-plan
 
 ## 5. Rules for every action
 
-1. **The server decides.** The client mounts only what the person may use, but every request is checked again on the server, in the transaction that does the work. The member row is that transaction's first read.
-2. **A grant needs every condition:** the module is on for the company, the role holds the action, the scope covers the warehouse, the person is `active`, and the membership in control is not `paused`.
+1. **The server decides.** The client mounts only what the person may use, but every request is checked again on the server, in the transaction that does the work. The company's switches and the member row are that transaction's first read, in one statement, before any route code (owner ruling, 24 October 2026). It may be sent with `begin` and the entry; no route code runs until both have answered and the guard said yes.
+2. **A grant needs every condition:** the module is on for the company, the role holds the action, the scope covers the warehouse, the person is `active`, and the membership in control is not `paused`, read from control at most once every 60 seconds per session and company (the session pass, [ADR-013 SPEC 5](../../sign-in/spec/#5-sessions) rule 5). A pause or an unpause reaches a live session within 60 seconds (owner decision, 25 October 2026).
 3. **Every refusal carries its reason** ("needs a manager", "outside your warehouses"), so the screen can show it.
 4. **A role or scope change applies to the next request,** because it is read in the request's own transaction.
 5. **Account changes need a fresh check** ([ADR-013 SPEC 5](../../sign-in/spec/#5-sessions)): inviting, removing or changing anyone's role or scope; resetting anyone's sign-in; connecting, disconnecting, going live on or switching off a marketplace account; an export with buyer data; switching on buyer data for an operator grant; closing the company or changing an Owner; the billing steps [ADR-012 SPEC 19](../../billing-and-plans/spec/#19-who-may-manage-billing) names. Picking, packing, printing and counting never ask.
@@ -156,7 +156,7 @@ While a company is restricted or closed, [ADR-012 SPEC 8](../../billing-and-plan
 
 **Invitations:**
 
-1. An Owner, or an Admin for roles below Admin, invites by the person's own email address, with a role and, where it applies, a scope. The invitation email links Vervoro's privacy notice (owner ruling, 22 October 2026). Only the link's hash is kept, so each mail carries a new link and the newest works (owner ruling, 24 October 2026).
+1. An Owner, or an Admin for roles below Admin, invites by the person's own email address, with a role and, where it applies, a scope. The invitation email links Vervoro's privacy notice (owner ruling, 22 October 2026). Only the link's hash is kept, so each mail carries a new link and the newest works (owner ruling, 24 October 2026). The first mail carries the link the invitation made, kept in memory only until it is sent, and handed to the invitation mail alone; a retry makes a new one.
 2. The link is single-use, valid for 7 days, and works only for the address it names. Accepting proves the address. A person who already has a login joins only if the sign-in Worker's `matchesAddress` call ([ADR-013 SPEC 8](../../sign-in/spec/#8-the-sign-in-worker)) answers yes for the invitation's address; otherwise acceptance is refused. Access still learns only the login id (owner ruling, 22 October 2026).
 3. A new person sets up sign-in on their own device, from a one-time link the app gets from the sign-in Worker's `enrol` call, asked from the invitation's page once the app has found the invitation live; the invitation is used when the person, signed in, joins (owner ruling, 24 October 2026). A person with a login signs in, and the company joins their memberships. On joining, the member row takes the person's own name and address from the sign-in Worker's `loginFacts` call, as at sign-up. An invitation names only the person's address, a role and, where it applies, a scope: until they join, the member row has no name and the address stands in for it on the company's screens. If the sign-in Worker does not answer, joining is refused with "try again" and nothing is used up (owner rulings, 24 October 2026).
 4. An invitation can be withdrawn until accepted. Acceptance, expiry and withdrawal are logged. An invitation used, withdrawn or expired is deleted 30 days later; the audit log keeps the event (owner ruling, 22 October 2026).
@@ -166,7 +166,7 @@ While a company is restricted or closed, [ADR-012 SPEC 8](../../billing-and-plan
 **Removing a person** (an Owner, or an Admin for roles below Admin, with a fresh check):
 
 1. The member row becomes `removed` and its email address is cleared; the name stays, because the ledger, the audit log and every record they made name them.
-2. Their next request in that company is refused, because the membership check fails; if they have no membership left, the sign-in Worker revokes every session of the login.
+2. Their next request in that company is refused, because the membership check fails; if they have no membership left, the sign-in Worker revokes every session of the login, which takes effect on the app's API within 60 seconds ([ADR-013 SPEC 5](../../sign-in/spec/#5-sessions)).
 3. Their membership in control is removed, through the outbox if that write fails.
 4. A login left with no membership, by removal or by the company's erasure, is deleted after 30 days with its sign-in methods, email address and sessions, by the sign-in Worker through Better Auth; the security log keeps only its id.
 
@@ -190,7 +190,7 @@ All of it happens within minutes, inside ADR-009's 24 hours.
 1. Opening a grant writes its `audit_log` entry first, then the grant row in control; access needs both. A failed second write is repaired from the outbox.
 2. Each operator request is checked against a live grant in control (company, end time), then opens the company's transaction as usual. The request guard accepts the company only because a grant names it ([ADR-001 SPEC 6](../../database-architecture/spec/#6-guard-rails)). The runtime role keeps `NOBYPASSRLS`.
 3. The data layer sets the actor (operator, grant) for the transaction, as it sets the company; every entry written carries the grant.
-4. Every operator request writes one `audit_log` entry: the grant, the screen and the time, never the data shown.
+4. Every operator request writes one `audit_log` entry: the grant, the screen and the time, never the data shown. A request for a module switched off is refused after that entry is written, so the visit is still recorded (owner ruling, 24 October 2026).
 
 **The seller sees every grant and repair** in a "Vervoro access" view of their audit log: who, the reason, buyer data or not, start and end, every screen opened. Every grant also goes to the platform security log, alerts Vervoro's owner, and is in ADR-009's quarterly access review. The database's own roles are no way around a grant ([ADR-001 SPEC 3](../../database-architecture/spec/#3-roles)).
 
@@ -233,7 +233,7 @@ Database tests run on real Postgres under the runtime role ([ADR-000 SPEC 15](..
 | --- | --- |
 | Permission matrix | Each action is allowed or refused on the server for each role exactly as section 4 says; a declared action missing from the table fails the build |
 | Warehouse scope | A scoped person never reads or changes stock, orders or reports outside their warehouses, through any port |
-| Removal and revocation | After removal, a role change or a revoked session, the very next request is refused |
+| Removal and revocation | After removal or a role change the very next request is refused; after a revoked session, within 60 seconds |
 | Who manages whom | Nobody changes their own role; an Admin cannot invite, change, reset or remove an Owner or an Admin; the last Owner cannot leave |
 | Fresh check | Each account change in section 5 is refused without a fresh check |
 | Sign-up and invitation | Sign-up writes login, then cell, then control, and a failed control write is repaired; an invitation works once, for its address, within 7 days |

@@ -75,7 +75,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>18 October 2026, revised 18 October 2026; sign-in moved to <a href="../sign-in/">ADR-013</a>, split into ADR, SPEC and RUNBOOK, 21 October 2026; aligned with Better Auth as ADR-013&#39;s engine the same day</td>
+<td>18 October 2026, revised 18 October 2026; sign-in moved to <a href="../sign-in/">ADR-013</a>, split into ADR, SPEC and RUNBOOK, 21 October 2026; aligned with Better Auth as ADR-013&#39;s engine the same day; amended by owner rulings of 25 October 2026: a revoked session and a pause within 60 seconds</td>
 </tr>
 <tr>
 <td><strong>Scope</strong></td>
@@ -198,12 +198,12 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </svg>
 </figure>
 
-<p><strong>Every request answers three questions:</strong> who is it, which company, and may they do this here. The first is ADR-013&#39;s: the sign-in Worker, running Better Auth, answers with a login id or nothing (<a href="../sign-in/">ADR-013</a>). The other two are this record&#39;s, and Better Auth plays no part in them. The app Worker checks the membership, or an operator&#39;s live grant, in control, then opens the company&#39;s transaction in its cell. The first read there is the person&#39;s member row; the action runs only if the role holds it, the scope covers it and the person is active. Revoking a session or removing a person therefore stops their very next request.</p>
+<p><strong>Every request answers three questions:</strong> who is it, which company, and may they do this here. The first is ADR-013&#39;s: the sign-in Worker, running Better Auth, answers with a login id or nothing (<a href="../sign-in/">ADR-013</a>). The other two are this record&#39;s, and Better Auth plays no part in them. The app Worker checks the membership, or an operator&#39;s live grant, in control, then opens the company&#39;s transaction in its cell. The first read there is the person&#39;s member row; the action runs only if the role holds it, the scope covers it and the person is active. Removing a person or changing their role therefore stops their very next request; a revoked session or a paused membership stops within 60 seconds, the session pass&#39;s life (<a href="../sign-in/spec/#5-sessions">ADR-013 SPEC 5</a>, owner decision, 25 October 2026).</p>
 <h2 id="consequences">Consequences</h2>
 <p><strong>Gives</strong></p>
 <ul>
 <li>Every pick, pack and address view has one person&#39;s name on it.</li>
-<li>Removal, role changes and incidents take effect on the next request.</li>
+<li>Removal and role changes take effect on the next request; a revoked session, a pause and an incident within 60 seconds.</li>
 <li>Every operator look has a reason, an end time and an entry the seller can read and end, and sees only one company.</li>
 <li>One login for a person in several companies, while each company holds its own member rows, so export, restore and erasure work by company.</li>
 <li>Six roles that support can explain and a test can cover action by action.</li>
@@ -212,7 +212,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ul>
 <li>Every worker needs a phone of their own.</li>
 <li>Fixed roles will not fit every company; some will want, for example, a packer who can hold an order.</li>
-<li>Every request reads its member row first, and its membership in control.</li>
+<li>Every request reads its member row first, and its membership in control at most every 60 seconds.</li>
 <li>No API tokens: a seller who wants their own integration waits for a later record.</li>
 <li>The matrix grows with every module, and each row needs a test per role.</li>
 </ul>

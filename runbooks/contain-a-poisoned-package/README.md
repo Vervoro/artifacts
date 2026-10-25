@@ -28,7 +28,7 @@
 ## Verify
 
 - The package's bad version is gone from both deployed lockfiles.
-- Old sessions are refused; the security log holds every command.
+- Old sessions are refused within 60 seconds (the session pass); the security log holds every command.
 - The sign-in tests pass against the deployed sign-in Worker.
 
 ## If it stops halfway

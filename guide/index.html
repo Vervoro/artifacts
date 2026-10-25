@@ -277,11 +277,11 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Security boundary and defence in depth</strong></td>
-<td>The boundary is what keeps one company from another&#39;s rows: forced row-level security, restricted roles, entering one company, the commit check, routing and composite keys. Defence in depth stops a mistake before it gets there: the query builder and query check, the catalogue lint, the audit and the canary (ADR-001 SPEC 6)</td>
+<td>The boundary is what keeps one company from another&#39;s rows: forced row-level security, restricted roles, entering one company, the commit check, routing and composite keys. Defence in depth stops a mistake before it gets there: the query builder and query check, the catalogue lint, the audit and the canary. On a read-only transaction, which skips the commit check, the query check is part of the boundary (ADR-001 SPEC 6)</td>
 </tr>
 <tr>
 <td><strong>Commit check</strong></td>
-<td>The data layer&#39;s check, before every commit, that the company setting and the role are still those the transaction entered; a mismatch rolls back, pages and closes egress (ADR-001 SPEC 6)</td>
+<td>The data layer&#39;s check, before every commit of a transaction that may write (a read-only one skips it), that the company setting and the role are still those the transaction entered; a mismatch rolls back, pages and closes egress (ADR-001 SPEC 6)</td>
 </tr>
 <tr>
 <td><strong>Canary company</strong></td>
@@ -424,6 +424,10 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td><strong>Order watermark</strong></td>
 <td>The point up to which a complete read of a marketplace&#39;s orders has been done. Only a complete read moves it, and a raise waits for it (ADR-007 SPEC 2)</td>
+</tr>
+<tr>
+<td><strong>Session pass</strong></td>
+<td>The app&#39;s encrypted cookie that keeps the sign-in Worker&#39;s <code>session</code> answer, and per company its database and membership, for at most 60 seconds, so most requests ask neither (ADR-013 SPEC 5 rule 3)</td>
 </tr>
 <tr>
 <td><strong>Shared pool</strong></td>

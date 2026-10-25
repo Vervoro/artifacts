@@ -14,7 +14,7 @@ While control is down, nobody can sign in, and no send goes to a marketplace, de
 1. **Confirm it is control.** Sign-in fails for every company while the cells answer their own health checks. If one cell is down instead, this is not the procedure.
 2. **Check for a deploy.** If a deploy or a migration on control has just run, follow [Deploy and roll back](../deploy-and-roll-back/): roll the Workers back, and never roll back a migration.
 3. **Check the database provider's status page** and control's compute in its console. If the provider has an incident, wait for it to clear, and note the start time and the cause.
-4. **Do not work around control.** Do not send figures by hand, take any session, pool count or epoch from a cache, or point the Workers at another database ([SPEC 7](../../database-architecture/spec/#7-control-database-and-routing), "When control is unreachable", rule 3).
+4. **Do not work around control.** Do not send figures by hand, take any session (beyond the session pass), pool count or epoch from a cache, or point the Workers at another database ([SPEC 7](../../database-architecture/spec/#7-control-database-and-routing), "When control is unreachable", rule 3).
 5. **When control answers,** jobs resume on their own. Check that sign-in works first.
 6. **Notices:** any that reached the dead-letter queue are replayed through [Replay dead letters](../replay-dead-letters/).
 7. **Orders:** ask for an on-demand completeness check on every account, as in [Handle a marketplace outage](../handle-a-marketplace-outage/), step 6. An account still behind after its normal interval goes to [Order ingestion stalled](../order-ingestion-stalled/).

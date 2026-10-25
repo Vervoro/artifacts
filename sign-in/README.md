@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Status** | Accepted, 21 October 2026, after the developer's review and the owner's sign-off. Amazon's answer on passkeys and its multi-factor rule may amend decision 4 (see Open items) |
-| **Date** | 18 October 2026, as part of ADR-010; made its own record, split into ADR, SPEC and RUNBOOK, 21 October 2026; Better Auth replaces the in-house engine, owner approval of 21 October 2026; owner rulings on sessions, email and the passkey fallback the same day; amended by owner rulings: the sign-in mail provider chosen by configuration, and sign-up with a password first, 22 October 2026 |
+| **Date** | 18 October 2026, as part of ADR-010; made its own record, split into ADR, SPEC and RUNBOOK, 21 October 2026; Better Auth replaces the in-house engine, owner approval of 21 October 2026; owner rulings on sessions, email and the passkey fallback the same day; amended by owner rulings: the sign-in mail provider chosen by configuration, and sign-up with a password first, 22 October 2026; amended by owner rulings of 25 October 2026: signing everyone out ends a poisoned app's use within 60 seconds |
 | **Scope** | How a person proves who they are: the sign-in Worker and Better Auth inside it, sign-in methods, Vervoro's password policy, sessions, recovery, lockouts, secrets and the incident commands |
 | **Builds on** | [ADR-000: System architecture](../system-architecture/), [ADR-001: Multi-tenant database architecture](../database-architecture/), [ADR-009: Buyer data and privacy](../buyer-data/), [ADR-010: Users, roles and access](../users-and-access/) |
 | **SPEC** | [The rules to build from, and how to check them](spec/) |
@@ -54,7 +54,7 @@ Parts marked *Later* keep their rules in the SPEC but are built only when their 
 - Better Auth is security-critical: each upgrade, and its schema change, is reviewed and tested before it ships.
 - The email address is stored readable in control, behind the sign-in role, not as a keyed hash.
 - The policy hooks are still Vervoro's code: password rules and history, the second-factor rule, session limits, lockouts, recovery.
-- A poisoned app can still act as a signed-in person for up to 24 hours, until everyone is signed out.
+- A poisoned app can still act as a signed-in person for up to 24 hours, until everyone is signed out (within 60 seconds of it, [SPEC 5](spec/#5-sessions)).
 - Recovering a last Owner takes three days and needs a connected marketplace account.
 
 ## Alternatives rejected

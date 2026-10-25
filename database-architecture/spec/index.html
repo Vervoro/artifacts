@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>20 October 2026; hosting reviewed 21 October 2026; sign-in data aligned with Better Auth (<a href="../../sign-in/">ADR-013</a>) 21 October 2026; amended by owner rulings: control unreachable (7) and the sign-in role&#39;s rights (3), 21 October 2026; one Neon project per database (7, 8), Neon&#39;s internal roles and the staging rule (3), append-only and partitioned tables declared per table (5), the audit over every project, staging&#39;s audit and an audit failure on control (11), the sign-in role reading the security log for a data request (3, 11), and who refuses a database from before the reset (12), 22 October 2026; a sign-up link&#39;s address in control (7), the sign-up company name (7) and request keys (5, 9), 23 October 2026; an invitation&#39;s page in the request guard (6), 24 October 2026; amended by owner rulings of 25 October 2026: the sync epoch read once per sending job (7), <code>audit_log</code> kept 13 months (5, 10), orders not partitioned (5, 12), restore drills quarterly at launch (0, 10, 14), request keys deleted daily (5), fair shares kept 5 minutes and one nightly job per company (9)</td>
+<td>20 October 2026; hosting reviewed 21 October 2026; sign-in data aligned with Better Auth (<a href="../../sign-in/">ADR-013</a>) 21 October 2026; amended by owner rulings: control unreachable (7) and the sign-in role&#39;s rights (3), 21 October 2026; one Neon project per database (7, 8), Neon&#39;s internal roles and the staging rule (3), append-only and partitioned tables declared per table (5), the audit over every project, staging&#39;s audit and an audit failure on control (11), the sign-in role reading the security log for a data request (3, 11), and who refuses a database from before the reset (12), 22 October 2026; a sign-up link&#39;s address in control (7), the sign-up company name (7) and request keys (5, 9), 23 October 2026; an invitation&#39;s page in the request guard (6), 24 October 2026; amended by owner rulings of 25 October 2026: the sync epoch read once per sending job (7), <code>audit_log</code> kept 13 months (5, 10), orders not partitioned (5, 12), restore drills quarterly at launch (0, 10, 14), request keys deleted daily (5), fair shares kept 5 minutes and one nightly job per company (9), the session pass and the cached route (7), the commit check on writing transactions and <code>enter_company</code> refusing a second company (4, 6, 14, 15), pipelining off by default (1, 13), the serving check once per isolate (3), <code>due_companies</code> returning kinds (4), the outbox&#39;s receipts, retry window and low-water mark (9)</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -140,7 +140,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>Every table has <code>ENABLE</code> and <code>FORCE ROW LEVEL SECURITY</code> and one policy with both <code>USING</code> and <code>WITH CHECK</code>: <code>company_id = app.company()</code>. The same holds for every partition.</li>
 <li><code>app.company()</code> returns the transaction&#39;s company and <strong>raises</strong> when none is set. An unset company is an error, never zero rows: a silent empty stock read could push 0 to a marketplace and delist a seller.</li>
 <li>The <code>company_id</code> column default is <code>app.company()</code>, so an insert without a company also raises.</li>
-<li>The data layer&#39;s first statement in every transaction is <code>select app.enter_company($1)</code> (<a href="#4-functions">section 4</a>). The data layer refuses autocommit for company work.</li>
+<li>The data layer&#39;s first statement in every transaction is <code>select app.enter_company($1)</code> (<a href="#4-functions">section 4</a>). The data layer refuses autocommit for company work. The data layer may send the statements behind it before it answers (pipelining): they run after it, inside the same transaction, and fail with it if it raises; nothing is decided on their answers until the entry has answered (owner decision, 25 October 2026; off by default, <a href="#13-platform-constraints">section 13</a>).</li>
 <li>The company setting lasts only for its transaction (<code>set_config(…, true)</code>). That keeps it safe behind a transaction-mode pooler.</li>
 <li>A transaction holds <strong>exactly one company</strong>. A request may batch all its reads for its one company into one read-only transaction. It never enters a second company, and it never reads control through the cell&#39;s transaction. Background and operator work open one transaction per company.</li>
 </ol>
@@ -295,9 +295,9 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ol>
 <li>No other role may log in, except Neon&#39;s own internal roles (rule 7). A role created in the Neon console, CLI or API joins <code>neon_superuser</code>, so no role is ever created there.</li>
 <li>The runtime role logs in as itself. No login switches role with <code>SET ROLE</code> (owner ruling, 20 October 2026).</li>
-<li>A serving connection refuses to start if its login is a superuser, has <code>BYPASSRLS</code>, owns a table, or is a member of the owner, of <code>neon_superuser</code> or of any role with those rights.</li>
+<li>A serving connection refuses to start if its login is a superuser, has <code>BYPASSRLS</code>, owns a table, or is a member of the owner, of <code>neon_superuser</code> or of any role with those rights. It is checked once per isolate for a connection and its roles; a refusal is checked again (owner ruling, 24 October 2026).</li>
 <li>The owner&#39;s emergency use goes through the CI migration job, records the reason first and alerts the operator (<a href="../../buyer-data/spec/#7-who-can-see-it">ADR-009</a>). See the <a href="../../runbooks/use-the-owner-role/">runbook</a>.</li>
-<li>The runtime role has a <code>statement_timeout</code> and an <code>idle_in_transaction_session_timeout</code>.</li>
+<li>The runtime role has a <code>statement_timeout</code> (30 seconds) and an <code>idle_in_transaction_session_timeout</code>. The data layer ends a query with no answer after 35 seconds, just above it, so a pipelined query that never answers fails (owner ruling, 25 October 2026).</li>
 <li><strong>Staging</strong> (owner ruling, 22 October 2026). Until launch, staging may be migrated and deployed from the owner&#39;s laptop, by the same deploy script the CI job runs, with staging-only credentials passed in at run time and synthetic data only. Staging keeps production&#39;s roles, row-level security, migration order and EU placement, so its tests prove production. Production is migrated and deployed only by the CI job.</li>
 <li><strong>Neon&#39;s internal roles</strong> (owner ruling, 22 October 2026). Neon creates and manages roles of its own on every project, today <code>neon_service</code>, which can log in and is in <code>neon_superuser</code>, and acts on Neon&#39;s behalf. These are the one exception to rules 1 and 3 and to the audit&#39;s role checks: the catalogue lint and the audit name them exactly, refuse any other unknown role, and alert the operator when Neon&#39;s list changes. Vervoro never uses their credentials.</li>
 </ol>
@@ -321,7 +321,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><code>app.enter_company(id)</code></td>
 <td>Invoker</td>
 <td>Runtime, lifecycle</td>
-<td>Sets <code>app.company_id</code> for this transaction, then reads <code>tenant</code> through row-level security and raises unless the row exists in a state this role may enter. Needs no special rights and no extra round trip</td>
+<td>Sets <code>app.company_id</code> for this transaction, then reads <code>tenant</code> through row-level security and raises unless the row exists in a state this role may enter. Raises (<code>VV002</code>) when the transaction already entered a different company; entering the same one again is allowed. Needs no special rights and no extra round trip; pipelined, it shares one with <code>begin</code> and the transaction&#39;s first read</td>
 </tr>
 <tr>
 <td><code>app.open_tenant(id)</code></td>
@@ -333,7 +333,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><code>app.due_companies(limit)</code></td>
 <td><code>SECURITY DEFINER</code>, allow-listed</td>
 <td>Runtime</td>
-<td>Returns <code>(company_id, next_due_at)</code> from <code>due</code> for companies due now, earliest first, plus one row with no company holding the earliest future <code>next_due_at</code>, so the sweeper can set its alarm (owner ruling, 21 October 2026)</td>
+<td>Returns <code>(company_id, next_due_at, first_due_at, kinds)</code> from <code>due</code> for companies due now, earliest first, <code>kinds</code> naming the declared kinds due (owner ruling, 25 October 2026), plus one row with no company holding the earliest future <code>next_due_at</code>, so the sweeper can set its alarm (owner ruling, 21 October 2026)</td>
 </tr>
 <tr>
 <td><code>app.buyer_ref_companies(hash)</code></td>
@@ -346,7 +346,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ol>
 <li>Owned by the definer owner, which cannot log in.</li>
 <li><code>search_path</code> pinned in the function definition.</li>
-<li>Return ids and times only.</li>
+<li>Return ids, times and the declared kind names of <code>due</code> only; never a payload or a seller&#39;s data (owner ruling, 25 October 2026).</li>
 <li><code>EXECUTE</code> granted to the runtime role only.</li>
 <li>The owner is a member of the definer owner only while a migration hands it a function, and the membership is revoked straight after: a member would inherit the definer owner&#39;s read policies on <code>due</code> and <code>buyer_ref</code>, which see every company (owner ruling, 21 October 2026).</li>
 </ol>
@@ -393,15 +393,15 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tbody><tr>
 <td><strong>The security boundary</strong></td>
 <td>What keeps one company from another&#39;s rows. Each part must hold; a failure in any is a cross-company exposure</td>
-<td>Forced row-level security (<a href="#1-tenancy-inside-a-cell">1</a>); the runtime role without <code>BYPASSRLS</code>, and restricted roles (<a href="#3-roles">3</a>); entering one company per transaction (<a href="#1-tenancy-inside-a-cell">1</a>); the commit check (below); correct routing (<a href="#7-control-database-and-routing">7</a>); composite keys (<a href="#2-keys-and-identifiers">2</a>)</td>
+<td>Forced row-level security (<a href="#1-tenancy-inside-a-cell">1</a>); the runtime role without <code>BYPASSRLS</code>, and restricted roles (<a href="#3-roles">3</a>); one company per transaction, refused at the source (<a href="#1-tenancy-inside-a-cell">1</a>); the commit check, on writing transactions (below); correct routing (<a href="#7-control-database-and-routing">7</a>); composite keys (<a href="#2-keys-and-identifiers">2</a>)</td>
 </tr>
 <tr>
 <td><strong>Defence in depth</strong></td>
 <td>What stops a mistake before it reaches the boundary, and finds one that got through</td>
-<td>The typed query builder and its function allow-list, the run-time query check, the catalogue lint (<a href="#61-catalogue-lint">6.1</a>), the catalogue audit and the canary (<a href="#11-production-checks">11</a>)</td>
+<td>The typed query builder and its function allow-list, the run-time query check (part of the boundary for read-only transactions, which skip the commit check: there it is what refuses <code>set_config</code>, so it fails closed and is never weakened; owner decision, 25 October 2026), the catalogue lint (<a href="#61-catalogue-lint">6.1</a>), the catalogue audit and the canary (<a href="#11-production-checks">11</a>)</td>
 </tr>
 </tbody></table></div>
-<p><strong>Why the commit check is part of the boundary.</strong> Row-level security fences rows by the company setting, but it does not fence the setting itself: any SQL that runs inside a transaction could change it. The code review of the first implementation reproduced exactly that, as its most serious finding: module SQL switched its transaction to another company. Row-level security alone therefore does not fence the company context. The commit check does: it compares the setting and the role with what the transaction entered, before anything commits, and refuses the commit if either changed.</p>
+<p><strong>Why the commit check is part of the boundary.</strong> Row-level security fences rows by the company setting, but it does not fence the setting itself: any SQL that runs inside a transaction could change it. The code review of the first implementation reproduced exactly that, as its most serious finding: module SQL switched its transaction to another company. Row-level security alone therefore does not fence the company context. The commit check does: it compares the setting and the role with what the transaction entered, before anything commits, and refuses the commit if either changed. On read-only transactions the fence is <code>enter_company</code>&#39;s refusal of a second company; module SQL cannot call <code>set_config</code> (the query check).</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -420,7 +420,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td>Commit check</td>
 <td>Data layer</td>
-<td>Before every commit, read <code>current_setting(&#39;app.company_id&#39;, true)</code> and <code>current_user</code>, and compare them with the company and role the transaction entered (owner ruling, 20 October 2026). No result reaches the client, and no egress intent is sent, until the transaction commits</td>
+<td>Before every commit of a transaction that may write, read <code>current_setting(&#39;app.company_id&#39;, true)</code> and <code>current_user</code> and compare them with the company and role it entered (owner ruling, 20 October 2026). A read-only transaction (<code>begin read only</code>) commits without the check: <code>enter_company</code> refuses a second company at the source, and the transaction writes nothing (owner decision, 25 October 2026). No result of a writing transaction reaches the client, and no egress intent is sent, until it commits</td>
 <td>Raise, roll back, page the operator, close the database&#39;s egress</td>
 </tr>
 <tr>
@@ -432,7 +432,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td>Caches</td>
 <td>Data layer</td>
-<td>Hyperdrive query caching is off. Any other cache is reached only through one key builder that takes the company id; platform data from control that is the same for every company (the VAT rate table, the fair shares) may be kept up to 5 minutes under a platform key; a value held in a Worker&#39;s memory that is the same for every company counts as one, and never holds a company&#39;s or a request&#39;s data (owner ruling, 25 October 2026). Logs carry ids, never field values</td>
+<td>Hyperdrive query caching is off. Any other cache is reached only through one key builder that takes the company id; platform data from control that is the same for every company (the VAT rate table, the fair shares) may be kept up to 5 minutes under a platform key; a value held in a Worker&#39;s memory that is the same for every company counts as one, and never holds a company&#39;s or a request&#39;s data (owner ruling, 25 October 2026). The one per-company value a Worker keeps is the route, keyed by company id (<a href="#7-control-database-and-routing">section 7</a>). Logs carry ids, never field values</td>
 <td>Lint error</td>
 </tr>
 <tr>
@@ -530,7 +530,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p><strong>Emails in control</strong> are stored readable, once per login, in Better Auth&#39;s user table in the <code>auth</code> schema, and a sign-up link&#39;s address in <code>auth_policy.address_proof</code> until the link is used or 24 hours pass (owner ruling, 23 October 2026), reachable only by the sign-in role; storage encryption covers it at rest and control&#39;s backups hold it for their 30 days. No outside identity service holds it (<a href="../../buyer-data/spec/#17-the-sellers-users-sign-in-data">ADR-009</a>). Each company&#39;s users table holds its own copy.</p>
 <p><strong>Routing:</strong></p>
 <ol>
-<li><code>forCompany(id)</code> reads <code>company.database_id</code> from control (cached) and uses that database&#39;s connection.</li>
+<li><code>forCompany(id)</code> reads <code>company.database_id</code> from control, cached up to 5 minutes per Worker isolate and up to 60 seconds in the session pass, and uses that database&#39;s connection; a stale cache is caught by rule 2 (owner decision, 25 October 2026).</li>
 <li>A stale cache cannot do harm: the old database&#39;s tenant row is no longer <code>open</code>, so <code>enter_company</code> raises, and the router reloads the route once.</li>
 <li>Each database in the registry has one Hyperdrive binding in the Worker.</li>
 <li>Reads of control always use control&#39;s own connection, never a cell&#39;s transaction.</li>
@@ -545,9 +545,9 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ol>
 <p><strong>When control is unreachable</strong> (owner, 21 October 2026). Every session check, route, shared pool token and sync epoch comes from control, so work stops safely and waits rather than guessing:</p>
 <ol>
-<li><strong>People:</strong> a session check needs control (<a href="../../sign-in/spec/#1-better-auth-and-what-is-switched-on">ADR-013 SPEC 1</a>, cookie cache off), so screens say Vervoro is unavailable. A tap that got no answer shows &quot;not sure&quot; (<a href="../../system-architecture/spec/#12-the-client">ADR-000 SPEC 12</a>).</li>
+<li><strong>People:</strong> a session check needs control (<a href="../../sign-in/spec/#1-better-auth-and-what-is-switched-on">ADR-013 SPEC 1</a>), so screens say Vervoro is unavailable. A session pass under 60 seconds old still answers for its session and the companies it names (<a href="../../sign-in/spec/#5-sessions">ADR-013 SPEC 5</a>, owner decision, 25 October 2026). A tap that got no answer shows &quot;not sure&quot; (<a href="../../system-architecture/spec/#12-the-client">ADR-000 SPEC 12</a>).</li>
 <li><strong>Background work and sends:</strong> a job that needs control waits and retries. Nothing is sent to a marketplace, a decrease included, without its pool token and the sync epoch read from control by the job that sends it (the epoch once per job: <a href="../../inventory-sync/spec/#13-one-writer-per-listing">ADR-008 SPEC 13</a>; owner ruling, 25 October 2026). Inbound notices wait in the inbound queue; any that reach the dead-letter queue are replayed (<a href="../../runbooks/replay-dead-letters/">Replay dead letters</a>).</li>
-<li><strong>Nothing is trusted from a cache</strong> in its place: no session, pool count or epoch. A stale route is still harmless (rule 2 above).</li>
+<li><strong>Nothing is trusted from a cache</strong> in its place: no session beyond the session pass&#39;s 60 seconds, and no pool count or epoch. A stale route is still harmless (rule 2 above).</li>
 <li><strong>Paging:</strong> control unreachable for 5 minutes pages the operator (owner ruling, 21 October 2026). Procedure: <a href="../../runbooks/control-database-unreachable/">Control database unreachable</a>.</li>
 <li><strong>Recovered</strong> when sign-in works, every account&#39;s order watermark has caught up, the dead-letter queue is empty, and every <code>unknown</code> write is settled before new sends (<a href="../../channel-connectors/spec/#5-retries-and-outcomes">ADR-004 SPEC 5</a>).</li>
 </ol>
@@ -660,7 +660,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td>Outbox delivery</td>
 <td>Kernel</td>
-<td>A note has no receipt for one of its handlers. A control write still needed is an outbox note too, whose handler runs outside the transaction: one kind, not two (owner ruling, 21 October 2026)</td>
+<td>A note has a receipt not yet settled for one of its handlers. A control write still needed is an outbox note too, whose handler runs outside the transaction: one kind, not two (owner ruling, 21 October 2026)</td>
 </tr>
 <tr>
 <td>Egress send and read-back</td>
@@ -728,8 +728,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ol>
 <li><strong>Outbox note.</strong> The transaction that makes a change also writes the note. Both commit or neither does.</li>
 <li><strong>Deliver now.</strong> Right after commit, the request or job that committed hands the note to every handler of that kind. This is the normal path.</li>
-<li><strong>Handler.</strong> Runs in a transaction that also writes a receipt for (event, handler). A second delivery does nothing.</li>
-<li><strong>Leftovers.</strong> The sweeper delivers any note still missing a receipt.</li>
+<li><strong>Handler.</strong> A note is written with a receipt for each (event, handler) and its due row in one statement: a handler that does not take it gets its receipt as delivered there, and nothing is delivered for it; a handler that does has its receipt claimed under a lease, runs right after commit, and settles the receipt in its own transaction. A settled receipt makes a second delivery do nothing (owner ruling, 25 October 2026).</li>
+<li><strong>Leftovers.</strong> The sweeper delivers any note with a receipt not yet settled. A receipt is tried for about a day (24 attempts, each wait doubled up to 2 hours, about 22 hours in all), then it is dead and pages the operator. Each handler keeps a low-water mark, so a delivery reads only notes past it, never the company&#39;s whole history (owner ruling, 24 October 2026).</li>
 <li>The outbox, not a queue, is the source of truth. The inbound queue carries only marketplace webhooks, which must be answered before anything is written.</li>
 </ol>
 <p><strong>Egress effects</strong> are calls that change something on a marketplace or at a supplier: figures, dispatch, confirmations, messages. They go through the egress gate (<a href="../../system-architecture/spec/#7-the-egress-gate">ADR-000 SPEC 7</a>). Notice subscriptions made by a connector&#39;s connect and disconnect hooks are set-up calls, not egress effects: they run in shadow mode too, through the host&#39;s HTTP and rate budgets (<a href="../../channel-connectors/">ADR-004</a>).</p>
@@ -973,6 +973,11 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="https://developer-docs.amazon/sp-api/docs/notifications-api-v1-use-case-guide">SP-API notifications</a></td>
 </tr>
 <tr>
+<td>Pipeline mode in the Postgres driver, and Hyperdrive&#39;s handling of pipelined messages in transaction mode: not stated in Hyperdrive&#39;s documentation</td>
+<td>Pipelining is off by default (owner, 25 October 2026); the Hyperdrive run (<a href="#14-tests-that-prove-each-rule">section 14</a>) runs it pipelined, and <code>VERVORO_DB_PIPELINE=on</code> turns it on only if that run shows it is worth it. The 35-second query timeout of <a href="#3-roles">section 3</a> rule 5 ends a pipelined query that never answers. Open item: Hyperdrive&#39;s behaviour, unverified until the staging run</td>
+<td><a href="https://developers.cloudflare.com/hyperdrive/concepts/how-hyperdrive-works/">How Hyperdrive works</a></td>
+</tr>
+<tr>
 <td>EventBridge API destinations wait 5 seconds for an answer and retry for 24 hours</td>
 <td>The queue takes the notice in time; the backup order read covers one dropped after 24 hours</td>
 <td><a href="https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-api-destinations.html">API destinations</a></td>
@@ -1022,7 +1027,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td>Commit check</td>
 <td>CI, real Postgres</td>
-<td>A transaction whose company setting or role changed after entering is rolled back and alerts</td>
+<td>A writing transaction whose company setting or role changed after entering is rolled back and alerts; a second <code>enter_company</code> for another company raises; a read-only transaction commits without the check</td>
 <td>6</td>
 </tr>
 <tr>
@@ -1046,7 +1051,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td>Hyperdrive run</td>
 <td>Staging, real Hyperdrive</td>
-<td>The same soak through Hyperdrive</td>
+<td>The same soak through Hyperdrive, with pipelining off and on</td>
 <td>1, 13</td>
 </tr>
 <tr>
@@ -1148,7 +1153,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td>7</td>
 <td>How does the row check work?</td>
-<td>A check of the company setting and role before every commit (owner ruling)</td>
+<td>A check of the company setting and role before every writing commit (owner ruling); <code>enter_company</code> refuses a second company</td>
 <td><a href="#6-guard-rails">6</a></td>
 </tr>
 <tr>
@@ -1227,7 +1232,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Functions:</strong> <code>app.company()</code> is <code>STABLE</code>, <code>PARALLEL SAFE</code>, not a definer, and raises when unset: run <code>select app.company()</code> in a fresh transaction.</li>
 <li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Data layer:</strong> every transaction&#39;s first statement is <code>enter_company</code> or <code>open_tenant</code>; there is no autocommit path for company work.</li>
 <li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Data layer:</strong> no module imports the query builder&#39;s raw-SQL helpers (<code>sql</code>, <code>raw</code>) or a database driver; search the module packages. The function allow-list does not hold <code>set_config</code>, <code>current_setting</code> or any <code>app.*</code> function.</li>
-<li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Data layer:</strong> the commit check runs before every commit, read-only transactions included, and a mismatch pages and closes egress.</li>
+<li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Data layer:</strong> the commit check runs before every writing transaction&#39;s commit, and a mismatch pages and closes egress; a read-only one skips it, and <code>enter_company</code> refuses a second company (kernel/0009).</li>
 <li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Data layer:</strong> no code path keeps one transaction open across two companies, or reads control through a cell&#39;s transaction.</li>
 <li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Worker configuration:</strong> the app Worker holds only runtime credentials; no serving process holds the owner or lifecycle credential, or runs migrations.</li>
 <li><input disabled="" type="checkbox"> <strong>[Before launch]</strong> <strong>Worker configuration:</strong> one Hyperdrive binding per database in control&#39;s registry, none a placeholder, each with caching off.</li>
