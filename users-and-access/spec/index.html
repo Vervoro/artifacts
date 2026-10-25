@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>21 October 2026; amended by owner rulings of 25 October 2026: <code>audit_log</code> kept 13 months (8), a receipt quarantined only when unusual (4), the session pass&#39;s 60 seconds for revocation and pauses (5, 6, 11), admission in the first statement (5.1), an operator&#39;s off-module request refused after its entry (7), the first invitation mail&#39;s link (6); and SPEC wording approved 25 October 2026 for the owner&#39;s rulings of 24 October on operator grants: read-only as a viewer, told by email and in Settings, the grant&#39;s order, a grant running out, seeing Vervoro access, the operator by id (4, 7); and the SPEC batch of phases 3 and 4: the account menu&#39;s own address (2), the invitation page and joining (6), an operator command&#39;s reason in the audit log (8)</td>
+<td>21 October 2026; amended by owner rulings of 25 October 2026: <code>audit_log</code> kept 13 months (8), a receipt quarantined only when unusual (4), the session pass&#39;s 60 seconds for revocation and pauses (5, 6, 11), admission in the first statement (5.1), an operator&#39;s off-module request refused after its entry (7), the first invitation mail&#39;s link (6); and SPEC wording approved 25 October 2026 for the owner&#39;s rulings of 24 October on operator grants: read-only as a viewer, told by email and in Settings, the grant&#39;s order, a grant running out, seeing Vervoro access, the operator by id (4, 7); and the SPEC batch of phases 3 and 4: the account menu&#39;s own address (2), the invitation page and joining (6), an operator command&#39;s reason in the audit log (8); and the one-by-one rulings: the recorded commands in the grant rules (7, 11, checklist), the module switch in the Vervoro access view (7), a reset&#39;s entry naming both ids (8)</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -887,7 +887,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>Every operator request writes one <code>audit_log</code> entry: the grant, the screen and the time, never the data shown. A request for a module switched off is refused after that entry is written, so the visit is still recorded (owner ruling, 24 October 2026).</li>
 <li>A grant that runs out by its end time writes nothing then; the security log has its opening and any early end.</li>
 </ol>
-<p><strong>The seller sees every grant and repair</strong> in a &quot;Vervoro access&quot; view of their audit log: who (the operator&#39;s id; a grant keeps no operator name, owner ruling, 24 October 2026), the reason, buyer data or not, start and end, every screen opened. Every grant also goes to the platform security log, alerts Vervoro&#39;s owner, and is in ADR-009&#39;s quarterly access review. The database&#39;s own roles are no way around a grant (<a href="../../database-architecture/spec/#3-roles">ADR-001 SPEC 3</a>).</p>
+<p><strong>The seller sees every grant and repair</strong> in a &quot;Vervoro access&quot; view of their audit log: who (the operator&#39;s id; a grant keeps no operator name, owner ruling, 24 October 2026), the reason, buyer data or not, start and end, every screen opened. An operator&#39;s module switch is told by mail and kept in the audit log. Every grant also goes to the platform security log, alerts Vervoro&#39;s owner, and is in ADR-009&#39;s quarterly access review. The database&#39;s own roles are no way around a grant (<a href="../../database-architecture/spec/#3-roles">ADR-001 SPEC 3</a>).</p>
 <h2 id="8-audit">8. Audit</h2>
 <div class="table-wrap"><table>
 <thead>
@@ -905,7 +905,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td><strong>Records</strong></td>
 <td>Invitations; role, scope and status changes; resets and recoveries; every view of buyer data; exports; connections connected, gone live, stopped or disconnected; operator grants with every request under them; operator repairs; privacy requests; billing actions</td>
-<td>Every sign-in attempt and its result; methods added or removed; password changes; backup codes used; recoveries; resets, paused and un-paused memberships, bursts of resets; sessions revoked; sign-in frozen; lockouts; bot-check failures; operator sign-ins; grants opened and ended early; use of the database owner role</td>
+<td>Every sign-in attempt and its result; methods added or removed; password changes; backup codes used; recoveries; resets, paused and un-paused memberships, bursts of resets; a reset&#39;s entry names the other person&#39;s id, under each of them; sessions revoked; sign-in frozen; lockouts; bot-check failures; operator sign-ins; grants opened and ended early; use of the database owner role</td>
 </tr>
 <tr>
 <td><strong>Each entry</strong></td>
@@ -1012,7 +1012,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Operator grants</td>
-<td>Without a live grant an operator request reaches no company; with one it reaches exactly that company, read-only, writes an entry per request, and decrypts buyer fields only when allowed; ending the grant stops the next request</td>
+<td>Without a live grant an operator request reaches no company, but for the console&#39;s recorded commands, each pinned to the one company it names; with one it reaches exactly that company, read-only, writes an entry per request, and decrypts buyer fields only when allowed; ending the grant stops the next request</td>
 </tr>
 <tr>
 <td>Audit content</td>
@@ -1031,7 +1031,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><input disabled="" type="checkbox"> <strong>Sign-up order:</strong> the login is created by the sign-in Worker before the cell transaction; control writes go through the outbox repair path.</li>
 <li><input disabled="" type="checkbox"> <strong>Hand-off:</strong> the Access resolver takes only the login id from the sign-in Worker&#39;s answer; no code here reads or writes the auth schema or uses Better Auth&#39;s organisation or role features.</li>
 <li><input disabled="" type="checkbox"> <strong>Removal:</strong> removing clears the email address and removes the membership, and the next request there is refused; a login with no membership left loses every session; the revocation test is green.</li>
-<li><input disabled="" type="checkbox"> <strong>Grants:</strong> operator code reaches a company only through the request guard with a live grant; the actor (operator, grant) is set on the transaction; no operator route writes business data.</li>
+<li><input disabled="" type="checkbox"> <strong>Grants:</strong> operator code reaches a company only through the request guard with a live grant, or as one of the console&#39;s recorded commands that show no company data (opening or ending a grant, switching a module at an Owner&#39;s or Admin&#39;s request), pinned to the one company its request names; the actor (operator, grant) is set on the transaction under a grant; no operator route writes business data.</li>
 <li><input disabled="" type="checkbox"> <strong>Buyer fields:</strong> the decrypting code checks the grant&#39;s buyer-data flag for an operator actor.</li>
 <li><input disabled="" type="checkbox"> <strong>Seller notice:</strong> opening a grant emails every Owner and Admin and shows it in Settings › Vervoro access; the grant and its audit entry are written in the company&#39;s transaction, and control&#39;s row comes from the outbox.</li>
 <li><input disabled="" type="checkbox"> <strong>Audit:</strong> <code>audit_log</code> and the security log are append-only for the runtime role (database catalogue); the audit-content test is green.</li>

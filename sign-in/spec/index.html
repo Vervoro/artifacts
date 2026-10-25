@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>21 October 2026; Better Auth replaces the in-house engine, owner approval of 21 October 2026; owner rulings on sessions, email and the passkey fallback the same day; amended by owner rulings: the sign-in mail provider chosen by configuration, sign-up with a password first, a forced change exempt from the 1-day minimum, an email-first sign-in page, its passkey offers worded to what a browser can tell, signing out other devices, the privacy notice link, the export and name calls, the freeze and the 365-day rule clarified, and an unknown passkey signalled to the device, 22 October 2026; the passkey prompt opened only on request, when sessions are deleted, sign-up proving the address first, the app&#39;s mail through the same provider, no email change (the <code>setEmail</code> call removed before it was built), the company named in the sign-up form, the passkey offer skipped when the login has one, and security shown in the app, 23 October 2026; <code>enrol</code> asked before an invitation is accepted, the recent sign-ins listed, a new authenticator kept pending until confirmed, and <code>loginFacts</code> for an invited person joining, 24 October 2026; amended by owner rulings of 25 October 2026: the rate limit on attempt routes, and a Cloudflare rule on the sign-in paths (1, 7), rate-limit counters deleted an hour after their last request, and listing one&#39;s own methods not logged (2, 8.7, 12), the session pass of at most 60 seconds (1, 2, 5, 6, 9, 11, 15), the session pass naming only a session the sign-in Worker proved, and no pass in a session&#39;s first 5 minutes (5, 8, 9), the operator console written in, with decision 5&#39;s one exception for an operator&#39;s first sign-in link (1, 2, 8, 9, 10, 12), an operator&#39;s link session full once its first passkey is added (5); and the SPEC batch of phases 3 and 4: the reset&#39;s data, link, code and mails (2, 6, 8), who confirms a paused person and who is told (6), plain mail with no tracking (8), who runs incident commands (11), the Force row&#39;s cut-off, the Cloudflare rule&#39;s threshold and an accepted advisory&#39;s record (7, 11, 13)</td>
+<td>21 October 2026; Better Auth replaces the in-house engine, owner approval of 21 October 2026; owner rulings on sessions, email and the passkey fallback the same day; amended by owner rulings: the sign-in mail provider chosen by configuration, sign-up with a password first, a forced change exempt from the 1-day minimum, an email-first sign-in page, its passkey offers worded to what a browser can tell, signing out other devices, the privacy notice link, the export and name calls, the freeze and the 365-day rule clarified, and an unknown passkey signalled to the device, 22 October 2026; the passkey prompt opened only on request, when sessions are deleted, sign-up proving the address first, the app&#39;s mail through the same provider, no email change (the <code>setEmail</code> call removed before it was built), the company named in the sign-up form, the passkey offer skipped when the login has one, and security shown in the app, 23 October 2026; <code>enrol</code> asked before an invitation is accepted, the recent sign-ins listed, a new authenticator kept pending until confirmed, and <code>loginFacts</code> for an invited person joining, 24 October 2026; amended by owner rulings of 25 October 2026: the rate limit on attempt routes, and a Cloudflare rule on the sign-in paths (1, 7), rate-limit counters deleted an hour after their last request, and listing one&#39;s own methods not logged (2, 8.7, 12), the session pass of at most 60 seconds (1, 2, 5, 6, 9, 11, 15), the session pass naming only a session the sign-in Worker proved, and no pass in a session&#39;s first 5 minutes (5, 8, 9), the operator console written in, with decision 5&#39;s one exception for an operator&#39;s first sign-in link (1, 2, 8, 9, 10, 12), an operator&#39;s link session full once its first passkey is added (5); and the SPEC batch of phases 3 and 4: the reset&#39;s data, link, code and mails (2, 6, 8), who confirms a paused person and who is told (6), plain mail with no tracking (8), who runs incident commands (11), the Force row&#39;s cut-off, the Cloudflare rule&#39;s threshold and an accepted advisory&#39;s record (7, 11, 13); and the one-by-one rulings: the incident and removeOperator calls under an operator&#39;s cookie, the reset call&#39;s answers, the reset limit, the risk accepted rewritten, the freeze row, hold a login, the passkey offer&#39;s words, an Owner resetting an Owner, the security events of a reset, and a secret rotation recorded in the incident record (2, 3, 6, 8, 11, 12, 15)</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -272,6 +272,12 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Replaced by newer ones; the login is deleted</td>
 </tr>
 <tr>
+<td>A held login: the login and the operator who held it, with the time</td>
+<td><code>auth_policy.login_hold</code></td>
+<td>Refusing that login&#39;s sign-in and reset routes (<a href="#11-incident-commands">section 11</a>)</td>
+<td>Until the operator releases it, a reset by an Owner or Admin of any company the login belongs to sets new methods, or the login is deleted</td>
+</tr>
+<tr>
 <td>A reset by an Owner or Admin: the login and who reset it, with hashes of its link, its code and the resetter&#39;s page; and the operators&#39; logins</td>
 <td><code>auth_policy.recovery</code>, <code>auth_policy.operator_login</code></td>
 <td>The person sets a new password with the link and the code (<a href="#6-recovery">section 6</a>); the burst limit (8.4); no company resets an operator (<a href="#10-operators">section 10</a> rule 5)</td>
@@ -294,7 +300,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ol>
 <li>The fingerprint, face or PIN check is required at registration and at every sign-in (<a href="#1-better-auth-and-what-is-switched-on">section 1</a>, conflict 1). A response for another site or origin, or with a used challenge, is refused by Better Auth. No attestation.</li>
 <li>Synced passkeys are accepted. Only the public key is stored. When a passkey sign-in is refused because Vervoro does not know the passkey, the page tells the device it is unknown (WebAuthn&#39;s signal), where the browser supports it, so the device stops offering it (owner ruling, 22 October 2026).</li>
-<li>Sign-up starts with the email address and the bot check; a one-time link, valid 24 hours, proves it, and only then the person names their company, then chooses their own name, a password and an authenticator app (owner ruling, 23 October 2026). The link signs no one in: an address that already has a login is sent the sign-in page instead. Every invitation starts with a password and an authenticator app the same way, from the <code>enrol</code> link (owner ruling, 23 October 2026). Right after, on a device that can hold a passkey, the page offers to create one (&quot;Add a passkey&quot;; it can be skipped). The sign-in page asks first for the email address, with the device&#39;s passkeys offered in the address field&#39;s autofill (WebAuthn conditional mediation); after it, the password, with a button to use a passkey; the device&#39;s passkey prompt opens only when the person asks for it. Once the passkey library supports immediate mediation, the prompt may open by itself where the browser reports the device holds a passkey for Vervoro (owner ruling, 23 October 2026). The page answers the same for every address: it never says whether an address has a login or a passkey (<a href="#7-lockouts-rate-limits-and-bots">section 7</a>). After a password sign-in on a device that can hold a passkey, the page offers one, unless the login already has a passkey; one for another device is added on the security page (owner rulings, 22 and 23 October 2026).</li>
+<li>Sign-up starts with the email address and the bot check; a one-time link, valid 24 hours, proves it, and only then the person names their company, then chooses their own name, a password and an authenticator app (owner ruling, 23 October 2026). The link signs no one in: an address that already has a login is sent the sign-in page instead. Every invitation starts with a password and an authenticator app the same way, from the <code>enrol</code> link (owner ruling, 23 October 2026). Right after, on a device that can hold a passkey, the page offers to create one (&quot;Add a passkey&quot;; it can be skipped). The sign-in page asks first for the email address, with the device&#39;s passkeys offered in the address field&#39;s autofill (WebAuthn conditional mediation); after it, the password, with a button to use a passkey; the device&#39;s passkey prompt opens only when the person asks for it. Once the passkey library supports immediate mediation, the prompt may open by itself where the browser reports the device holds a passkey for Vervoro (owner ruling, 23 October 2026). The page answers the same for every address: it never says whether an address has a login or a passkey (<a href="#7-lockouts-rate-limits-and-bots">section 7</a>). After a password sign-in on a device that can hold a passkey, the page offers one, unless the login already has a passkey; one for another device is added on the security page. The offer says to add one only on a device no one else unlocks, never on a shared computer (owner rulings, 22 and 23 October 2026, and 25 October 2026).</li>
 <li>On a phone with a passkey, signing in needs no email address. A laptop without one uses the phone through the browser&#39;s cross-device sign-in, or the password and code.</li>
 <li>Passkey sign-in is not challenged for a code: with the check it counts as both factors, the device held and the fingerprint, face or PIN (NIST SP 800-63B). Amazon&#39;s text neither accepts nor refuses passkeys: its policy says only &quot;Multi-Factor Authentication&quot;, and its guidance approves TOTP, hardware tokens and biometrics. The operator asks Amazon through a developer support case and files the answer here. <strong>If Amazon says no</strong> (owner ruling, 21 October 2026): every login must also confirm an authenticator, and an <code>after</code> hook on passkey sign-in turns the session into a code challenge, as Better Auth&#39;s documentation advises for methods it does not challenge itself. Nothing else changes.</li>
 </ol>
@@ -450,6 +456,12 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Who may reset whom, the code, the link, the scope below</td>
 </tr>
 <tr>
+<td>Everything, as an Owner or Admin who is not the last Owner</td>
+<td>Another Owner resets them, the same way (<a href="../../users-and-access/spec/#5-rules-for-every-action">ADR-010 SPEC 5</a> rule 1)</td>
+<td>The same</td>
+<td>The app decides it; nothing in the sign-in Worker</td>
+</tr>
+<tr>
 <td>Everything, as the last Owner</td>
 <td>The <a href="../../runbooks/recover-a-last-owner/">last-Owner runbook</a></td>
 <td>The same</td>
@@ -542,7 +554,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><code>reset(actor&#39;s cookie, login, company)</code></td>
-<td>A reset or a last-Owner completion; re-checks the actor&#39;s fresh check</td>
+<td>A reset or a last-Owner completion; re-checks the actor&#39;s fresh check; answers the address of the sign-in Worker&#39;s page where the actor sees the code once, or one refusal: no session, setup-only, fresh check needed, own login, no such login, invalid company, too many, frozen, operator, busy. A second reset of the same person replaces the first; its link and code stop</td>
 </tr>
 <tr>
 <td><code>revoke(login ids, or everyone)</code></td>
@@ -550,7 +562,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><code>matchesAddress(cookie, address)</code></td>
-<td>Whether the signed-in login&#39;s email address is this address, compared case-insensitively: a yes or no only, so the app never learns the login&#39;s address; used when a person with a login accepts an invitation (<a href="../../users-and-access/spec/#6-invitations-sign-up-and-removal">ADR-010 SPEC 6</a>) (owner ruling, 22 October 2026)</td>
+<td>Whether the signed-in login&#39;s email address is this address, compared case-insensitively: a yes or no only, so the app never learns the login&#39;s address; used when a person with a login accepts an invitation, and when a signed-in person opens an invitation&#39;s page, so the page asks them to sign in with the invited account rather than offer a join that would be refused (<a href="../../users-and-access/spec/#6-invitations-sign-up-and-removal">ADR-010 SPEC 6</a>) (owner ruling, 22 October 2026)</td>
 </tr>
 <tr>
 <td><code>takeSignUpCompany(login, opened?)</code></td>
@@ -577,18 +589,22 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>For the platform admin, and once to make the admin: a login with that name and address and no way in yet, and a single-use link, valid 24 hours, to the console&#39;s page; none for an address that already has a way in; asked again before the first passkey, a new link for the same login (section 10; owner rulings, 24 October 2026)</td>
 </tr>
 <tr>
-<td><code>incident(command)</code></td>
-<td><a href="#11-incident-commands">Section 11</a></td>
+<td><code>removeOperator(operator&#39;s cookie, login)</code></td>
+<td>When an operator is removed (the app decides who may: the platform admin): re-checks that the cookie is an operator&#39;s console session with its fresh check, never the login&#39;s own; removes the login&#39;s operator mark, its passkeys and every session, and tells them by email; a login that is no operator&#39;s is not touched; logged under the acting operator</td>
+</tr>
+<tr>
+<td><code>incident(operator&#39;s cookie, command)</code></td>
+<td><a href="#11-incident-commands">Section 11</a>: sign out the logins named (one person, or a company&#39;s member logins the app names) or everyone; freeze or unfreeze sign-in; force a password change from now; hold or release one login. Re-checks that the cookie is an operator&#39;s console session with its fresh check; logged under that operator</td>
 </tr>
 </tbody></table></div>
 <ol start="3">
 <li><strong>Data:</strong> Better Auth reaches <code>auth</code> through its PostgreSQL (Kysely) adapter; Vervoro&#39;s policy code reaches <code>auth_policy</code> through the typed query builder (<a href="../../database-architecture/spec/#6-guard-rails">ADR-001 SPEC 6</a>) and writes sign-in events to the platform security log. Both use the sign-in role, through the sign-in Worker&#39;s own Hyperdrive configuration, in the EU, caching off, a client per request. No Vervoro code queries Better Auth&#39;s tables except through Better Auth.</li>
-<li><strong>It carries out, never decides.</strong> The app decides who may reset whom (<a href="../../users-and-access/spec/#5-rules-for-every-action">ADR-010</a>). The sign-in Worker checks the actor&#39;s session and fresh check itself, limits how fast resets run, and alerts on a burst. The reset code appears only on its own page.</li>
+<li><strong>It carries out, never decides.</strong> The app decides who may reset whom (<a href="../../users-and-access/spec/#5-rules-for-every-action">ADR-010</a>). The sign-in Worker checks the actor&#39;s session and fresh check itself, limits how fast resets run (at most 10 by one person in an hour, the same person again included), and alerts on a burst. It refuses a reset of an operator&#39;s login (<a href="#10-operators">section 10</a> rule 5). The reset code appears only on its own page.</li>
 <li><strong>It sends its own sign-in mail</strong> (address proofs, reset links, method and lockout notices) through one mail provider, chosen by configuration behind one sending interface. Production sends through Cloudflare&#39;s Email Service, from a <code>send_email</code> binding restricted to Vervoro&#39;s sign-in sender address: no API key, and no new sub-processor (<a href="../../buyer-data/spec/#3-sub-processors">ADR-009 SPEC 3</a>). Staging may send through Resend, with its API key held only as the sign-in Worker&#39;s secret. There is no automatic failover between providers; a switch is a configuration change and a deploy (owner ruling, 22 October 2026). Better Auth&#39;s <code>sendResetPassword</code> and <code>sendVerificationEmail</code> callbacks call it. A send that fails is retried by the person (&quot;send again&quot;); it never blocks a sign-in. Invitations and company notices stay with the app, which sends them through the same provider choice as sign-in mail, from its own sender address and binding, and on staging under its own Resend API key; it never holds the sign-in Worker&#39;s key (owner rulings, 23 October 2026). It never reaches a cell. Every mail, the sign-in Worker&#39;s and the app&#39;s, has a plain-text part and an HTML part with the same words and links. Opening a mail fetches nothing (no image, web font or remote style), and neither provider&#39;s open or click tracking is switched on.</li>
 <li><strong>Built on its own terms:</strong> its own package list and frozen lockfile, with Better Auth, its plugins and their dependencies exact-pinned; installs with package scripts off; built in its own CI job before anything of the app is installed; deployed with a token that can deploy only it; <code>nodejs_compat</code> on. Each Worker deploys only when its own code changes; when both change, the sign-in Worker goes first (<a href="../../runbooks/deploy-and-roll-back/">runbook</a>). A test of the calls runs whenever either side changes them.</li>
 <li><strong>One hourly sweep,</strong> a cron trigger, deletes sign-up links past their 24 hours (owner ruling, 23 October 2026), rate-limit counters an hour past their last request (owner ruling, 25 October 2026), and resets by an Owner or Admin past their 24 hours (<a href="#6-recovery">section 6</a>). The sweep logs nothing, as for the counters.</li>
 </ol>
-<p><strong>A risk accepted.</strong> A poisoned app receives the session cookie and can act as a signed-in person, with their rights, for up to 24 hours. It cannot add a method or reset anyone, because those need a fresh check only the sign-in Worker can see. Signing everyone out ends it within 60 seconds (section 5 rule 5). A leaked pass key opens and seals passes but names no login: who a pass is for comes only from the sign-in Worker&#39;s proof, which the app cannot make (owner ruling, 25 October 2026).</p>
+<p><strong>A risk accepted.</strong> A poisoned app receives the session cookie and can act as a signed-in person, with their rights, for up to 24 hours. Within 5 minutes of any person&#39;s sign-in it can add a method to that login, and reset any login but an operator&#39;s, whatever that person&#39;s role (the sign-in Worker does not know roles), at most 10 resets an hour per signed-in person; it can never finish a reset, since the link goes only to the person&#39;s address. An operator&#39;s fresh cookie in a poisoned app can remove another operator&#39;s sign-in. Signing everyone out ends it within 60 seconds (section 5 rule 5). A leaked pass key opens and seals passes but names no login: who a pass is for comes only from the sign-in Worker&#39;s proof, which the app cannot make (owner ruling, 25 October 2026).</p>
 <h2 id="9-secrets">9. Secrets</h2>
 <div class="table-wrap"><table>
 <thead>
@@ -667,8 +683,14 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td>Freeze sign-in</td>
 <td>—</td>
-<td>A flag in <code>auth_policy</code>; a <code>before</code> hook refuses every sign-in, sign-up and reset route</td>
+<td>A flag in <code>auth_policy</code>; a <code>before</code> hook refuses every sign-in, sign-up and reset route of the seller&#39;s set-up, the <code>reset</code> call (before anything is removed) and the operator&#39;s first-sign-in link; the operator console&#39;s passkey sign-in stays open, so the freeze can be cleared</td>
 <td>No new sessions; live sessions continue unless also ended</td>
+</tr>
+<tr>
+<td><strong>Hold a login</strong></td>
+<td>Vervoro: a flag per login in <code>auth_policy</code>; no session starts for that login, whichever way in, checked after the proof is verified; a reset link mailed before the hold is refused; a password sign-in and requests for a reset link or an address proof are answered as for any address, and nothing is mailed (<a href="#7-lockouts-rate-limits-and-bots">section 7</a>). Its sessions end. Cleared by the operator, or by a reset by an Owner or Admin of any company the login belongs to (<a href="#6-recovery">section 6</a>); the release is logged under the login with the resetter.</td>
+<td>Sessions end on the app&#39;s API within 60 seconds; methods unchanged until the reset</td>
+<td></td>
 </tr>
 <tr>
 <td>Rotate the Better Auth secret</td>
@@ -677,9 +699,10 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Every session ends, on the app&#39;s API within 60 seconds; methods unchanged</td>
 </tr>
 </tbody></table></div>
+<p>Rotating Better Auth&#39;s secret is a deploy of the sign-in Worker&#39;s secret list, not a call; it is recorded in the incident record, not the security log.</p>
 <p>A poisoned package follows its own <a href="../../runbooks/contain-a-poisoned-package/">runbook</a>.</p>
 <h2 id="12-security-events">12. Security events</h2>
-<p>Written to the platform security log (<a href="../../users-and-access/spec/#8-audit">ADR-010 SPEC 8</a>) from Better Auth&#39;s hooks and Vervoro&#39;s policy layer: every sign-in and its result, failed attempts, lockouts, bot-check failures, passkeys and authenticators added or removed, backup codes used, password changes and resets, sessions revoked, recoveries (last Owner and operator included), resets and paused memberships, every incident command, every operator link made and spent. Listing one&#39;s own sign-in methods changes nothing and is not an event (owner ruling, 25 October 2026). Never logged: a password, a code, an authenticator secret, a backup code, a session token or any passkey private material.</p>
+<p>Written to the platform security log (<a href="../../users-and-access/spec/#8-audit">ADR-010 SPEC 8</a>) from Better Auth&#39;s hooks and Vervoro&#39;s policy layer: every sign-in and its result, failed attempts, lockouts, bot-check failures, passkeys and authenticators added or removed, backup codes used, password changes and resets (each reset under the person reset and under the person who made it, naming the other&#39;s id), a recovery&#39;s wrong codes and its lock, sessions revoked, recoveries (last Owner and operator included), resets and paused memberships, every incident command, every operator link made and spent. Listing one&#39;s own sign-in methods changes nothing and is not an event (owner ruling, 25 October 2026). Never logged: a password, a code, an authenticator secret, a backup code, a session token or any passkey private material.</p>
 <h2 id="13-upgrades-and-migrations">13. Upgrades and migrations</h2>
 <ol>
 <li><strong>No schema change at start-up.</strong> Better Auth&#39;s <code>migrate</code> command is never run against a shared database.</li>
@@ -746,7 +769,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Incident commands</td>
-<td>Each works on a staging copy; after signing everyone out an old session is refused within 60 seconds; after a freeze a new sign-in is refused</td>
+<td>Each works on a staging copy; after signing everyone out an old session is refused within 60 seconds; after a freeze a new sign-in is refused; after a hold, the right password and code are refused, and a reset by an Owner or Admin of any company the login belongs to, or a release, clears it</td>
 </tr>
 <tr>
 <td>Upgrades</td>

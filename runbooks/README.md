@@ -27,6 +27,7 @@ Rules: [ADR-001 SPEC](../database-architecture/spec/).
 | [Drills](drills/) | Quarterly by the operator at launch; monthly and unattended from 50 companies; the canary nightly once a second cell exists |
 | [Use the owner role](use-the-owner-role/) | An emergency that no other role can fix |
 | [Control database unreachable](control-database-unreachable/) | Control has been unreachable for 5 minutes |
+| [An isolation alarm fired](an-isolation-alarm-fired/) | A production check found a database where one company could see another's rows, and egress is closed |
 
 ## ADR-002: Data retention and archiving
 

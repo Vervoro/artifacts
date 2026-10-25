@@ -112,6 +112,7 @@ const docs: Doc[] = [
     ["drills", "Drills"],
     ["use-the-owner-role", "Use the owner role"],
     ["control-database-unreachable", "Control database unreachable"],
+    ["an-isolation-alarm-fired", "An isolation alarm fired"],
     ["check-an-archive-month", "Check an archive month"],
     ["change-a-vat-rate", "Change a VAT rate"],
     ["open-an-operator-grant", "Open an operator grant"],

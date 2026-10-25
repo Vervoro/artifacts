@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-010: Users, roles and access](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-010-users-roles-and-access) |
-| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: `audit_log` kept 13 months (8), a receipt quarantined only when unusual (4), the session pass's 60 seconds for revocation and pauses (5, 6, 11), admission in the first statement (5.1), an operator's off-module request refused after its entry (7), the first invitation mail's link (6); and SPEC wording approved 25 October 2026 for the owner's rulings of 24 October on operator grants: read-only as a viewer, told by email and in Settings, the grant's order, a grant running out, seeing Vervoro access, the operator by id (4, 7); and the SPEC batch of phases 3 and 4: the account menu's own address (2), the invitation page and joining (6), an operator command's reason in the audit log (8) |
+| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: `audit_log` kept 13 months (8), a receipt quarantined only when unusual (4), the session pass's 60 seconds for revocation and pauses (5, 6, 11), admission in the first statement (5.1), an operator's off-module request refused after its entry (7), the first invitation mail's link (6); and SPEC wording approved 25 October 2026 for the owner's rulings of 24 October on operator grants: read-only as a viewer, told by email and in Settings, the grant's order, a grant running out, seeing Vervoro access, the operator by id (4, 7); and the SPEC batch of phases 3 and 4: the account menu's own address (2), the invitation page and joining (6), an operator command's reason in the audit log (8); and the one-by-one rulings: the recorded commands in the grant rules (7, 11, checklist), the module switch in the Vervoro access view (7), a reset's entry naming both ids (8) |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-010 from. The record decides; this page says exactly how. Where this page and the ADR disagree, the ADR wins and this page is fixed. How a person signs in is [ADR-013](../../sign-in/spec/). The words used are defined in the [map and glossary](../../guide/).
@@ -194,14 +194,14 @@ All of it happens within minutes, inside ADR-009's 24 hours.
 4. Every operator request writes one `audit_log` entry: the grant, the screen and the time, never the data shown. A request for a module switched off is refused after that entry is written, so the visit is still recorded (owner ruling, 24 October 2026).
 5. A grant that runs out by its end time writes nothing then; the security log has its opening and any early end.
 
-**The seller sees every grant and repair** in a "Vervoro access" view of their audit log: who (the operator's id; a grant keeps no operator name, owner ruling, 24 October 2026), the reason, buyer data or not, start and end, every screen opened. Every grant also goes to the platform security log, alerts Vervoro's owner, and is in ADR-009's quarterly access review. The database's own roles are no way around a grant ([ADR-001 SPEC 3](../../database-architecture/spec/#3-roles)).
+**The seller sees every grant and repair** in a "Vervoro access" view of their audit log: who (the operator's id; a grant keeps no operator name, owner ruling, 24 October 2026), the reason, buyer data or not, start and end, every screen opened. An operator's module switch is told by mail and kept in the audit log. Every grant also goes to the platform security log, alerts Vervoro's owner, and is in ADR-009's quarterly access review. The database's own roles are no way around a grant ([ADR-001 SPEC 3](../../database-architecture/spec/#3-roles)).
 
 ## 8. Audit
 
 | | Company `audit_log` | Platform security log |
 | --- | --- | --- |
 | **Where** | The company's cell, a tenant table | Control |
-| **Records** | Invitations; role, scope and status changes; resets and recoveries; every view of buyer data; exports; connections connected, gone live, stopped or disconnected; operator grants with every request under them; operator repairs; privacy requests; billing actions | Every sign-in attempt and its result; methods added or removed; password changes; backup codes used; recoveries; resets, paused and un-paused memberships, bursts of resets; sessions revoked; sign-in frozen; lockouts; bot-check failures; operator sign-ins; grants opened and ended early; use of the database owner role |
+| **Records** | Invitations; role, scope and status changes; resets and recoveries; every view of buyer data; exports; connections connected, gone live, stopped or disconnected; operator grants with every request under them; operator repairs; privacy requests; billing actions | Every sign-in attempt and its result; methods added or removed; password changes; backup codes used; recoveries; resets, paused and un-paused memberships, bursts of resets; a reset's entry names the other person's id, under each of them; sessions revoked; sign-in frozen; lockouts; bot-check failures; operator sign-ins; grants opened and ended early; use of the database owner role |
 | **Each entry** | Time, actor (person, operator with grant, or system actor), action, the ids it named, result; for an operator's recorded command, its written reason (1 to 500 characters, never an email address or a buyer's data) | Time, login or operator id, event, network address and device kind, result |
 | **Never holds** | Buyer data (a view records which fields were shown, not their values) | Buyer data, email addresses, names, passwords or codes |
 | **Read by** | Owner, Admin, Accountant | The operator; each person sees their own sign-ins |
@@ -239,7 +239,7 @@ Database tests run on real Postgres under the runtime role ([ADR-000 SPEC 15](..
 | Who manages whom | Nobody changes their own role; an Admin cannot invite, change, reset or remove an Owner or an Admin; the last Owner cannot leave |
 | Fresh check | Each account change in section 5 is refused without a fresh check |
 | Sign-up and invitation | Sign-up writes login, then cell, then control, and a failed control write is repaired; an invitation works once, for its address, within 7 days |
-| Operator grants | Without a live grant an operator request reaches no company; with one it reaches exactly that company, read-only, writes an entry per request, and decrypts buyer fields only when allowed; ending the grant stops the next request |
+| Operator grants | Without a live grant an operator request reaches no company, but for the console's recorded commands, each pinned to the one company it names; with one it reaches exactly that company, read-only, writes an entry per request, and decrypts buyer fields only when allowed; ending the grant stops the next request |
 | Audit content | No audit or security entry holds a buyer field value, an email address, a password, a code or a session id |
 
 ## How to check it was built right
@@ -255,7 +255,7 @@ For someone reviewing code an AI wrote. Each line says where to look and which t
 - [ ] **Sign-up order:** the login is created by the sign-in Worker before the cell transaction; control writes go through the outbox repair path.
 - [ ] **Hand-off:** the Access resolver takes only the login id from the sign-in Worker's answer; no code here reads or writes the auth schema or uses Better Auth's organisation or role features.
 - [ ] **Removal:** removing clears the email address and removes the membership, and the next request there is refused; a login with no membership left loses every session; the revocation test is green.
-- [ ] **Grants:** operator code reaches a company only through the request guard with a live grant; the actor (operator, grant) is set on the transaction; no operator route writes business data.
+- [ ] **Grants:** operator code reaches a company only through the request guard with a live grant, or as one of the console's recorded commands that show no company data (opening or ending a grant, switching a module at an Owner's or Admin's request), pinned to the one company its request names; the actor (operator, grant) is set on the transaction under a grant; no operator route writes business data.
 - [ ] **Buyer fields:** the decrypting code checks the grant's buyer-data flag for an operator actor.
 - [ ] **Seller notice:** opening a grant emails every Owner and Admin and shows it in Settings › Vervoro access; the grant and its audit entry are written in the company's transaction, and control's row comes from the outbox.
 - [ ] **Audit:** `audit_log` and the security log are append-only for the runtime role (database catalogue); the audit-content test is green.

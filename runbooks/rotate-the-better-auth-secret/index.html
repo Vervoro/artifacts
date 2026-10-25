@@ -99,7 +99,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ul>
 <li>A passkey sign-in, and a password sign-in with an authenticator code, work on a test login.</li>
 <li>A request with a cookie from before the rotation is refused within 60 seconds (the session pass, <a href="../../sign-in/spec/#5-sessions">ADR-013 SPEC 5</a>).</li>
-<li>The platform security log holds the rotation, who ran it and when.</li>
+<li>The rotation, who ran it and when, is in the incident record. It writes nothing to the platform security log.</li>
 </ul>
 <h2 id="if-it-stops-halfway">If it stops halfway</h2>
 <p>If the deploy in step 2 fails, the previous version stays live with the old list: run step 2 again. Never remove a version while any stored value still carries it: those authenticators and backup codes would stop working.</p>
