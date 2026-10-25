@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-009: Buyer data and privacy](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-009-buyer-data-and-privacy) |
-| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: `audit_log` kept 13 months (7), anonymisation once a day, 48 hours ahead (8.2), views logged once per person, order and day, and the restricted role applied for ahead of labels (7.2, 16.1) |
+| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: `audit_log` kept 13 months (7), anonymisation once a day, 48 hours ahead (8.2), views logged once per person, order and day, and the restricted role applied for ahead of labels (7.2, 16.1); and the SPEC batch of phases 3 and 4: staging's team logins (3), a reset and an operator's mark and hold in the sign-in data (17) |
 | **For** | The developer and coding agents building it, the person reviewing their work, and marketplaces' data-protection reviewers |
 
 The rules to build ADR-009 from: the Buyer data module, core and always on, needing nothing ([ADR-000 SPEC 4](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)), and the privacy rules every other module keeps. Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/).
@@ -46,7 +46,7 @@ The published list names each provider, what it does and where. A change is anno
 | Amazon Web Services | The notice bridge, in an EU region ([ADR-004.2](../../amazon-seller-connector/)) | Amazon's order notices, which carry a destination postcode and no name or address; nothing stored beyond the queue's own retries |
 | AI provider | Answers the seller's users' questions | None: buyer fields are masked before any call |
 
-Staging holds synthetic data only ([ADR-001 SPEC 3](../../database-architecture/spec/#3-roles)), so a provider used only on staging is not a sub-processor and is not listed: staging's sign-in mail and the app's mail may go through Resend ([ADR-013 SPEC 8](../../sign-in/spec/#8-the-sign-in-worker), owner ruling, 22 October 2026).
+Staging holds synthetic data and the team's own logins only, never a seller's or a buyer's ([ADR-001 SPEC 3](../../database-architecture/spec/#3-roles)), so a provider used only on staging is not a sub-processor and is not listed: staging's sign-in mail and the app's mail may go through Resend ([ADR-013 SPEC 8](../../sign-in/spec/#8-the-sign-in-worker), owner ruling, 22 October 2026); its mail provider is used for the team alone.
 
 ## 4. What is kept
 
@@ -229,11 +229,11 @@ Amazon's schedule is the strictest, so it is the schedule for every marketplace 
 
 Not buyer data: Vervoro is its controller, under its privacy notice. Listed here so one record shows every place personal data lives.
 
-1. **What:** each login's email address and name, password hash, authenticator secret, backup codes, passkey public keys, sessions with network address and browser, password history, and a sign-up link's email address and network address until it is used ([ADR-013 SPEC 2](../../sign-in/spec/#2-the-login-and-its-data)). The email address is stored readable, because Better Auth signs people in and mails them by it.
+1. **What:** each login's email address and name, password hash, authenticator secret, backup codes, passkey public keys, sessions with network address and browser, password history, and a sign-up link's email address and network address until it is used; a reset by an Owner or Admin (the login, who reset it, hashes of its link, its code and the resetter's page); an operator's login mark; and an operator's hold on a login: the login, the operator who held it, and when (control's `auth_policy.login_hold`) ([ADR-013 SPEC 2](../../sign-in/spec/#2-the-login-and-its-data)). The email address is stored readable, because Better Auth signs people in and mails them by it.
 2. **Where:** the control database's `auth` and `auth_policy` schemas, in the EU. No third-party identity provider owns or acts as the system of record for Vervoro user identities or email addresses. Authentication data remains in Vervoro-controlled infrastructure. Sign-in mail and the app's mail to the seller's users go through Cloudflare's Email Service, which receives an address only to deliver that email (owner ruling, 23 October 2026).
 3. **Who:** only the sign-in Worker, through the sign-in role. The owner role only in an emergency ([runbook](../../runbooks/use-the-owner-role/)). Passwords, codes, secrets and tokens are never logged.
 4. **Protection:** TLS, storage encryption, authenticator secrets and backup codes also encrypted under the sign-in Worker's secret, every sign-in event in the security log.
-5. **Retention:** sessions deleted at most 30 days after they end ([ADR-013 SPEC 2](../../sign-in/spec/#2-the-login-and-its-data)); a sign-up link once used, or 24 hours after it was sent, by the sign-in Worker's hourly sweep; a login with no membership deleted after 30 days with its address and name ([ADR-010 SPEC 6](../../users-and-access/spec/#6-invitations-sign-up-and-removal)); control's backups hold it until they expire, within 30 days. A user's own request: [Answer a seller's data request](../../runbooks/answer-a-sellers-data-request/).
+5. **Retention:** sessions deleted at most 30 days after they end ([ADR-013 SPEC 2](../../sign-in/spec/#2-the-login-and-its-data)); a sign-up link once used, or 24 hours after it was sent, by the sign-in Worker's hourly sweep; a reset by an Owner or Admin (the login, who reset it, hashes) 24 hours after it was made, used or not, by the same sweep; an operator's login mark with its login; a hold on a login until the operator releases it, a reset by an Owner or Admin of any company the login belongs to sets new methods, or the login is deleted; a login with no membership deleted after 30 days with its address and name ([ADR-010 SPEC 6](../../users-and-access/spec/#6-invitations-sign-up-and-removal)); control's backups hold it until they expire, within 30 days. A user's own request: [Answer a seller's data request](../../runbooks/answer-a-sellers-data-request/).
 
 ## 18. Storage
 

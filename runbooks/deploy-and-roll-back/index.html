@@ -100,7 +100,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>The new version serves requests, and no migration or version alert has fired.</li>
 </ul>
 <h2 id="roll-back">Roll back</h2>
-<p>Switch the Worker back to its previous version. Never roll back a migration: schema changes expand before they contract, so the previous version runs on the new schema (<a href="../../system-architecture/spec/#11-deploying">SPEC 11</a>). If the sign-in Worker was deployed too, roll back the app Worker first.</p>
+<p>Switch the Worker back to its previous version. Never roll back a migration: schema changes expand before they contract, so the previous version runs on the new schema (<a href="../../system-architecture/spec/#11-deploying">SPEC 11</a>). If the sign-in Worker was deployed too, roll back the app Worker first. Platform resources expand and contract like the schema: a release that adds, renames or deletes a Durable Object class carries no other change, so no other release&#39;s rollback crosses it, and a queue, bucket or binding is deleted only after the rollback window (<a href="../../system-architecture/spec/#11-deploying">SPEC 11</a> rule 5).</p>
 <h2 id="if-it-stops-halfway">If it stops halfway</h2>
 <ul>
 <li><strong>During step 2 or 3:</strong> the old code is still serving, and it runs on any database that has already migrated. A failed migration alerts. Fix the cause and start again from step 1; migrations a database has already applied are skipped.</li>

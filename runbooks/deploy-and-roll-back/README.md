@@ -22,7 +22,7 @@
 
 ## Roll back
 
-Switch the Worker back to its previous version. Never roll back a migration: schema changes expand before they contract, so the previous version runs on the new schema ([SPEC 11](../../system-architecture/spec/#11-deploying)). If the sign-in Worker was deployed too, roll back the app Worker first.
+Switch the Worker back to its previous version. Never roll back a migration: schema changes expand before they contract, so the previous version runs on the new schema ([SPEC 11](../../system-architecture/spec/#11-deploying)). If the sign-in Worker was deployed too, roll back the app Worker first. Platform resources expand and contract like the schema: a release that adds, renames or deletes a Durable Object class carries no other change, so no other release's rollback crosses it, and a queue, bucket or binding is deleted only after the rollback window ([SPEC 11](../../system-architecture/spec/#11-deploying) rule 5).
 
 ## If it stops halfway
 
