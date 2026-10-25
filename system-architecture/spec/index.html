@@ -314,7 +314,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Parked.</strong> Purchasing, Amazon Vendor (ADR-004.4, planned), FBA shipments (stock the seller sends into Amazon&#39;s warehouses), profit, ads, AI, shipping labels, order routing and MCP access (a seller&#39;s AI assistant asking Vervoro questions, owner ruling 21 October 2026: soon after launch) have no record yet. They stay switched off and are not built further until a record and a launch-bar row need them.</li>
 </ol>
 <h3 id="who-depends-on-whom">Who depends on whom</h3>
-<figure><svg class="diagram" viewBox="0 0 649 572" role="img" aria-label="Dependency map: which module calls which through ports, and which events each module hears" xmlns="http://www.w3.org/2000/svg" font-size="13">
+<figure><svg class="diagram" viewBox="0 0 649 590" role="img" aria-label="Dependency map: which module calls which through ports, and which events each module hears" xmlns="http://www.w3.org/2000/svg" font-size="13">
   <defs>
     <marker id="dep-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="edge-fill"/></marker>
     <marker id="dep-event" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="accent-fill"/></marker>
@@ -331,7 +331,9 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
     <path d="M532 200L532 310L547 310L547 356" marker-end="url(#dep-arrow)"/>
     <path d="M507 200L507 230L422 230L422 356" marker-end="url(#dep-arrow)"/>
     <path d="M358 200L358 210L346 210L346 256" marker-end="url(#dep-arrow)"/>
-    <path d="M160 300L160 310L90 310L90 356" marker-end="url(#dep-arrow)"/>
+    <path d="M160 300L160 310L90 310L90 456" marker-end="url(#dep-arrow)"/>
+    <path d="M262 478L152 478" marker-end="url(#dep-arrow)"/>
+    <path d="M600 400L600 516L120 516L120 500" marker-end="url(#dep-arrow)"/>
     <path d="M374 300L374 310L522 310L522 356" marker-end="url(#dep-arrow)"/>
     <path d="M300 300L300 310L285 310L285 356" marker-end="url(#dep-arrow)"/>
     <path d="M325 300L325 310L324 310L324 456" marker-end="url(#dep-arrow)"/>
@@ -377,18 +379,21 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
   <rect x="339" y="356" width="124" height="44" rx="8" class="box-main"/>
   <text x="401" y="375" text-anchor="middle" font-weight="600" class="ink">Buyer data</text>
   <text x="401" y="390" text-anchor="middle" font-size="11" class="quiet">ADR-009</text>
-  <rect x="28" y="356" width="124" height="44" rx="8" class="box-main"/>
-  <text x="90" y="375" text-anchor="middle" font-weight="600" class="ink">Access</text>
-  <text x="90" y="390" text-anchor="middle" font-size="11" class="quiet">ADR-010</text>
+  <rect x="28" y="456" width="124" height="44" rx="8" class="box-main"/>
+  <text x="90" y="475" text-anchor="middle" font-weight="600" class="ink">Access</text>
+  <text x="90" y="490" text-anchor="middle" font-size="11" class="quiet">ADR-010</text>
   <rect x="262" y="456" width="124" height="44" rx="8" class="box-main"/>
   <text x="324" y="475" text-anchor="middle" font-weight="600" class="ink">Products</text>
   <text x="324" y="490" text-anchor="middle" font-size="11" class="quiet">ADR-003</text>
+  <text x="207" y="472" text-anchor="middle" font-size="11" class="quiet">settings</text>
+  <text x="360" y="511" text-anchor="middle" font-size="11" class="quiet">settings</text>
   <g fill="none" stroke-width="1.25"><path class="edge" d="M16 538H44" marker-end="url(#dep-arrow)"/><path class="accent" d="M196 538H224" stroke-dasharray="5 4" marker-end="url(#dep-event)"/></g>
   <text x="52" y="542" font-size="11.5" class="quiet">calls a port (needs)</text><text x="232" y="542" font-size="11.5" class="quiet">hears an event</text>
   <rect x="340" y="530" width="22" height="14" rx="3" class="box-main"/><text x="368" y="542" font-size="11.5" class="quiet">core</text>
   <rect x="414" y="530" width="22" height="14" rx="3" class="box"/><text x="442" y="542" font-size="11.5" class="quiet">always on</text>
   <rect x="514" y="530" width="22" height="14" rx="3" class="box" stroke-dasharray="4 3"/><text x="542" y="542" font-size="11.5" class="quiet">switchable</text>
   <text x="16" y="562" font-size="11" class="quiet">Every module also uses the kernel and asks Access whether a person may act; those lines are left out.</text>
+  <text x="16" y="578" font-size="11" class="quiet">The two lines drawn to Access are Products and Inventory reading the company&#8217;s settings.</text>
 </svg>
 </figure>
 
