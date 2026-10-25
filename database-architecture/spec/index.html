@@ -1104,7 +1104,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td>Placed work</td>
 <td>Staging, before launch</td>
-<td>A job run by the sweeper or the queue consumer holds its company&#39;s lock about as long as the same work in a request: per database, over 20 rounds a side after one warm-up round, its median lock time at most 1.5 times the request&#39;s, or within 10 ms of it. It runs, on staging only, in a synthetic drill company per cell, derived from the cell&#39;s id like the canary and never in control&#39;s registry; it holds only its tenant row and two counter rows, and the sweeper and the consumer visit it only for the drill, which is not a due job</td>
+<td>A job run by the sweeper or the queue consumer holds its company&#39;s lock about as long as the same work in a request: per database, over at least 20 rounds a side after one warm-up round, its median lock time at most 1.5 times the request&#39;s, or within 10 ms of it. It runs, on staging only, in a synthetic drill company per cell, derived from the cell&#39;s id like the canary and never in control&#39;s registry; it holds only its tenant row and two counter rows, and the sweeper and the consumer visit it only for the drill, which is not a due job</td>
 <td>13</td>
 </tr>
 </tbody></table></div>
