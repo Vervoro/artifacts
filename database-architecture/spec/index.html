@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>20 October 2026; hosting reviewed 21 October 2026; sign-in data aligned with Better Auth (<a href="../../sign-in/">ADR-013</a>) 21 October 2026; amended by owner rulings: control unreachable (7) and the sign-in role&#39;s rights (3), 21 October 2026; one Neon project per database (7, 8), Neon&#39;s internal roles and the staging rule (3), append-only and partitioned tables declared per table (5), the audit over every project, staging&#39;s audit and an audit failure on control (11), the sign-in role reading the security log for a data request (3, 11), and who refuses a database from before the reset (12), 22 October 2026; a sign-up link&#39;s address in control (7), the sign-up company name (7) and request keys (5, 9), 23 October 2026; an invitation&#39;s page in the request guard (6), 24 October 2026; amended by owner rulings of 25 October 2026: the sync epoch read once per sending job (7), <code>audit_log</code> kept 13 months (5, 10), orders not partitioned (5, 12), restore drills quarterly at launch (0, 10, 14), request keys deleted daily (5), fair shares kept 5 minutes and one nightly job per company (9), the session pass and the cached route (7), the commit check on writing transactions and <code>enter_company</code> refusing a second company (4, 6, 14, 15), pipelining off by default (1, 13), the serving check once per isolate (3), <code>due_companies</code> returning kinds (4), the outbox&#39;s receipts, retry window and low-water mark (9), traces off in production, on staging for the app Worker only (11, 13)</td>
+<td>20 October 2026; hosting reviewed 21 October 2026; sign-in data aligned with Better Auth (<a href="../../sign-in/">ADR-013</a>) 21 October 2026; amended by owner rulings: control unreachable (7) and the sign-in role&#39;s rights (3), 21 October 2026; one Neon project per database (7, 8), Neon&#39;s internal roles and the staging rule (3), append-only and partitioned tables declared per table (5), the audit over every project, staging&#39;s audit and an audit failure on control (11), the sign-in role reading the security log for a data request (3, 11), and who refuses a database from before the reset (12), 22 October 2026; a sign-up link&#39;s address in control (7), the sign-up company name (7) and request keys (5, 9), 23 October 2026; an invitation&#39;s page in the request guard (6), 24 October 2026; amended by owner rulings of 25 October 2026: the sync epoch read once per sending job (7), <code>audit_log</code> kept 13 months (5, 10), orders not partitioned (5, 12), restore drills quarterly at launch (0, 10, 14), request keys deleted daily (5), fair shares kept 5 minutes and one nightly job per company (9), the session pass and the cached route (7), the commit check on writing transactions and <code>enter_company</code> refusing a second company (4, 6, 14, 15), pipelining off by default (1, 13), the serving check once per isolate (3), <code>due_companies</code> returning kinds (4), the outbox&#39;s receipts, retry window and low-water mark (9), traces off in production, on staging for the app Worker only (11, 13); and later that day: the inbound queue&#39;s own notices (9), query strings left out of traces (13), the placed-work test&#39;s margin and drill company, and the kill test from Channels on (14)</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -730,7 +730,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Deliver now.</strong> Right after commit, the request or job that committed hands the note to every handler of that kind. This is the normal path.</li>
 <li><strong>Handler.</strong> A note is written with a receipt for each (event, handler) and its due row in one statement: a handler that does not take it gets its receipt as delivered there, and nothing is delivered for it; a handler that does has its receipt claimed under a lease, runs right after commit, and settles the receipt in its own transaction. A settled receipt makes a second delivery do nothing (owner ruling, 25 October 2026).</li>
 <li><strong>Leftovers.</strong> The sweeper delivers any note with a receipt not yet settled. A receipt is tried for about a day (24 attempts, each wait doubled up to 2 hours, about 22 hours in all), then it is dead and pages the operator. Each handler keeps a low-water mark, so a delivery reads only notes past it, never the company&#39;s whole history (owner ruling, 24 October 2026).</li>
-<li>The outbox, not a queue, is the source of truth. The inbound queue carries only marketplace webhooks, which must be answered before anything is written.</li>
+<li>The outbox, not a queue, is the source of truth. The inbound queue carries only marketplace webhooks, which must be answered before anything is written, and the operations&#39; own ids-only notices that prove it: the deploy&#39;s probe and, on staging, the placed-work drill&#39;s, its round count as its one resource (owner ruling, 25 October 2026).</li>
 </ol>
 <p><strong>Egress effects</strong> are calls that change something on a marketplace or at a supplier: figures, dispatch, confirmations, messages. They go through the egress gate (<a href="../../system-architecture/spec/#7-the-egress-gate">ADR-000 SPEC 7</a>). Notice subscriptions made by a connector&#39;s connect and disconnect hooks are set-up calls, not egress effects: they run in shadow mode too, through the host&#39;s HTTP and rate budgets (<a href="../../channel-connectors/">ADR-004</a>).</p>
 <h2 id="10-company-lifecycle">10. Company lifecycle</h2>
@@ -964,7 +964,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Workers traces keep 7 days, their storage location not stated; they record each request&#39;s URL (query included), user agent and city, and each outside call&#39;s URL; no client address, bodies or call arguments</td>
-<td>Off in production; on staging for the app Worker only (owner ruling, 25 October 2026)</td>
+<td>Off in production; on staging for the app Worker only, query strings left out (owner ruling, 25 October 2026)</td>
 <td><a href="https://developers.cloudflare.com/workers/observability/traces/">Traces</a></td>
 </tr>
 <tr>
@@ -1097,14 +1097,14 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Kill test</td>
-<td>Staging, before launch and after a platform change</td>
+<td>Staging, from Channels (<a href="../../channel-connectors/">ADR-004</a>) on, before launch and after a platform change (owner ruling, 25 October 2026: before then nothing sends)</td>
 <td>Killing the app mid-transaction and mid-send leaves the ledger and the egress log consistent; every effect is either recorded and sent once or recorded as <code>unknown</code> and read back</td>
 <td>9</td>
 </tr>
 <tr>
 <td>Placed work</td>
 <td>Staging, before launch</td>
-<td>A job run by the sweeper or the queue consumer holds its company&#39;s lock about as long as the same work in a request</td>
+<td>A job run by the sweeper or the queue consumer holds its company&#39;s lock about as long as the same work in a request: per database, over 20 rounds a side after one warm-up round, its median lock time at most 1.5 times the request&#39;s, or within 10 ms of it. It runs, on staging only, in a synthetic drill company per cell, derived from the cell&#39;s id like the canary and never in control&#39;s registry; it holds only its tenant row and two counter rows, and the sweeper and the consumer visit it only for the drill, which is not a due job</td>
 <td>13</td>
 </tr>
 </tbody></table></div>
