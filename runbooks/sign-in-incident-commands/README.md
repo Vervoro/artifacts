@@ -16,7 +16,7 @@
 | --- | --- | --- |
 | **Sign everyone out** | Better Auth revokes every session of the logins named: one person, a company's members (the app names them), or every login | Sessions end, on the app's API within 60 seconds. Passkeys, passwords and authenticators are unchanged |
 | **Freeze sign-in** | Sets the freeze flag; the sign-in Worker refuses every sign-in, sign-up and reset route of the seller's set-up, the `reset` call and the operator's first-sign-in link; the operator console's passkey sign-in stays open, so the freeze can be cleared | No new sessions. Live sessions continue: pair it with *sign everyone out* to stop them too |
-| **Hold a login** | Sets a flag on one login: every sign-in and reset route refuses it and its sessions end | No sign-in for that login; the others are untouched. Clear it with *release*, or by a reset by the company's Owner or Admin, which sets new methods |
+| **Hold a login** | Sets a flag on one login: every sign-in and reset route refuses it and its sessions end | No sign-in for that login; the others are untouched. Clear it with *release*; it also ends when an Owner or Admin of any company the login belongs to resets the login, which removes every method |
 | **Force a password change** | Sets a cut-off time; any password set before it leaves only a setup-only session until changed | Applies at each person's next sign-in. Passkeys and authenticators are unchanged |
 | **Rotate the Better Auth secret** | See [Rotate the Better Auth secret](../rotate-the-better-auth-secret/) | Every session ends |
 
