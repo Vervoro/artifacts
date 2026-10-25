@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>21 October 2026; amended by owner rulings of 25 October 2026: <code>audit_log</code> kept 13 months (8), a receipt quarantined only when unusual (4), the session pass&#39;s 60 seconds for revocation and pauses (5, 6, 11), admission in the first statement (5.1), an operator&#39;s off-module request refused after its entry (7), the first invitation mail&#39;s link (6)</td>
+<td>21 October 2026; amended by owner rulings of 25 October 2026: <code>audit_log</code> kept 13 months (8), a receipt quarantined only when unusual (4), the session pass&#39;s 60 seconds for revocation and pauses (5, 6, 11), admission in the first statement (5.1), an operator&#39;s off-module request refused after its entry (7), the first invitation mail&#39;s link (6); and SPEC wording approved 25 October 2026 for the owner&#39;s rulings of 24 October on operator grants: read-only as a viewer, told by email and in Settings, the grant&#39;s order, a grant running out, seeing Vervoro access, the operator by id (4, 7)</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -285,6 +285,16 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Yes</td>
 <td>No</td>
 <td>ADR-010</td>
+</tr>
+<tr>
+<td>See Vervoro access (the company&#39;s grants and the screens opened)</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>Yes</td>
+<td>No</td>
+<td>ADR-010 (section 7, a view of the audit log)</td>
 </tr>
 <tr>
 <td>Handle a buyer&#39;s privacy request</td>
@@ -865,18 +875,19 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p><strong>A grant is for looking</strong>, at a company&#39;s screens or, at the seller&#39;s request, at old records in a restore branch (<a href="../../runbooks/restore-a-company-look-back/">ADR-001&#39;s look-back</a>):</p>
 <ol>
 <li>One company, a written reason, at most 8 hours (<a href="../../buyer-data/spec/#7-who-can-see-it">ADR-009</a>).</li>
-<li>Read-only: the operator sees the screens as a viewer and changes nothing. They never sign in as, or act in the name of, a seller&#39;s user, and never change a role, a person, a sign-in method, a connection or stock.</li>
-<li>Every Owner and Admin is told at once, in the app and by email, with the reason and the end time; any of them can end it.</li>
+<li>Read-only: the operator sees the screens as a viewer: every read the company&#39;s modules serve, each in a read-only transaction, and no action; they change nothing. They never sign in as, or act in the name of, a seller&#39;s user, and never change a role, a person, a sign-in method, a connection or stock.</li>
+<li>Every Owner and Admin is told at once, by email, with the reason and the end time, and sees it in Settings › Vervoro access; any of them can end it, and the operator can end it early (owner ruling, 24 October 2026: no banner).</li>
 <li>Buyer fields stay encrypted unless an Owner or Admin switches them on for that grant. The decrypting code refuses an operator actor whose grant does not name buyer data.</li>
 </ol>
 <p><strong>How a grant fits row-level security:</strong></p>
 <ol>
-<li>Opening a grant writes its <code>audit_log</code> entry first, then the grant row in control; access needs both. A failed second write is repaired from the outbox.</li>
+<li>Opening a grant is a recorded command that shows no company data: Access writes the grant (its reason, operator, start, end and buyer-data flag, kept and erased with the company) and its <code>audit_log</code> entry in the company&#39;s transaction, then control gets the grant&#39;s ids and times from the outbox; access needs both.</li>
 <li>Each operator request is checked against a live grant in control (company, end time), then opens the company&#39;s transaction as usual. The request guard accepts the company only because a grant names it (<a href="../../database-architecture/spec/#6-guard-rails">ADR-001 SPEC 6</a>). The runtime role keeps <code>NOBYPASSRLS</code>.</li>
 <li>The data layer sets the actor (operator, grant) for the transaction, as it sets the company; every entry written carries the grant.</li>
 <li>Every operator request writes one <code>audit_log</code> entry: the grant, the screen and the time, never the data shown. A request for a module switched off is refused after that entry is written, so the visit is still recorded (owner ruling, 24 October 2026).</li>
+<li>A grant that runs out by its end time writes nothing then; the security log has its opening and any early end.</li>
 </ol>
-<p><strong>The seller sees every grant and repair</strong> in a &quot;Vervoro access&quot; view of their audit log: who, the reason, buyer data or not, start and end, every screen opened. Every grant also goes to the platform security log, alerts Vervoro&#39;s owner, and is in ADR-009&#39;s quarterly access review. The database&#39;s own roles are no way around a grant (<a href="../../database-architecture/spec/#3-roles">ADR-001 SPEC 3</a>).</p>
+<p><strong>The seller sees every grant and repair</strong> in a &quot;Vervoro access&quot; view of their audit log: who (the operator&#39;s id; a grant keeps no operator name, owner ruling, 24 October 2026), the reason, buyer data or not, start and end, every screen opened. Every grant also goes to the platform security log, alerts Vervoro&#39;s owner, and is in ADR-009&#39;s quarterly access review. The database&#39;s own roles are no way around a grant (<a href="../../database-architecture/spec/#3-roles">ADR-001 SPEC 3</a>).</p>
 <h2 id="8-audit">8. Audit</h2>
 <div class="table-wrap"><table>
 <thead>
@@ -894,7 +905,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td><strong>Records</strong></td>
 <td>Invitations; role, scope and status changes; resets and recoveries; every view of buyer data; exports; connections connected, gone live, stopped or disconnected; operator grants with every request under them; operator repairs; privacy requests; billing actions</td>
-<td>Every sign-in attempt and its result; methods added or removed; password changes; backup codes used; recoveries; resets, paused and un-paused memberships, bursts of resets; sessions revoked; sign-in frozen; lockouts; bot-check failures; operator sign-ins; grants opened and ended; use of the database owner role</td>
+<td>Every sign-in attempt and its result; methods added or removed; password changes; backup codes used; recoveries; resets, paused and un-paused memberships, bursts of resets; sessions revoked; sign-in frozen; lockouts; bot-check failures; operator sign-ins; grants opened and ended early; use of the database owner role</td>
 </tr>
 <tr>
 <td><strong>Each entry</strong></td>
@@ -1022,7 +1033,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><input disabled="" type="checkbox"> <strong>Removal:</strong> removing clears the email address and removes the membership, and the next request there is refused; a login with no membership left loses every session; the revocation test is green.</li>
 <li><input disabled="" type="checkbox"> <strong>Grants:</strong> operator code reaches a company only through the request guard with a live grant; the actor (operator, grant) is set on the transaction; no operator route writes business data.</li>
 <li><input disabled="" type="checkbox"> <strong>Buyer fields:</strong> the decrypting code checks the grant&#39;s buyer-data flag for an operator actor.</li>
-<li><input disabled="" type="checkbox"> <strong>Seller notice:</strong> opening a grant notifies every Owner and Admin and writes the audit entry before the control row.</li>
+<li><input disabled="" type="checkbox"> <strong>Seller notice:</strong> opening a grant emails every Owner and Admin and shows it in Settings › Vervoro access; the grant and its audit entry are written in the company&#39;s transaction, and control&#39;s row comes from the outbox.</li>
 <li><input disabled="" type="checkbox"> <strong>Audit:</strong> <code>audit_log</code> and the security log are append-only for the runtime role (database catalogue); the audit-content test is green.</li>
 <li><input disabled="" type="checkbox"> <strong>No tokens:</strong> no route accepts a bearer token or an API key from a seller.</li>
 </ul>

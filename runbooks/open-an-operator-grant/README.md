@@ -19,9 +19,9 @@ A repair (rebuilding a balance, re-importing an order, an export, move or restor
 ## Verify
 
 - The company's "Vervoro access" view shows the grant with its reason and end time, and every screen opened.
-- Every Owner and Admin got the notice in the app and by email.
+- Every Owner and Admin got the notice by email, and Settings › Vervoro access shows the grant.
 - The platform security log holds the grant, and Vervoro's owner was alerted.
 
 ## If it stops halfway
 
-Access needs both the audit entry and the grant row in control. If only the audit entry was written, the outbox writes the grant row; nothing is reachable until it does. If the console shows an error, do not open a second grant: end the first, then open again.
+Access writes the grant and its audit entry in the company's transaction, then control gets the grant's ids and times from the outbox; access needs both ([SPEC 7](../../users-and-access/spec/#7-operator-access-to-a-company)). Until the outbox reaches control, nothing is reachable. If the console shows an error, do not open a second grant: end the first, then open again.

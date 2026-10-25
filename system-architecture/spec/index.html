@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>20–21 October 2026; sign-in on Better Auth (<a href="../../sign-in/">ADR-013</a>) 21 October 2026; amended by owner rulings: a tap&#39;s sending, done and not sure states (12.8) and the rollback window (11.2), 21 October 2026; decrease-only accounts through the gate (7.2), Invoicing&#39;s needs (4) and who switches a module on or off (3.4), 22 October 2026; every change&#39;s key kept on the server (12.8), browser limits on screens (12.9) and libraries checked against the pinned version (16.5), 23 October 2026; amended by owner rulings of 25 October 2026: switches read once per request (3.1, 6), the body cap (10.9), the not-sure retry ceiling (12.8), staging traces on for the app Worker only (10.10)</td>
+<td>20–21 October 2026; sign-in on Better Auth (<a href="../../sign-in/">ADR-013</a>) 21 October 2026; amended by owner rulings: a tap&#39;s sending, done and not sure states (12.8) and the rollback window (11.2), 21 October 2026; decrease-only accounts through the gate (7.2), Invoicing&#39;s needs (4) and who switches a module on or off (3.4), 22 October 2026; every change&#39;s key kept on the server (12.8), browser limits on screens (12.9) and libraries checked against the pinned version (16.5), 23 October 2026; amended by owner rulings of 25 October 2026: switches read once per request (3.1, 6), the body cap (10.9), the not-sure retry ceiling (12.8), staging traces on for the app Worker only (10.10), code examples tested in the kernel&#39;s README (15.5)</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -850,7 +850,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </li>
 <li><p><strong>One verify command</strong> means green: lint, typecheck and the tests the change can affect. Every test runs before a release.</p>
 </li>
-<li><p>Every code example in the core packages&#39; documentation is executed by a test.</p>
+<li><p>Every code example in the kernel&#39;s README is executed by a test (owner ruling, 25 October 2026: other packages&#39; READMEs may show examples no test runs).</p>
 </li>
 <li><p>A test that protects accepted behaviour is removed or weakened only together with an accepted change to that behaviour or its SPEC. A test is never removed, skipped or weakened just to go green.</p>
 </li>
