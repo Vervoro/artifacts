@@ -11,7 +11,7 @@ A repair (rebuilding a balance, re-importing an order, an export, move or restor
 
 ## Steps
 
-1. Open the grant for one company, with a written reason and an end time no more than 8 hours away.
+1. Open the grant for one company, with a written reason (no email address, no buyer's name or details; it is kept in the company's audit log) and an end time no more than 8 hours away.
 2. Leave buyer data off. Only the seller's Owner or Admin can switch it on for this grant, for example when they asked you to check an address.
 3. Look. The grant is read-only: change nothing, and never act in a seller's user's name.
 4. End the grant when done, before its end time if you can.
