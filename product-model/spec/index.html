@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>21 October 2026; amended by owner rulings of 25 October 2026: the rate table kept 5 minutes (11.2)</td>
+<td>21 October 2026; amended by owner rulings of 25 October 2026: the rate table kept 5 minutes (11.2); amended by the owner&#39;s sign-off of 25 October 2026 (the developer&#39;s review): who writes <code>vat_rate</code> (1.3), <code>version</code> (2), <code>product_use</code> (2.2), the activity log (2.3), the SKU&#39;s characters (3.1), first use (3.3), changing a used SKU (3.5), a retired component (6.3.1), the retire check (9.2), delivery days and use-by (12.2), the lot a dispatch records (12.3), box-size barcodes (14.4), where the units setting is kept (15.1)</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -147,7 +147,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ol>
 <li><strong>A product is what the warehouse counts.</strong> If a picker can pick it and a count can count it, it is a product. A way of offering or grouping products (a six-unit listing, a family, a price) is not.</li>
 <li><strong>A product does not hold:</strong> stock, batches, best-before dates or landed cost (<a href="../../stock-ledger/">ADR-006</a>); selling price, shopper-facing title, photos or marketplace codes such as an ASIN (<a href="../../catalogue-sync/">ADR-005</a>); supplier codes, pack sizes, lead times or reorder points (purchasing, a later record).</li>
-<li><strong>The Products module</strong> is the only writer of the tables in this page except the link (section 8), which Listings writes (<a href="../../system-architecture/spec/#4-the-foundation-and-the-launch-modules">ADR-000 SPEC 4</a>). Every table is declared through <code>tenantTable()</code> and queried through the typed query builder (<a href="../../database-architecture/spec/#5-declaring-tables">ADR-001 SPEC 5</a>).</li>
+<li><strong>The Products module</strong> is the only writer of the tables in this page except the link (section 8), which Listings writes, and <code>vat_rate</code>, platform data in control that only the operator changes (section 11.2) (<a href="../../system-architecture/spec/#4-the-foundation-and-the-launch-modules">ADR-000 SPEC 4</a>). Every table is declared through <code>tenantTable()</code> and queried through the typed query builder (<a href="../../database-architecture/spec/#5-declaring-tables">ADR-001 SPEC 5</a>).</li>
 </ol>
 <h3 id="11-charge-lines-and-listings-that-are-not-stock">1.1 Charge lines and listings that are not stock</h3>
 <p>Owner ruling, 21 October 2026: non-stock charges are charge lines, not a product kind.</p>
@@ -310,7 +310,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><code>created_at</code>, <code>updated_at</code>, <code>version</code></td>
 <td></td>
 <td>Yes</td>
-<td>Set by the data layer. An edit based on an older <code>version</code> is refused, so two people never overwrite each other unseen</td>
+<td>Set by the module&#39;s update command. An edit based on an older <code>version</code> is refused, so two people never overwrite each other unseen</td>
 </tr>
 </tbody></table></div>
 <h3 id="21-numbers-and-money">2.1 Numbers and money</h3>
@@ -374,16 +374,21 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>product, country, class</td>
 <td><em>Later</em> (section 0)</td>
 </tr>
+<tr>
+<td><code>product_use</code></td>
+<td>product, owner module, reason (<code>stock</code>, <code>reservation</code>, <code>link</code>, <code>purchase_order_line</code>), ended at</td>
+<td>Sections 3.3 and 9.2. Written only through Products&#39; use and release ports; a row is ended, never deleted, so first use stays fixed</td>
+</tr>
 </tbody></table></div>
 <h3 id="23-activity">2.3 Activity</h3>
-<p>Every change to a product, its barcodes, components or box sizes writes an activity entry: who, when, which field, the old value and the new value. A bulk change writes one per product.</p>
+<p>Every change to a product, its barcodes, components or box sizes writes an activity entry (the event log, kept 90 days: <a href="../../data-retention/spec/#2-the-retention-schedule">ADR-002 SPEC 2</a>): who, when, which field, the old value and the new value. A bulk change writes one per product.</p>
 <h2 id="3-sku">3. SKU</h2>
 <ol>
-<li>1–40 characters: letters, digits, <code>-</code>, <code>_</code>, <code>.</code>, <code>/</code>; no spaces at the ends. 40 fits every launch marketplace&#39;s listing SKU (section 16).</li>
-<li><strong>Unique in the company whatever its case:</strong> <code>HONEY-1</code> and <code>honey-1</code> cannot both exist, because people type SKUs and marketplaces compare them differently.</li>
-<li><strong>Editable until first use, then fixed.</strong> First use is the first ledger entry, listing link, purchase order line or order line. After it the SKU is on labels, documents and supplier emails.</li>
+<li>1–40 printable ASCII characters (space to <code>~</code>), no spaces at the ends. 40 fits every launch marketplace&#39;s listing SKU (section 16). A listing&#39;s SKU that does not fit is offered as a draft with the SKU to correct.</li>
+<li><strong>Unique in the company whatever its case</strong> (ASCII lower-casing)<strong>:</strong> <code>HONEY-1</code> and <code>honey-1</code> cannot both exist, because people type SKUs and marketplaces compare them differently.</li>
+<li><strong>Editable until first use, then fixed.</strong> First use is the first ledger entry, listing link, purchase order line or order line. After it the SKU is on labels, documents and supplier emails. Inventory, Listings and Orders call Products&#39; use port in the transaction that first uses the product, which marks first use for good; the SKU and kind check reads it under the same row lock (they need Products, so Products never asks them: <a href="../../system-architecture/spec/#4-the-foundation-and-the-launch-modules">ADR-000 SPEC 4.2</a>).</li>
 <li><strong>Never reused,</strong> so old documents and reports still find their product.</li>
-<li><strong>&quot;Copy as new product&quot;</strong> copies every field except SKU and barcodes, links nothing and moves no stock. It is how a used SKU is changed: the seller relinks listings, moves stock with a recorded transfer, and retires the old product.</li>
+<li><strong>&quot;Copy as new product&quot;</strong> copies every field except SKU and barcodes, links nothing and moves no stock. It is how a used SKU is changed: the seller relinks listings, moves stock with a relabel (<a href="../../stock-ledger/spec/#2-the-ledger">ADR-006 SPEC 2.3</a>), and retires the old product.</li>
 </ol>
 <h2 id="4-barcodes">4. Barcodes</h2>
 <ol>
@@ -454,7 +459,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </ol>
 <h3 id="63-bundle">6.3 Bundle</h3>
 <ol>
-<li><strong>Components:</strong> 1–20, each a simple product or a pack with a whole quantity of 1–1,000, and at least 2 units in all. Three of one product and nothing else is refused, with a pointer to units per sale = 3.</li>
+<li><strong>Components:</strong> 1–20, each a simple product or a pack with a whole quantity of 1–1,000, and at least 2 units in all. Three of one product and nothing else is refused, with a pointer to units per sale = 3. A retired product is never added as a component.</li>
 <li><strong>Sellable is worked out, never stored:</strong> for each component, its sellable divided by the quantity needed, rounded down; the bundle&#39;s is the smallest.</li>
 <li><strong>A sale reserves whole sets of components,</strong> in the same transaction; dispatch deducts the components (<a href="../../stock-ledger/spec/#6-what-a-line-reserves">ADR-006</a>). Each component reserves its own earliest qualifying batch, and the line records each component&#39;s lot.</li>
 <li><strong>Components still sell on their own,</strong> from the same stock. When a component&#39;s sellable changes, every bundle using it and every listing linked to those bundles gets a new figure.</li>
@@ -538,7 +543,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tbody></table></div>
 <ol>
 <li><strong>Status never stops stock sync.</strong> A linked listing gets the sellable figure whatever the status, so no listing shows old stock.</li>
-<li><strong>Retiring needs an empty product:</strong> no stock, open reservations, open purchase orders or linked listings (an ended listing does not count, <a href="../../catalogue-sync/">ADR-005</a>), and no bundle that is not retired uses it. The screen names what blocks it.</li>
+<li><strong>Retiring needs an empty product:</strong> no stock, open reservations, open purchase orders or linked listings (an ended listing does not count, <a href="../../catalogue-sync/">ADR-005</a>), and no bundle that is not retired uses it. The screen names what blocks it. Each owner calls Products&#39; use port when a blocker starts (the product&#39;s first stock or open reservation, a live link, an open purchase order line) and the release port when its last one ends, which ends its <code>product_use</code> row; retiring locks the product row and needs no open row. The use port refuses a retired product for a receipt, a new link or a new manual order line. Stock that comes back by itself (a return, a count surplus, a unit found at a pick) is accepted: the product goes back to <code>inactive</code> and is named on the manager&#39;s daily list.</li>
 <li><strong>Deleting</strong> is allowed only before first use.</li>
 </ol>
 <h2 id="10-sizes-and-colours">10. Sizes and colours</h2>
@@ -595,9 +600,9 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ol>
 <li><p><strong><code>tracks_best_before</code> on:</strong> no stock enters (receiving, a count that finds stock, a return) without a date. Expired stock is never sellable or reserved. Stock with fewer than <code>min_days_to_sell</code> days left is held back from sale but stays on hand. Stock arriving with fewer than <code>min_days_on_receipt</code> days left needs a manager to accept it.</p>
 </li>
-<li><p><strong><code>date_kind = use_by</code></strong> is a hard stop: <code>min_days_to_sell</code> is required and at least 1 plus the company&#39;s delivery days, and a use-by batch is never reserved, packed or dispatched on or after its date (<a href="../../stock-ledger/#decision">ADR-006</a>).</p>
+<li><p><strong><code>date_kind = use_by</code></strong> is a hard stop: <code>min_days_to_sell</code> is required and at least 1 plus the company&#39;s delivery days, and a use-by batch is never reserved, packed or dispatched on or after its date (<a href="../../stock-ledger/spec/#4-dates-blocks-and-the-date-pass">ADR-006 SPEC 4.4</a>). When the company&#39;s delivery days rise above a use-by product&#39;s floor, the date pass uses 1 plus the delivery days, and the product is listed for a manager to correct.</p>
 </li>
-<li><p><strong><code>tracks_lot</code> on:</strong> no stock enters without a lot, and every dispatch records which lot went to which order line, bundles included. A recall is one search from the lot to every order, its destination country and date, and to the stock still on hand, which can be blocked at once.</p>
+<li><p><strong><code>tracks_lot</code> on:</strong> no stock enters without a lot, and every dispatch records the lot of the batch it took for each order line, bundles included: the one eligible batch when only one is, tapped at packing for use-by products and business buyers when several are, otherwise the reserved batch marked &quot;batch assumed&quot; (<a href="../../stock-ledger/spec/#7-ports-fulfilment-and-orders-call">ADR-006 SPEC 7.2</a>, <a href="../../fulfilment/spec/#3-packing">ADR-014 SPEC 3</a>). A recall lists those lines apart. A recall is one search from the lot to every order, its destination country and date, and to the stock still on hand, which can be blocked at once.</p>
 </li>
 <li><p><strong>A pack follows its content product:</strong> a six-pack of a dated product is dated too. Repacking keeps the batch, date and lot.</p>
 </li>
@@ -625,7 +630,7 @@ Rules 7 and 8 are <em>Later</em> (<a href="#0-at-launch-and-later">section 0</a>
 <li><strong>Sheets:</strong> Products (one row each, with family name and option values), Bundle components, Box sizes and Barcodes, each keyed by SKU. Only Products is required.</li>
 <li><strong>SKU is the match key,</strong> whatever its case. A known SKU updates; a new SKU creates and must carry every required field.</li>
 <li><strong>A blank cell or a missing column changes nothing.</strong> To empty a field on purpose the cell holds <code>(clear)</code>. Spreadsheet programs drop and reorder columns; a blank read as empty would wipe data.</li>
-<li><strong>Lists replace per product:</strong> a product named on Bundle components, Box sizes or Barcodes gets exactly those rows; others keep theirs.</li>
+<li><strong>Lists replace per product:</strong> a product named on Bundle components, Box sizes or Barcodes gets exactly those rows; others keep theirs. Box-size barcodes travel on the Box sizes sheet; the Barcodes sheet holds a product&#39;s own barcodes.</li>
 <li><strong>Measure columns name their unit</strong> in the heading (&quot;Weight (g)&quot;, &quot;Weight (oz)&quot;). Either is read whatever the company&#39;s setting, and converted as in section 15.</li>
 <li><strong>Preview first:</strong> the whole file is checked before anything is written. The preview lists, per row, what is created, each field that changes (old and new value), and every error with its sheet, row and column.</li>
 <li><strong>Errors never apply.</strong> Rows with errors are skipped and can be downloaded with the error beside each; the valid rows are written in one transaction on confirm.</li>
@@ -635,7 +640,7 @@ Rules 7 and 8 are <em>Later</em> (<a href="#0-at-launch-and-later">section 0</a>
 <h2 id="15-units-of-measure">15. Units of measure</h2>
 <p>Owner ruling, 21 October 2026.</p>
 <ol>
-<li><strong>A company setting, <code>metric</code> or <code>imperial</code>,</strong> held with the company&#39;s settings (<a href="../../users-and-access/spec/#4-who-may-do-what">ADR-010</a>). It defaults from the company&#39;s country: imperial for the United States, metric everywhere else, the UK included. Owners and Admins change it in Settings. It is never asked at sign-up.</li>
+<li><strong>A company setting, <code>metric</code> or <code>imperial</code>,</strong> kept by Access with the company&#39;s settings and read through its port (<a href="../../users-and-access/spec/#4-who-may-do-what">ADR-010 SPEC 4</a>). It defaults from the company&#39;s country: imperial for the United States, metric everywhere else, the UK included. Changing the country sets the units to that country&#39;s default. Owners and Admins change it in Settings. It is never asked at sign-up.</li>
 <li><strong>Storage never changes:</strong> whole grams and millimetres, whatever the setting.</li>
 <li><strong>Imperial entry:</strong> weight in pounds and ounces, size in inches. 1 oz = 28.349523125 g; 1 in = 25.4 mm.</li>
 <li><strong>Rounding on entry:</strong> the converted value is rounded half up to the nearest whole gram or millimetre, and never below 1. The screen shows the stored value back in the person&#39;s units before saving.</li>
@@ -694,7 +699,7 @@ Rules 7 and 8 are <em>Later</em> (<a href="#0-at-launch-and-later">section 0</a>
 </thead>
 <tbody><tr>
 <td>SKU</td>
-<td>Two SKUs differing only in case are refused; a used SKU and a used kind cannot change; a retired SKU is never reused</td>
+<td>Two SKUs differing only in case are refused; a used SKU and a used kind cannot change, also after its last blocker ends; a retired SKU is never reused</td>
 </tr>
 <tr>
 <td>Barcodes</td>
@@ -718,7 +723,7 @@ Rules 7 and 8 are <em>Later</em> (<a href="#0-at-launch-and-later">section 0</a>
 </tr>
 <tr>
 <td>Status</td>
-<td>Retiring is refused while any blocker holds, and each blocker is named; a retired product&#39;s linked listing still gets its figure until unlinked</td>
+<td>Retiring is refused while any blocker holds, and each blocker is named; a receipt, a new link, a manual line or a component for a retired product is refused, and a return puts it back to <code>inactive</code>; a retired product&#39;s linked listing still gets its figure until unlinked</td>
 </tr>
 <tr>
 <td>Charge lines</td>

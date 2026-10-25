@@ -2,8 +2,8 @@
 
 | | |
 | --- | --- |
-| **Status** | Proposed |
-| **Date** | 17 October 2026; charge lines, a units setting and barcodes without a type question (owner rulings), split into ADR, SPEC and RUNBOOK, 21 October 2026; serial tracking deferred 21 October 2026; amended by owner rulings of 25 October 2026: lot questions at packing for use-by products and business buyers |
+| **Status** | Accepted, 25 October 2026, after the developer's review and the owner's sign-off |
+| **Date** | 17 October 2026; charge lines, a units setting and barcodes without a type question (owner rulings), split into ADR, SPEC and RUNBOOK, 21 October 2026; serial tracking deferred 21 October 2026; amended by owner rulings of 25 October 2026: lot questions at packing for use-by products and business buyers; amended by the owner's sign-off of 25 October 2026 (the developer's review): what a dispatch records of its lot (8) |
 | **Scope** | What a product is and what it holds: the SKU, packs, bundles, box sizes, barcodes, size and colour families, VAT classes, best-before and lot tracking (serial tracking *Later*), the link from a listing, units of measure, and how products are created |
 | **Builds on** | [ADR-000](../system-architecture/), [ADR-001](../database-architecture/); used by [ADR-005](../catalogue-sync/), [ADR-006](../stock-ledger/), [ADR-007](../order-ingestion/) and [ADR-011](../invoicing-and-vat/) |
 | **SPEC** | [The rules to build from, and how to check them](spec/) |
@@ -28,7 +28,7 @@ Parts marked *Later* keep their rules in the SPEC but are built only when their 
 5. **A listing links to exactly one product,** with the units one sale uses and who ships it. The product holds no selling price; prices belong to the channel.
 6. **Sizes and colours are product families.** Each size or colour is its own product with its own stock; the family groups up to three options, so a range is linked to one variation listing in one step. *Later: creating a range as a grid and editing it together.*
 7. **VAT is a class on the product; rates come from one table by country,** kept by the operator. Every line stores the class and rate it used. *Later: a different class per country, when selling into the EU.*
-8. **Best-before and lot tracking are switched on per product.** With dates or lots on, no stock enters without them, expired stock is never sold, and every dispatch records its lot. *Later: serial tracking (electronics, tools), when a first customer needs it; its rules stay in the [SPEC](spec/#0-at-launch-and-later).* *Later: a dangerous-goods class and an age check on the product, when the shipping record needs them for carriers and labels.*
+8. **Best-before and lot tracking are switched on per product.** With dates or lots on, no stock enters without them, expired stock is never sold, and every dispatch records the lot it took, marked assumed where packing named none ([ADR-014](../fulfilment/)). *Later: serial tracking (electronics, tools), when a first customer needs it; its rules stay in the [SPEC](spec/#0-at-launch-and-later).* *Later: a dangerous-goods class and an age check on the product, when the shipping record needs them for carriers and labels.*
 9. **Measures are stored in whole grams and millimetres** and shown metric or imperial by a company setting, which defaults from the country (metric for the UK), is changed in Settings and is never asked at sign-up. Values are converted only on entry and display (owner ruling, 21 October 2026).
 10. **Products are created three ways through one validation:** on screen, by spreadsheet, and from a marketplace listing. A person confirms each one. *Later: from a pasted Amazon link, a category tree and more than one image.* In a spreadsheet a blank cell changes nothing.
 

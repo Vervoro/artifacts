@@ -201,7 +201,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p>A SKU Amazon fulfils on any of the account&#39;s marketplaces is Amazon&#39;s and is never sent a figure: one update names every marketplace. Its orders are recorded for reports (<a href="../../product-model/">ADR-003</a>).</p>
 <h2 id="7-stock-amazon-holds">7. Stock Amazon holds</h2>
 <ol>
-<li><strong>A reading, not stock.</strong> Read with <code>getInventorySummaries</code>, kept by Inventory as a dated reading per product beside its four numbers (<a href="../../stock-ledger/">ADR-006</a>). It moves no stock and sends no figure.</li>
+<li><strong>A reading, not stock.</strong> Read with <code>getInventorySummaries</code>, kept by Channels as a dated reading per product and account, shown beside Inventory&#39;s four numbers (<a href="../../stock-ledger/spec/#6-what-a-line-reserves">ADR-006 SPEC 6.9</a>). It moves no stock and sends no figure.</li>
 <li><strong>What is read,</strong> per marketplace, with details: units Amazon can ship, reserved or in transfer, unsellable, under investigation, inbound. A summary reaches the product through the listing&#39;s link; a pack&#39;s units are multiplied by its units per sale. A SKU with no link is kept on the listing until linked.</li>
 <li><strong>When:</strong> a full read daily, and after each <code>FBA_INVENTORY_AVAILABILITY_CHANGES</code> notice for the SKUs it names. A change read misses inbound units, so the daily read is always full.</li>
 <li><strong>Paging:</strong> up to 50 SKUs a filtered call; a page token lasts 30 seconds, so a read pages straight through and restarts if it stalls.</li>

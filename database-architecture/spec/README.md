@@ -58,7 +58,7 @@ A move or restore changes the source row first, so a stale route to the old data
 | Cascade to `tenant` | Every table has `company_id → tenant(id) ON DELETE CASCADE`. Deleting the tenant row is the last step of an erase ([section 10](#10-company-lifecycle)); the cascade guarantees nothing is left |
 | IDs | uuidv7. No `serial` or identity columns, so nothing is numbered across companies and no id reveals a company's database |
 | Human numbers and ordering | PO numbers, outbox sequence, the stock ledger's gapless sequence: from a counter table keyed `(company_id, name)`, taken in the writer's transaction. Counters travel with the company |
-| The company's lock | A stock command's first statement after entering updates the company's stock counter row. That row lock is the company's lock, and the same update returns the next ledger number ([ADR-006](../../stock-ledger/)) |
+| The company's lock | A stock command's first statement after entering updates the company's stock counter row. That row lock is the company's lock; the transaction's first ledger entry takes the next ledger number from the same row, so a transaction that writes no entry spends none ([ADR-006 SPEC 12](../../stock-ledger/spec/#12-the-lock-keys-and-the-sequence), owner's sign-off, 25 October 2026) |
 | Upserts | Only through `conflict('id')`, which emits `ON CONFLICT (company_id, id)` |
 | Marketplace cursors and watermarks | Keyed `(company_id, account)` |
 | Idempotency and request keys | Unique per `(company_id, key)`, or per `(company_id, actor, key)` for request keys ([section 5](#5-declaring-tables) rule 8), in an unpartitioned table where the rows they guard are partitioned ([section 5](#5-declaring-tables)) |

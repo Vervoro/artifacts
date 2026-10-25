@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>21 October 2026; amended by owner rulings of 25 October 2026: orders not partitioned (3.2, 23)</td>
+<td>21 October 2026; amended by owner rulings of 25 October 2026: orders not partitioned (3.2, 23); amended by the owner&#39;s sign-off of 25 October 2026 (the developer&#39;s review): Orders&#39; nightly check (6.2), a hold passes the queue facts (11)</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -350,7 +350,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tbody></table></div>
 <ol>
 <li><strong>An unexpected move is an alarm, not a refusal.</strong> It is written, because refusing the marketplace&#39;s facts would stall the account; it holds the order &quot;unexpected status change&quot; and alerts the operator at once, so a mapping bug is caught on its first order.</li>
-<li><strong>Checked every night.</strong> ADR-006&#39;s nightly check works every open order&#39;s status out again; a difference alerts the operator. A new version of the function is run against every open order before deploy, and its moves reviewed.</li>
+<li><strong>Checked every night</strong> by Orders, per company on a consistent snapshot: no open reservation remains on a cancelled, fully shipped or re-resolved line (read through Inventory&#39;s port); per day, units on shipped lines equal their <code>dispatched</code> entries (× units per sale of the link version); each open order&#39;s status worked out again equals the stored one. A difference in the first two alerts the operator and the company&#39;s managers and holds raises on those products (<a href="../../inventory-sync/spec/#7-held-raises">ADR-008 SPEC 7</a>); a status difference alerts the operator only. A new version of the function is run against every open order before deploy, and its moves reviewed.</li>
 <li><strong>A hold never changes the status.</strong> Shipped and cancelled are final (section 4).</li>
 <li><strong>Orders the marketplace ships</strong> use only pending, open, part shipped, shipped and cancelled.</li>
 </ol>
@@ -557,7 +557,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ol>
 <li><strong>A set of reasons,</strong> each with who or what set it, when, why and a decide-by time. Any reason keeps the order off the picking list; starting to pick, packing and confirming a shipment are refused.</li>
 <li><strong>A hold keeps the reservation</strong> and sends nothing to the marketplace. A confirmed cancellation still cancels a held order.</li>
-<li><strong>Append-only.</strong> Every hold and release is a row in <code>sales_order_hold</code>; the current set is read from it. A release can be undone at once, restoring the old reason.</li>
+<li><strong>Append-only.</strong> Every hold and release is a row in <code>sales_order_hold</code>; the current set is read from it. A hold or release takes the company&#39;s lock and passes the line&#39;s queue facts to Inventory (<a href="../../stock-ledger/spec/#53-reserving-an-order-line">ADR-006 SPEC 5.3</a>). A release can be undone at once, restoring the old reason.</li>
 <li><strong>The kind decides who clears it,</strong> not a mark on the person (<a href="../../users-and-access/spec/#4-who-may-do-what">ADR-010 SPEC 4</a>):</li>
 </ol>
 <div class="table-wrap"><table>

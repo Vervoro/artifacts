@@ -77,7 +77,7 @@ A SKU Amazon fulfils on any of the account's marketplaces is Amazon's and is nev
 
 ## 7. Stock Amazon holds
 
-1. **A reading, not stock.** Read with `getInventorySummaries`, kept by Inventory as a dated reading per product beside its four numbers ([ADR-006](../../stock-ledger/)). It moves no stock and sends no figure.
+1. **A reading, not stock.** Read with `getInventorySummaries`, kept by Channels as a dated reading per product and account, shown beside Inventory's four numbers ([ADR-006 SPEC 6.9](../../stock-ledger/spec/#6-what-a-line-reserves)). It moves no stock and sends no figure.
 2. **What is read,** per marketplace, with details: units Amazon can ship, reserved or in transfer, unsellable, under investigation, inbound. A summary reaches the product through the listing's link; a pack's units are multiplied by its units per sale. A SKU with no link is kept on the listing until linked.
 3. **When:** a full read daily, and after each `FBA_INVENTORY_AVAILABILITY_CHANGES` notice for the SKUs it names. A change read misses inbound units, so the daily read is always full.
 4. **Paging:** up to 50 SKUs a filtered call; a page token lasts 30 seconds, so a read pages straight through and restarts if it stalls.

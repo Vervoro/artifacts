@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-003: Product model](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-003-product-model) |
-| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: the rate table kept 5 minutes (11.2) |
+| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: the rate table kept 5 minutes (11.2); amended by the owner's sign-off of 25 October 2026 (the developer's review): who writes `vat_rate` (1.3), `version` (2), `product_use` (2.2), the activity log (2.3), the SKU's characters (3.1), first use (3.3), changing a used SKU (3.5), a retired component (6.3.1), the retire check (9.2), delivery days and use-by (12.2), the lot a dispatch records (12.3), box-size barcodes (14.4), where the units setting is kept (15.1) |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-003 from. Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/).
@@ -29,7 +29,7 @@ Everything below is built at launch except these parts, which keep their rules h
 
 1. **A product is what the warehouse counts.** If a picker can pick it and a count can count it, it is a product. A way of offering or grouping products (a six-unit listing, a family, a price) is not.
 2. **A product does not hold:** stock, batches, best-before dates or landed cost ([ADR-006](../../stock-ledger/)); selling price, shopper-facing title, photos or marketplace codes such as an ASIN ([ADR-005](../../catalogue-sync/)); supplier codes, pack sizes, lead times or reorder points (purchasing, a later record).
-3. **The Products module** is the only writer of the tables in this page except the link (section 8), which Listings writes ([ADR-000 SPEC 4](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)). Every table is declared through `tenantTable()` and queried through the typed query builder ([ADR-001 SPEC 5](../../database-architecture/spec/#5-declaring-tables)).
+3. **The Products module** is the only writer of the tables in this page except the link (section 8), which Listings writes, and `vat_rate`, platform data in control that only the operator changes (section 11.2) ([ADR-000 SPEC 4](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)). Every table is declared through `tenantTable()` and queried through the typed query builder ([ADR-001 SPEC 5](../../database-architecture/spec/#5-declaring-tables)).
 
 ### 1.1 Charge lines and listings that are not stock
 
@@ -69,7 +69,7 @@ Owner ruling, 21 October 2026: non-stock charges are charge lines, not a product
 | `min_age` | integer | No | *Later.* 16 or 18. The buyer's age a carrier must check on delivery (alcohol, knives) |
 | `vat_class` | Section 11 | Yes | Default `standard` |
 | `standard_cost`, `standard_cost_currency` | decimal (4 places), ISO 4217 | No; together | Expected cost of one unit, for planning before any batch exists. The company's currency at launch |
-| `created_at`, `updated_at`, `version` | | Yes | Set by the data layer. An edit based on an older `version` is refused, so two people never overwrite each other unseen |
+| `created_at`, `updated_at`, `version` | | Yes | Set by the module's update command. An edit based on an older `version` is refused, so two people never overwrite each other unseen |
 
 ### 2.1 Numbers and money
 
@@ -91,18 +91,19 @@ Owner ruling, 21 October 2026: non-stock charges are charge lines, not a product
 | `tag`, `product_tag` | name; product, tag | Flat; names unique in the company whatever their case |
 | `vat_rate` | country, class, rate in hundredths of a percent, valid from, valid to | Platform data in control, the same for every company (section 11) |
 | `product_vat` | product, country, class | *Later* (section 0) |
+| `product_use` | product, owner module, reason (`stock`, `reservation`, `link`, `purchase_order_line`), ended at | Sections 3.3 and 9.2. Written only through Products' use and release ports; a row is ended, never deleted, so first use stays fixed |
 
 ### 2.3 Activity
 
-Every change to a product, its barcodes, components or box sizes writes an activity entry: who, when, which field, the old value and the new value. A bulk change writes one per product.
+Every change to a product, its barcodes, components or box sizes writes an activity entry (the event log, kept 90 days: [ADR-002 SPEC 2](../../data-retention/spec/#2-the-retention-schedule)): who, when, which field, the old value and the new value. A bulk change writes one per product.
 
 ## 3. SKU
 
-1. 1–40 characters: letters, digits, `-`, `_`, `.`, `/`; no spaces at the ends. 40 fits every launch marketplace's listing SKU (section 16).
-2. **Unique in the company whatever its case:** `HONEY-1` and `honey-1` cannot both exist, because people type SKUs and marketplaces compare them differently.
-3. **Editable until first use, then fixed.** First use is the first ledger entry, listing link, purchase order line or order line. After it the SKU is on labels, documents and supplier emails.
+1. 1–40 printable ASCII characters (space to `~`), no spaces at the ends. 40 fits every launch marketplace's listing SKU (section 16). A listing's SKU that does not fit is offered as a draft with the SKU to correct.
+2. **Unique in the company whatever its case** (ASCII lower-casing)**:** `HONEY-1` and `honey-1` cannot both exist, because people type SKUs and marketplaces compare them differently.
+3. **Editable until first use, then fixed.** First use is the first ledger entry, listing link, purchase order line or order line. After it the SKU is on labels, documents and supplier emails. Inventory, Listings and Orders call Products' use port in the transaction that first uses the product, which marks first use for good; the SKU and kind check reads it under the same row lock (they need Products, so Products never asks them: [ADR-000 SPEC 4.2](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)).
 4. **Never reused,** so old documents and reports still find their product.
-5. **"Copy as new product"** copies every field except SKU and barcodes, links nothing and moves no stock. It is how a used SKU is changed: the seller relinks listings, moves stock with a recorded transfer, and retires the old product.
+5. **"Copy as new product"** copies every field except SKU and barcodes, links nothing and moves no stock. It is how a used SKU is changed: the seller relinks listings, moves stock with a relabel ([ADR-006 SPEC 2.3](../../stock-ledger/spec/#2-the-ledger)), and retires the old product.
 
 ## 4. Barcodes
 
@@ -143,7 +144,7 @@ Every change to a product, its barcodes, components or box sizes writes an activ
 
 ### 6.3 Bundle
 
-1. **Components:** 1–20, each a simple product or a pack with a whole quantity of 1–1,000, and at least 2 units in all. Three of one product and nothing else is refused, with a pointer to units per sale = 3.
+1. **Components:** 1–20, each a simple product or a pack with a whole quantity of 1–1,000, and at least 2 units in all. Three of one product and nothing else is refused, with a pointer to units per sale = 3. A retired product is never added as a component.
 2. **Sellable is worked out, never stored:** for each component, its sellable divided by the quantity needed, rounded down; the bundle's is the smallest.
 3. **A sale reserves whole sets of components,** in the same transaction; dispatch deducts the components ([ADR-006](../../stock-ledger/spec/#6-what-a-line-reserves)). Each component reserves its own earliest qualifying batch, and the line records each component's lot.
 4. **Components still sell on their own,** from the same stock. When a component's sellable changes, every bundle using it and every listing linked to those bundles gets a new figure.
@@ -195,7 +196,7 @@ Listings and how they are read and matched are [ADR-005](../../catalogue-sync/).
 | `retired` | Finished | Cannot be ordered |
 
 1. **Status never stops stock sync.** A linked listing gets the sellable figure whatever the status, so no listing shows old stock.
-2. **Retiring needs an empty product:** no stock, open reservations, open purchase orders or linked listings (an ended listing does not count, [ADR-005](../../catalogue-sync/)), and no bundle that is not retired uses it. The screen names what blocks it.
+2. **Retiring needs an empty product:** no stock, open reservations, open purchase orders or linked listings (an ended listing does not count, [ADR-005](../../catalogue-sync/)), and no bundle that is not retired uses it. The screen names what blocks it. Each owner calls Products' use port when a blocker starts (the product's first stock or open reservation, a live link, an open purchase order line) and the release port when its last one ends, which ends its `product_use` row; retiring locks the product row and needs no open row. The use port refuses a retired product for a receipt, a new link or a new manual order line. Stock that comes back by itself (a return, a count surplus, a unit found at a pick) is accepted: the product goes back to `inactive` and is named on the manager's daily list.
 3. **Deleting** is allowed only before first use.
 
 ## 10. Sizes and colours
@@ -232,8 +233,8 @@ Listings and how they are read and matched are [ADR-005](../../catalogue-sync/).
 Batches, dates and lots live on stock ([ADR-006](../../stock-ledger/spec/#4-dates-blocks-and-the-date-pass)); the product says only that they are required. The food-law constraints are ADR-006's.
 
 1. **`tracks_best_before` on:** no stock enters (receiving, a count that finds stock, a return) without a date. Expired stock is never sellable or reserved. Stock with fewer than `min_days_to_sell` days left is held back from sale but stays on hand. Stock arriving with fewer than `min_days_on_receipt` days left needs a manager to accept it.
-2. **`date_kind = use_by`** is a hard stop: `min_days_to_sell` is required and at least 1 plus the company's delivery days, and a use-by batch is never reserved, packed or dispatched on or after its date ([ADR-006](../../stock-ledger/#decision)).
-3. **`tracks_lot` on:** no stock enters without a lot, and every dispatch records which lot went to which order line, bundles included. A recall is one search from the lot to every order, its destination country and date, and to the stock still on hand, which can be blocked at once.
+2. **`date_kind = use_by`** is a hard stop: `min_days_to_sell` is required and at least 1 plus the company's delivery days, and a use-by batch is never reserved, packed or dispatched on or after its date ([ADR-006 SPEC 4.4](../../stock-ledger/spec/#4-dates-blocks-and-the-date-pass)). When the company's delivery days rise above a use-by product's floor, the date pass uses 1 plus the delivery days, and the product is listed for a manager to correct.
+3. **`tracks_lot` on:** no stock enters without a lot, and every dispatch records the lot of the batch it took for each order line, bundles included: the one eligible batch when only one is, tapped at packing for use-by products and business buyers when several are, otherwise the reserved batch marked "batch assumed" ([ADR-006 SPEC 7.2](../../stock-ledger/spec/#7-ports-fulfilment-and-orders-call), [ADR-014 SPEC 3](../../fulfilment/spec/#3-packing)). A recall lists those lines apart. A recall is one search from the lot to every order, its destination country and date, and to the stock still on hand, which can be blocked at once.
 4. **A pack follows its content product:** a six-pack of a dated product is dated too. Repacking keeps the batch, date and lot.
 5. **Switching on while stock is on hand** flags that stock for a count to fill in the dates or lots. Until then it stays sellable, shown as missing them, except under use-by: undated use-by stock is held until its date is entered ([ADR-006 SPEC 4.4](../../stock-ledger/spec/#4-dates-blocks-and-the-date-pass)).
 6. A company setting gives new products their defaults, so a food seller starts with both on.
@@ -258,7 +259,7 @@ One workbook serves export, bulk edit and bulk create.
 1. **Sheets:** Products (one row each, with family name and option values), Bundle components, Box sizes and Barcodes, each keyed by SKU. Only Products is required.
 2. **SKU is the match key,** whatever its case. A known SKU updates; a new SKU creates and must carry every required field.
 3. **A blank cell or a missing column changes nothing.** To empty a field on purpose the cell holds `(clear)`. Spreadsheet programs drop and reorder columns; a blank read as empty would wipe data.
-4. **Lists replace per product:** a product named on Bundle components, Box sizes or Barcodes gets exactly those rows; others keep theirs.
+4. **Lists replace per product:** a product named on Bundle components, Box sizes or Barcodes gets exactly those rows; others keep theirs. Box-size barcodes travel on the Box sizes sheet; the Barcodes sheet holds a product's own barcodes.
 5. **Measure columns name their unit** in the heading ("Weight (g)", "Weight (oz)"). Either is read whatever the company's setting, and converted as in section 15.
 6. **Preview first:** the whole file is checked before anything is written. The preview lists, per row, what is created, each field that changes (old and new value), and every error with its sheet, row and column.
 7. **Errors never apply.** Rows with errors are skipped and can be downloaded with the error beside each; the valid rows are written in one transaction on confirm.
@@ -269,7 +270,7 @@ One workbook serves export, bulk edit and bulk create.
 
 Owner ruling, 21 October 2026.
 
-1. **A company setting, `metric` or `imperial`,** held with the company's settings ([ADR-010](../../users-and-access/spec/#4-who-may-do-what)). It defaults from the company's country: imperial for the United States, metric everywhere else, the UK included. Owners and Admins change it in Settings. It is never asked at sign-up.
+1. **A company setting, `metric` or `imperial`,** kept by Access with the company's settings and read through its port ([ADR-010 SPEC 4](../../users-and-access/spec/#4-who-may-do-what)). It defaults from the company's country: imperial for the United States, metric everywhere else, the UK included. Changing the country sets the units to that country's default. Owners and Admins change it in Settings. It is never asked at sign-up.
 2. **Storage never changes:** whole grams and millimetres, whatever the setting.
 3. **Imperial entry:** weight in pounds and ounces, size in inches. 1 oz = 28.349523125 g; 1 in = 25.4 mm.
 4. **Rounding on entry:** the converted value is rounded half up to the nearest whole gram or millimetre, and never below 1. The screen shows the stored value back in the person's units before saving.
@@ -294,13 +295,13 @@ Database tests run on real Postgres under the runtime role ([ADR-000 SPEC 15](..
 
 | Test | Proves |
 | --- | --- |
-| SKU | Two SKUs differing only in case are refused; a used SKU and a used kind cannot change; a retired SKU is never reused |
+| SKU | Two SKUs differing only in case are refused; a used SKU and a used kind cannot change, also after its last blocker ends; a retired SKU is never reused |
 | Barcodes | Each length normalises to 14 digits and keeps its original length; a wrong check digit is refused with the right one; restricted and internal codes never match a listing; a code held by another product or box size is refused; no input asks for a barcode type |
 | Pack | A pack of a pack or of a bundle is refused; a repack changes no total of base units |
 | Bundle | Sellable equals the smallest component quotient; a bundle in a bundle, a single-product bundle and a ledger entry against a bundle are refused; an open order keeps its components after an edit |
 | Box sizes | Scanning a box barcode adds its units; no box size has a balance |
 | Families | A missing option value and a repeated combination are refused; a variation listing pairs with members by SKU or options |
-| Status | Retiring is refused while any blocker holds, and each blocker is named; a retired product's linked listing still gets its figure until unlinked |
+| Status | Retiring is refused while any blocker holds, and each blocker is named; a receipt, a new link, a manual line or a component for a retired product is refused, and a return puts it back to `inactive`; a retired product's linked listing still gets its figure until unlinked |
 | Charge lines | A manual order with only charge lines reserves nothing and never reaches the pick list; a not-stock listing's order line imports as a charge line, gets a VAT record and never waits |
 | Units | Imperial entry rounds half up to whole grams and millimetres; saving a form without touching a measure leaves it unchanged; an imperial-headed column imports for a metric company |
 | Spreadsheet | A blank cell and a missing column change nothing; `(clear)` empties; a file with errors writes only its valid rows, all at once; a SKU twice in a file is refused |

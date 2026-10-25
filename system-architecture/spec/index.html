@@ -212,8 +212,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><strong>Products</strong></td>
 <td>Core</td>
 <td>ADR-003</td>
-<td>Products, families, packs, bundles, barcodes, VAT classes</td>
-<td>—</td>
+<td>Products, families, packs, bundles, barcodes, VAT classes, each product&#39;s first use</td>
+<td>Access (the company&#39;s settings)</td>
 <td>Products</td>
 </tr>
 <tr>
@@ -228,8 +228,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><strong>Inventory</strong></td>
 <td>Core</td>
 <td>ADR-006</td>
-<td>Warehouses and spots, batches, the ledger and balances, reservations, receipts, counts, transfers</td>
-<td>Products</td>
+<td>Warehouses and spots, batches, the ledger and balances, reservations and short lines&#39; queue, receipts, counts, transfers</td>
+<td>Products, Access (the company&#39;s settings)</td>
 <td>Inventory; Settings: warehouses</td>
 </tr>
 <tr>
@@ -276,7 +276,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><strong>Channels</strong> (ADR-004&#39;s host)</td>
 <td>Switchable</td>
 <td>ADR-004</td>
-<td>Connections, sealed credentials, modes, rate budgets, notices, egress records</td>
+<td>Connections, sealed credentials, modes, rate budgets, notices, egress records, each account&#39;s default warehouse, marketplace stock readings</td>
 <td>Listings, Orders</td>
 <td>Channels</td>
 </tr>
@@ -407,7 +407,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Access</td>
-<td>Itself and Billing</td>
+<td>Itself, Billing, Products and Inventory, and every module that re-runs for them</td>
 </tr>
 <tr>
 <td>Channels</td>

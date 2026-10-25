@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-007: Order ingestion](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-007-order-ingestion) |
-| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: orders not partitioned (3.2, 23) |
+| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: orders not partitioned (3.2, 23); amended by the owner's sign-off of 25 October 2026 (the developer's review): Orders' nightly check (6.2), a hold passes the queue facts (11) |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-007 from: the Orders module, core and always on, needing Products, Listings, Inventory and Buyer data ([ADR-000 SPEC 4](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)). Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/).
@@ -112,7 +112,7 @@ One function works the status out from the order's facts, inside every transacti
 | Any but cancelled | Shipped | Vervoro's shipment is confirmed, or the marketplace reports the rest shipped or cancelled |
 
 1. **An unexpected move is an alarm, not a refusal.** It is written, because refusing the marketplace's facts would stall the account; it holds the order "unexpected status change" and alerts the operator at once, so a mapping bug is caught on its first order.
-2. **Checked every night.** ADR-006's nightly check works every open order's status out again; a difference alerts the operator. A new version of the function is run against every open order before deploy, and its moves reviewed.
+2. **Checked every night** by Orders, per company on a consistent snapshot: no open reservation remains on a cancelled, fully shipped or re-resolved line (read through Inventory's port); per day, units on shipped lines equal their `dispatched` entries (× units per sale of the link version); each open order's status worked out again equals the stored one. A difference in the first two alerts the operator and the company's managers and holds raises on those products ([ADR-008 SPEC 7](../../inventory-sync/spec/#7-held-raises)); a status difference alerts the operator only. A new version of the function is run against every open order before deploy, and its moves reviewed.
 3. **A hold never changes the status.** Shipped and cancelled are final (section 4).
 4. **Orders the marketplace ships** use only pending, open, part shipped, shipped and cancelled.
 
@@ -210,7 +210,7 @@ A hold pauses an order. It does not release it.
 
 1. **A set of reasons,** each with who or what set it, when, why and a decide-by time. Any reason keeps the order off the picking list; starting to pick, packing and confirming a shipment are refused.
 2. **A hold keeps the reservation** and sends nothing to the marketplace. A confirmed cancellation still cancels a held order.
-3. **Append-only.** Every hold and release is a row in `sales_order_hold`; the current set is read from it. A release can be undone at once, restoring the old reason.
+3. **Append-only.** Every hold and release is a row in `sales_order_hold`; the current set is read from it. A hold or release takes the company's lock and passes the line's queue facts to Inventory ([ADR-006 SPEC 5.3](../../stock-ledger/spec/#53-reserving-an-order-line)). A release can be undone at once, restoring the old reason.
 4. **The kind decides who clears it,** not a mark on the person ([ADR-010 SPEC 4](../../users-and-access/spec/#4-who-may-do-what)):
 
 | Kind | Placed by | Cleared by |

@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-005: Catalogue sync and linking](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-005-catalogue-sync-and-linking) |
-| **Date** | 21 October 2026 |
+| **Date** | 21 October 2026; amended by the owner's sign-off of 25 October 2026 (the developer's review): a new link to a retired product refused (11) |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-005 from: the Listings module, core and always on, needing Products, and its part in Channels, which reads the marketplaces for it ([ADR-000 SPEC 4](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)). Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/).
@@ -171,7 +171,7 @@ The link's fields and what a sale reserves are [ADR-003 SPEC 8](../../product-mo
 
 ### 11.6 Unlinking
 
-Closing a link without a new one, by a person or by an undo. A product with linked listings cannot be retired ([ADR-003 SPEC 9.2](../../product-model/spec/#9-status)).
+Closing a link without a new one, by a person or by an undo. A product with linked listings cannot be retired, and a new link to a retired product is refused ([ADR-003 SPEC 9.2](../../product-model/spec/#9-status)).
 
 1. **Reserved orders keep their stock** ([ADR-006 SPEC 6.6](../../stock-ledger/spec/#6-what-a-line-reserves)); the screen says how many.
 2. **The listing is sent 0 by default.** The screen offers "Set to 0 and unlink", the default, or "Leave the marketplace's figure", showing the figure. The choice is recorded on the closed link, and Stock sync carries it out as a stop ([ADR-008 SPEC 10.2](../../inventory-sync/spec/#10-listing-modes-and-stopping)).

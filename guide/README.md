@@ -208,7 +208,7 @@ One word per concept, defined once, with the record that owns it. Where two word
 | **Date pass** | The run just after midnight, in the company's time zone, that moves unpacked reservations off batches that crossed their sell-by date (ADR-006 SPEC 4) |
 | **Nightly check** | The proof, per company, that every balance equals its ledger entries and every reserved number its open reservations. A difference alerts and holds raises (ADR-006 SPEC 14) |
 | **Lot trace** | One search from a lot to every demand that received it and the stock still on hand; the recall list joins it with the orders (ADR-006 SPEC 10, ADR-014 SPEC 7) |
-| **Marketplace stock reading** | What a marketplace holds in its own warehouses (Amazon FBA), read and shown beside the four numbers, never added to them (ADR-006 SPEC 6, ADR-004.2) |
+| **Marketplace stock reading** | What a marketplace holds in its own warehouses (Amazon FBA), kept by Channels, shown beside the four numbers, never added to them (ADR-006 SPEC 6, ADR-004.2) |
 
 ### Money and VAT
 

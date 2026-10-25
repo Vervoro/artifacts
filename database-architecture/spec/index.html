@@ -217,7 +217,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>The company&#39;s lock</td>
-<td>A stock command&#39;s first statement after entering updates the company&#39;s stock counter row. That row lock is the company&#39;s lock, and the same update returns the next ledger number (<a href="../../stock-ledger/">ADR-006</a>)</td>
+<td>A stock command&#39;s first statement after entering updates the company&#39;s stock counter row. That row lock is the company&#39;s lock; the transaction&#39;s first ledger entry takes the next ledger number from the same row, so a transaction that writes no entry spends none (<a href="../../stock-ledger/spec/#12-the-lock-keys-and-the-sequence">ADR-006 SPEC 12</a>, owner&#39;s sign-off, 25 October 2026)</td>
 </tr>
 <tr>
 <td>Upserts</td>
