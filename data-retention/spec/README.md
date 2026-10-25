@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-002: Data retention and archiving](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-002-data-retention-and-archiving) |
-| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: `audit_log` kept 13 months, never archived, a whole table's month deleted in batches (1, 3) |
+| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: `audit_log` kept 13 months, never archived, a whole table's month deleted in batches (1, 3); and SPEC batch 3: an expired invitation's member-row address (2) |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-002 from: how long a company's data stays in its cell, the archive, and deletion. Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/).
@@ -35,7 +35,7 @@ At launch only the deletions in [section 2](#2-the-retention-schedule) run (`eve
 | `audit_log` (security and access) | 13 months, by whole months: a month is dropped once its newest row is 13 months old ([ADR-001 SPEC 5](../../database-architecture/spec/#5-declaring-tables); owner ruling, 25 October 2026) | Never | Dropped; a company's export holds its log, for a seller who must keep it longer |
 | `event_log` (module activity) | 90 days, by whole months: a month is dropped once its newest row is 90 days old, so a row stays 90 to about 121 days | Never | Dropped |
 | Outbound sends, sync attempts, operational state | 30 days | Never | Dropped |
-| Invitations used, withdrawn or expired ([ADR-010 SPEC 6](../../users-and-access/spec/#6-invitations-sign-up-and-removal)) | 30 days after use, withdrawal or expiry | Never | Deleted; `audit_log` keeps the event (owner ruling, 22 October 2026) |
+| Invitations used, withdrawn or expired ([ADR-010 SPEC 6](../../users-and-access/spec/#6-invitations-sign-up-and-removal)) | 30 days after use, withdrawal or expiry | Never | Deleted, with the address of a member row still invited; `audit_log` keeps the event (owner ruling, 22 October 2026) |
 | Outbox notes every handler has received ([ADR-001 SPEC 9](../../database-architecture/spec/#the-outbox)) | 30 days after the last receipt | Never | Deleted (owner ruling, 21 October 2026) |
 | Buyer personal data | 30 days after delivery, dispatch as the fallback ([ADR-009 SPEC 8](../../buyer-data/spec/#8-retention-and-anonymisation)) | Only anonymised, except on issued invoices | Deleted with the order or the invoice |
 
