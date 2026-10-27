@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-012: Billing and plans](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-012-billing-and-plans) |
-| **Date** | 21 October 2026; operator assignments and who edits plan rows, owner ruling of 22 October 2026 |
+| **Date** | 21 October 2026; Purchasing in every plan (2) by owner ruling, 27 October 2026; operator assignments and who edits plan rows, owner ruling of 22 October 2026 |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-012 from: the Billing module, always on, outside the core, needing Access ([ADR-000 SPEC 4](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)). Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/).
@@ -29,7 +29,7 @@ The rules to build ADR-012 from: the Billing module, always on, outside the core
 ## 2. Plans
 
 1. **A plan row holds:** id and name; its modules (the foundation and the connectors are in every plan); the order ceiling; the support level (reply target and channels); one provider price id per billing interval. No amount is ever in the row or the code.
-2. **Three tiers and add-ons.** Each tier includes the modules of the one below. The top tier differs from the middle one only by a higher ceiling and faster support. An add-on is one module sold on its own, and may need a minimum tier.
+2. **Three tiers and add-ons.** Purchasing ([ADR-015](../../purchasing/)) is a switchable module in every tier, so no plan lacks it (owner ruling, 27 October 2026). Each tier includes the modules of the one below. The top tier differs from the middle one only by a higher ceiling and faster support. An add-on is one module sold on its own, and may need a minimum tier.
 3. **Monthly or yearly,** in pounds sterling.
 4. **Changing a row:** a change that adds something applies to everyone at once; one that takes something away applies to a paying company at its next renewal, after 30 days' notice.
 5. **Contract plans** are agreed by the operator and invoiced by hand at the provider, with payment terms. No flag or billing path for them at launch.

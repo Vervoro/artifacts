@@ -33,10 +33,11 @@ ADR-000  System architecture: modules and the module map, the outbox, the egress
     │   ├── ADR-004.3  Shopify connector (Later)
     │   └── ADR-004.4  Amazon Vendor connector (planned, not written)
     ├── ADR-008  Stock sync: inventory sync
+    ├── ADR-015  Purchasing: suppliers, reorder levels, the Needs reordering list (purchase orders in step 2)
     └── ADR-011  Invoicing and VAT (the seller's own invoices)
 ```
 
-**Parked, with no record yet** ([ADR-000 SPEC 4.7](../system-architecture/spec/#4-the-foundation-and-the-launch-modules)): Purchasing, FBA shipments, profit, ads, AI, shipping labels, order routing, and MCP access for a seller's AI assistant (soon after launch). They stay switched off and are not built further until a record and a launch-bar row need them.
+**Parked, with no record yet** ([ADR-000 SPEC 4.7](../system-architecture/spec/#4-the-foundation-and-the-launch-modules)): FBA shipments, profit, ads, AI, shipping labels, order routing, and MCP access for a seller's AI assistant (soon after launch). They stay switched off and are not built further until a record and a launch-bar row need them.
 
 The order to build them in is on the [index](../).
 
@@ -185,13 +186,19 @@ One word per concept, defined once, with the record that owns it. Where two word
 | --- | --- |
 | **Product** | One thing the warehouse counts, in whole base units. Simple, pack or bundle (ADR-003) |
 | **Base unit** | What one unit of a product is called: a piece, a jar, or a metre or 100 g for goods sold by length or weight (ADR-003) |
-| **Pack** | A sealed multiple of one simple product, with its own stock. Opened or made by a repack (ADR-003) |
+| **Pack** | A sealed multiple of one simple product, with its own stock. Opened or made by a repack (ADR-003). Shown to people as a **multipack** |
 | **Bundle** | Several products sold as one item, with no stock of its own; its sellable comes from its scarcest component (ADR-003) |
 | **Box size** | How many base units one case or pallet holds. Used on documents and scans; never stock (ADR-003) |
-| **Family** | Products that are one design in several sizes or colours, linked to one variation listing in one step (ADR-003) |
+| **Family** | Products that are one design in several sizes or colours, linked to one variation listing in one step (ADR-003). Shown to people as a **variant group**, its members as **variants** |
 | **Charge line** | Something charged that is not stock (a service fee, gift wrap): a name, an amount and a VAT class on an order or invoice. Never reserves or moves stock (ADR-003 SPEC 1.1) |
 | **Not stock** | A mark on a marketplace listing that sells no stock (a warranty). It is never linked; its order lines are charge lines (ADR-003 SPEC 1.1) |
 | **Units setting** | A company's choice of metric or imperial for showing weights and sizes. Storage is always grams and millimetres (ADR-003) |
+| **Words shown to people** | Screens say **Single product** for a simple product, **Multipack** for a pack, **Variant group** and **Variants** for a family and its members, and **Archived** for a retired product. The records and the code keep the older names (ADR-003 SPEC 1.4) |
+| **Supplier** | Whoever the seller buys from. Not a login. Its contact is personal data, seen by Owner, Admin and Manager only (ADR-015) |
+| **Supplier's code** | The supplier's own name for an item: one of four codes beside the SKU, the barcode and the marketplace's code. Kept per product and supplier (ADR-015) |
+| **Reorder level** | The number of units at or below which the seller wants to buy more, set per product for the whole company (ADR-015) |
+| **Position** | Sellable stock plus stock on its way, the number compared with the reorder level (ADR-015 SPEC 6.2) |
+| **Needs reordering** | The list of products whose position is at or below their reorder level, worked out when someone opens it, never stored (ADR-015 SPEC 6) |
 
 ### Stock
 

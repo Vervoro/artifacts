@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>20–21 October 2026; sign-in on Better Auth (<a href="../../sign-in/">ADR-013</a>) 21 October 2026; amended by owner rulings: a tap&#39;s sending, done and not sure states (12.8) and the rollback window (11.2), 21 October 2026; decrease-only accounts through the gate (7.2), Invoicing&#39;s needs (4) and who switches a module on or off (3.4), 22 October 2026; every change&#39;s key kept on the server (12.8), browser limits on screens (12.9) and libraries checked against the pinned version (16.5), 23 October 2026; amended by owner rulings of 25 October 2026: switches read once per request (3.1, 6), the body cap (10.9), the not-sure retry ceiling (12.8), staging traces on for the app Worker only (10.10), code examples tested in the kernel&#39;s README (15.5); and later that day: the inbound queue&#39;s own notices (10.3), the placed-work drill&#39;s result in its object (6.3, 10.12), query strings left out of traces (10.10), and the queue consumer&#39;s hand-off to the placed path, built with Channels (0); and the SPEC batch of phases 3 and 4: a new company starts with no switchable module on (3.4), a waiting module keeps its place in the events (3.2), platform resources expand and contract like the schema (11); and the one-by-one rulings: who is told of an operator&#39;s module switch (3.4)</td>
+<td>20–21 October 2026; Purchasing added to the module table and taken off the parked list (4, 4.7) by owner ruling, 27 October 2026; sign-in on Better Auth (<a href="../../sign-in/">ADR-013</a>) 21 October 2026; amended by owner rulings: a tap&#39;s sending, done and not sure states (12.8) and the rollback window (11.2), 21 October 2026; decrease-only accounts through the gate (7.2), Invoicing&#39;s needs (4) and who switches a module on or off (3.4), 22 October 2026; every change&#39;s key kept on the server (12.8), browser limits on screens (12.9) and libraries checked against the pinned version (16.5), 23 October 2026; amended by owner rulings of 25 October 2026: switches read once per request (3.1, 6), the body cap (10.9), the not-sure retry ceiling (12.8), staging traces on for the app Worker only (10.10), code examples tested in the kernel&#39;s README (15.5); and later that day: the inbound queue&#39;s own notices (10.3), the placed-work drill&#39;s result in its object (6.3, 10.12), query strings left out of traces (10.10), and the queue consumer&#39;s hand-off to the placed path, built with Channels (0); and the SPEC batch of phases 3 and 4: a new company starts with no switchable module on (3.4), a waiting module keeps its place in the events (3.2), platform resources expand and contract like the schema (11); and the one-by-one rulings: who is told of an operator&#39;s module switch (3.4)</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -304,6 +304,14 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Orders, Products, Buyer data (owner ruling, 22 October 2026)</td>
 <td>Invoices</td>
 </tr>
+<tr>
+<td><strong>Purchasing</strong></td>
+<td>Switchable, in every plan</td>
+<td>ADR-015</td>
+<td>Suppliers, each product&#39;s suppliers, reorder levels (step 2: purchase orders)</td>
+<td>Products, Inventory (owner ruling, 27 October 2026)</td>
+<td>Purchasing; a card on a product; a card on Today</td>
+</tr>
 </tbody></table></div>
 <ol start="2">
 <li><strong>Calls point toward the core.</strong> A core module calls only other core modules and the kernel. Any other module calls the core and the modules in its needs. The core learns of other modules&#39; work only through events. The build refuses a cycle in needs: when a module must react to a module that needs it, it reacts by event (a new link reaches Stock sync as an event from Listings).</li>
@@ -311,10 +319,10 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Stock commands</strong> follow ADR-006: one lock per company, database checks, an append-only ledger and a nightly check (<a href="../../stock-ledger/spec/#12-the-lock-keys-and-the-sequence">lock and keys</a>, <a href="../../stock-ledger/spec/#14-the-nightly-check-and-checkpoints">nightly check</a>). Orders reserves stock by calling Inventory&#39;s port inside its own transaction, so an order and its reservation commit together.</li>
 <li><strong>One order per marketplace order.</strong> Importing again updates it; an older state is ignored (<a href="../../order-ingestion/spec/#3-one-order-per-marketplace-order">ADR-007</a>).</li>
 <li><strong>Desired state per listing</strong> (owner ruling, 21 October 2026). Inventory writes each stock change with its ledger sequence and an outbox note in one transaction. Stock sync hears the note right after commit, reads the links through Listings&#39; port, and keeps one row per linked listing with the figure the marketplace should show and the ledger sequence it came from. A figure from an older sequence never replaces a newer one, and a note is never lost, because it commits with the stock change. The work list is a query, never a queue of messages (<a href="../../stock-ledger/spec/#13-telling-stock-sync">ADR-006 SPEC 13</a>; the rule is owned by <a href="../../inventory-sync/spec/#1-the-figure-per-listing">ADR-008 SPEC 1</a>).</li>
-<li><strong>Parked.</strong> Purchasing, Amazon Vendor (ADR-004.4, planned), FBA shipments (stock the seller sends into Amazon&#39;s warehouses), profit, ads, AI, shipping labels, order routing and MCP access (a seller&#39;s AI assistant asking Vervoro questions, owner ruling 21 October 2026: soon after launch) have no record yet. They stay switched off and are not built further until a record and a launch-bar row need them.</li>
+<li><strong>Parked.</strong> Amazon Vendor (ADR-004.4, planned), FBA shipments (stock the seller sends into Amazon&#39;s warehouses), profit, ads, AI, shipping labels, order routing and MCP access (a seller&#39;s AI assistant asking Vervoro questions, owner ruling 21 October 2026: soon after launch) have no record yet. Purchasing left this list on 27 October 2026: it has a record, <a href="../../purchasing/">ADR-015</a>. They stay switched off and are not built further until a record and a launch-bar row need them.</li>
 </ol>
 <h3 id="who-depends-on-whom">Who depends on whom</h3>
-<figure><svg class="diagram" viewBox="0 0 649 590" role="img" aria-label="Dependency map: which module calls which through ports, and which events each module hears" xmlns="http://www.w3.org/2000/svg" font-size="13">
+<figure><svg class="diagram" viewBox="0 0 760 590" role="img" aria-label="Dependency map: which module calls which through ports, and which events each module hears" xmlns="http://www.w3.org/2000/svg" font-size="13">
   <defs>
     <marker id="dep-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="edge-fill"/></marker>
     <marker id="dep-event" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="accent-fill"/></marker>
@@ -340,6 +348,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
     <path d="M349 300L349 320L380 320L380 356" marker-end="url(#dep-arrow)"/>
     <path d="M559 400L559 410L355 410L355 456" marker-end="url(#dep-arrow)"/>
     <path d="M248 400L248 410L293 410L293 456" marker-end="url(#dep-arrow)"/>
+    <path d="M610 300L610 356" marker-end="url(#dep-arrow)"/>
+    <path d="M700 300L700 523L380 523L380 500" marker-end="url(#dep-arrow)"/>
   </g>
   <g class="accent" fill="none" stroke-width="1.25" stroke-dasharray="5 4">
     <path d="M571 356L571 120L281 120L281 100" marker-end="url(#dep-event)"/>
@@ -364,6 +374,9 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
   <rect x="275" y="156" width="124" height="44" rx="8" class="box" stroke-dasharray="5 4"/>
   <text x="337" y="175" text-anchor="middle" font-weight="600" class="ink">Invoicing</text>
   <text x="337" y="190" text-anchor="middle" font-size="11" class="quiet">switchable</text>
+  <rect x="600" y="256" width="124" height="44" rx="8" class="box" stroke-dasharray="5 4"/>
+  <text x="662" y="275" text-anchor="middle" font-weight="600" class="ink">Purchasing</text>
+  <text x="662" y="290" text-anchor="middle" font-size="11" class="quiet">switchable</text>
   <rect x="98" y="256" width="124" height="44" rx="8" class="box"/>
   <text x="160" y="275" text-anchor="middle" font-weight="600" class="ink">Billing</text>
   <text x="160" y="290" text-anchor="middle" font-size="11" class="quiet">always on</text>
@@ -407,7 +420,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </thead>
 <tbody><tr>
-<td>Fulfilment, Billing, Stock sync, Invoicing, a connector</td>
+<td>Fulfilment, Billing, Stock sync, Invoicing, Purchasing, a connector</td>
 <td>Itself only</td>
 </tr>
 <tr>
@@ -424,7 +437,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Inventory, Buyer data</td>
-<td>Those of Orders, plus Inventory or Buyer data</td>
+<td>Those of Orders, plus Inventory or Buyer data (and Purchasing, for Inventory)</td>
 </tr>
 <tr>
 <td>Listings</td>
@@ -657,7 +670,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Set-up calls.</strong> Connecting runs the seller&#39;s approval, seals the credentials and subscribes to notices, in shadow too (<a href="../../channel-connectors/">ADR-004</a>).</li>
 <li><strong>Cancellations.</strong> Vervoro never sends one: the seller cancels on the marketplace, and the confirmed cancellation comes in like any other order change, as the &quot;A buyer cancels&quot; row shows (<a href="../../order-ingestion/spec/#12-cancellations-and-refunds">ADR-007 SPEC 12</a>).</li>
 <li><strong>Invoices and refunds.</strong> Orders records refunds; Invoicing hears shipped and refunded orders and acts by its own rules (<a href="../../invoicing-and-vat/">ADR-011</a>).</li>
-<li><em>Later:</em> <strong>purchase orders.</strong> Purchasing calls Inventory&#39;s receive port when a supplier delivers; Amazon Vendor brings Amazon&#39;s purchase orders through Channels into Orders once a person approves them.</li>
+<li><em>Later:</em> <strong>purchase orders</strong> (<a href="../../purchasing/spec/#12-step-2-purchase-orders-outline">ADR-015 SPEC 12</a>). Purchasing calls Inventory&#39;s receive port when a supplier delivers; Amazon Vendor brings Amazon&#39;s purchase orders through Channels into Orders once a person approves them.</li>
 </ul>
 <h2 id="5-results">5. Results</h2>
 <ol>

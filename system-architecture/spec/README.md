@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-000: System architecture](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-000-system-architecture) |
-| **Date** | 20–21 October 2026; sign-in on Better Auth ([ADR-013](../../sign-in/)) 21 October 2026; amended by owner rulings: a tap's sending, done and not sure states (12.8) and the rollback window (11.2), 21 October 2026; decrease-only accounts through the gate (7.2), Invoicing's needs (4) and who switches a module on or off (3.4), 22 October 2026; every change's key kept on the server (12.8), browser limits on screens (12.9) and libraries checked against the pinned version (16.5), 23 October 2026; amended by owner rulings of 25 October 2026: switches read once per request (3.1, 6), the body cap (10.9), the not-sure retry ceiling (12.8), staging traces on for the app Worker only (10.10), code examples tested in the kernel's README (15.5); and later that day: the inbound queue's own notices (10.3), the placed-work drill's result in its object (6.3, 10.12), query strings left out of traces (10.10), and the queue consumer's hand-off to the placed path, built with Channels (0); and the SPEC batch of phases 3 and 4: a new company starts with no switchable module on (3.4), a waiting module keeps its place in the events (3.2), platform resources expand and contract like the schema (11); and the one-by-one rulings: who is told of an operator's module switch (3.4) |
+| **Date** | 20–21 October 2026; Purchasing added to the module table and taken off the parked list (4, 4.7) by owner ruling, 27 October 2026; sign-in on Better Auth ([ADR-013](../../sign-in/)) 21 October 2026; amended by owner rulings: a tap's sending, done and not sure states (12.8) and the rollback window (11.2), 21 October 2026; decrease-only accounts through the gate (7.2), Invoicing's needs (4) and who switches a module on or off (3.4), 22 October 2026; every change's key kept on the server (12.8), browser limits on screens (12.9) and libraries checked against the pinned version (16.5), 23 October 2026; amended by owner rulings of 25 October 2026: switches read once per request (3.1, 6), the body cap (10.9), the not-sure retry ceiling (12.8), staging traces on for the app Worker only (10.10), code examples tested in the kernel's README (15.5); and later that day: the inbound queue's own notices (10.3), the placed-work drill's result in its object (6.3, 10.12), query strings left out of traces (10.10), and the queue consumer's hand-off to the placed path, built with Channels (0); and the SPEC batch of phases 3 and 4: a new company starts with no switchable module on (3.4), a waiting module keeps its place in the events (3.2), platform resources expand and contract like the schema (11); and the one-by-one rulings: who is told of an operator's module switch (3.4) |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-000 from. Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins. Words are defined in the [map and glossary](../../guide/).
@@ -79,13 +79,14 @@ Extension points (several providers of one port, chosen per key, such as connect
 | **Connectors** (one per marketplace) | Switchable | ADR-004.1–004.3 | Nothing: translators, contributed to Channels | Channels | — |
 | **Stock sync** | Switchable | ADR-008 | The figure each listing should show, what each marketplace was last told and confirmed, read-backs, held raises | Inventory, Listings, Orders, Channels | Channels; a product's channels |
 | **Invoicing** | Switchable | ADR-011 | Invoices, VAT records, invoiced customers | Orders, Products, Buyer data (owner ruling, 22 October 2026) | Invoices |
+| **Purchasing** | Switchable, in every plan | ADR-015 | Suppliers, each product's suppliers, reorder levels (step 2: purchase orders) | Products, Inventory (owner ruling, 27 October 2026) | Purchasing; a card on a product; a card on Today |
 
 2. **Calls point toward the core.** A core module calls only other core modules and the kernel. Any other module calls the core and the modules in its needs. The core learns of other modules' work only through events. The build refuses a cycle in needs: when a module must react to a module that needs it, it reacts by event (a new link reaches Stock sync as an event from Listings).
 3. **Imports come in through the core.** Channels fetches orders and listings through the connectors and hands them to Orders' and Listings' ports; neither core module knows a marketplace exists.
 4. **Stock commands** follow ADR-006: one lock per company, database checks, an append-only ledger and a nightly check ([lock and keys](../../stock-ledger/spec/#12-the-lock-keys-and-the-sequence), [nightly check](../../stock-ledger/spec/#14-the-nightly-check-and-checkpoints)). Orders reserves stock by calling Inventory's port inside its own transaction, so an order and its reservation commit together.
 5. **One order per marketplace order.** Importing again updates it; an older state is ignored ([ADR-007](../../order-ingestion/spec/#3-one-order-per-marketplace-order)).
 6. **Desired state per listing** (owner ruling, 21 October 2026). Inventory writes each stock change with its ledger sequence and an outbox note in one transaction. Stock sync hears the note right after commit, reads the links through Listings' port, and keeps one row per linked listing with the figure the marketplace should show and the ledger sequence it came from. A figure from an older sequence never replaces a newer one, and a note is never lost, because it commits with the stock change. The work list is a query, never a queue of messages ([ADR-006 SPEC 13](../../stock-ledger/spec/#13-telling-stock-sync); the rule is owned by [ADR-008 SPEC 1](../../inventory-sync/spec/#1-the-figure-per-listing)).
-7. **Parked.** Purchasing, Amazon Vendor (ADR-004.4, planned), FBA shipments (stock the seller sends into Amazon's warehouses), profit, ads, AI, shipping labels, order routing and MCP access (a seller's AI assistant asking Vervoro questions, owner ruling 21 October 2026: soon after launch) have no record yet. They stay switched off and are not built further until a record and a launch-bar row need them.
+7. **Parked.** Amazon Vendor (ADR-004.4, planned), FBA shipments (stock the seller sends into Amazon's warehouses), profit, ads, AI, shipping labels, order routing and MCP access (a seller's AI assistant asking Vervoro questions, owner ruling 21 October 2026: soon after launch) have no record yet. Purchasing left this list on 27 October 2026: it has a record, [ADR-015](../../purchasing/). They stay switched off and are not built further until a record and a launch-bar row need them.
 
 ### Who depends on whom
 
@@ -97,11 +98,11 @@ When a change alters a module's contract, it re-runs the tests of:
 
 | A change to the contract of | Re-runs the tests of |
 | --- | --- |
-| Fulfilment, Billing, Stock sync, Invoicing, a connector | Itself only |
+| Fulfilment, Billing, Stock sync, Invoicing, Purchasing, a connector | Itself only |
 | Access | Itself, Billing, Products and Inventory, and every module that re-runs for them |
 | Channels | Itself, the connectors and Stock sync |
 | Orders | Itself, Channels, the connectors, Stock sync, Fulfilment and Invoicing |
-| Inventory, Buyer data | Those of Orders, plus Inventory or Buyer data |
+| Inventory, Buyer data | Those of Orders, plus Inventory or Buyer data (and Purchasing, for Inventory) |
 | Listings | Itself, Orders, Channels, the connectors, Stock sync, Fulfilment and Invoicing |
 | Products | Every module except Buyer data, Access and Billing |
 
@@ -114,7 +115,7 @@ Solid arrows are port calls inside the caller's transaction; dashed arrows are e
 - **Set-up calls.** Connecting runs the seller's approval, seals the credentials and subscribes to notices, in shadow too ([ADR-004](../../channel-connectors/)).
 - **Cancellations.** Vervoro never sends one: the seller cancels on the marketplace, and the confirmed cancellation comes in like any other order change, as the "A buyer cancels" row shows ([ADR-007 SPEC 12](../../order-ingestion/spec/#12-cancellations-and-refunds)).
 - **Invoices and refunds.** Orders records refunds; Invoicing hears shipped and refunded orders and acts by its own rules ([ADR-011](../../invoicing-and-vat/)).
-- *Later:* **purchase orders.** Purchasing calls Inventory's receive port when a supplier delivers; Amazon Vendor brings Amazon's purchase orders through Channels into Orders once a person approves them.
+- *Later:* **purchase orders** ([ADR-015 SPEC 12](../../purchasing/spec/#12-step-2-purchase-orders-outline)). Purchasing calls Inventory's receive port when a supplier delivers; Amazon Vendor brings Amazon's purchase orders through Channels into Orders once a person approves them.
 
 ## 5. Results
 

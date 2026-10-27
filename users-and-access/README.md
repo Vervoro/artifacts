@@ -72,4 +72,4 @@ Parts marked *Later* keep their rules in the SPEC but are built only when their 
 ## Open items
 
 - **Single sign-on and custom roles** wait for enough sellers to ask; neither has a trigger number yet.
-- **Later modules** (purchasing) add their rows to the matrix when their records are written.
+- **Later modules** add their rows to the matrix when their records are written. Purchasing's step 1 rows were added on 27 October 2026 ([ADR-015](../purchasing/)); its purchase order rows come with step 2.

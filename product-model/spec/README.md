@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-003: Product model](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-003-product-model) |
-| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: the rate table kept 5 minutes (11.2); amended by the owner's sign-off of 25 October 2026 (the developer's review): who writes `vat_rate` (1.3), `version` (2), `product_use` (2.2), the activity log (2.3), the SKU's characters (3.1), first use (3.3), changing a used SKU (3.5), a retired component (6.3.1), the retire check (9.2), delivery days and use-by (12.2), the lot a dispatch records (12.3), box-size barcodes (14.4), where the units setting is kept (15.1) |
+| **Date** | 21 October 2026; amended by owner rulings of 27 October 2026: the words shown to people (1.4), the description left off the form (2), an image from a web address (5.5), an error names its column by the file's heading (14.6), the blocker extension point (3.3, 9.2), Purchasing linked (1.2, 9); amended by owner rulings of 25 October 2026: the rate table kept 5 minutes (11.2); amended by the owner's sign-off of 25 October 2026 (the developer's review): who writes `vat_rate` (1.3), `version` (2), `product_use` (2.2), the activity log (2.3), the SKU's characters (3.1), first use (3.3), changing a used SKU (3.5), a retired component (6.3.1), the retire check (9.2), delivery days and use-by (12.2), the lot a dispatch records (12.3), box-size barcodes (14.4), where the units setting is kept (15.1) |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-003 from. Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/).
@@ -28,8 +28,19 @@ Everything below is built at launch except these parts, which keep their rules h
 ## 1. What a product is
 
 1. **A product is what the warehouse counts.** If a picker can pick it and a count can count it, it is a product. A way of offering or grouping products (a six-unit listing, a family, a price) is not.
-2. **A product does not hold:** stock, batches, best-before dates or landed cost ([ADR-006](../../stock-ledger/)); selling price, shopper-facing title, photos or marketplace codes such as an ASIN ([ADR-005](../../catalogue-sync/)); supplier codes, pack sizes, lead times or reorder points (purchasing, a later record).
+2. **A product does not hold:** stock, batches, best-before dates or landed cost ([ADR-006](../../stock-ledger/)); selling price, shopper-facing title, photos or marketplace codes such as an ASIN ([ADR-005](../../catalogue-sync/)); supplier codes, pack sizes, lead times or reorder points ([Purchasing, ADR-015](../../purchasing/)).
 3. **The Products module** is the only writer of the tables in this page except the link (section 8), which Listings writes, and `vat_rate`, platform data in control that only the operator changes (section 11.2) ([ADR-000 SPEC 4](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)). Every table is declared through `tenantTable()` and queried through the typed query builder ([ADR-001 SPEC 5](../../database-architecture/spec/#5-declaring-tables)).
+4. **Words shown to people** (owner ruling, 27 October 2026). The names in the left column are the ones this record and the code use; screens and the catalogue show the words in the right column:
+
+   | In this record and the code | Shown to people |
+   | --- | --- |
+   | Simple (kind) | Single product |
+   | Pack (kind) | Multipack |
+   | Bundle (kind) | Bundle |
+   | Family; its members | Variant group; Variants |
+   | Retired (status) | Archived |
+
+   Active and inactive keep their names. The rules, states and column values do not change.
 
 ### 1.1 Charge lines and listings that are not stock
 
@@ -52,7 +63,7 @@ Owner ruling, 21 October 2026: non-stock charges are charge lines, not a product
 | `kind` | `simple`, `pack`, `bundle` | Yes | Section 6 |
 | `status` | `active`, `inactive`, `retired` | Yes | Default `active`. Section 9 |
 | `brand` | text | No | Up to 100 characters |
-| `description` | text | No | Up to 2,000 characters. Internal; never sent to a channel |
+| `description` | text | No | Up to 2,000 characters. Internal; never sent to a channel. The product form does not show it: an agreed drift (owner ruling, 27 October 2026); the column, the API and the spreadsheet keep it |
 | `base_unit` | text | Yes | What one unit is called: "piece" (default), "jar", "metre", "100 g". Up to 30 characters |
 | `pack_of`, `units_per_pack` | product id, integer | Pack only | Section 6.2 |
 | `family_id`, `option_1`–`option_3` | family id, text | In a family | Section 10. Values up to 50 characters |
@@ -101,7 +112,7 @@ Every change to a product, its barcodes, components or box sizes writes an activ
 
 1. 1–40 printable ASCII characters (space to `~`), no spaces at the ends. 40 fits every launch marketplace's listing SKU (section 16). A listing's SKU that does not fit is offered as a draft with the SKU to correct.
 2. **Unique in the company whatever its case** (ASCII lower-casing)**:** `HONEY-1` and `honey-1` cannot both exist, because people type SKUs and marketplaces compare them differently.
-3. **Editable until first use, then fixed.** First use is the first ledger entry, listing link, purchase order line or order line. After it the SKU is on labels, documents and supplier emails. Inventory, Listings and Orders call Products' use port in the transaction that first uses the product, which marks first use for good; the SKU and kind check reads it under the same row lock (they need Products, so Products never asks them: [ADR-000 SPEC 4.2](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)).
+3. **Editable until first use, then fixed.** First use is the first ledger entry, listing link, order line or anything a module contributes to the same extension point (a purchase order line, from Purchasing at its step 2). Products declares the extension point and never calls a module that contributes to it. After it the SKU is on labels, documents and supplier emails. Inventory, Listings and Orders call Products' use port in the transaction that first uses the product, which marks first use for good; the SKU and kind check reads it under the same row lock (they need Products, so Products never asks them: [ADR-000 SPEC 4.2](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)).
 4. **Never reused,** so old documents and reports still find their product.
 5. **"Copy as new product"** copies every field except SKU and barcodes, links nothing and moves no stock. It is how a used SKU is changed: the seller relinks listings, moves stock with a relabel ([ADR-006 SPEC 2.3](../../stock-ledger/spec/#2-the-ledger)), and retires the old product.
 
@@ -121,6 +132,7 @@ Every change to a product, its barcodes, components or box sizes writes an activ
 2. **One main image per product at launch,** shown on pick lists and in search. *Later:* up to 10, position 0 being the main one.
 3. **Uploads** go straight to object storage. Object keys are never overwritten; a replacement writes a new key.
 4. **Marketplace images** are shown from their address at once and copied into object storage by a background job, because marketplace addresses change or vanish when a listing ends. The address is kept to show where it came from.
+5. **An image from a web address** (owner ruling, 27 October 2026). A person may give an image's web address (https). Vervoro fetches it once, checks it as an upload (one of the kept types by its bytes, at most 10 MB, a few redirects, public addresses only), and stores it as an upload; the address is kept to show where it came from.
 
 ## 6. Product kinds
 
@@ -191,12 +203,12 @@ Listings and how they are read and matched are [ADR-005](../../catalogue-sync/).
 
 | Status | Meaning | Purchasing |
 | --- | --- | --- |
-| `active` | Bought and sold | Suggested for reorder |
+| `active` | Bought and sold | Suggested for reorder ([ADR-015 SPEC 6](../../purchasing/spec/#6-needs-reordering)) |
 | `inactive` | Being sold off or paused | Not suggested |
 | `retired` | Finished | Cannot be ordered |
 
 1. **Status never stops stock sync.** A linked listing gets the sellable figure whatever the status, so no listing shows old stock.
-2. **Retiring needs an empty product:** no stock, open reservations, open purchase orders or linked listings (an ended listing does not count, [ADR-005](../../catalogue-sync/)), and no bundle that is not retired uses it. The screen names what blocks it. Each owner calls Products' use port when a blocker starts (the product's first stock or open reservation, a live link, an open purchase order line) and the release port when its last one ends, which ends its `product_use` row; retiring locks the product row and needs no open row. The use port refuses a retired product for a receipt, a new link or a new manual order line. Stock that comes back by itself (a return, a count surplus, a unit found at a pick) is accepted: the product goes back to `inactive` and is named on the manager's daily list.
+2. **Retiring needs an empty product:** no stock, open reservations, linked listings (an ended listing does not count, [ADR-005](../../catalogue-sync/)) or anything else a module contributes to Products' blocker extension point (open purchase orders, from Purchasing at its step 2, [ADR-015 SPEC 10.4](../../purchasing/spec/#10-ports-events-and-tables)), and no bundle that is not retired uses it. The screen names what blocks it. Each owner calls Products' use port when a blocker starts (the product's first stock or open reservation, a live link, an open purchase order line) and the release port when its last one ends, which ends its `product_use` row; retiring locks the product row and needs no open row. The use port refuses a retired product for a receipt, a new link or a new manual order line. Stock that comes back by itself (a return, a count surplus, a unit found at a pick) is accepted: the product goes back to `inactive` and is named on the manager's daily list.
 3. **Deleting** is allowed only before first use.
 
 ## 10. Sizes and colours
@@ -261,7 +273,7 @@ One workbook serves export, bulk edit and bulk create.
 3. **A blank cell or a missing column changes nothing.** To empty a field on purpose the cell holds `(clear)`. Spreadsheet programs drop and reorder columns; a blank read as empty would wipe data.
 4. **Lists replace per product:** a product named on Bundle components, Box sizes or Barcodes gets exactly those rows; others keep theirs. Box-size barcodes travel on the Box sizes sheet; the Barcodes sheet holds a product's own barcodes.
 5. **Measure columns name their unit** in the heading ("Weight (g)", "Weight (oz)"). Either is read whatever the company's setting, and converted as in section 15.
-6. **Preview first:** the whole file is checked before anything is written. The preview lists, per row, what is created, each field that changes (old and new value), and every error with its sheet, row and column.
+6. **Preview first:** the whole file is checked before anything is written. The preview lists, per row, what is created, each field that changes (old and new value), and every error with its sheet, row and column. An error names its column by the heading the file uses.
 7. **Errors never apply.** Rows with errors are skipped and can be downloaded with the error beside each; the valid rows are written in one transaction on confirm.
 8. **Refused outright:** a SKU twice in one file; a component that is a bundle; a change of kind or SKU on a used product; a barcode another product holds.
 9. **Up to 10,000 product rows per file.**

@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-002: Data retention and archiving](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-002-data-retention-and-archiving) |
-| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: `audit_log` kept 13 months, never archived, a whole table's month deleted in batches (1, 3); and SPEC batch 3: an expired invitation's member-row address (2) |
+| **Date** | 21 October 2026; suppliers and their contacts added to the first row of the schedule (2) by owner ruling, 27 October 2026 ([ADR-015](../../purchasing/)); amended by owner rulings of 25 October 2026: `audit_log` kept 13 months, never archived, a whole table's month deleted in batches (1, 3); and SPEC batch 3: an expired invitation's member-row address (2) |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-002 from: how long a company's data stays in its cell, the archive, and deletion. Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/).
@@ -27,7 +27,7 @@ At launch only the deletions in [section 2](#2-the-retention-schedule) run (`eve
 
 | Data | In the cell | Archive | Then |
 | --- | --- | --- | --- |
-| Products, listings, stock levels, open orders and purchase orders, settings, users | Always | Never | Deleted with the company |
+| Products, listings, stock levels, open orders and purchase orders, suppliers and their contacts, product–supplier links and reorder levels, settings, users | Always | Never | Deleted with the company |
 | Closed orders, their lines, holds and cancellations | 24 months | Until 7 years after the month ends | Deleted |
 | Invoices, credit notes, VAT records, export evidence and payments ([ADR-011](../../invoicing-and-vat/)) | 24 months | Until 7 years after the month ends | Deleted |
 | Stock ledger entries | 24 months, then a checkpoint | Until 7 years after the month ends | Deleted |

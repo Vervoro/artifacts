@@ -1,0 +1,680 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ADR-015 SPEC: Purchasing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono&display=swap">
+<style>
+:root {
+  --bg: #f6f6f8; --surface: #ffffff; --sunken: #ededf1; --text: #16161a; --muted: #5c5c66; --border: #e0e0e6;
+  --accent: #4338ca; --accent-soft: #eef0ff; --edge: #8a8a96; --tint: #f0f0f4;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #111114; --surface: #1a1a1f; --sunken: #23232a; --text: #ececf1; --muted: #a2a2ad; --border: #2d2d35;
+  --accent: #a5b4fc; --accent-soft: #23264a; --edge: #74747f; --tint: #202027; color-scheme: dark; } }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 var(--sans); }
+main { max-width: 860px; margin: 0 auto; padding: 48px max(20px, env(safe-area-inset-left)) 80px; }
+header.site { max-width: 860px; margin: 0 auto; padding: 20px max(20px, env(safe-area-inset-left)) 0; font-size: 14px; }
+header.site a { color: var(--muted); text-decoration: none; }
+header.site a:hover { color: var(--accent); }
+h1, h2, h3 { line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(28px, 4vw, 38px); letter-spacing: -0.02em; margin: 0 0 20px; }
+h2 { font-size: 23px; margin: 48px 0 12px; padding-top: 20px; border-top: 1px solid var(--border); }
+h3 { font-size: 18px; margin: 32px 0 8px; }
+p, li { max-width: 72ch; }
+a { color: var(--accent); }
+code { font-family: var(--mono); font-size: 0.86em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--sunken); padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 13.5px; line-height: 1.5; }
+pre code { background: none; padding: 0; overflow-wrap: normal; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 16px 0; background: var(--surface); }
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+.table-wrap table { margin: 0; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+th { background: var(--sunken); font-weight: 600; font-size: 13px; color: var(--muted); }
+tr:last-child td { border-bottom: none; }
+ul, ol { padding-left: 22px; }
+li + li { margin-top: 4px; }
+figure { margin: 20px 0; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; }
+svg.diagram { display: block; width: 100%; min-width: 640px; height: auto; font-family: var(--sans); }
+svg .ink { fill: var(--text); } svg .quiet { fill: var(--muted); }
+svg .edge { stroke: var(--edge); } svg .edge-fill { fill: var(--edge); }
+svg .accent { stroke: var(--accent); } svg .accent-fill { fill: var(--accent); }
+svg .box { fill: none; stroke: var(--edge); stroke-width: 1.25; }
+svg .box-main { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+svg .band { fill: var(--tint); stroke: var(--edge); stroke-width: 1.25; }
+.cards { list-style: none; padding: 0; display: grid; gap: 12px; }
+.cards a { display: block; padding: 18px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; text-decoration: none; color: var(--text); }
+.cards a:hover, .cards a:focus-visible { border-color: var(--accent); outline: none; }
+.cards.sub { margin: 12px 0 0 24px; padding-left: 16px; border-left: 2px solid var(--border); }
+.parts { margin: 6px 0 0 20px; font-size: 14px; color: var(--muted); } .cards .parts a { display: inline; padding: 0; background: none; border: none; border-radius: 0; color: var(--accent); font-weight: 600; text-decoration: none; } .cards .parts a:hover { text-decoration: underline; }
+.cards b { display: block; font-size: 17px; } .cards span { color: var(--muted); font-size: 14px; }
+.order li { margin-top: 10px; } .order span { color: var(--muted); font-size: 14px; }
+footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header class="site"><a href="../../">← Vervoro artifacts</a> / <a href="../">ADR-015: Purchasing</a></header>
+<main>
+<h1 id="adr-015-spec-purchasing">ADR-015 SPEC: Purchasing</h1>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Decision</strong></td>
+<td><a href="../">ADR-015: Purchasing</a></td>
+</tr>
+<tr>
+<td><strong>Procedures</strong></td>
+<td>None yet</td>
+</tr>
+<tr>
+<td><strong>Date</strong></td>
+<td>27 October 2026, Proposed; owner rulings of 27 October 2026: two steps, purchase orders never required, the draft&#39;s open questions decided as recommended</td>
+</tr>
+<tr>
+<td><strong>For</strong></td>
+<td>The developer and coding agents building it, and the person reviewing their work</td>
+</tr>
+</tbody></table></div>
+<p>The rules to build ADR-015 from: the Purchasing module. Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the <a href="../../guide/">map and glossary</a>. This batch writes <strong>step 1</strong> in full. Step 2 (purchase orders) is an outline in <a href="#12-step-2-purchase-orders-outline">section 12</a> and gets its own SPEC batch before it is built.</p>
+<h2 id="0-at-launch-and-later">0. At launch and later</h2>
+<p>Step 1 is built when ROADMAP 5.2.1 is reached. Everything marked <em>Later</em> keeps its rules here and is built only when its trigger arrives.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Later part</th>
+<th>Trigger</th>
+<th>Rules</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Purchase orders, sending them, receiving against them, measured lead time, landed cost hand-off (step 2)</td>
+<td>ROADMAP 5.5.1: Orders is built</td>
+<td><a href="#12-step-2-purchase-orders-outline">12</a></td>
+</tr>
+<tr>
+<td>Customer shortfalls (order lines short of stock) counted in the position</td>
+<td>Orders is built (step 2)</td>
+<td><a href="#62-the-position">6.2</a></td>
+</tr>
+<tr>
+<td>A reorder level per product and warehouse</td>
+<td>A seller with two sites that cannot share stock asks</td>
+<td><a href="#5-reorder-settings">5</a></td>
+</tr>
+<tr>
+<td>A reorder level suggested from sales, lead time and stock-out days</td>
+<td>Orders has 8 weeks of history for the company, and sellers ask</td>
+<td><a href="#5-reorder-settings">5.5</a></td>
+</tr>
+<tr>
+<td>A daily mail &quot;n products need reordering&quot;</td>
+<td>The owner approves the mail (a new mail is a drift)</td>
+<td><a href="#6-needs-reordering">6.6</a></td>
+</tr>
+<tr>
+<td>Searching products by the supplier&#39;s code from the product list</td>
+<td>Sellers ask for it beyond Purchasing&#39;s own search</td>
+<td><a href="#4-a-products-suppliers">4.6</a></td>
+</tr>
+<tr>
+<td>Reorder advice for stock held in a marketplace&#39;s warehouse (FBA)</td>
+<td>FBA shipments get their record (<a href="../../system-architecture/spec/#4-the-foundation-and-the-launch-modules">ADR-000 SPEC 4.7</a>)</td>
+<td><a href="#63-what-counts">6.3</a></td>
+</tr>
+</tbody></table></div>
+<h2 id="1-what-purchasing-is">1. What Purchasing is</h2>
+<ol>
+<li><strong>The Purchasing module</strong> is a switchable module that needs Products and Inventory (<a href="../../system-architecture/spec/#4-the-foundation-and-the-launch-modules">ADR-000 SPEC 4</a>). It is switchable and in every plan (<a href="../../billing-and-plans/spec/#2-plans">ADR-012 SPEC 2</a>). It is the only writer of the <code>purchasing_*</code> tables in section 10. It calls the core&#39;s ports; the core never calls it (<a href="../../system-architecture/spec/#4-the-foundation-and-the-launch-modules">ADR-000 SPEC 4.2</a>).</li>
+<li><strong>A product does not hold</strong> a supplier, a supplier&#39;s code, a pack size, a lead time or a reorder level; these are Purchasing&#39;s (<a href="../../product-model/spec/#1-what-a-product-is">ADR-003 SPEC 1.2</a>). Purchasing holds no stock, no batch, no selling price and no marketplace code (<a href="../../stock-ledger/">ADR-006</a>, <a href="../../catalogue-sync/">ADR-005</a>).</li>
+<li><strong>Purchase orders are never required</strong> (owner ruling, 27 October 2026). Every rule below works with no purchase order in the company:<ol>
+<li>A seller can create a product, then set its supplier, the supplier&#39;s code, reorder level and lead time, without any purchase order. The link between a product and its supplier is a row of section 4, not a field of an order.</li>
+<li>No stock command, receipt, count, listing link or order import asks for a purchase order, a supplier or a link. Purchasing being switched off changes none of them.</li>
+<li>Stock bought before Vervoro, and stock bought later by phone or message, enters through Inventory&#39;s existing ways (rule 4). A purchase order, once built, is an optional record that a delivery can be attached to (<a href="../../stock-ledger/spec/#8-receiving">ADR-006 SPEC 8.5</a>); a receipt made without one stays complete.</li>
+<li>Nothing in step 2 changes what step 1 does. A company that never raises a purchase order keeps the list, the card and the links exactly as they were.</li>
+</ol>
+</li>
+<li><strong>How stock bought in the past enters today</strong> (ADR-006, checked against its SPEC of 25 October 2026):<ol>
+<li><strong>Receiving without a purchase order</strong> is allowed: a Manager (or above) receives directly, sellable at once, with a reason from a short list including &quot;opening stock&quot;; a Warehouse user&#39;s receipt is sellable at once unless it is unusual, when it waits for a manager (<a href="../../stock-ledger/spec/#8-receiving">ADR-006 SPEC 8.4</a>). Cost may be blank; reports then use the product&#39;s standard cost and say so. The batch records its supplier, lot and date.</li>
+<li><strong>A count</strong> can find stock and book it as a surplus on approval (<a href="../../stock-ledger/spec/#9-counts-and-adjustments">ADR-006 SPEC 9.5</a>).</li>
+<li><strong>Gaps found and closed</strong> (owner ruling, 27 October 2026; made in <a href="../../stock-ledger/spec/#8-receiving">ADR-006 SPEC 8.4</a> in the same batch):<ul>
+<li><em>(a) No reason fitted an ordinary delivery.</em> The list was &quot;supplier extra, sample, opening stock, found, other&quot;. A seller who buys by phone has no honest reason for Tuesday&#39;s delivery. Added: <code>delivery</code> (&quot;Delivery, no purchase order&quot;): sellable at once for every role that may receive, on the Warehouse user&#39;s usual-size check only.</li>
+<li><em>(b) The daily list would have become permanent noise.</em> &quot;Every receipt a Warehouse user made without a purchase order is on the manager&#39;s daily list&quot; would put every delivery of a seller who never uses purchase orders on it. Removed: an unusual receipt is quarantined and so already on the list; an ordinary one is in the activity view and the stock movements report, with its reason.</li>
+<li><em>(c) Opening stock has no bulk way in.</em> A seller arrives with 100 to 5,000 products (<a href="../../product-model/">ADR-003 context</a>); receiving each by hand is not a real day. Noted in ADR-006 SPEC 8.4 as Inventory&#39;s to build: a spreadsheet of opening stock (SKU, warehouse, quantity, lot, date, optional unit cost), previewed and written as one receipt per line with reason &quot;opening stock&quot;, in the pattern of <a href="../../product-model/spec/#14-spreadsheet-import-and-bulk-edit">ADR-003 SPEC 14</a>, by Inventory. This is Inventory&#39;s, not Purchasing&#39;s; Purchasing does not wait for it.</li>
+</ul>
+</li>
+<li><strong>The supplier on a batch</strong> (owner ruling, 27 October 2026) is a plain id and a copy of the name, chosen on the receipt screen from Purchasing&#39;s suppliers when Purchasing is on, else typed. Inventory never calls Purchasing (<a href="#10-ports-events-and-tables">section 10.4</a>).</li>
+</ol>
+</li>
+</ol>
+<h2 id="2-words-and-shapes">2. Words and shapes</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Thing</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Supplier</strong></td>
+<td>Whoever the seller buys from: a wholesaler, a manufacturer, a marketplace seller they buy from. Not a login; suppliers sign in to nothing (<a href="../../users-and-access/spec/#1-the-people">ADR-010 SPEC 1</a>)</td>
+</tr>
+<tr>
+<td><strong>Product supplier</strong></td>
+<td>A product bought from a supplier: the supplier&#39;s code, minimum order, case multiple and lead time</td>
+</tr>
+<tr>
+<td><strong>Supplier&#39;s code</strong></td>
+<td>The supplier&#39;s own name for the item. One of four codes (<a href="../../product-model/">ADR-003 context</a>); never the SKU, never a barcode</td>
+</tr>
+<tr>
+<td><strong>Reorder level</strong></td>
+<td>The number of units at or below which the seller wants to buy more</td>
+</tr>
+<tr>
+<td><strong>Position</strong></td>
+<td>Sellable stock plus stock on its way (section 6.2)</td>
+</tr>
+<tr>
+<td><strong>Needs reordering</strong></td>
+<td>The list of products whose position is at or below their level</td>
+</tr>
+</tbody></table></div>
+<p>Quantities are integers of base units (<a href="../../product-model/spec/#21-numbers-and-money">ADR-003 SPEC 2.1</a>). Money does not appear in step 1.</p>
+<h2 id="3-suppliers">3. Suppliers</h2>
+<p><strong><code>purchasing_supplier</code></strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Rules</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>id</code></td>
+<td>uuidv7</td>
+<td>Yes</td>
+<td>Never shown to sellers</td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td>text</td>
+<td>Yes</td>
+<td>1–200 characters. Unique in the company whatever its case, among all suppliers including archived</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td><code>active</code>, <code>archived</code></td>
+<td>Yes</td>
+<td>Default <code>active</code>. An archived supplier is not offered for new links or receipts and stays on what it was used for. Archiving is allowed with links in place; they keep showing and drop off the list&#39;s suggestions</td>
+</tr>
+<tr>
+<td><code>lead_time_days</code></td>
+<td>integer</td>
+<td>No</td>
+<td>The supplier&#39;s usual lead time, 0–365. Used when a link has none</td>
+</tr>
+<tr>
+<td><code>contact_name</code></td>
+<td>text</td>
+<td>No</td>
+<td>Up to 100 characters. <strong>Personal data</strong> (section 11)</td>
+</tr>
+<tr>
+<td><code>contact_email</code></td>
+<td>text</td>
+<td>No</td>
+<td>Up to 254 characters; one address, checked for shape only. <strong>Personal data</strong></td>
+</tr>
+<tr>
+<td><code>contact_phone</code></td>
+<td>text</td>
+<td>No</td>
+<td>Up to 30 characters, digits, <code>+</code>, spaces, <code>-</code>, <code>(</code>, <code>)</code>. <strong>Personal data</strong></td>
+</tr>
+<tr>
+<td><code>note</code></td>
+<td>text</td>
+<td>No</td>
+<td>Up to 1,000 characters. Internal. Asked not to hold personal details beyond the fields above</td>
+</tr>
+<tr>
+<td><code>created_at</code>, <code>updated_at</code>, <code>version</code></td>
+<td></td>
+<td>Yes</td>
+<td>Set by the data layer; an edit on an older <code>version</code> is refused (<a href="../../product-model/spec/#2-fields">ADR-003 SPEC 2</a>)</td>
+</tr>
+</tbody></table></div>
+<ol>
+<li><strong>Deliberately not here in step 1:</strong> address, account number, payment terms, currency, VAT number, price lists, free-text &quot;ordering instructions&quot;. Step 2 adds only what a purchase order needs (<a href="#12-step-2-purchase-orders-outline">section 12</a>), as an expand-only change.</li>
+<li><strong>Deleting</strong> a supplier is allowed only while nothing uses it (no link, no batch naming it by id); otherwise it is archived. No fixed limit on suppliers per company beyond 5,000.</li>
+<li>Every change writes an activity entry: who, when, field, old and new value. The contact fields&#39; old and new values are written as &quot;changed&quot;, not as text, so the activity view holds no copy of personal data (section 11.3).</li>
+</ol>
+<h2 id="4-a-products-suppliers">4. A product&#39;s suppliers</h2>
+<p><strong><code>purchasing_product_supplier</code></strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Rules</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>product_id</code></td>
+<td>product id (plain id, resolved through Products&#39; port)</td>
+<td>Yes</td>
+<td>A simple product or a pack. A bundle is refused: its components are reordered</td>
+</tr>
+<tr>
+<td><code>supplier_id</code></td>
+<td>supplier id</td>
+<td>Yes</td>
+<td>An active supplier. Unique with the product</td>
+</tr>
+<tr>
+<td><code>supplier_code</code></td>
+<td>text</td>
+<td>No</td>
+<td>Up to 60 characters, letters, digits and <code>- _ . / space</code>, trimmed. Not unique: two products may share a supplier&#39;s code, and the screen says so</td>
+</tr>
+<tr>
+<td><code>min_order_qty</code></td>
+<td>integer</td>
+<td>Yes</td>
+<td>Default 1. 1–1,000,000 base units: the smallest quantity the supplier takes on an order line</td>
+</tr>
+<tr>
+<td><code>order_multiple</code></td>
+<td>integer</td>
+<td>Yes</td>
+<td>Default 1. 1–100,000 base units: the case or carton size the supplier sells in. Not <a href="../../product-model/spec/#7-box-and-pallet-sizes">ADR-003 SPEC 7</a>&#39;s box size: a box size describes how one delivery arrived and can differ from delivery to delivery</td>
+</tr>
+<tr>
+<td><code>lead_time_days</code></td>
+<td>integer</td>
+<td>No</td>
+<td>0–365. For this product from this supplier</td>
+</tr>
+<tr>
+<td><code>preferred</code></td>
+<td>boolean</td>
+<td>Yes</td>
+<td>Exactly one active link per product is preferred</td>
+</tr>
+</tbody></table></div>
+<ol>
+<li><strong>Up to 10 links per product.</strong> More is refused with the reason.</li>
+<li><strong>One preferred link.</strong> The first link is preferred. Setting another preferred clears the old one in the same change. Removing the preferred link makes the oldest remaining one preferred, and the activity entry says so. No preferred link exists when no link does.</li>
+<li><strong>Lead time used</strong> is the link&#39;s, else the supplier&#39;s, else none. The screen shows which one it used. Step 2 adds the measured lead time beside it (<a href="#12-step-2-purchase-orders-outline">section 12</a>).</li>
+<li><strong>Rounding rule.</strong> A wanted quantity <code>q</code> becomes <code>max(q, min_order_qty)</code> rounded up to a multiple of <code>order_multiple</code>. If <code>min_order_qty</code> is not a multiple, the larger multiple is taken. One function, used by the list, the export and (step 2) the purchase order.</li>
+<li><strong>A retired product</strong> takes no new link and no level; existing ones stay readable. An <code>inactive</code> product keeps them but is not suggested (<a href="../../product-model/spec/#9-status">ADR-003 SPEC 9</a>).</li>
+<li><strong>Finding by supplier&#39;s code</strong> works inside Purchasing&#39;s own search and on the card. The product list does not search it at launch (<a href="#0-at-launch-and-later">section 0</a>).</li>
+<li>Every change writes an activity entry.</li>
+</ol>
+<h2 id="5-reorder-settings">5. Reorder settings</h2>
+<p><strong><code>purchasing_reorder</code></strong> (one row per product, none when not tracked)</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Rules</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>product_id</code></td>
+<td>product id</td>
+<td>Yes</td>
+<td>Unique. A simple product or a pack; a bundle is refused</td>
+</tr>
+<tr>
+<td><code>reorder_level</code></td>
+<td>integer</td>
+<td>Yes</td>
+<td>0–1,000,000 base units. <strong>0 means &quot;reorder when out&quot;; no row means &quot;not tracked&quot;</strong></td>
+</tr>
+<tr>
+<td><code>usual_order_qty</code></td>
+<td>integer</td>
+<td>No</td>
+<td>1–1,000,000. The seller&#39;s usual order. (owner ruling, 27 October 2026)</td>
+</tr>
+<tr>
+<td><code>version</code></td>
+<td></td>
+<td>Yes</td>
+<td>As elsewhere</td>
+</tr>
+</tbody></table></div>
+<ol>
+<li><strong>Company-wide at launch.</strong> The level is compared with the position summed over every warehouse of the company. The cost, accepted by the owner on 27 October 2026: a seller with two sites that cannot share stock sees no need while one site is empty. A warehouse-specific level is <em>Later</em>.</li>
+<li><strong>The Purchasing card on the product page</strong> shows, in this order: Supplier (preferred), Supplier&#39;s code, Reorder level, Lead time (the one used, with its source). A product with several suppliers shows &quot;+ 2 more&quot; and opens a small list. Editing is on the card; there is no separate settings screen.</li>
+<li><strong>Bundle:</strong> no level. The bundle&#39;s page shows, read-only, &quot;Components that need reordering&quot; (the components on the list). A bundle with no component on the list shows nothing.</li>
+<li><strong>A pack</strong> has its own level and suppliers when the seller buys sealed packs; a pack made by repacking singles has none (<a href="../../product-model/spec/#62-pack">ADR-003 SPEC 6.2</a>). Singles and their packs are counted apart, because their stock is (<a href="../../product-model/spec/#62-pack">ADR-003 SPEC 6.2</a>).</li>
+<li><em>Later:</em> <strong>a suggested level.</strong> Worked out from the average daily sales over a window that leaves out days the product was out of stock, times the lead time used, plus a safety margin the seller sets as days; shown as &quot;Suggested: 40&quot; beside the seller&#39;s number with the figures behind it. It is never written by Vervoro. Not built until Orders has history.</li>
+<li><strong>Products with no level</strong> are a filter in Purchasing (&quot;not tracked&quot;) and a count on the list&#39;s page, so a product the seller forgot does not silently never reorder.</li>
+</ol>
+<h2 id="6-needs-reordering">6. Needs reordering</h2>
+<h3 id="61-what-it-lists">6.1 What it lists</h3>
+<p>A product is on the list when all hold: it has a reorder level; its status is <code>active</code> (<a href="../../product-model/spec/#9-status">ADR-003 SPEC 9</a>); it is a simple product or a pack; and its position is <strong>at or below</strong> its level.</p>
+<h3 id="62-the-position">6.2 The position</h3>
+<p><code>position = sellable + on its way</code>, summed over the company&#39;s warehouses, from Inventory&#39;s read port (<a href="../../stock-ledger/spec/#13-telling-stock-sync">ADR-006 SPEC 13.2</a>).</p>
+<ol>
+<li><strong>Sellable</strong> is on hand less reserved less held, as <a href="../../stock-ledger/spec/#3-the-four-numbers">ADR-006 SPEC 3</a> defines it. Reserved stock is promised, so it is gone. Held stock (quarantined, damaged, short-dated, expired, blocked) cannot be sold, so it does not count.</li>
+<li><strong>On its way</strong> at step 1 is units in transit between the company&#39;s own warehouses (a transit spot belongs to no warehouse&#39;s on hand, <a href="../../stock-ledger/spec/#1-where-stock-is-counted">ADR-006 SPEC 1.2</a>). Without them a transfer would show as a need. From step 2 it also holds open purchase order quantity not yet received (<a href="../../stock-ledger/spec/#3-the-four-numbers">ADR-006 SPEC 3.2</a>).</li>
+<li><strong>Short lines</strong> (order lines that reserved less than they needed, <a href="../../stock-ledger/spec/#53-reserving-an-order-line">ADR-006 SPEC 5.3</a>) are customers waiting for stock. Sellable cannot go below zero, so they are invisible to it. From step 2 (Orders exists) the position is reduced by the units missing on open short lines of that product, read through Orders&#39; port; Veeqo does the same by a setting, here it is the rule.</li>
+<li>The position may be negative once short lines count; the list shows the figure.</li>
+</ol>
+<h3 id="63-what-counts">6.3 What counts</h3>
+<ol>
+<li><strong>Only the company&#39;s own warehouses.</strong> Stock a marketplace holds is a reading, never added (<a href="../../stock-ledger/spec/#6-what-a-line-reserves">ADR-006 SPEC 6.9</a>). A product shipped by a marketplace has no Vervoro position to reorder from; its level is not offered while every listing of it is linked as marketplace-shipped.</li>
+<li><strong>Bundles and multipacks.</strong> A bundle sale reserves its components in whole sets, so the components&#39; sellable already falls with every bundle sale. A listing with six units per sale reserves six units of the same product. Reordering is therefore always of the product that has the stock, never of the bundle or the listing.</li>
+<li><strong>Packs and singles are separate</strong> (section 5.4). When singles could make a missing pack, that is a repack (<a href="../../stock-ledger/spec/#6-what-a-line-reserves">ADR-006 SPEC 6.1</a>), shown nowhere here.</li>
+<li><strong>Warehouse scope.</strong> The list is the company&#39;s, so it needs a person with no warehouse scope (<a href="../../users-and-access/spec/#3-roles-and-warehouse-scope">ADR-010 SPEC 3</a>). A scoped Manager is refused with the reason &quot;limited to some warehouses&quot;; the card still shows the level and the suppliers.</li>
+</ol>
+<h3 id="64-the-row">6.4 The row</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Product (SKU, name, image)</td>
+<td>Products</td>
+</tr>
+<tr>
+<td>Sellable, on its way (and, from step 2, short), position</td>
+<td>Inventory (and Orders)</td>
+</tr>
+<tr>
+<td>Reorder level</td>
+<td>Purchasing</td>
+</tr>
+<tr>
+<td>Short by</td>
+<td><code>level − position</code> (0 or more)</td>
+</tr>
+<tr>
+<td>Suggested quantity</td>
+<td>The larger of the usual order and the shortfall, <code>max(usual_order_qty, short by)</code>, through the rounding rule of section 4.4, for the preferred link; blank when the product has no link</td>
+</tr>
+<tr>
+<td>Supplier, supplier&#39;s code, lead time used</td>
+<td>Purchasing, preferred link</td>
+</tr>
+</tbody></table></div>
+<ol>
+<li><strong>Sorting and filters:</strong> by short by (default), supplier, and &quot;no supplier&quot;. Group by supplier, because sellers decide at the supplier level to meet minimums.</li>
+<li><strong>A product on the list with no supplier</strong> stays on it, flagged &quot;no supplier&quot;.</li>
+<li><strong>Archived supplier:</strong> the row shows it flagged and suggests nothing until another link is preferred.</li>
+</ol>
+<h3 id="65-computing-it">6.5 Computing it</h3>
+<ol>
+<li><strong>A query, never stored.</strong> Purchasing reads its levels and links (two queries, one for each table, with the company&#39;s rows only), Products&#39; status and kind in one port call, and Inventory&#39;s sellable and incoming for those product ids in one batched port call. About three round trips per opening, whatever the number of products (tested at 5,000 levels). Nothing runs on a stock change, so a stock command is unchanged.</li>
+<li><strong>What the rule costs:</strong> one batched read per list opening (and per Today opening, section 7.2). At 10 sellers this is a few reads a day; at 1,000 sellers, each opening a few times a day, a few thousand reads a day. Storing the state would remove the read but add a second copy of stock that can drift and a handler on every stock note; rejected.</li>
+<li><strong>Stale reads:</strong> the list is a snapshot of the moment it was read and says when. A receipt made afterwards shows on the next opening.</li>
+</ol>
+<h3 id="66-taking-it-away">6.6 Taking it away</h3>
+<ol>
+<li><strong>Download.</strong> The list downloads as a spreadsheet, one sheet per supplier or filtered, with SKU, supplier&#39;s code, product name, suggested quantity, lead time and supplier contact (to Owner, Admin and Manager only). It contains no costs and no buyer data. This is the seller&#39;s order sheet when there are no purchase orders.</li>
+<li><strong>Today</strong> (the Home screen) shows a card &quot;Needs reordering (n)&quot;, n from the same query, computed when Home is opened.</li>
+<li><strong>No mail at launch</strong> (owner ruling, 27 October 2026). A daily mail is <em>Later</em> (<a href="#0-at-launch-and-later">section 0</a>).</li>
+</ol>
+<h2 id="7-screens">7. Screens</h2>
+<ol>
+<li><strong>Purchasing</strong> (menu): Needs reordering (default), Suppliers, a supplier&#39;s page (its details and its products), Import/export. Step 2 adds Purchase orders.</li>
+<li><strong>Product page:</strong> the Purchasing card (section 5.2). <strong>Today:</strong> the card of section 6.6.</li>
+<li><strong>Receipt screen</strong> (Inventory&#39;s): when Purchasing is on, the supplier is a pick list of active suppliers with a free-text fallback; otherwise free text.</li>
+<li>Every word comes from the catalogue (<a href="../../rulebook/">rulebook</a>); no screen waits for anything outside Vervoro.</li>
+</ol>
+<h2 id="8-spreadsheet-import-and-bulk-edit">8. Spreadsheet import and bulk edit</h2>
+<p>Purchasing has its own workbook (owner ruling, 27 October 2026), not columns in the Products sheet, in the pattern of <a href="../../product-model/spec/#14-spreadsheet-import-and-bulk-edit">ADR-003 SPEC 14</a>: export, bulk edit and bulk create from one file.</p>
+<ol>
+<li><strong>Sheets:</strong> Suppliers (key: name), Product suppliers (SKU, supplier name, supplier&#39;s code, minimum order, order multiple, lead time, preferred) and Reorder levels (SKU, level, usual order). Only one sheet is required.</li>
+<li><strong>Match keys:</strong> supplier name (whatever its case), SKU (whatever its case) with supplier name. A known key updates; a new key creates.</li>
+<li><strong>A blank cell or a missing column changes nothing;</strong> <code>(clear)</code> empties. <strong>Lists replace per product:</strong> a SKU named on Product suppliers gets exactly those links.</li>
+<li><strong>Preview first, errors never apply,</strong> one transaction on confirm, up to 10,000 rows per sheet, exactly as <a href="../../product-model/spec/#14-spreadsheet-import-and-bulk-edit">ADR-003 SPEC 14.6–14.9</a>.</li>
+<li><strong>Refused outright:</strong> a SKU that is a bundle or unknown (Products&#39; port is asked once for the file&#39;s SKUs); a supplier twice in one sheet; more than 10 suppliers for a SKU; two preferred for one SKU; a retired product.</li>
+<li><strong>A SKU that does not exist is never created here.</strong> Products create products.</li>
+<li>The Reorder levels sheet reaches seller-wide, not a warehouse. The contact columns are exported only to roles that may read them (section 9).</li>
+</ol>
+<h2 id="9-who-may-do-what">9. Who may do what</h2>
+<p>Roles are <a href="../../users-and-access/spec/#4-who-may-do-what">ADR-010&#39;s</a>. These rows are in its table (Products group), in the six roles:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Owner</th>
+<th>Admin</th>
+<th>Manager</th>
+<th>Warehouse</th>
+<th>Accountant</th>
+<th>Staff</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Read supplier names, supplier&#39;s codes, reorder levels and lead times</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Read a supplier&#39;s contact (name, email, phone) and note</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Create, edit, archive suppliers; set a product&#39;s suppliers and reorder level; import</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>See the Needs reordering list (a scoped person is refused, 6.3) and download it</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+</tbody></table></div>
+<ol>
+<li><strong>No costs in step 1,</strong> so no cost permission is needed. Step 2 adds purchase order rows and, for prices, &quot;See costs&quot; (<a href="../../users-and-access/spec/#4-who-may-do-what">ADR-010 SPEC 4</a>).</li>
+<li><strong>Warehouse users read the supplier and the supplier&#39;s code</strong> because a delivery note carries them; they pick a supplier on a receipt.</li>
+<li>Each action is declared in the module&#39;s manifest (<a href="../../system-architecture/spec/#1-modules-and-the-manifest">ADR-000 SPEC 1</a>). While a company is restricted, purchasing is read-only (<a href="../../billing-and-plans/spec/#8-what-runs-in-each-state">ADR-012 SPEC 8</a>).</li>
+</ol>
+<h2 id="10-ports-events-and-tables">10. Ports, events and tables</h2>
+<ol>
+<li><strong>Purchasing provides:</strong> <code>suppliers.list</code> (id, name, status) for receipt screens and the card; <code>product.purchasing</code> (the card&#39;s data for a product); <code>reorder.list</code> (the list).</li>
+<li><strong>Purchasing uses:</strong> Products&#39; read port (status, kind, SKU and name for ids; the pack and bundle shape), Inventory&#39;s read port (sellable and incoming per product and warehouse, batched, with the ledger sequence), and from step 2 Orders&#39; read port (units missing per product) and Inventory&#39;s receive port.</li>
+<li><strong>Events.</strong> Purchasing publishes and handles none in step 1: the list reads a product&#39;s status through Products&#39; port, so no <code>product.retired</code> handler is needed. It needs no event from Inventory because the list reads the port when opened. If a later feature (a mail, a Home count held in a table) needs &quot;stock changed&quot;, it listens to the stock note (<a href="../../stock-ledger/spec/#13-telling-stock-sync">ADR-006 SPEC 13</a>).</li>
+<li><strong>Where core and Purchasing meet</strong> (owner ruling, 27 October 2026; made in the records named, in the same batch):<ul>
+<li><em>Retiring and first use</em> (<a href="../../product-model/spec/#9-status">ADR-003 SPEC 9.2, 3.3</a>) name open purchase orders. Products is core and cannot call Purchasing. Products (<a href="../../product-model/spec/#9-status">ADR-003 SPEC 9.2</a>) declares an extension point &quot;blocks retiring / counts as first use&quot; that modules contribute to; Purchasing contributes open purchase order lines in step 2 and nothing in step 1. Step 1 has no purchase orders, so nothing breaks before then.</li>
+<li><em>A batch&#39;s supplier</em> (<a href="../../stock-ledger/spec/#1-where-stock-is-counted">ADR-006 SPEC 1</a>): <code>stock_batch</code> holds <code>supplier_id</code> (plain id, no foreign key) and <code>supplier_name</code> (a copy at receipt, <a href="../../stock-ledger/spec/#15-storage">ADR-006 SPEC 15</a>); the receive port takes both. Inventory never reads Purchasing&#39;s tables.</li>
+<li><em>Incoming from purchase orders</em> beside the four numbers (<a href="../../stock-ledger/spec/#3-the-four-numbers">ADR-006 SPEC 3.2</a>): Inventory cannot call Purchasing. Inventory declares a slot on the product and stock screens that Purchasing contributes the &quot;incoming&quot; figure to, and Purchasing adds it to the list through its own query; Inventory stores none. Step 2.</li>
+</ul>
+</li>
+<li><strong>Tables</strong> (tenant tables with the <code>purchasing_</code> prefix, declared through <code>tenantTable()</code>, queried through the typed query builder; no foreign key crosses modules, <a href="../../system-architecture/spec/#2-tables">ADR-000 SPEC 2</a>): <code>purchasing_supplier</code>, <code>purchasing_product_supplier</code>, <code>purchasing_reorder</code>. Step 2 adds <code>purchasing_order</code>, <code>purchasing_order_line</code>. Schema changes expand, then contract (<a href="../../system-architecture/spec/#11-deploying">ADR-000 SPEC 11</a>). The unique indexes are on the company and the lower-cased name (suppliers), on the company, product and supplier (links), with a partial unique index on the company and product where <code>preferred</code> (one preferred per product), and on the company and product (levels).</li>
+<li><strong>No stock write, no listing figure, no outside call.</strong> Purchasing never inserts into <code>stock_*</code> and never sends anything in step 1.</li>
+</ol>
+<h2 id="11-personal-data-and-retention">11. Personal data and retention</h2>
+<ol>
+<li><strong>What is personal data.</strong> <code>contact_name</code>, <code>contact_email</code> and <code>contact_phone</code> can name a person; a sole trader&#39;s own details are personal data under UK GDPR and EU GDPR. The <code>note</code> is asked not to hold any. The supplier&#39;s name can be a person&#39;s name too (a sole trader), so it is treated the same in an erasure.</li>
+<li><strong>Retention</strong> (<a href="../../data-retention/spec/#2-the-retention-schedule">ADR-002 SPEC 2</a>): the first row of the schedule now reads: &quot;Products, listings, stock levels, open orders and purchase orders, <strong>suppliers and their contacts, product–supplier links and reorder levels</strong>, settings, users | Always | Never | Deleted with the company&quot;. Suppliers are current state, never archived. An archived supplier&#39;s contact fields can be cleared by a Manager at any time; nothing clears them on a timer, because the seller is the controller of their own supplier list and the supplier is not Vervoro&#39;s data subject beyond hosting it.</li>
+<li><strong>Copies.</strong> The activity entry does not copy contact values (section 3.3). Exports of a company include the three tables (<a href="../../billing-and-plans/spec/#16-cancellation-export-erasure-and-refunds">ADR-012 SPEC 16</a>); an erased company&#39;s rows go with it.</li>
+<li><strong>Encryption.</strong> Stored like other company data, not encrypted per field (that is for buyers&#39; names and addresses, <a href="../../buyer-data/">ADR-009</a>). The owner confirmed this on 27 October 2026.</li>
+<li><strong>Seen by:</strong> Owner, Admin, Manager only (section 9). No view log: it is not buyer data.</li>
+<li><strong>Not shared:</strong> contacts are never sent to a marketplace, a connector or another module, except in the list&#39;s download (section 6.6) to a role that may read them.</li>
+</ol>
+<h2 id="12-step-2-purchase-orders-outline">12. Step 2: purchase orders (outline)</h2>
+<p><em>Later, ROADMAP 5.5.1, after Orders. Step 1 is ROADMAP 5.2.1. This outline is not a rule set and nothing here is built at step 1; step 2 gets its own SPEC batch first.</em></p>
+<ol>
+<li><strong>Optional.</strong> Every rule of section 1.3 holds.</li>
+<li><strong>A purchase order</strong> has a number (a gap-free series per company, so a supplier can quote it), a supplier, lines (product, the supplier&#39;s code and name as they were that day, quantity, unit cost in the company&#39;s currency only (owner ruling, 27 October 2026), expected date = sent date + lead time used), and a status.</li>
+<li><strong>Statuses:</strong> <code>draft</code> → <code>sent</code> → <code>part_received</code> → <code>received</code>; <code>closed</code> (a manager closes a line or order that will not complete); <code>cancelled</code> (from draft or sent with nothing received). A purchase order with receipts cannot be cancelled. The list&#39;s position counts the open quantity of <code>sent</code> and <code>part_received</code> orders.</li>
+<li><strong>Creating one:</strong> from the list, one draft per supplier with the suggested quantities; or by hand, with no list involved.</li>
+<li><strong>Sending:</strong> download, print, or email, where the email is an egress effect through the gate (<a href="../../system-architecture/spec/#7-the-egress-gate">ADR-000 SPEC 7</a>); in shadow, recorded only. The seller can mark it sent after phoning.</li>
+<li><strong>Receiving.</strong> On the order a Warehouse user or above receives a delivery: Purchasing calls Inventory&#39;s receive port with the order line as the source, one batch per delivery, lot and date as ADR-006 requires (<a href="../../stock-ledger/spec/#8-receiving">ADR-006 SPEC 8.5</a>). Fewer than ordered leaves the rest incoming until a manager closes the line; more is received as counted and the surplus is shown. A receipt made without the order can be attached to its line later.</li>
+<li><strong>Cost hand-off.</strong> The line&#39;s unit cost plus the order&#39;s extras (freight, duty, handling, entered on the order, apportioned by value) is the batch&#39;s provisional landed unit cost, in the receive call. Correcting a cost afterwards calls Inventory&#39;s cost port and never touches quantities or the ledger (<a href="../../stock-ledger/spec/#8-receiving">ADR-006 SPEC 8.6</a>). Purchase VAT and import VAT are the seller&#39;s accounting, not Vervoro&#39;s (<a href="../../invoicing-and-vat/">ADR-011</a>).</li>
+<li><strong>Measured lead time:</strong> days from sent to first receipt, kept per product and supplier from the last five receipts, shown beside the quote on the card and the list.</li>
+<li><strong>Retiring and first use:</strong> the product&#39;s SKU is fixed after the first purchase order line (<a href="../../product-model/spec/#3-sku">ADR-003 SPEC 3.3</a>); an open purchase order blocks retiring (<a href="../../product-model/spec/#9-status">ADR-003 SPEC 9.2</a>), through the extension point of section 10.4.</li>
+<li><strong>Permissions to add:</strong> create, edit and send (Owner, Admin, Manager); receive (also Warehouse); see costs (<a href="../../users-and-access/spec/#4-who-may-do-what">ADR-010</a>).</li>
+<li><strong>Not in step 2:</strong> several currencies on one order, landed cost by weight, forecasting, supplier portals, EDI, approvals, blanket orders, returns to supplier (a write-off or a return is Inventory&#39;s, <a href="../../stock-ledger/spec/#8-receiving">ADR-006 SPEC 8.4</a>).</li>
+</ol>
+<h2 id="13-research-and-constraints">13. Research and constraints</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Constraint or finding</th>
+<th>What it means here</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Reorder point and lead time live outside Shopify&#39;s admin; lead time must be measured; a stock-out day looks like no demand; wholesale draws on the same stock</td>
+<td>Level is the seller&#39;s number; measured lead time in step 2; the Later suggestion leaves out stock-out days</td>
+<td><a href="https://endlesscommerce.com/playbook/how-to-reorder-without-stocky/">Endless Commerce: how to reorder without Stocky</a></td>
+</tr>
+<tr>
+<td>Per-product, per-location minimum, usual reorder quantity and maximum; the report includes customer backorders by a setting</td>
+<td>Level and usual order per product; the position counts short lines from step 2</td>
+<td><a href="https://help.veeqo.com/en/articles/3806756-set-re-order-levels">Veeqo: set re-order levels</a></td>
+</tr>
+<tr>
+<td>Supplier pack size and minimum order stored with the supplier</td>
+<td>Minimum and multiple on the link, because they differ by item</td>
+<td><a href="https://www.linnworks.com/Doc/Supplier_Packs_and_Minimum_Order_Quantity.html">Linnworks: supplier packs and minimum order quantity</a></td>
+</tr>
+<tr>
+<td>Lead time of the last vendor shown; vendor changes at each reorder; a reorder point is lead-time demand plus safety stock</td>
+<td>One preferred supplier, chosen by the seller; lead time per pair</td>
+<td><a href="https://www.inflowinventory.com/support/cloud/can-inflow-recommend-a-reorder-point-for-my-products">inFlow: recommended reorder point</a></td>
+</tr>
+<tr>
+<td>Missing multiple suppliers per product is a reviewer&#39;s complaint</td>
+<td>Up to 10 links</td>
+<td><a href="https://www.capterra.in/software/144970/restockpro">Capterra: RestockPro reviews</a></td>
+</tr>
+<tr>
+<td>Shopify&#39;s native replacement for Stocky has no reorder suggestions, lead time or purchase order API; sellers move to apps for reorder suggestions and purchase orders</td>
+<td>The gap is the list; purchase orders are the second layer</td>
+<td><a href="https://community.shopify.com/t/637085">Shopify community: Stocky shuts down</a></td>
+</tr>
+<tr>
+<td>Amazon IPI penalises excess and stranded stock and rewards sell-through</td>
+<td>A reorder list that ignores FBA stock and over-orders is a risk; FBA replenishment waits for FBA shipments</td>
+<td><a href="https://sellercentral.amazon.com/gp/help/external/202174810">Amazon: inventory performance</a> (thresholds vary by source; recheck before FBA work)</td>
+</tr>
+<tr>
+<td>UK and EU GDPR cover a sole trader&#39;s business contact details</td>
+<td>Contact fields flagged, deleted with the company, clearable</td>
+<td><a href="https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/">ICO: UK GDPR guidance</a></td>
+</tr>
+</tbody></table></div>
+<p>US-specific and Turkish marketplace and supplier tools are out of scope.</p>
+<h2 id="14-tests-that-prove-each-rule">14. Tests that prove each rule</h2>
+<p>Database tests run on real Postgres under the runtime role (<a href="../../system-architecture/spec/#15-testing-and-verification">ADR-000 SPEC 15</a>); the rounding and position functions are pure unit tests.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Proves</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>No purchase order</td>
+<td>With no purchase order in the company: a product can get a supplier, code, level and lead time; stock can be received, counted and shipped; the list works</td>
+</tr>
+<tr>
+<td>Links</td>
+<td>A bundle is refused; an 11th link is refused; exactly one preferred; removing it promotes the oldest; an archived supplier is not offered</td>
+</tr>
+<tr>
+<td>Lead time used</td>
+<td>Link, else supplier, else none, and the source is named</td>
+</tr>
+<tr>
+<td>Rounding</td>
+<td>Below the minimum rises to it; a non-multiple rounds up; a minimum that is not a multiple takes the next multiple</td>
+</tr>
+<tr>
+<td>List</td>
+<td>At or below the level lists; 0 lists at 0 position; no row never lists; inactive and retired never list</td>
+</tr>
+<tr>
+<td>Position</td>
+<td>Held units never count; reserved units never count; units in transit count; a transfer between warehouses creates no need</td>
+</tr>
+<tr>
+<td>Bundles</td>
+<td>Selling a bundle lowers its components&#39; position; the bundle itself is never listed</td>
+</tr>
+<tr>
+<td>Scope</td>
+<td>A scoped Manager is refused the list with a reason</td>
+</tr>
+<tr>
+<td>Round trips</td>
+<td>The list for 5,000 levels takes about three queries and one port call to each of Products and Inventory</td>
+</tr>
+<tr>
+<td>Spreadsheet</td>
+<td>Blank changes nothing, <code>(clear)</code> empties, errors write nothing, two preferred are refused</td>
+</tr>
+<tr>
+<td>Personal data</td>
+<td>Contact values are not in the activity entry; Warehouse, Accountant and Staff do not see contacts or the export columns</td>
+</tr>
+<tr>
+<td>Isolation</td>
+<td>Another company&#39;s suppliers, links and levels are invisible (the cross-company suite, <a href="../../database-architecture/spec/#14-tests-that-prove-each-rule">ADR-001 SPEC 14</a>)</td>
+</tr>
+</tbody></table></div>
+<h2 id="how-to-check-it-was-built-right">How to check it was built right</h2>
+<p>For someone reviewing code an AI wrote. Each line says where to look.</p>
+<ul>
+<li><input disabled="" type="checkbox"> <strong>Writers:</strong> only Purchasing inserts into <code>purchasing_*</code>; the product tables have no supplier, lead time or level column.</li>
+<li><input disabled="" type="checkbox"> <strong>No requirement:</strong> no stock command, product command or listing command reads Purchasing; the no-purchase-order test is green.</li>
+<li><input disabled="" type="checkbox"> <strong>No stock write:</strong> nothing in Purchasing imports Inventory&#39;s write ports at step 1 (search the module).</li>
+<li><input disabled="" type="checkbox"> <strong>No SQL:</strong> all queries use the typed query builder.</li>
+<li><input disabled="" type="checkbox"> <strong>Bundles:</strong> the level and link commands refuse a bundle in the same transaction.</li>
+<li><input disabled="" type="checkbox"> <strong>Position:</strong> one function; held stock and reserved stock are not added; transit is.</li>
+<li><input disabled="" type="checkbox"> <strong>Rounding:</strong> one function used by the list, the download and (step 2) the order.</li>
+<li><input disabled="" type="checkbox"> <strong>Stored state:</strong> no column or table holds &quot;needs reordering&quot;.</li>
+<li><input disabled="" type="checkbox"> <strong>Scope:</strong> the list command checks the person&#39;s warehouse scope.</li>
+<li><input disabled="" type="checkbox"> <strong>Personal data:</strong> contact fields are listed in the erasure and export; activity entries never copy them.</li>
+<li><input disabled="" type="checkbox"> <strong>Later parts:</strong> no purchase order table, mail, per-warehouse level or suggested level at step 1.</li>
+</ul>
+
+<footer>Vervoro</footer>
+</main>
+</body>
+</html>

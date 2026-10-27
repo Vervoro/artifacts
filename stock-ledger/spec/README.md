@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-006: Stock ledger and reservations](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-006-stock-ledger-and-reservations) |
-| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: a Warehouse user's receipt quarantined only when unusual (8.4), the batch-assumed target for use-by and business-buyer lines (18); amended by the owner's sign-off of 25 October 2026 (the developer's review): checkpoints *Later* (0), each account's warehouse (1), transfers and transit (1.2, 2.3, 5.1, 13), `sequence` and `line` (2.2), the relabel (2.3), sellable never clamped (3), the date pass's triggers (4.6), pinning an expired best-before batch (5.2.4), short lines' queue facts (5.3), attaching a line shipped outside (6.7), the marketplace's reading (6.9), callers (7), the lot task (7.5), the daily list (8.4), the ledger number (12.1), command timing (12.3), the note's bundles (13.1), the nightly check (14), roles (16), tests (18) |
+| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: a Warehouse user's receipt quarantined only when unusual (8.4), the batch-assumed target for use-by and business-buyer lines (18); amended by owner rulings of 27 October 2026 (ADR-015): the `delivery` reason and the daily-list sentence dropped (8.4), the batch's supplier id and name (1, 15), incoming from purchase orders as a slot (3.2), the purchase order trigger (0, 8.5); amended by the owner's sign-off of 25 October 2026 (the developer's review): checkpoints *Later* (0), each account's warehouse (1), transfers and transit (1.2, 2.3, 5.1, 13), `sequence` and `line` (2.2), the relabel (2.3), sellable never clamped (3), the date pass's triggers (4.6), pinning an expired best-before batch (5.2.4), short lines' queue facts (5.3), attaching a line shipped outside (6.7), the marketplace's reading (6.9), callers (7), the lot task (7.5), the daily list (8.4), the ledger number (12.1), command timing (12.3), the note's bundles (13.1), the nightly check (14), roles (16), tests (18) |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-006 from: the Inventory module. Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/). Picking, packing, shipments, put-back and returns inspection are the Fulfilment module's ([ADR-014 SPEC](../../fulfilment/spec/)); this page defines the Inventory ports they call.
@@ -17,7 +17,7 @@ Everything below is built at launch except these parts, which keep their rules h
 | --- | --- | --- |
 | Shipments into a marketplace's warehouse (a reservation that needs more than 90 days at check-in, handover as `transferred_out`) | FBA shipments get their record ([ADR-000 SPEC 4.7](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)) | [5.1](#51-demands), [5.2](#52-which-batch-a-demand-takes) |
 | Amazon Vendor purchase order lines as a demand | The Vendor connector (ADR-004.4, not written) | [5.1](#51-demands) |
-| Receipts against a purchase order | Purchasing gets its record | [8](#8-receiving) |
+| Receipts against a purchase order | Purchasing step 2 is built ([ADR-015 SPEC 12](../../purchasing/spec/#12-step-2-purchase-orders-outline), ROADMAP 5.5.1) | [8](#8-receiving) |
 | Serial numbers | ADR-003's serial tracking is built; the stock side goes to [ADR-014](../../fulfilment/) | None here |
 | A lock finer than the company's | Measured lock wait passes its threshold ([12](#12-the-lock-keys-and-the-sequence)) | A new record |
 | Checkpoints (`opening_balance`) and reading archived months in a lot trace | The archiver ([ADR-002](../../data-retention/spec/#0-at-launch-and-later)) | [10.1](#10-lot-trace-and-recalls), [14](#14-the-nightly-check-and-checkpoints) |
@@ -28,7 +28,7 @@ Everything below is built at launch except these parts, which keep their rules h
 | --- | --- |
 | **Warehouse** | A site the seller ships from. Each channel account names a default warehouse, kept by Channels ([ADR-004](../../channel-connectors/)), which hands it to Orders with each order. An order is reserved and shipped from one warehouse |
 | **Spot** | A place in a warehouse. Every unit on hand is in exactly one spot. Each warehouse has a default spot, so a seller who does not track shelves never names one. Kinds: `storage`, `packing`, `transit`; the system makes the packing and transit spots |
-| **Batch** | Stock of one product received together: lot, date and its kind, supplier, units per box on that delivery, landed unit cost. Two deliveries of one lot are two batches. A batch is never split; moving part of it moves units between spots |
+| **Batch** | Stock of one product received together: lot, date and its kind, supplier (a plain id and a copy of the name, [ADR-015 SPEC 1.4](../../purchasing/spec/#1-what-purchasing-is)), units per box on that delivery, landed unit cost. Two deliveries of one lot are two batches. A batch is never split; moving part of it moves units between spots |
 | **Spot balance** | Per product, batch and spot: on hand, quarantined, damaged, and the last ledger sequence |
 | **Batch position** | Per product, batch and warehouse: the sums of its spot balances, plus reserved |
 
@@ -75,7 +75,7 @@ Everything below is built at launch except these parts, which keep their rules h
 | **Sellable** | On hand − reserved − held, never below zero by the checks of section 11; nothing clamps it. Only sellable reaches Stock sync |
 
 1. **Quarantined** units wait for a decision: an uninspected return, a receipt waiting for a manager, a counted shortfall, units set aside. **Damaged** units are never sellable or reserved; they leave by write-off or come back by a recorded restore.
-2. **Incoming** (open purchase order quantity not yet received, units in transit) is shown beside the four numbers, never added to sellable, never sent.
+2. **Incoming** (open purchase order quantity not yet received, units in transit) is shown beside the four numbers, never added to sellable, never sent. Inventory stores and reads no purchase order: it keeps a slot on the product and stock screens that Purchasing fills with the purchase order part ([ADR-015 SPEC 10.4](../../purchasing/spec/#10-ports-events-and-tables)); units in transit are Inventory's own.
 3. A product's numbers in a warehouse are the sums of its batch positions. A bundle has only a sellable figure, worked out from its components ([ADR-003 SPEC 6.3](../../product-model/spec/#63-bundle)).
 
 ## 4. Dates, blocks and the date pass
@@ -152,11 +152,11 @@ Each port is a command under the company's lock with its key (section 12). The f
 
 ## 8. Receiving
 
-1. **A confirmed receipt line,** in one locked transaction, creates a batch (lot, date, supplier, units per box, provisional landed cost), writes `received` into the chosen spot or the default spot, and fills short lines in that warehouse.
+1. **A confirmed receipt line,** in one locked transaction, creates a batch (lot, date, supplier id and name, units per box, provisional landed cost), writes `received` into the chosen spot or the default spot, and fills short lines in that warehouse.
 2. **Checks:** a product that tracks dates or lots refuses a receipt without them; fewer days left than `min_days_on_receipt` is received quarantined ("short-dated receipt") until a manager accepts or refuses it; a box barcode adds its units ([ADR-003 SPEC 7](../../product-model/spec/#7-box-and-pallet-sizes)); warehouse users never see costs.
 3. **Put-away is a move** (`transferred` between spots). Nobody confirms put-away before stock goes on sale.
-4. **Without a purchase order:** a manager receives directly, with a reason from a short list (supplier extra, sample, opening stock, found, other with a note), sellable at once. A Warehouse user's receipt is sellable at once unless it looks unusual: more units than 3 times the product's largest earlier receipt in that warehouse that a manager made or accepted, or, for its first receipt there, more than the company's first-receipt limit (a setting, default 100 units). An unusual receipt enters quarantined until a manager accepts it (owner ruling, 25 October 2026, replacing the ruling of 21 October 2026 that quarantined every one). Every receipt a Warehouse user made without a purchase order is on the manager's daily list. A manager accepts (`inspected`) or refuses (write-off or return to supplier). Cost may be blank; reports then use the product's standard cost and say so. Each such receipt is in the activity view and in the stock movements report, with its reason.
-5. *Later (Purchasing):* **against a purchase order,** each delivery is its own batch; fewer than ordered leave the rest incoming until a manager closes the line; more are received as counted and the surplus is shown for a manager. A receipt made without one can be attached to its line later; stock does not move again.
+4. **Without a purchase order:** a manager receives directly, with a reason from a short list (delivery, supplier extra, sample, opening stock, found, other with a note), sellable at once. `delivery` ("Delivery, no purchase order") is the ordinary receipt of a seller who buys by phone or message and uses no purchase order ([ADR-015 SPEC 1.3](../../purchasing/spec/#1-what-purchasing-is)); it is open to every role that may receive, and only the usual-size check below applies to a Warehouse user. Opening stock in bulk (a spreadsheet of SKU, warehouse, quantity, lot, date and optional unit cost, previewed and written as one receipt per line, in the pattern of [ADR-003 SPEC 14](../../product-model/spec/#14-spreadsheet-import-and-bulk-edit)) is Inventory's to build. A Warehouse user's receipt is sellable at once unless it looks unusual: more units than 3 times the product's largest earlier receipt in that warehouse that a manager made or accepted, or, for its first receipt there, more than the company's first-receipt limit (a setting, default 100 units). An unusual receipt enters quarantined until a manager accepts it (owner ruling, 25 October 2026, replacing the ruling of 21 October 2026 that quarantined every one). A manager accepts (`inspected`) or refuses (write-off or return to supplier). Cost may be blank; reports then use the product's standard cost and say so. Each such receipt is in the activity view and in the stock movements report, with its reason.
+5. *Later (Purchasing, [ADR-015 SPEC 12](../../purchasing/spec/#12-step-2-purchase-orders-outline)):* **against a purchase order,** each delivery is its own batch; fewer than ordered leave the rest incoming until a manager closes the line; more are received as counted and the surplus is shown for a manager. A receipt made without one can be attached to its line later; stock does not move again.
 6. **Cost is not stock.** Changing a landed cost never touches quantities or the ledger.
 
 ## 9. Counts and adjustments
@@ -244,7 +244,7 @@ Every table is Inventory's, a tenant table with the `stock_` prefix, declared th
 | Table | Holds |
 | --- | --- |
 | `stock_warehouse`, `stock_spot` | Warehouses with their default spot; spots and their kind |
-| `stock_batch` | Product, lot, date and kind, received at, supplier, units per box, landed unit cost and currency, blocked, input batches of an assembly |
+| `stock_batch` | Product, lot, date and kind, received at, supplier id (plain, no foreign key) and supplier name (a copy at receipt), units per box, landed unit cost and currency, blocked, input batches of an assembly |
 | `stock_balance`, `stock_position` | Spot balances and batch positions, written only by the trigger |
 | `stock_ledger` | Every entry; append-only; by month |
 | `stock_reservation` | Written only by the trigger |
