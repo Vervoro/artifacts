@@ -148,10 +148,10 @@ This section and [section 1](#1-tenancy-inside-a-cell) own tenant isolation; oth
 1. builds only `select`, `insert`, `update` and `delete`, with upserts through `conflict()`;
 2. has no raw-SQL helper: the builder's `sql` template, `raw` and `execute` on text are not exported to modules, and a lint refuses importing them;
 3. calls only functions on an allow-list (aggregates, date, text and maths functions); `set_config`, `current_setting`, the `app.*` functions and every SQL-executing function are not on it;
-4. names only tables and views the module declared, or another module's read views it was given through a port; never `pg_stats`, `pg_statistic` or another catalogue;
+4. names only tables and views the module declared, or another module's read views it was given through a port, or, inside another module's list, a fragment that list's extender built against its own tables, which the kernel marks as the extender's; never `pg_stats`, `pg_statistic` or another catalogue;
 5. cannot begin, commit or roll back: the data layer owns the transaction.
 
-**The query check** runs on every module query at run time, because types and lint can be bypassed (a cast, a name built at run time). A plugin on the builder walks each query's tree before it reaches the database and refuses, failing closed, any raw-SQL node, any function off the allow-list and any table or view outside the module's set. A refusal pages the operator.
+**The query check** runs on every module query at run time, because types and lint can be bypassed (a cast, a name built at run time). A plugin on the builder walks each query's tree before it reaches the database and refuses, failing closed, any raw-SQL node, any function off the allow-list and any table or view outside the module's set. A refusal pages the operator. A column or table name stands only where the builder writes one. A fragment marked as another module's is checked against that module's tables; every column in it is qualified by a table or alias the fragment introduces, each such alias starting with its module's id; the embedding query hands it only its own qualified id; a value reads at most one row per id.
 
 Raw SQL exists only in the kernel's data layer (entering, the commit check, the lock) and in migrations, both under change control. Modules still never write SQL. A query the builder cannot express has one escape route: a reviewed view added by migration, or a reviewed extension of the builder, both under change control. Never raw SQL in a module.
 

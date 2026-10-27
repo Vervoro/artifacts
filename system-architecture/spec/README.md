@@ -34,12 +34,12 @@ Extension points (several providers of one port, chosen per key, such as connect
 | Publishes and handles | The events it writes and the events it reacts to |
 | Permissions | Named actions a role can be granted ([ADR-010 SPEC 4](../../users-and-access/spec/#4-who-may-do-what)) |
 | Routes | Its server routes, each with the permission and warehouse scope it needs |
-| Slots | Its screens and menu entries |
+| Slots | Its screens and menu entries, `column`: a column for another module's list, its value read by that list's one query |
 | Migrations | Ordered, forward-only changes to its own tables |
 | Settings | A typed schema, validated at start-up, with its secrets named so they are never printed |
 
-2. **A port** is a typed call that returns a typed `Result`: use it when the caller needs an answer now. **An event** is a typed fact that has already happened: use it to react to another module's change. Modules talk in no other way.
-3. **An extension point** is a port that many modules provide, chosen per key. The marketplace connector is one.
+2. **A port** is a typed call that returns a typed `Result`: use it when the caller needs an answer now. **An event** is a typed fact that has already happened: use it to react to another module's change. Modules talk in no other way, except a list extension (SPEC 1.3), which adds read-only values and filters to another module's list query.
+3. **An extension point** is a port that many modules provide, chosen per key. The marketplace connector is one. A list extension point merges every available, permitted provider instead of choosing one by key.
 4. **The module boundary is its package.** A module's package exports only its contract (ports, events, their types) and its manifest. Nothing else is importable from it.
 5. **Library packages** hold code that several modules share (owner ruling, 20 October 2026). A library has no tables, no manifest, no state and no business rule, and may be imported by any module. The kernel is one. Code with state or a business rule is a module and is reached through a port.
 6. **The kernel** is the library every module is built on: typed results and ids, a controllable clock, one database port over real Postgres (an in-process database only for running the app on a laptop), transactions, the outbox, a keyed dispatcher, the egress record (the recording half of the gate), configuration and composition.
