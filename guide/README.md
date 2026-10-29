@@ -235,7 +235,7 @@ One word per concept, defined once, with the record that owns it. Where two word
 | **`audit_log`** | The company's own record, in its cell, of what happened in that company, read by the seller. Append-only, never holds buyer data (ADR-010 SPEC 8) |
 | **Platform security log** | Control's record of sign-in and security events, with no buyer data and no email address (ADR-010 SPEC 8) |
 | **Field tags** | The `pii`, `secret` and `retention` tags a module puts on its columns, which drive encryption, the logger's drop, anonymisation, erasure, export and the AI mask (ADR-001 SPEC 5, ADR-009 SPEC 4) |
-| **Recipient fields** | A buyer's name, delivery address and phone. Taken from marketplaces only once Vervoro prints labels; at launch held only for manual orders (ADR-009 SPEC 4) |
+| **Recipient fields** | A buyer's name, delivery address and phone. Taken from marketplaces only once Vervoro prints shipping labels; at launch held only for manual orders (ADR-009 SPEC 4) |
 | **Anonymisation** | Clearing every `pii` field of an order 30 days after delivery, dispatch as the fallback, or at once on a buyer's erasure. An anonymised order never stores personal data again (ADR-009 SPEC 8) |
 | **Archive** | *Later.* Compressed files in object storage, one per table per company per month, for months older than 24 months; a **checkpoint** keeps the stock proof when a ledger month leaves (ADR-002) |
 
