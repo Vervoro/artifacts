@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>21 October 2026; four Purchasing rows added to the matrix (4) by owner ruling, 27 October 2026; amended by owner rulings of 25 October 2026: <code>audit_log</code> kept 13 months (8), a receipt quarantined only when unusual (4), the session pass&#39;s 60 seconds for revocation and pauses (5, 6, 11), admission in the first statement (5.1), an operator&#39;s off-module request refused after its entry (7), the first invitation mail&#39;s link (6), and the owner&#39;s sign-off of ADR-003 and ADR-006: company settings and their matrix rows, warehouses, spots, transfers and relabels (4), sign-up&#39;s default settings (6); and SPEC wording approved 25 October 2026 for the owner&#39;s rulings of 24 October on operator grants: read-only as a viewer, told by email and in Settings, the grant&#39;s order, a grant running out, seeing Vervoro access, the operator by id (4, 7); and the SPEC batch of phases 3 and 4: the account menu&#39;s own address (2), the invitation page and joining (6), an operator command&#39;s reason in the audit log (8); and the one-by-one rulings: the recorded commands in the grant rules (7, 11, checklist), the module switch in the Vervoro access view (7), a reset&#39;s entry naming both ids (8); and SPEC batch 3: Access&#39;s matrix rows (4), an expired invitation&#39;s address and a withdrawal as a removal (6), and the grant runbook&#39;s reason</td>
+<td>21 October 2026; four Purchasing rows added to the matrix (4) by owner ruling, 27 October 2026; amended by owner rulings of 25 October 2026: <code>audit_log</code> kept 13 months (8), a receipt quarantined only when unusual (4), the session pass&#39;s 60 seconds for revocation and pauses (5, 6, 11), admission in the first statement (5.1), an operator&#39;s off-module request refused after its entry (7), the first invitation mail&#39;s link (6), and the owner&#39;s sign-off of ADR-003 and ADR-006: company settings and their matrix rows, warehouses, spots, transfers and relabels (4), sign-up&#39;s default settings (6); and SPEC wording approved 25 October 2026 for the owner&#39;s rulings of 24 October on operator grants: read-only as a viewer, told by email and in Settings, the grant&#39;s order, a grant running out, seeing Vervoro access, the operator by id (4, 7); and the SPEC batch of phases 3 and 4: the account menu&#39;s own address (2), the invitation page and joining (6), an operator command&#39;s reason in the audit log (8); and the one-by-one rulings: the recorded commands in the grant rules (7, 11, checklist), the module switch in the Vervoro access view (7), a reset&#39;s entry naming both ids (8); and SPEC batch 3: Access&#39;s matrix rows (4), an expired invitation&#39;s address and a withdrawal as a removal (6), and the grant runbook&#39;s reason; warehouse mode (3), the asker&#39;s role (2.4), Team&#39;s summary of the matrix (4), owner rulings, 29 October 2026</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -149,7 +149,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>The login</strong> is a Better Auth user in control&#39;s auth schema and belongs to <a href="../../sign-in/spec/#2-the-login-and-its-data">ADR-013</a>. Its id is the only thing this record takes from it: Better Auth establishes who the person is; memberships, roles, scope, permissions and grants are decided here. Nothing here reads Better Auth&#39;s tables.</li>
 <li><strong>The membership</strong> (login id, company) is in control, written by the app&#39;s runtime role. It is <code>paused</code> after a reset in another company until this company&#39;s Owner or Admin confirms it (<a href="../../sign-in/spec/">ADR-013 SPEC 6</a>, owner ruling, 22 October 2026). It holds the login id with no foreign key into the auth schema, so a Better Auth upgrade never touches it.</li>
 <li><strong>The member row</strong> is in the company&#39;s own users table, in its cell: email address, name, role, warehouse scope, status (<code>invited</code>, <code>active</code>, <code>removed</code>) and when each changed. It alone decides what the person may do in that company, and it is exported, restored and erased with the company.</li>
-<li><strong>Switching company</strong> is a menu that lists each of the login&#39;s companies by its name, read in that company&#39;s own transaction (owner ruling, 23 October 2026). The session belongs to the login, and every request names its company, so two tabs can work in two companies. Switching asks for no new sign-in; account changes still ask for a fresh check (<a href="../../sign-in/spec/#5-sessions">ADR-013 SPEC 5</a>). The same answer names the asker: their own name and address, from their own active member row read in that transaction; none for an operator or anyone without an active row. The account menu shows them, the address under the name.</li>
+<li><strong>Switching company</strong> is a menu that lists each of the login&#39;s companies by its name, read in that company&#39;s own transaction (owner ruling, 23 October 2026). The session belongs to the login, and every request names its company, so two tabs can work in two companies. Switching asks for no new sign-in; account changes still ask for a fresh check (<a href="../../sign-in/spec/#5-sessions">ADR-013 SPEC 5</a>). The same answer names the asker: their own name, address and role, from their own active member row read in that transaction; none for an operator or anyone without an active row. The account menu shows them, the address under the name.</li>
 <li><strong>Email to a person</strong> from the app reads their address from any company where they are active. Sign-in mail (address proofs, resets, sign-in notices) is the sign-in Worker&#39;s, to the login&#39;s own address (<a href="../../sign-in/spec/#8-the-sign-in-worker">ADR-013 SPEC 8</a>).</li>
 <li><strong>A login&#39;s email address is not changed.</strong> To use a new address, an Owner or Admin invites the person at it and removes the old membership; the old login&#39;s history keeps its name and id. Changing an address in place is revisited only if a real need arises (owner ruling, 23 October 2026).</li>
 <li><strong>Correcting one&#39;s name:</strong> each person can correct their own name on their profile. It changes in every company where they are a member, then the app asks the sign-in Worker to set the login&#39;s name, retried from the outbox. Past audit entries keep the name they were written with. Two corrections moments apart may end different; the next correction settles them. A name is 2 to 70 characters once trimmed: the sign-in Worker&#39;s sign-up page and <code>setName</code> refuse any other (<a href="../../sign-in/spec/#8-the-sign-in-worker">ADR-013 SPEC 8</a>), and the app checks it before saving a correction (owner rulings, 22 October 2026).</li>
@@ -200,6 +200,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>Outside their warehouses, stock, batches, movements, receiving, counts, returns, orders and shipments do not exist for that person, and reports cover only their warehouses. The catalogue and the connection settings are not scoped.</li>
 <li>The core modules&#39; read and command ports take the person&#39;s scope with every call and enforce it. Row-level security stays company-only (<a href="../../database-architecture/">ADR-001</a>).</li>
 </ol>
+<p><strong>Warehouse mode</strong> (owner rulings, 29 October 2026): a Warehouse member opens the warehouse floor, a phone-first view of their floor work, and never the dashboard. On the floor they find a product, a box or a spot by code or name, see a product&#39;s stock by spot and a spot&#39;s contents, and do the floor actions their role holds; the dashboard&#39;s Products pages, Stock list, a product&#39;s movements and Settings are not offered to them. An Owner, Admin, Manager or Staff member may switch between the dashboard and the floor (remembered per device and company); an Accountant has the dashboard only. The server still answers what the matrix grants (section 5.1).</p>
 <p><strong>Buyer data</strong> by role is <a href="../../buyer-data/spec/#7-who-can-see-it">ADR-009&#39;s</a>: the matrix below follows it.</p>
 <h2 id="4-who-may-do-what">4. Who may do what</h2>
 <p>A module declares each action in its manifest (<a href="../../system-architecture/spec/#1-modules-and-the-manifest">ADR-000 SPEC 1</a>); this table grants it. Where another record decided an action&#39;s roles, the last column names it.</p>
@@ -928,6 +929,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </tbody></table></div>
 <p><strong>Company settings</strong> (owner&#39;s sign-off, 25 October 2026): Access keeps the company&#39;s settings in its cell: country (ISO 3166-1), currency (ISO 4217&#39;s national and regional currencies: none of its fund, metal, test, bond-market or settlement-unit codes; owner ruling, 29 October 2026), time zone (IANA), units, the tracking defaults for new products (<a href="../../product-model/spec/#12-best-before-lot-and-serial-numbers">ADR-003 SPEC 12.6</a>), the delivery days (<a href="../../stock-ledger/spec/#4-dates-blocks-and-the-date-pass">ADR-006 SPEC 4.4</a>) and the first-receipt limit (<a href="../../stock-ledger/spec/#8-receiving">ADR-006 SPEC 8.4</a>). Sign-up sets the United Kingdom, GBP, Europe/London and metric without asking. Changing the country sets the units to that country&#39;s default; they can be changed after. The delivery days are a whole number from 0 to 60; the first-receipt limit a whole number from 1 to 100,000. Only the United States&#39; default units are imperial (<a href="../../product-model/spec/#15-units-of-measure">ADR-003 SPEC 15.1</a>). A change is made on the settings&#39; version; one made on an older version is refused. Each change writes an audit entry (<a href="#8-audit">section 8</a>) naming the settings changed (owner approval, 29 October 2026). Other modules read the settings through Access&#39;s port.</p>
+<p>Settings › Team shows those who may see it a summary of this matrix, &quot;What each role can do&quot;, with each role&#39;s purpose; choosing a role when inviting someone or changing a role shows one line on what that role does, linking to the summary. The summary is drawn from the matrix, so it never says more than the matrix grants (owner approval, 29 October 2026).</p>
 <p>While a company is restricted or closed, <a href="../../billing-and-plans/spec/#8-what-runs-in-each-state">ADR-012 SPEC 8</a> narrows this table. A later module adds its rows here when its record is written, in the same six roles.</p>
 <h2 id="5-rules-for-every-action">5. Rules for every action</h2>
 <ol>
@@ -1051,27 +1053,27 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tbody><tr>
 <td>Amazon: accounts</td>
 <td>A unique identifier per user; no generic, shared or default accounts; a documented process to request, approve, provision, review and revoke access</td>
-<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US">Data Protection Policy, 1.2.1</a></td>
+<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&amp;locale=en_US">Data Protection Policy, 1.2.1</a></td>
 </tr>
 <tr>
 <td>Amazon: reviews</td>
 <td>Access reviewed quarterly</td>
-<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US">Data Protection Policy, 1.2.2</a></td>
+<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&amp;locale=en_US">Data Protection Policy, 1.2.2</a></td>
 </tr>
 <tr>
 <td>Amazon: removal</td>
 <td>Access removed within 24 hours of termination or role change</td>
-<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US">Data Protection Policy, 1.2.3</a></td>
+<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&amp;locale=en_US">Data Protection Policy, 1.2.3</a></td>
 </tr>
 <tr>
 <td>Amazon: least privilege</td>
 <td>Denied by default, granted on a need-to-know basis</td>
-<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US">Data Protection Policy, 1.3</a></td>
+<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&amp;locale=en_US">Data Protection Policy, 1.3</a></td>
 </tr>
 <tr>
 <td>Amazon: logs</td>
 <td>Access attempts logged, protected from tampering, kept at least 12 months</td>
-<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US">Data Protection Policy, 2.6.1</a></td>
+<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&amp;locale=en_US">Data Protection Policy, 2.6.1</a></td>
 </tr>
 <tr>
 <td>Shopify: level 2</td>
