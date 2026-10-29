@@ -50,7 +50,7 @@ Staging holds synthetic data and the team's own logins only, never a seller's or
 
 ## 4. What is kept
 
-Each field only for its purpose, and only from the marketplaces that send it. Until Vervoro prints labels, the recipient's name, address and phone have no purpose for a marketplace order, so no connector hands them over ([ADR-004 SPEC 1](../../channel-connectors/spec/#1-the-connector-contract), owner ruling, 22 October 2026).
+Each field only for its purpose, and only from the marketplaces that send it. Until Vervoro prints shipping labels, the recipient's name, address and phone have no purpose for a marketplace order, so no connector hands them over ([ADR-004 SPEC 1](../../channel-connectors/spec/#1-the-connector-contract), owner ruling, 22 October 2026).
 
 | Field | Why | At launch | Until |
 | --- | --- | --- | --- |

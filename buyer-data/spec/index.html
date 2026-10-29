@@ -167,7 +167,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tbody></table></div>
 <p>Staging holds synthetic data and the team&#39;s own logins only, never a seller&#39;s or a buyer&#39;s (<a href="../../database-architecture/spec/#3-roles">ADR-001 SPEC 3</a>), so a provider used only on staging is not a sub-processor and is not listed: staging&#39;s sign-in mail and the app&#39;s mail may go through Resend (<a href="../../sign-in/spec/#8-the-sign-in-worker">ADR-013 SPEC 8</a>, owner ruling, 22 October 2026); its mail provider is used for the team alone.</p>
 <h2 id="4-what-is-kept">4. What is kept</h2>
-<p>Each field only for its purpose, and only from the marketplaces that send it. Until Vervoro prints labels, the recipient&#39;s name, address and phone have no purpose for a marketplace order, so no connector hands them over (<a href="../../channel-connectors/spec/#1-the-connector-contract">ADR-004 SPEC 1</a>, owner ruling, 22 October 2026).</p>
+<p>Each field only for its purpose, and only from the marketplaces that send it. Until Vervoro prints shipping labels, the recipient&#39;s name, address and phone have no purpose for a marketplace order, so no connector hands them over (<a href="../../channel-connectors/spec/#1-the-connector-contract">ADR-004 SPEC 1</a>, owner ruling, 22 October 2026).</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -600,32 +600,32 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tbody><tr>
 <td>Amazon: retention</td>
 <td>No longer than 30 days after order delivery unless the law requires longer; only to ship, for tax and legal duties</td>
-<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US">Data Protection Policy 2.1</a></td>
+<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&amp;locale=en_US">Data Protection Policy 2.1</a></td>
 </tr>
 <tr>
 <td>Amazon: deletion on a trigger</td>
 <td>Within 30 days of Amazon&#39;s notice, loss of access, Vervoro deciding it is no longer authorised, or the end of participation; written certification on request</td>
-<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US">DPP 1.7</a></td>
+<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&amp;locale=en_US">DPP 1.7</a></td>
 </tr>
 <tr>
 <td>Amazon: incidents</td>
 <td>Notice to <a href="mailto:security@amazon.com">security@amazon.com</a> within 24 hours (1.6.3); plan reviewed every six months and after major changes (1.6.2)</td>
-<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US">DPP 1.6</a></td>
+<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&amp;locale=en_US">DPP 1.6</a></td>
 </tr>
 <tr>
 <td>Amazon: sign-in</td>
 <td>Multi-factor on every user account; password rules; lockout after at most 10 failures</td>
-<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US">DPP 1.4.1, 1.2.2</a></td>
+<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&amp;locale=en_US">DPP 1.4.1, 1.2.2</a></td>
 </tr>
 <tr>
 <td>Amazon: encryption</td>
 <td>At rest at least AES-128 or RSA-2048 (2.4); in transit TLS 1.2 or higher (1.5)</td>
-<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US">DPP</a></td>
+<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&amp;locale=en_US">DPP</a></td>
 </tr>
 <tr>
 <td>Amazon: logs</td>
 <td>No personal data in logs; kept at least 12 months; reviewed in real time or every two weeks</td>
-<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&locale=en_US">DPP 2.6.1</a></td>
+<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=DPP&amp;locale=en_US">DPP 2.6.1</a></td>
 </tr>
 <tr>
 <td>Amazon: schedule</td>
@@ -635,7 +635,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <tr>
 <td>Amazon: use</td>
 <td>Only for merchant-fulfilled shipping and legal duties; no combining across sellers; need-to-know access</td>
-<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=AUP&locale=en_US">Acceptable Use Policy 3.9, 4.1, 4.4</a></td>
+<td><a href="https://sellercentral.amazon.com/mws/static/policy?documentType=AUP&amp;locale=en_US">Acceptable Use Policy 3.9, 4.1, 4.4</a></td>
 </tr>
 <tr>
 <td>Amazon: orders API 2026</td>
