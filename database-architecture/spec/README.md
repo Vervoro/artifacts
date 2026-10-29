@@ -71,7 +71,7 @@ A move or restore changes the source row first, so a stale route to the old data
 | **Runtime** | Every database | SQL | Yes, as itself | No (`NOBYPASSRLS`) | `SELECT, INSERT, UPDATE, DELETE` on tenant tables, minus the append-only revoke. `SELECT` on `tenant`. No usage on control's `auth` and `auth_policy` schemas. Owns nothing | The app Worker, through Hyperdrive |
 | **Lifecycle** | Every database | SQL | Yes | No | Reads and deletes through parent tables for the slice operation, including append-only tables. Enters the states in [section 1](#tenant-states). No DDL. Owns nothing | The operations job only, never a serving Worker |
 | **Sign-in** | Control only | SQL | Yes | No | `SELECT, INSERT, UPDATE, DELETE` on the `auth` schema (Better Auth's tables) and the `auth_policy` schema (Vervoro's sign-in policy tables); `INSERT` and `SELECT` on the platform security log (`SELECT` for a login's own data request: the `export` call, [ADR-013 SPEC 8](../../sign-in/spec/#8-the-sign-in-worker); owner ruling, 22 October 2026), with `USAGE` on its schema; nothing else (owner ruling, 21 October 2026; [ADR-013 SPEC 8](../../sign-in/spec/#8-the-sign-in-worker)). Owns nothing; the owner role creates both schemas by migration | The sign-in Worker, through its own Hyperdrive configuration |
-| **Definer owner** | Every cell | SQL | No | No | Owns the three allow-listed functions. Its own read policy on `due` and `buyer_ref`; insert on `tenant` | Nobody |
+| **Definer owner** | Every cell | SQL | No | No | Owns the three allow-listed functions and Inventory's ledger trigger function ([section 4](#4-functions)). Its own read policy on `due` and `buyer_ref`; insert on `tenant` | Nobody |
 
 Rules:
 
@@ -93,7 +93,9 @@ Rules:
 | `app.due_companies(limit)` | `SECURITY DEFINER`, allow-listed | Runtime | Returns `(company_id, next_due_at, first_due_at, kinds)` from `due` for companies due now, earliest first, `kinds` naming the declared kinds due (owner ruling, 25 October 2026), plus one row with no company holding the earliest future `next_due_at`, so the sweeper can set its alarm (owner ruling, 21 October 2026) |
 | `app.buyer_ref_companies(hash)` | `SECURITY DEFINER`, allow-listed | Runtime | Returns the company ids holding an eBay buyer hash ([ADR-009](../../buyer-data/spec/#162-ebay)) |
 
-Rules for the three definers:
+And one trigger function, Inventory's `data.inventory_ledger_apply()`, which applies each ledger entry to its balances, positions and reservations ([ADR-006 SPEC 2.1](../../stock-ledger/spec/#2-the-ledger)): owned by the definer owner, returns `trigger` so nobody calls it, its `search_path` pinned, execute revoked from public; row-level security binds it like every role (the definer owner is under `FORCE ROW LEVEL SECURITY` and has no `BYPASSRLS`), so it writes only the entering company's rows. Rules 3 and 4 do not apply to it: it is called by no one and returns only to its trigger, and a trigger function needs no `EXECUTE` for the role whose statement fires it; the migration owner may execute it because Postgres checks that when it attaches a partition (owner approval, 29 October 2026, agreed drift of 28 October 2026).
+
+Rules for the four definers:
 
 1. Owned by the definer owner, which cannot log in.
 2. `search_path` pinned in the function definition.
@@ -101,7 +103,7 @@ Rules for the three definers:
 4. `EXECUTE` granted to the runtime role only.
 5. The owner is a member of the definer owner only while a migration hands it a function, and the membership is revoked straight after: a member would inherit the definer owner's read policies on `due` and `buyer_ref`, which see every company (owner ruling, 21 October 2026).
 
-Every other `SECURITY DEFINER` function is refused by the lint.
+Every other `SECURITY DEFINER` function is refused by the lint, which allow-lists the four by name, signature and owner.
 
 **SQL-executing functions and `pg_stats`.** `query_to_xml`, `query_to_xmlschema`, `query_to_xml_and_xmlschema`, `cursor_to_xml`, `cursor_to_xmlschema`, `table_to_xml`, `table_to_xmlschema` and `table_to_xml_and_xmlschema` would let SQL hidden in a string reach `set_config`; `pg_stats` would show other companies' sample values. Every cell tries to revoke them from `PUBLIC`. On Neon the owner is no superuser and the platform may refuse the revoke; no revoke is then needed (owner ruling, 21 October 2026): the lint reports it as a warning, and the query check, which refuses every function off the allow-list and every catalogue table, is the fence ([section 6](#6-guard-rails)). Extensions that run SQL given as text, such as `dblink`, are never installed.
 
@@ -151,7 +153,7 @@ This section and [section 1](#1-tenancy-inside-a-cell) own tenant isolation; oth
 4. names only tables and views the module declared, or another module's read views it was given through a port, or, inside another module's list, a fragment that list's extender built against its own tables, which the kernel marks as the extender's; never `pg_stats`, `pg_statistic` or another catalogue;
 5. cannot begin, commit or roll back: the data layer owns the transaction.
 
-**The query check** runs on every module query at run time, because types and lint can be bypassed (a cast, a name built at run time). A plugin on the builder walks each query's tree before it reaches the database and refuses, failing closed, any raw-SQL node, any function off the allow-list and any table or view outside the module's set. A refusal pages the operator. A column or table name stands only where the builder writes one. A fragment marked as another module's is checked against that module's tables; every column in it is qualified by a table or alias the fragment introduces, each such alias starting with its module's id; the embedding query hands it only its own qualified id; a value reads at most one row per id.
+**The query check** runs on every module query at run time, because types and lint can be bypassed (a cast, a name built at run time). A plugin on the builder walks each query's tree before it reaches the database and refuses, failing closed, any raw-SQL node, any function off the allow-list and any table or view outside the module's set. A refusal pages the operator. A column or table name stands only where the builder writes one. A fragment marked as another module's is checked against that module's tables; every column in it is qualified by a table or alias the fragment introduces, each such alias starting with its module's id and an underscore, as its tables do ([section 2](#2-keys-and-identifiers)); the embedding query hands it only its own qualified id; a value yields at most one row per id: a scalar read of one row, or an aggregate over that id's rows; a value that answers two rows fails the whole statement in Postgres (21000), never a row; the query check does not refuse it in advance (owner approval, 29 October 2026).
 
 Raw SQL exists only in the kernel's data layer (entering, the commit check, the lock) and in migrations, both under change control. Modules still never write SQL. A query the builder cannot express has one escape route: a reviewed view added by migration, or a reviewed extension of the builder, both under change control. Never raw SQL in a module.
 
@@ -190,7 +192,7 @@ Control is its own database on its own compute. A cell credential can never read
 
 | Data | Notes |
 | --- | --- |
-| Company registry | Plan (trial or paid), tombstones and `database_id`. No stored status: a company's state is computed from dates ([ADR-012 SPEC 7](../../billing-and-plans/spec/#7-company-states)), and billing adds its own fields (owner ruling, 21 October 2026) |
+| Company registry | Plan (trial or paid), tombstones, `database_id`, and a copy of the company's name for the operator console's search ([ADR-010 SPEC 7](../../users-and-access/spec/#7-operator-access-to-a-company)), written from the outbox on each rename (and once for existing companies by an operator's backfill) and cleared when the company is tombstoned (owner ruling, 26 October 2026). No stored status: a company's state is computed from dates ([ADR-012 SPEC 7](../../billing-and-plans/spec/#7-company-states)), and billing adds its own fields (owner ruling, 21 October 2026) |
 | Database registry | `database(id, region, kind shared or dedicated, state open, closed or draining, cap)` |
 | Sign-in data | Better Auth's tables in the `auth` schema (logins with their email address and name, sessions, passwords, passkeys, authenticators, backup codes, verifications, rate counts) and Vervoro's sign-in policy tables in `auth_policy`, including the company name a sign-up gave until the app opens it (`auth_policy.sign_up_company`; owner ruling, 23 October 2026) ([ADR-013 SPEC 2](../../sign-in/spec/#2-the-login-and-its-data)); only the sign-in role touches these |
 | Memberships and operator data | Memberships, operator accounts and grants. Written by the runtime role |
@@ -304,6 +306,7 @@ The system recommends a new cell when any signal holds for 7 days. The operator 
 3. A kind is declared by the module that owns the work. The sweeper refuses an undeclared kind.
 4. A move copies the company's `due` rows with its slice.
 5. **A company's nightly work is one job** (owner ruling, 25 October 2026): each module declares its nightly step (Inventory's stock check and date pass, Buyer data's anonymisation proof, Orders' census), and the sweeper runs a company's steps in one job, each step in its own transaction and alerting on its own, so one failing step never stops the others.
+6. A job may ask for one consistent snapshot; the data layer then runs its transaction at `repeatable read`, still read-write and still entered for one company. A serialization failure fails the run as any error does (owner approval, 29 October 2026).
 
 Launch kinds, taken from the records:
 
@@ -533,7 +536,7 @@ For someone reviewing code an AI wrote. Each line says where to look, and when i
 - [ ] **[Skeleton]** **Roles:** the runtime role is not a member of any role (`pg_auth_members`), and the app connects as it directly, with no `SET ROLE` anywhere in the data layer.
 - [ ] **[Skeleton]** **Grants:** the runtime role has no `UPDATE`, `DELETE` or `TRUNCATE` on the stock ledger, order holds, outbox or `audit_log` (`information_schema.role_table_grants`).
 - [ ] **[Skeleton]** **Grants:** no partition has a grant; no `dblink` or similar extension is installed (`pg_extension`). Where `has_function_privilege` shows the runtime role can still execute `query_to_xml`, the query check's tests must refuse it.
-- [ ] **[Skeleton]** **Functions:** exactly three `SECURITY DEFINER` functions in a cell, each with a `search_path` setting, owned by a role that cannot log in (`pg_proc.prosecdef`, `proconfig`).
+- [ ] **[Skeleton]** **Functions:** exactly four `SECURITY DEFINER` functions in a cell, three callable and one trigger function, each with a `search_path` setting, owned by a role that cannot log in (`pg_proc.prosecdef`, `proconfig`).
 - [ ] **[Skeleton]** **Functions:** `app.company()` is `STABLE`, `PARALLEL SAFE`, not a definer, and raises when unset: run `select app.company()` in a fresh transaction.
 - [ ] **[Skeleton]** **Data layer:** every transaction's first statement is `enter_company` or `open_tenant`; there is no autocommit path for company work.
 - [ ] **[Skeleton]** **Data layer:** no module imports the query builder's raw-SQL helpers (`sql`, `raw`) or a database driver; search the module packages. The function allow-list does not hold `set_config`, `current_setting` or any `app.*` function.
