@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-003: Product model](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-003-product-model) |
-| **Date** | 21 October 2026; amended by owner rulings of 27 October 2026: the words shown to people (1.4), the description left off the form (2), an image from a web address (5.5), an error names its column by the file's heading (14.6), the blocker extension point (3.3, 9.2), Purchasing linked (1.2, 9); amended by owner rulings of 25 October 2026: the rate table kept 5 minutes (11.2); amended by the owner's sign-off of 25 October 2026 (the developer's review): who writes `vat_rate` (1.3), `version` (2), `product_use` (2.2), the activity log (2.3), the SKU's characters (3.1), first use (3.3), changing a used SKU (3.5), a retired component (6.3.1), the retire check (9.2), delivery days and use-by (12.2), the lot a dispatch records (12.3), box-size barcodes (14.4), where the units setting is kept (15.1) |
+| **Date** | 21 October 2026; amended by owner rulings of 27 October 2026: the words shown to people (1.4), the description left off the form (2), an image from a web address (5.5), an error names its column by the file's heading (14.6), the blocker extension point (3.3, 9.2), Purchasing linked (1.2, 9); amended by owner rulings of 25 October 2026: the rate table kept 5 minutes (11.2); amended by the owner's sign-off of 25 October 2026 (the developer's review): who writes `vat_rate` (1.3), `version` (2), `product_use` (2.2), the activity log (2.3), the SKU's characters (3.1), first use (3.3), changing a used SKU (3.5), a retired component (6.3.1), the retire check (9.2), delivery days and use-by (12.2), the lot a dispatch records (12.3), box-size barcodes (14.4), where the units setting is kept (15.1); one note per product change (2.3), owner delegation, 29 October 2026 |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-003 from. Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/).
@@ -106,7 +106,7 @@ Owner ruling, 21 October 2026: non-stock charges are charge lines, not a product
 
 ### 2.3 Activity
 
-Every change to a product, its barcodes, components or box sizes writes an activity entry (the event log, kept 90 days: [ADR-002 SPEC 2](../../data-retention/spec/#2-the-retention-schedule)): who, when, which field, the old value and the new value. A bulk change writes one per product.
+Every change to a product, its barcodes, components or box sizes writes an activity entry (the event log, kept 90 days: [ADR-002 SPEC 2](../../data-retention/spec/#2-the-retention-schedule)): who, when, which field, the old value and the new value. A bulk change writes one per product. A change also writes one `product_changed` note per product, naming the fields changed, for other modules' handlers.
 
 ## 3. SKU
 
