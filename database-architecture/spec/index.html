@@ -287,7 +287,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>SQL</td>
 <td>No</td>
 <td>No</td>
-<td>Owns the three allow-listed functions. Its own read policy on <code>due</code> and <code>buyer_ref</code>; insert on <code>tenant</code></td>
+<td>Owns the three allow-listed functions and Inventory&#39;s ledger trigger function (<a href="#4-functions">section 4</a>). Its own read policy on <code>due</code> and <code>buyer_ref</code>; insert on <code>tenant</code></td>
 <td>Nobody</td>
 </tr>
 </tbody></table></div>
@@ -342,7 +342,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Returns the company ids holding an eBay buyer hash (<a href="../../buyer-data/spec/#162-ebay">ADR-009</a>)</td>
 </tr>
 </tbody></table></div>
-<p>Rules for the three definers:</p>
+<p>And one trigger function, Inventory&#39;s <code>data.inventory_ledger_apply()</code>, which applies each ledger entry to its balances, positions and reservations (<a href="../../stock-ledger/spec/#2-the-ledger">ADR-006 SPEC 2.1</a>): owned by the definer owner, returns <code>trigger</code> so nobody calls it, its <code>search_path</code> pinned, execute revoked from public; row-level security binds it like every role (the definer owner is under <code>FORCE ROW LEVEL SECURITY</code> and has no <code>BYPASSRLS</code>), so it writes only the entering company&#39;s rows. Rules 3 and 4 do not apply to it: it is called by no one and returns only to its trigger, and a trigger function needs no <code>EXECUTE</code> for the role whose statement fires it; the migration owner may execute it because Postgres checks that when it attaches a partition (owner approval, 29 October 2026, agreed drift of 28 October 2026).</p>
+<p>Rules for the four definers:</p>
 <ol>
 <li>Owned by the definer owner, which cannot log in.</li>
 <li><code>search_path</code> pinned in the function definition.</li>
@@ -350,7 +351,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><code>EXECUTE</code> granted to the runtime role only.</li>
 <li>The owner is a member of the definer owner only while a migration hands it a function, and the membership is revoked straight after: a member would inherit the definer owner&#39;s read policies on <code>due</code> and <code>buyer_ref</code>, which see every company (owner ruling, 21 October 2026).</li>
 </ol>
-<p>Every other <code>SECURITY DEFINER</code> function is refused by the lint.</p>
+<p>Every other <code>SECURITY DEFINER</code> function is refused by the lint, which allow-lists the four by name, signature and owner.</p>
 <p><strong>SQL-executing functions and <code>pg_stats</code>.</strong> <code>query_to_xml</code>, <code>query_to_xmlschema</code>, <code>query_to_xml_and_xmlschema</code>, <code>cursor_to_xml</code>, <code>cursor_to_xmlschema</code>, <code>table_to_xml</code>, <code>table_to_xmlschema</code> and <code>table_to_xml_and_xmlschema</code> would let SQL hidden in a string reach <code>set_config</code>; <code>pg_stats</code> would show other companies&#39; sample values. Every cell tries to revoke them from <code>PUBLIC</code>. On Neon the owner is no superuser and the platform may refuse the revoke; no revoke is then needed (owner ruling, 21 October 2026): the lint reports it as a warning, and the query check, which refuses every function off the allow-list and every catalogue table, is the fence (<a href="#6-guard-rails">section 6</a>). Extensions that run SQL given as text, such as <code>dblink</code>, are never installed.</p>
 <h2 id="5-declaring-tables">5. Declaring tables</h2>
 <p>Modules never write <code>CREATE TABLE</code>. They declare tables through <code>tenantTable()</code>, and the data layer generates everything tenancy needs.</p>
@@ -456,7 +457,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>names only tables and views the module declared, or another module&#39;s read views it was given through a port, or, inside another module&#39;s list, a fragment that list&#39;s extender built against its own tables, which the kernel marks as the extender&#39;s; never <code>pg_stats</code>, <code>pg_statistic</code> or another catalogue;</li>
 <li>cannot begin, commit or roll back: the data layer owns the transaction.</li>
 </ol>
-<p><strong>The query check</strong> runs on every module query at run time, because types and lint can be bypassed (a cast, a name built at run time). A plugin on the builder walks each query&#39;s tree before it reaches the database and refuses, failing closed, any raw-SQL node, any function off the allow-list and any table or view outside the module&#39;s set. A refusal pages the operator. A column or table name stands only where the builder writes one. A fragment marked as another module&#39;s is checked against that module&#39;s tables; every column in it is qualified by a table or alias the fragment introduces, each such alias starting with its module&#39;s id; the embedding query hands it only its own qualified id; a value reads at most one row per id.</p>
+<p><strong>The query check</strong> runs on every module query at run time, because types and lint can be bypassed (a cast, a name built at run time). A plugin on the builder walks each query&#39;s tree before it reaches the database and refuses, failing closed, any raw-SQL node, any function off the allow-list and any table or view outside the module&#39;s set. A refusal pages the operator. A column or table name stands only where the builder writes one. A fragment marked as another module&#39;s is checked against that module&#39;s tables; every column in it is qualified by a table or alias the fragment introduces, each such alias starting with its module&#39;s id and an underscore, as its tables do (<a href="#2-keys-and-identifiers">section 2</a>); the embedding query hands it only its own qualified id; a value yields at most one row per id: a scalar read of one row, or an aggregate over that id&#39;s rows; a value that answers two rows fails the whole statement in Postgres (21000), never a row; the query check does not refuse it in advance (owner approval, 29 October 2026).</p>
 <p>Raw SQL exists only in the kernel&#39;s data layer (entering, the commit check, the lock) and in migrations, both under change control. Modules still never write SQL. A query the builder cannot express has one escape route: a reviewed view added by migration, or a reviewed extension of the builder, both under change control. Never raw SQL in a module.</p>
 <p>The builder, the query check and the allow-list are defence in depth; the commit check stays part of the boundary, and SQL-executing functions are revoked where the platform allows (<a href="#4-functions">section 4</a>). Inventory&#39;s stock ledger trigger is not module SQL: its migration defines it, and it only applies a ledger entry to its balances.</p>
 <h3 id="61-catalogue-lint">6.1 Catalogue lint</h3>
@@ -492,7 +493,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </thead>
 <tbody><tr>
 <td>Company registry</td>
-<td>Plan (trial or paid), tombstones and <code>database_id</code>. No stored status: a company&#39;s state is computed from dates (<a href="../../billing-and-plans/spec/#7-company-states">ADR-012 SPEC 7</a>), and billing adds its own fields (owner ruling, 21 October 2026)</td>
+<td>Plan (trial or paid), tombstones, <code>database_id</code>, and a copy of the company&#39;s name for the operator console&#39;s search (<a href="../../users-and-access/spec/#7-operator-access-to-a-company">ADR-010 SPEC 7</a>), written from the outbox on each rename (and once for existing companies by an operator&#39;s backfill) and cleared when the company is tombstoned (owner ruling, 26 October 2026). No stored status: a company&#39;s state is computed from dates (<a href="../../billing-and-plans/spec/#7-company-states">ADR-012 SPEC 7</a>), and billing adds its own fields (owner ruling, 21 October 2026)</td>
 </tr>
 <tr>
 <td>Database registry</td>
@@ -642,6 +643,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>A kind is declared by the module that owns the work. The sweeper refuses an undeclared kind.</li>
 <li>A move copies the company&#39;s <code>due</code> rows with its slice.</li>
 <li><strong>A company&#39;s nightly work is one job</strong> (owner ruling, 25 October 2026): each module declares its nightly step (Inventory&#39;s stock check and date pass, Buyer data&#39;s anonymisation proof, Orders&#39; census), and the sweeper runs a company&#39;s steps in one job, each step in its own transaction and alerting on its own, so one failing step never stops the others.</li>
+<li>A job may ask for one consistent snapshot; the data layer then runs its transaction at <code>repeatable read</code>, still read-write and still entered for one company. A serialization failure fails the run as any error does (owner approval, 29 October 2026).</li>
 </ol>
 <p>Launch kinds, taken from the records:</p>
 <div class="table-wrap"><table>
@@ -1235,7 +1237,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Roles:</strong> the runtime role is not a member of any role (<code>pg_auth_members</code>), and the app connects as it directly, with no <code>SET ROLE</code> anywhere in the data layer.</li>
 <li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Grants:</strong> the runtime role has no <code>UPDATE</code>, <code>DELETE</code> or <code>TRUNCATE</code> on the stock ledger, order holds, outbox or <code>audit_log</code> (<code>information_schema.role_table_grants</code>).</li>
 <li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Grants:</strong> no partition has a grant; no <code>dblink</code> or similar extension is installed (<code>pg_extension</code>). Where <code>has_function_privilege</code> shows the runtime role can still execute <code>query_to_xml</code>, the query check&#39;s tests must refuse it.</li>
-<li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Functions:</strong> exactly three <code>SECURITY DEFINER</code> functions in a cell, each with a <code>search_path</code> setting, owned by a role that cannot log in (<code>pg_proc.prosecdef</code>, <code>proconfig</code>).</li>
+<li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Functions:</strong> exactly four <code>SECURITY DEFINER</code> functions in a cell, three callable and one trigger function, each with a <code>search_path</code> setting, owned by a role that cannot log in (<code>pg_proc.prosecdef</code>, <code>proconfig</code>).</li>
 <li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Functions:</strong> <code>app.company()</code> is <code>STABLE</code>, <code>PARALLEL SAFE</code>, not a definer, and raises when unset: run <code>select app.company()</code> in a fresh transaction.</li>
 <li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Data layer:</strong> every transaction&#39;s first statement is <code>enter_company</code> or <code>open_tenant</code>; there is no autocommit path for company work.</li>
 <li><input disabled="" type="checkbox"> <strong>[Skeleton]</strong> <strong>Data layer:</strong> no module imports the query builder&#39;s raw-SQL helpers (<code>sql</code>, <code>raw</code>) or a database driver; search the module packages. The function allow-list does not hold <code>set_config</code>, <code>current_setting</code> or any <code>app.*</code> function.</li>
