@@ -54,7 +54,7 @@ Buyers and suppliers sign in to nothing. Every login belongs to one person, iden
 **Warehouse scope:**
 
 1. Only a Manager, Warehouse or Staff member can be scoped. Owners, Admins and Accountants never are.
-2. Outside their warehouses, stock, batches, movements, receiving, counts, returns, orders and shipments do not exist for that person, and reports cover only their warehouses. The catalogue and the connection settings are not scoped.
+2. Outside their warehouses, stock, batches, movements, receiving, counts, returns, orders and shipments do not exist for that person, and reports cover only their warehouses; a person who may move stock sees every warehouse's name as a transfer's destination, nothing else of it. The catalogue and the connection settings are not scoped.
 3. The core modules' read and command ports take the person's scope with every call and enforce it. Row-level security stays company-only ([ADR-001](../../database-architecture/)).
 
 **Warehouse mode** (owner rulings, 29 October 2026): a Warehouse member opens the warehouse floor, a phone-first view of their floor work, and never the dashboard. On the floor they find a product, a box or a spot by code or name, see a product's stock by spot and a spot's contents, and do the floor actions their role holds; the dashboard's Products pages, Stock list, a product's movements and Settings are not offered to them. An Owner, Admin, Manager or Staff member may switch between the dashboard and the floor (remembered per device and company); an Accountant has the dashboard only. The server still answers what the matrix grants (section 5.1).
@@ -109,7 +109,7 @@ A module declares each action in its manifest ([ADR-000 SPEC 1](../../system-arc
 | Inspect a return: restock or keep as damaged; mark damaged or quarantined; "not found" at a pick | Yes | Yes | Yes | Yes | No | No | [ADR-006](../../stock-ledger/) |
 | Inspect a return: write off, or restock a use-by unit; restore damaged units | Yes | Yes | Yes | No | No | No | [ADR-006](../../stock-ledger/) |
 | Block or unblock a lot | Yes | Yes | Yes | No | No | No | [ADR-006](../../stock-ledger/) |
-| Send or receive a transfer between warehouses | Yes | Yes | Yes | Yes | No | No | [ADR-006](../../stock-ledger/spec/#16-who-may-do-what) |
+| Create, confirm, cancel, send or receive a transfer between warehouses (`inventory.transfer`) | Yes | Yes | Yes | Yes | No | No | [ADR-006](../../stock-ledger/spec/#16-who-may-do-what) |
 | Add or change warehouses and spots; relabel stock to a product's copy | Yes | Yes | Yes | No | No | No | [ADR-006](../../stock-ledger/spec/#16-who-may-do-what) |
 | **Orders** | | | | | | | |
 | Read orders (buyer data as ADR-009 decides) | Yes | Yes | Yes | Yes | Yes | Yes | [ADR-009](../../buyer-data/spec/#7-who-can-see-it) |
