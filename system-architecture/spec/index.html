@@ -408,7 +408,9 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
   <text x="16" y="562" font-size="11" class="quiet">Every module also uses the kernel and asks Access whether a person may act; those lines are left out.</text>
   <text x="16" y="578" font-size="11" class="quiet">The two lines drawn to Access are Products and Inventory reading the company&#8217;s settings.</text>
 </svg>
-</figure><p>An arrow from A to B means A calls B&#39;s port, so A&#39;s tests run when B&#39;s contract changes (<a href="#15-testing-and-verification">15.8</a>). A dashed arrow means A tells B something by event; B is tested against the event&#39;s type, not against A. A module at the bottom of the map is reached by many; a module at the top by none. That is the intended shape: the core changes rarely, and the modules that change often sit at the edge.</p>
+</figure>
+
+<p>An arrow from A to B means A calls B&#39;s port, so A&#39;s tests run when B&#39;s contract changes (<a href="#15-testing-and-verification">15.8</a>). A dashed arrow means A tells B something by event; B is tested against the event&#39;s type, not against A. A module at the bottom of the map is reached by many; a module at the top by none. That is the intended shape: the core changes rarely, and the modules that change often sit at the edge.</p>
 <p>When a change alters a module&#39;s contract, it re-runs the tests of:</p>
 <div class="table-wrap"><table>
 <thead>
@@ -661,7 +663,9 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
     <path d="M582 750H598" marker-end="url(#call-arrow)"/>
   </g>
 </svg>
-</figure><p>Solid arrows are port calls inside the caller&#39;s transaction; dashed arrows are events delivered after commit; dotted arrows are outside calls, never inside a transaction. In shadow mode the gate records what it would send and sends nothing. What the diagram leaves out:</p>
+</figure>
+
+<p>Solid arrows are port calls inside the caller&#39;s transaction; dashed arrows are events delivered after commit; dotted arrows are outside calls, never inside a transaction. In shadow mode the gate records what it would send and sends nothing. What the diagram leaves out:</p>
 <ul>
 <li><strong>Set-up calls.</strong> Connecting runs the seller&#39;s approval, seals the credentials and subscribes to notices, in shadow too (<a href="../../channel-connectors/">ADR-004</a>).</li>
 <li><strong>Cancellations.</strong> Vervoro never sends one: the seller cancels on the marketplace, and the confirmed cancellation comes in like any other order change, as the &quot;A buyer cancels&quot; row shows (<a href="../../order-ingestion/spec/#12-cancellations-and-refunds">ADR-007 SPEC 12</a>).</li>
@@ -789,7 +793,9 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
   <text x="190" y="110" font-size="11" class="quiet">whose session? a login id</text>
   <text x="390" y="318" font-size="11" class="quiet">own Hyperdrive, control's auth schemas only</text>
 </svg>
-</figure><ol>
+</figure>
+
+<ol>
 <li><strong>The app Worker,</strong> one per environment, serves the built client as static files, the API and every webhook. <strong>The sign-in Worker</strong> is the only other one: it runs Better Auth, serves the sign-in pages, answers the app&#39;s &quot;whose session is this?&quot; over a service binding, and reaches only control&#39;s <code>auth</code> and <code>auth_policy</code> schemas, through its own Hyperdrive configuration (<a href="../../sign-in/spec/#8-the-sign-in-worker">ADR-013 SPEC 8</a>). Better Auth is a pinned dependency inside it, not a module: no module imports it, and it never calls a module&#39;s port or writes a module&#39;s table. The login id it returns goes to Access; who decides what is <a href="../../sign-in/#decision">ADR-013 decision 3</a>. Deployed code uses web-standard APIs and platform bindings only.</li>
 <li><strong>Background work</strong> runs on one sweeper per database, a Durable Object driven by its alarm, that runs only companies with work due (<a href="../../database-architecture/spec/#9-background-work-and-the-outbox">ADR-001 SPEC 9</a>).</li>
 <li><strong>Webhooks</strong> go through one inbound queue with retries and a dead-letter queue. It carries only marketplace notices and the operations&#39; own ids-only notices that prove it: the deploy&#39;s probe and, on staging, the placed-work drill&#39;s, its round count as its one resource (owner ruling, 25 October 2026).</li>
@@ -813,7 +819,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Migrate:</strong> code that understands both the old and the new shape deploys, and the data is moved.</li>
 <li><strong>Contract:</strong> after the rollback window, a later release removes the old shape. The rollback window is at least 24 hours and one successful nightly cycle after the release that stopped using the old shape (owner ruling, 21 October 2026).</li>
 </ul>
-<p>A destructive change (a drop, a rename, a tighter constraint) never ships in the same release that first depends on the new schema. A migration is never rolled back, and a migration already merged is never edited (<a href="#16-how-work-is-done">16</a>). Better Auth&#39;s generated changes follow the same steps (<a href="../../sign-in/spec/#13-upgrades-and-migrations">ADR-013 SPEC 13</a>).</p>
+<p>A destructive change (a drop, a rename, a tighter constraint that an existing row or the previous release&#39;s writes could breach) never ships in the same release that first depends on the new schema. A migration is never rolled back, and a migration already merged is never edited (<a href="#16-how-work-is-done">16</a>). Better Auth&#39;s generated changes follow the same steps (<a href="../../sign-in/spec/#13-upgrades-and-migrations">ADR-013 SPEC 13</a>).</p>
 </li>
 <li><p>A database below the version the code needs is an error that alerts, never a state the code handles.</p>
 </li>
@@ -834,6 +840,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>No screen waits for a marketplace (<a href="#10-runtime">section 10</a>, rule 8).</li>
 <li><strong>A tap that changes something shows sending, done or not sure,</strong> and shows done only on the server&#39;s answer. Not sure (no answer, or the connection dropped) retries with the same key, by itself, up to 12 tries or 10 minutes, never from a hidden tab and never sooner than the server&#39;s <code>Retry-After</code>; then it asks the person to try again. A refusal that will not change is a 4xx and is never retried (owner ruling, 24 October 2026). The server keeps each change&#39;s key with its answer, in the company&#39;s cell, written in the change&#39;s own transaction: a repeat with the same key gets the first answer and changes nothing (<a href="../../database-architecture/spec/#5-declaring-tables">ADR-001 SPEC 5</a>; stock commands in <code>stock_command</code>, <a href="../../stock-ledger/spec/#12-the-lock-keys-and-the-sequence">ADR-006 SPEC 12.4</a>; owner ruling, 23 October 2026). It holds that item&#39;s next step until it settles, so a worker never repeats the physical step to find out. There is no offline queue at launch.</li>
 <li><strong>A screen rule says what the page does where the browser cannot do the thing, or cannot tell whether it can.</strong> The server never assumes what a device holds; the sign-in pages follow this too (<a href="../../sign-in/spec/#8-the-sign-in-worker">ADR-013 SPEC 8</a>, owner ruling, 23 October 2026).</li>
+<li><strong>A read that fails says so, never an empty list or a blank field in its place.</strong> No answer (a 5xx, or the connection dropped) shows that Vervoro did not answer, with a Try again the person taps, which sends the read once more (<a href="../../database-architecture/spec/#7-control-database-and-routing">ADR-001 SPEC 7</a>, rule 1). A refusal (a 4xx) shows the reason the server gave (<a href="../../users-and-access/spec/#5-rules-for-every-action">ADR-010 SPEC 5</a> rule 3) and offers nothing a tap could change: the way out is the screen&#39;s own. Signed out goes to sign-in. The empty state is shown only for an answer that is known to be empty (owner delegation, 30 October 2026).</li>
 </ol>
 <h2 id="13-languages-and-formats">13. Languages and formats</h2>
 <ol>
@@ -997,6 +1004,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><input disabled="" type="checkbox"> <strong>Alerts:</strong> the four paging alerts exist and a seeded failure in staging pages.</li>
 <li><input disabled="" type="checkbox"> <strong>Deploy:</strong> migrations finish everywhere before the Worker switches; the code refuses a database below its version; no release both removes an old shape and first depends on the new one, and the previous version&#39;s tests pass on the new schema.</li>
 <li><input disabled="" type="checkbox"> <strong>Client:</strong> no raw colour or size outside the tokens; every interactive element has a test id.</li>
+<li><input disabled="" type="checkbox"> <strong>Client, failed reads:</strong> every screen&#39;s failing read shows no empty state, a Try again on no answer and the reason on a refusal (<code>apps/app/test/request-budget.test.tsx</code>).</li>
 <li><input disabled="" type="checkbox"> <strong>Languages:</strong> no literal on-screen text outside the catalogue; formatters used for every number, amount and date.</li>
 <li><input disabled="" type="checkbox"> <strong>Money:</strong> no addition of amounts without a currency check; order lines store country, class and rate.</li>
 <li><input disabled="" type="checkbox"> <strong>Tests:</strong> pure logic has unit tests with no database; anything that touches the database runs on real Postgres, anything that touches a marketplace on its simulator, with no stand-in for either; the driver contract suite runs on both drivers and agrees.</li>

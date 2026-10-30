@@ -27,7 +27,7 @@ The rules to build ADR-014 from: the Fulfilment module. Every stock change below
 
 ## 2. Picking
 
-1. **Starting to pick** an order creates a pick task. For each reservation it asks Inventory to claim a spot: the spot of that batch with the fewest units first, less what other open pick tasks already claim from it.
+1. **Starting to pick** an order creates a pick task. For each reservation it asks Inventory to claim a spot: the spot of that batch with the fewest units first, less what other open pick tasks already claim from it, unless the caller names one (Inventory's claim port, [ADR-006 SPEC 7.1](../../stock-ledger/spec/#7-ports-fulfilment-and-orders-call); owner delegation, 30 October 2026).
 2. **The pick list** names the batch, its lot and date, and the spot. A pick task writes no ledger entry.
 3. **"Not found"** calls Inventory's quarantine port ([ADR-006 SPEC 7.7](../../stock-ledger/spec/#7-ports-fulfilment-and-orders-call)); the pick list then shows the new batch, or the line as short.
 4. **A unit taken from a spot the books do not show** is reported as it is; Inventory records it as a move or a find (ADR-006 SPEC 7.8).

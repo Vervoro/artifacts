@@ -488,7 +488,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ol>
 <li><code>pack_of</code> names one simple product; <code>units_per_pack</code> is 2–10,000. A pack of packs is refused: a case of four six-packs is a box size.</li>
 <li><strong>Stock is separate.</strong> A six-pack sale uses six-pack stock, never singles.</li>
-<li><strong>Repacking</strong> opens packs into singles or makes packs from singles. It takes one number, the packs opened or made, and the other side follows from <code>units_per_pack</code>, so base units never change. Both ledger entries are one transaction, and the new stock keeps the batch, dates, lot and landed cost per unit (<a href="../../stock-ledger/spec/#6-what-a-line-reserves">ADR-006</a>).</li>
+<li><strong>Repacking</strong> opens packs into singles or makes packs from singles. It takes one number, the packs opened or made, and the other side follows from <code>units_per_pack</code>, so base units never change. Both ledger entries are one transaction, and the new stock is a new batch of the output product with the same lot, dates and supplier, its landed cost per base unit kept, recording the batch it came from (<a href="../../stock-ledger/spec/#6-what-a-line-reserves">ADR-006 SPEC 6.4</a>; owner delegation, 30 October 2026).</li>
 <li><strong>Assembly</strong> of a product sealed from several others (a gift set Amazon needs as one labelled unit) makes a simple product of its own, through a manager&#39;s job that states every input (<a href="../../stock-ledger/spec/#6-what-a-line-reserves">ADR-006</a>).</li>
 <li>Six singles shipped loose in one parcel are a listing with six units per sale, not a pack. A pack exists only when a sealed pack sits on the shelf.</li>
 </ol>

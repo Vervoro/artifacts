@@ -150,7 +150,7 @@ Every change to a product, its barcodes, components or box sizes writes an activ
 
 1. `pack_of` names one simple product; `units_per_pack` is 2–10,000. A pack of packs is refused: a case of four six-packs is a box size.
 2. **Stock is separate.** A six-pack sale uses six-pack stock, never singles.
-3. **Repacking** opens packs into singles or makes packs from singles. It takes one number, the packs opened or made, and the other side follows from `units_per_pack`, so base units never change. Both ledger entries are one transaction, and the new stock keeps the batch, dates, lot and landed cost per unit ([ADR-006](../../stock-ledger/spec/#6-what-a-line-reserves)).
+3. **Repacking** opens packs into singles or makes packs from singles. It takes one number, the packs opened or made, and the other side follows from `units_per_pack`, so base units never change. Both ledger entries are one transaction, and the new stock is a new batch of the output product with the same lot, dates and supplier, its landed cost per base unit kept, recording the batch it came from ([ADR-006 SPEC 6.4](../../stock-ledger/spec/#6-what-a-line-reserves); owner delegation, 30 October 2026).
 4. **Assembly** of a product sealed from several others (a gift set Amazon needs as one labelled unit) makes a simple product of its own, through a manager's job that states every input ([ADR-006](../../stock-ledger/spec/#6-what-a-line-reserves)).
 5. Six singles shipped loose in one parcel are a listing with six units per sale, not a pack. A pack exists only when a sealed pack sits on the shelf.
 
