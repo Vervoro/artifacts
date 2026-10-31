@@ -31,6 +31,7 @@ At launch only the deletions in [section 2](#2-the-retention-schedule) run (`eve
 | Closed orders, their lines, holds and cancellations | 24 months | Until 7 years after the month ends | Deleted |
 | Invoices, credit notes, VAT records, export evidence and payments ([ADR-011](../../invoicing-and-vat/)) | 24 months | Until 7 years after the month ends | Deleted |
 | Stock ledger entries | 24 months, then a checkpoint | Until 7 years after the month ends | Deleted |
+| Counts and count lines ([ADR-006 SPEC 9](../../stock-ledger/spec/#9-counts-and-adjustments)) | 24 months, as stock ledger entries | Until 7 years after the month ends | Deleted |
 | Batches with no stock left | 24 months after the last movement | Until 7 years after the month ends | Deleted |
 | `audit_log` (security and access) | 13 months, by whole months: a month is dropped once its newest row is 13 months old ([ADR-001 SPEC 5](../../database-architecture/spec/#5-declaring-tables); owner ruling, 25 October 2026) | Never | Dropped; a company's export holds its log, for a seller who must keep it longer |
 | `event_log` (module activity) | 90 days, by whole months: a month is dropped once its newest row is 90 days old, so a row stays 90 to about 121 days | Never | Dropped |

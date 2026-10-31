@@ -89,7 +89,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p>A recall must name whom the seller supplied, and the seller needs every buyer to reach them. Vervoro finds them from the lots that actually left, and lists separately the lines where the lot was assumed.</p>
 <h2 id="steps">Steps</h2>
 <ol>
-<li>Open the recall list and enter the lot number from the recall notice.</li>
+<li>Open the recall list and enter the lot number from the recall notice. Until Fulfilment&#39;s recall list exists, Stock › Lot trace (<code>/inventory/lots</code>) lists the same from Inventory (<a href="../../stock-ledger/spec/#10-lot-trace-and-recalls">ADR-006 SPEC 10.1</a>) and blocks the lot.</li>
 <li>Block the lot at once from the list. Every batch of that lot is held in every warehouse, and its unpacked reservations move to other batches or leave lines short.</li>
 <li>Check the parcels waiting in the packing spot. A unit of a blocked lot is refused at dispatch; the packer swaps it.</li>
 <li>Download the list: the orders that received the lot, with the order id, date and the order&#39;s destination country, then the lines that may have received it (&quot;batch assumed&quot;, &quot;lot not traced&quot; or &quot;label unchecked&quot;), then any units handed to a marketplace&#39;s warehouse.</li>
