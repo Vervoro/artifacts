@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-005: Catalogue sync and linking](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-005-catalogue-sync-and-linking) |
-| **Date** | 21 October 2026; amended by the owner's sign-off of 25 October 2026 (the developer's review): a new link to a retired product refused (11); amended by owner delegation, 31 October 2026 (the developer's review before phase 5.3): the intake shape and the account copy (1.2), `listing_changed` (1.4), one observed time per source group (5.7), the held answer (8.4), a retired product's close (8.5), the multiple veto's edges (10.2), the figure from Inventory's sellable (11.1), a read and the link's fulfilment (11.7), Orders' values and All listings (13), the `listings_` prefix, `listings_account`, first seen and missing since (19), the closed link's columns (How to check) |
+| **Date** | 21 October 2026; amended by the owner's sign-off of 25 October 2026 (the developer's review): a new link to a retired product refused (11); amended by owner delegation, 31 October 2026 (the developer's review before phase 5.3): the intake shape and the account copy (1.2), `listing_changed` (1.4), one observed time per source group (5.7), the held answer (8.4), a retired product's close (8.5), the multiple veto's edges (10.2), the figure from Inventory's sellable (11.1), a read and the link's fulfilment (11.7), Orders' values and All listings (13), the `listings_` prefix, `listings_account`, first seen and missing since (19), the closed link's columns (How to check); amended by owner delegation, 1 November 2026 (phase 5.3 as built): the order-line listing (8.1), a full read's ended status and the single read (8.3), the relist carry's timing and the seller told (9), the weak tier and shared-barcode (10.1), option values as a set (11.2), left out (11.3), the undo's choice (11.6), not stock on an unlinked listing (12.2), rows that leave the list (13) |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-005 from: the Listings module, core and always on, needing Products, and its part in Channels, which reads the marketplaces for it ([ADR-000 SPEC 4](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)). Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/).
@@ -99,9 +99,9 @@ A notice is a hint ([ADR-004 SPEC 8](../../channel-connectors/spec/#8-notices-in
 
 ## 8. New and ended listings
 
-1. **A new listing** (from a notice, a changes read, a full read or an order line) gets suggestions at once. A shared-stock listing alerts the seller (section 12).
+1. **A new listing** (from a notice, a changes read, a full read or an order line) gets suggestions at once. A shared-stock listing alerts the seller (section 12). A listing first known from an order line is stored `active` with its details not read, so it is never strong, and Listings asks for a read of it.
 2. **First proof:** missing from a complete read of its scope whose `asOf` is later than when the listing was first seen. It becomes `missing`.
-3. **Second proof:** for a linked listing, a read of that one listing says it ended or does not exist; eBay's report may leave out a listing at 0, and the search leaves out inactive SKUs. For an unlinked listing, that, or missing again from a complete read at least 20 hours later.
+3. **Second proof:** for a linked listing, a read of that one listing says it ended or does not exist; eBay's report may leave out a listing at 0, and the search leaves out inactive SKUs. For an unlinked listing, that, or missing again from a complete read at least 20 hours later. A single-listing read that does not see a missing listing ends it; one that does not see a present listing marks it missing. A full read's chunk that reports a listing ended is a first proof, applied when the read completes; nothing changes state from an incomplete read.
 4. **A read that would end too much is held:** more than 10 % of a scope missing, and at least 20 listings. Nothing changes, the operator is alerted, and the read is due again in an hour. If the next read finds the same listings missing, it stays held until the operator releases it after checking ([Settle a held catalogue read](../../runbooks/settle-a-held-catalogue-read/)). Listings works out a read's missing share at its end and answers "held" to Channels, which keeps the read's state; the release is Listings' port, called from the runbook's console step.
 5. **An ended listing keeps its link,** gets no figure, and resolves late orders and returns. The seller sees it in the daily digest; it alerts only if it had open orders, or its product still has stock and no seller-shipped listing left. An ended listing does not count against retiring a product ([ADR-003 SPEC 9](../../product-model/spec/#9-status)); retiring closes its link, and a link closed because its product was retired records 0 (an ended listing gets no figure anyway).
 6. **A listing that comes back** keeps its link only if its marketplace product (ASIN, eBay item or parent) and its barcodes are unchanged, and its raises are held until the seller looks. Otherwise its link closes and the old product is offered as a suggestion.
@@ -114,7 +114,10 @@ A notice is a hint ([ADR-004 SPEC 8](../../channel-connectors/spec/#8-notices-in
 | A SKU edited onto another product's SKU | Yes | A conflict (section 16) |
 | An eBay relist eBay declares (the new item names the old), with the same SKU, fulfilment, options, title, lot size and variations, and no veto | No | The link carries over by the same compare-and-set as a person; the seller is told, with Undo, which returns the listing to unlinked |
 | Any other relist, or "sell similar" | No | A successor suggestion: the old link's product and units per sale |
-| An Amazon SKU deleted and made again, or an eBay inventory item renamed | No | The old listing ends; the new one gets a successor suggestion |
+| An Amazon SKU deleted and made again, or an eBay inventory item renamed | No | The old listing ends; the new one gets a successor suggestion when the connector names the old key; a rename with no parent named gets none |
+
+1. **A declared relist carries the link when the chunk declares the parent,** whether or not the old listing has ended; the old link stays until the old listing ends (duplicates are allowed, section 16).
+2. **"The seller is told"** (here and in 8.6) is a state on the listing's row and page, cleared by a person who may link; no mail or push.
 
 ## 10. Suggestions
 
@@ -123,8 +126,8 @@ A notice is a hint ([ADR-004 SPEC 8](../../channel-connectors/spec/#8-notices-in
 | Tier | Rule | Bulk accept |
 | --- | --- | --- |
 | Strong | The listing's SKU equals a product's SKU, ignoring case, with no veto. Or a barcode the seller entered on the listing equals one product's unit barcode, with no veto, the listing's SKU naming no other product, and no other listing on the account carrying that barcode | Yes |
-| Medium | A SKU match once a known suffix is removed (`-FBA`, `-6PK`); a barcode only from the marketplace's catalogue; the same ASIN or barcode linked on another account of the company; a successor; a strong match demoted by a veto or a shared barcode | One at a time |
-| Weak | A similar title | Shown only |
+| Medium | A SKU match once a known suffix is removed (`-FBA`, `-6PK`); a barcode only from the marketplace's catalogue; the same ASIN or barcode linked on another account of the company; a successor; a strong match demoted by a veto or a shared barcode (a barcode another listing of the same account carries: `shared-barcode`) | One at a time |
+| Weak | A similar title: every word of the product's name is in the listing's title, ignoring case and punctuation; worked out when a listing's page opens, never stored in bulk | Shown only |
 
 2. **Vetoes** demote strong to medium, and the row says why: a pack word or count in the title or SKU, from a fixed, tested list per language; the marketplace's pack quantity above 1; the barcode belongs to a pack product or a box size (then the box's units per sale is proposed); the marketplace's figure near a whole multiple of 2 or more of Vervoro's (both figures at least 1, and the larger divided by the smaller within 10 % of a whole number of 2 or more; a 0 on either side fires nothing); two products match; the product is retired.
 3. **A veto that could not be checked counts as fired.** A listing whose title, or pack quantity where the marketplace has one, is not yet read is never strong; the row says "details not yet read".
@@ -143,7 +146,7 @@ The link's fields and what a sale reserves are [ADR-003 SPEC 8](../../product-mo
 
 ### 11.2 Link to family
 
-1. **"Link to family"** on a listing group pairs each variation with the family member that has the same SKU, or else the same option values, ignoring case and spaces ([ADR-003 SPEC 10](../../product-model/spec/#10-sizes-and-colours)).
+1. **"Link to family"** on a listing group pairs each variation with the family member that has the same SKU, or else the same option values as a set, ignoring case, spaces and option names ([ADR-003 SPEC 10](../../product-model/spec/#10-sizes-and-colours)).
 2. **One preview and one confirm, still one link per variation;** any pair can be unticked and later changed alone.
 3. **A pair made only by option values is medium;** vetoes and the ratio check apply to each pair.
 4. **What does not pair stays unlinked,** with its reason. *Later:* "Add a size" drafts the missing members; at launch they are made with Make product.
@@ -154,7 +157,7 @@ The link's fields and what a sale reserves are [ADR-003 SPEC 8](../../product-mo
 1. Strong suggestions only, on every row in the filter, not only those on screen.
 2. Previewed in full: grouped by product, products gaining more than one listing first, five random rows to spot-check, and the total change in figures.
 3. Never sets units per sale above 1.
-4. One recorded batch, written in chunks of 500 links a transaction. Undo closes only the links still belonging to the batch, and says how many it skipped.
+4. One recorded batch, written in chunks of 500 links a transaction. Undo closes only the links still belonging to the batch, and says how many it skipped. The preview's "left out" counts the rows with a ratio of 3 or more together with rows a concurrent change skipped.
 5. **On a live account, raises wait** for one "send raises" confirm: one list with a total, any row can be unticked. Decreases go at once. Unconfirmed raises remind the seller once after 24 hours.
 
 ### 11.4 Versions
@@ -174,7 +177,7 @@ The link's fields and what a sale reserves are [ADR-003 SPEC 8](../../product-mo
 Closing a link without a new one, by a person or by an undo. A product with linked listings cannot be retired, and a new link to a retired product is refused ([ADR-003 SPEC 9.2](../../product-model/spec/#9-status)).
 
 1. **Reserved orders keep their stock** ([ADR-006 SPEC 6.6](../../stock-ledger/spec/#6-what-a-line-reserves)); the screen says how many.
-2. **The listing is sent 0 by default.** The screen offers "Set to 0 and unlink", the default, or "Leave the marketplace's figure", showing the figure. The choice is recorded on the closed link, and Stock sync carries it out as a stop ([ADR-008 SPEC 10.2](../../inventory-sync/spec/#10-listing-modes-and-stopping)).
+2. **The listing is sent 0 by default.** The screen offers "Set to 0 and unlink", the default, or "Leave the marketplace's figure", showing the figure. The choice is recorded on the closed link, and Stock sync carries it out as a stop ([ADR-008 SPEC 10.2](../../inventory-sync/spec/#10-listing-modes-and-stopping)). An undo in the toast right after a link, and a bulk undo, record `leave` when no figure was sent under the link (an account in shadow); otherwise the unlink screen opens with its choice.
 3. **A marketplace-shipped listing** never gets a figure, so unlinking it sends nothing.
 4. **Relinking is a new link.** Orders already dispatched while unlinked stay flagged; the seller attaches each to a product from the order ([ADR-007](../../order-ingestion/spec/#14-orders-for-unlinked-listings)).
 
@@ -192,7 +195,7 @@ The listing came back after ending (8.6); its SKU was edited onto another produc
 ## 12. Unlinked listings and going live
 
 1. **An unlinked listing is left to the marketplace.** It gets no figure; its orders are imported and flagged ([ADR-007](../../order-ingestion/spec/#14-orders-for-unlinked-listings)). Unlinked is the default and needs no mark. The account shows how many listings are left to the marketplace.
-2. **Not stock.** A listing that sells no stock is marked "not stock" with a VAT class by those who may link ([ADR-010 SPEC 4](../../users-and-access/spec/#4-who-may-do-what)). It is never linked and gets no figure; its order lines are charge lines ([ADR-003 SPEC 1.1](../../product-model/spec/#11-charge-lines-and-listings-that-are-not-stock), owner ruling, 21 October 2026). Removing the mark makes it an ordinary unlinked listing.
+2. **Not stock.** A listing that sells no stock is marked "not stock" with a VAT class by those who may link ([ADR-010 SPEC 4](../../users-and-access/spec/#4-who-may-do-what)). It is never linked and gets no figure; its order lines are charge lines ([ADR-003 SPEC 1.1](../../product-model/spec/#11-charge-lines-and-listings-that-are-not-stock), owner ruling, 21 October 2026). Removing the mark makes it an ordinary unlinked listing. The mark is offered only on an unlinked listing: unlink first.
 3. **A shared-stock listing** is an unlinked, buyable, seller-shipped listing with a strong or medium suggestion naming a product already linked elsewhere, or in a listing group with a linked member. It takes stock Vervoro does not deduct.
 4. **Going live on an account needs** a complete catalogue read, no open conflict, and an answer for every shared-stock listing: link it, or "separate stock, leave to the marketplace". Many can be answered at once, with a confirm that names the risk. The answer is recorded (listing, evidence, who, when), creates no link, and is asked again when a new strong suggestion appears. Every other unlinked listing is a count, never a blocker. How accounts go live is [ADR-008 SPEC 14](../../inventory-sync/spec/#14-shadow-and-going-live).
 5. **After going live,** the seller gets one push per listing for a new shared-stock listing, and for the first order on an unlinked listing with a strong or medium suggestion and no "separate stock" answer. Orders on other unlinked listings go to the daily digest.
@@ -207,6 +210,7 @@ The listing came back after ending (8.6); its SKU was edited onto another produc
 5. **Listings that cannot be linked** stay on the list with the fix: a variation without a SKU (add one on eBay, then refresh that listing), a SKU on an unserved marketplace.
 6. **Orders' values** (open orders, 30-day sales, the preview's order counts) are Orders' values on Listings' list extension point and an Orders card on the link screen; Listings never calls Orders.
 7. **Every listing,** linked or ended included, is reachable from Listings › All listings with the same search and filters, read by every role ([ADR-010 SPEC 4](../../users-and-access/spec/#4-who-may-do-what)).
+8. **A listing answered "separate stock" or marked not stock leaves the unlinked list** and stays under All listings and the "needed for going live" filter.
 
 ## 14. Making a product from a listing
 
