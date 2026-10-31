@@ -135,7 +135,7 @@ A module declares each action in its manifest ([ADR-000 SPEC 1](../../system-arc
 | See the plan, the state, the order count and the next charge | Yes | Yes | No | No | No | No | [ADR-012](../../billing-and-plans/spec/#19-who-may-manage-billing) |
 | Read and download Vervoro's invoices and credit notes | Yes | Yes | No | No | Yes | No | [ADR-012](../../billing-and-plans/spec/#19-who-may-manage-billing) |
 | **Reports and exports** | | | | | | | |
-| Reports | Yes | Yes | Yes | No | Yes | No | ADR-010 |
+| Reports (the stock movements report is part of "Read products and stock": a person sees their warehouses' movements, costs with the costs permission; owner delegation, 31 October 2026) | Yes | Yes | Yes | No | Yes | No | ADR-010 |
 | Export with buyer data | Yes | Yes | No | No | No | No | [ADR-009](../../buyer-data/spec/#12-exports) |
 | Export without buyer data | Yes | Yes | Yes | No | Yes | No | ADR-010 |
 
