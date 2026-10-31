@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Status** | Proposed |
-| **Date** | 18 October 2026; split into ADR, SPEC and RUNBOOK, with Listings as the core module that alone writes listings and links, 21 October 2026 |
+| **Date** | 18 October 2026; split into ADR, SPEC and RUNBOOK, with Listings as the core module that alone writes listings and links, 21 October 2026; amended by owner delegation, 31 October 2026, after the developer’s review before phase 5.3 (the SPEC’s Date row lists the sections) |
 | **Scope** | The Listings module: what a listing is and its key, how listings are read and kept current, when a listing has ended, relists and SKU changes, suggestions, links and their versions, unlinked and not-stock listings, the shared-stock answer before going live, making a product from a listing, and offering a product on Amazon by ASIN |
 | **Builds on** | [ADR-000](../system-architecture/), [ADR-001](../database-architecture/), [ADR-003](../product-model/), [ADR-004](../channel-connectors/) with [ADR-004.1](../ebay-connector/), [ADR-004.2](../amazon-seller-connector/) and [ADR-004.3](../shopify-connector/); used by [ADR-006](../stock-ledger/), [ADR-007](../order-ingestion/) and [ADR-008](../inventory-sync/) |
 | **SPEC** | [The rules to build from, and how to check them](spec/) |
