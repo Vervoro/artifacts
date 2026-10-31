@@ -639,7 +639,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </li>
 <li><p><strong><code>tracks_lot</code> on:</strong> no stock enters without a lot, and every dispatch records the lot of the batch it took for each order line, bundles included: the one eligible batch when only one is, tapped at packing for use-by products and business buyers when several are, otherwise the reserved batch marked &quot;batch assumed&quot; (<a href="../../stock-ledger/spec/#7-ports-fulfilment-and-orders-call">ADR-006 SPEC 7.2</a>, <a href="../../fulfilment/spec/#3-packing">ADR-014 SPEC 3</a>). A recall lists those lines apart. A recall is one search from the lot to every order, its destination country and date, and to the stock still on hand, which can be blocked at once.</p>
 </li>
-<li><p><strong>A pack follows its content product:</strong> a six-pack of a dated product is dated too. Repacking keeps the batch, date and lot.</p>
+<li><p><strong>A pack follows its content product:</strong> a six-pack of a dated product is dated too. Repacking keeps the date and lot; its output is a new batch recording the batch it came from (section 6.2.3; owner delegation, 31 October 2026).</p>
 </li>
 <li><p><strong>Switching on while stock is on hand</strong> flags that stock for a count to fill in the dates or lots. Until then it stays sellable, shown as missing them, except under use-by: undated use-by stock is held until its date is entered (<a href="../../stock-ledger/spec/#4-dates-blocks-and-the-date-pass">ADR-006 SPEC 4.4</a>).</p>
 </li>
