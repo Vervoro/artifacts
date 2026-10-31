@@ -213,7 +213,7 @@ Each port is a command under the company's lock with its key (section 12). The f
 Inventory never writes a listing's figure. The rule is [ADR-008 SPEC 1](../../inventory-sync/spec/#1-the-figure-per-listing) (owner ruling, 21 October 2026, [ADR-000 SPEC 4.6](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)).
 
 1. **Every stock command that changes sellable** writes, in its own transaction, an outbox note naming the company, the products whose sellable changed, the bundles that use them (from Products' port) and the ledger sequence: the transaction's ledger number, or the last number taken when the change wrote no entry (a block).
-2. **Inventory's read port** gives Stock sync a product's sellable per warehouse with the last ledger sequence that changed that product.
+2. **Inventory's read port** gives Stock sync a product's sellable per warehouse with the last ledger sequence that changed that product. A second read port, `position`, gives Purchasing sellable and units in transit per product and warehouse, batched, with the same sequence ([ADR-015 SPEC 6.2](../../purchasing/spec/#62-the-position); owner ruling, 31 October 2026); a third, `suppliersUsed`, says which of the supplier ids asked a batch of the company names ([ADR-015 SPEC 3.2](../../purchasing/spec/#3-suppliers)).
 
 | Change | Sellable | Note |
 | --- | --- | --- |

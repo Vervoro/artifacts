@@ -459,7 +459,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p>Inventory never writes a listing&#39;s figure. The rule is <a href="../../inventory-sync/spec/#1-the-figure-per-listing">ADR-008 SPEC 1</a> (owner ruling, 21 October 2026, <a href="../../system-architecture/spec/#4-the-foundation-and-the-launch-modules">ADR-000 SPEC 4.6</a>).</p>
 <ol>
 <li><strong>Every stock command that changes sellable</strong> writes, in its own transaction, an outbox note naming the company, the products whose sellable changed, the bundles that use them (from Products&#39; port) and the ledger sequence: the transaction&#39;s ledger number, or the last number taken when the change wrote no entry (a block).</li>
-<li><strong>Inventory&#39;s read port</strong> gives Stock sync a product&#39;s sellable per warehouse with the last ledger sequence that changed that product.</li>
+<li><strong>Inventory&#39;s read port</strong> gives Stock sync a product&#39;s sellable per warehouse with the last ledger sequence that changed that product. A second read port, <code>position</code>, gives Purchasing sellable and units in transit per product and warehouse, batched, with the same sequence (<a href="../../purchasing/spec/#62-the-position">ADR-015 SPEC 6.2</a>; owner ruling, 31 October 2026); a third, <code>suppliersUsed</code>, says which of the supplier ids asked a batch of the company names (<a href="../../purchasing/spec/#3-suppliers">ADR-015 SPEC 3.2</a>).</li>
 </ol>
 <div class="table-wrap"><table>
 <thead>

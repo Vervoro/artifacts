@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>27 October 2026, Proposed; owner rulings of 27 October 2026: two steps, purchase orders never required, the draft&#39;s open questions decided as recommended</td>
+<td>27 October 2026, Proposed; owner rulings of 27 October 2026: two steps, purchase orders never required, the draft&#39;s open questions decided as recommended; owner rulings of 31 October 2026, the developer&#39;s review of step 1: Access joins the needs (6.3.4), Inventory&#39;s <code>position</code> and <code>suppliersUsed</code> ports (10.2), the receipt&#39;s supplier picker through a field slot (10.4), the not-tracked filter (5.6), the bundle card, the Today card and the floor for scoped people (5.3, 6.6.2, 7.2), the list&#39;s paging (6.4)</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -364,10 +364,10 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ol>
 <li><strong>Company-wide at launch.</strong> The level is compared with the position summed over every warehouse of the company. The cost, accepted by the owner on 27 October 2026: a seller with two sites that cannot share stock sees no need while one site is empty. A warehouse-specific level is <em>Later</em>.</li>
 <li><strong>The Purchasing card on the product page</strong> shows, in this order: Supplier (preferred), Supplier&#39;s code, Reorder level, Lead time (the one used, with its source). A product with several suppliers shows &quot;+ 2 more&quot; and opens a small list. Editing is on the card; there is no separate settings screen.</li>
-<li><strong>Bundle:</strong> no level. The bundle&#39;s page shows, read-only, &quot;Components that need reordering&quot; (the components on the list). A bundle with no component on the list shows nothing.</li>
+<li><strong>Bundle:</strong> no level. The bundle&#39;s page shows, read-only, &quot;Components that need reordering&quot; (the components on the list) to people who may see the list and are not scoped to warehouses. A bundle with no component on the list shows nothing. A product that becomes a bundle before its first use keeps its links and level, unread while it is a bundle.</li>
 <li><strong>A pack</strong> has its own level and suppliers when the seller buys sealed packs; a pack made by repacking singles has none (<a href="../../product-model/spec/#62-pack">ADR-003 SPEC 6.2</a>). Singles and their packs are counted apart, because their stock is (<a href="../../product-model/spec/#62-pack">ADR-003 SPEC 6.2</a>).</li>
 <li><em>Later:</em> <strong>a suggested level.</strong> Worked out from the average daily sales over a window that leaves out days the product was out of stock, times the lead time used, plus a safety margin the seller sets as days; shown as &quot;Suggested: 40&quot; beside the seller&#39;s number with the figures behind it. It is never written by Vervoro. Not built until Orders has history.</li>
-<li><strong>Products with no level</strong> are a filter in Purchasing (&quot;not tracked&quot;) and a count on the list&#39;s page, so a product the seller forgot does not silently never reorder.</li>
+<li><strong>Products with no level</strong> (simple products and packs, not retired) are a filter Purchasing adds to the products list (&quot;not tracked&quot;, through Products&#39; list extension point) and a count on the list&#39;s page linking to it, so a product the seller forgot does not silently never reorder.</li>
 </ol>
 <h2 id="6-needs-reordering">6. Needs reordering</h2>
 <h3 id="61-what-it-lists">6.1 What it lists</h3>
@@ -421,7 +421,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </tbody></table></div>
 <ol>
-<li><strong>Sorting and filters:</strong> by short by (default), supplier, and &quot;no supplier&quot;. Group by supplier, because sellers decide at the supplier level to meet minimums.</li>
+<li><strong>Sorting and filters:</strong> by short by (default), supplier, and &quot;no supplier&quot;. Group by supplier, because sellers decide at the supplier level to meet minimums. The list is computed whole and shown 50 rows a page; the download holds all of it.</li>
 <li><strong>A product on the list with no supplier</strong> stays on it, flagged &quot;no supplier&quot;.</li>
 <li><strong>Archived supplier:</strong> the row shows it flagged and suggests nothing until another link is preferred.</li>
 </ol>
@@ -434,13 +434,13 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h3 id="66-taking-it-away">6.6 Taking it away</h3>
 <ol>
 <li><strong>Download.</strong> The list downloads as a spreadsheet, one sheet per supplier or filtered, with SKU, supplier&#39;s code, product name, suggested quantity, lead time and supplier contact (to Owner, Admin and Manager only). It contains no costs and no buyer data. This is the seller&#39;s order sheet when there are no purchase orders.</li>
-<li><strong>Today</strong> (the Home screen) shows a card &quot;Needs reordering (n)&quot;, n from the same query, computed when Home is opened.</li>
+<li><strong>Today</strong> (the Home screen) shows a card &quot;Needs reordering (n)&quot;, n from the same query, computed when Home is opened; a person scoped to warehouses is not shown the card.</li>
 <li><strong>No mail at launch</strong> (owner ruling, 27 October 2026). A daily mail is <em>Later</em> (<a href="#0-at-launch-and-later">section 0</a>).</li>
 </ol>
 <h2 id="7-screens">7. Screens</h2>
 <ol>
 <li><strong>Purchasing</strong> (menu): Needs reordering (default), Suppliers, a supplier&#39;s page (its details and its products), Import/export. Step 2 adds Purchase orders.</li>
-<li><strong>Product page:</strong> the Purchasing card (section 5.2). <strong>Today:</strong> the card of section 6.6.</li>
+<li><strong>Product page:</strong> the Purchasing card (section 5.2); no Purchasing card on the floor&#39;s product screen in step 1. <strong>Today:</strong> the card of section 6.6.</li>
 <li><strong>Receipt screen</strong> (Inventory&#39;s): when Purchasing is on, the supplier is a pick list of active suppliers with a free-text fallback; otherwise free text.</li>
 <li>Every word comes from the catalogue (<a href="../../rulebook/">rulebook</a>); no screen waits for anything outside Vervoro.</li>
 </ol>
@@ -514,11 +514,12 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2 id="10-ports-events-and-tables">10. Ports, events and tables</h2>
 <ol>
 <li><strong>Purchasing provides:</strong> <code>suppliers.list</code> (id, name, status) for receipt screens and the card; <code>product.purchasing</code> (the card&#39;s data for a product); <code>reorder.list</code> (the list).</li>
-<li><strong>Purchasing uses:</strong> Products&#39; read port (status, kind, SKU and name for ids; the pack and bundle shape), Inventory&#39;s read port (sellable and incoming per product and warehouse, batched, with the ledger sequence), and from step 2 Orders&#39; read port (units missing per product) and Inventory&#39;s receive port.</li>
+<li><strong>Purchasing uses:</strong> Products&#39; read port (status, kind, SKU and name for ids; the pack and bundle shape), Inventory&#39;s <code>position</code> port (sellable and units in transit per product and warehouse, batched, with the ledger sequence; Stock sync&#39;s <code>sellable</code> port is unchanged) and its <code>suppliersUsed</code> port (which of the supplier ids asked a batch of the company names, read when a supplier is deleted, 3.2), Access&#39;s member facts for a person&#39;s warehouse scope (6.3.4; Access is in the needs, <a href="../../system-architecture/spec/#4-the-foundation-and-the-launch-modules">ADR-000 SPEC 4</a>), once Listings is built its read port for marketplace-shipped products (6.3.1; Listings then joins the needs), and from step 2 Orders&#39; read port (units missing per product) and Inventory&#39;s receive port.</li>
 <li><strong>Events.</strong> Purchasing publishes and handles none in step 1: the list reads a product&#39;s status through Products&#39; port, so no <code>product.retired</code> handler is needed. It needs no event from Inventory because the list reads the port when opened. If a later feature (a mail, a Home count held in a table) needs &quot;stock changed&quot;, it listens to the stock note (<a href="../../stock-ledger/spec/#13-telling-stock-sync">ADR-006 SPEC 13</a>).</li>
 <li><strong>Where core and Purchasing meet</strong> (owner ruling, 27 October 2026; made in the records named, in the same batch):<ul>
 <li><em>Retiring and first use</em> (<a href="../../product-model/spec/#9-status">ADR-003 SPEC 9.2, 3.3</a>) name open purchase orders. Products is core and cannot call Purchasing. Products (<a href="../../product-model/spec/#9-status">ADR-003 SPEC 9.2</a>) declares an extension point &quot;blocks retiring / counts as first use&quot; that modules contribute to; Purchasing contributes open purchase order lines in step 2 and nothing in step 1. Step 1 has no purchase orders, so nothing breaks before then.</li>
 <li><em>A batch&#39;s supplier</em> (<a href="../../stock-ledger/spec/#1-where-stock-is-counted">ADR-006 SPEC 1</a>): <code>stock_batch</code> holds <code>supplier_id</code> (plain id, no foreign key) and <code>supplier_name</code> (a copy at receipt, <a href="../../stock-ledger/spec/#15-storage">ADR-006 SPEC 15</a>); the receive port takes both. Inventory never reads Purchasing&#39;s tables.</li>
+<li><em>The receipt&#39;s supplier picker</em> (7.3): Inventory&#39;s receipt screens, desk and floor, declare a field slot; Purchasing contributes the supplier picker, which returns the id and name; Inventory&#39;s receive takes <code>supplierId</code> beside the name and stores both as given, reading nothing of Purchasing&#39;s.</li>
 <li><em>Incoming from purchase orders</em> beside the four numbers (<a href="../../stock-ledger/spec/#3-the-four-numbers">ADR-006 SPEC 3.2</a>): Inventory cannot call Purchasing. Inventory declares a slot on the product and stock screens that Purchasing contributes the &quot;incoming&quot; figure to, and Purchasing adds it to the list through its own query; Inventory stores none. Step 2.</li>
 </ul>
 </li>
