@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-005: Catalogue sync and linking](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-005-catalogue-sync-and-linking) |
-| **Date** | 21 October 2026; amended by the owner's sign-off of 25 October 2026 (the developer's review): a new link to a retired product refused (11) |
+| **Date** | 21 October 2026; amended by the owner's sign-off of 25 October 2026 (the developer's review): a new link to a retired product refused (11); amended by owner delegation, 31 October 2026 (the developer's review before phase 5.3): the intake shape and the account copy (1.2), `listing_changed` (1.4), one observed time per source group (5.7), the held answer (8.4), a retired product's close (8.5), the multiple veto's edges (10.2), the figure from Inventory's sellable (11.1), a read and the link's fulfilment (11.7), Orders' values and All listings (13), the `listings_` prefix, `listings_account`, first seen and missing since (19), the closed link's columns (How to check) |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-005 from: the Listings module, core and always on, needing Products, and its part in Channels, which reads the marketplaces for it ([ADR-000 SPEC 4](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)). Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/).
@@ -19,9 +19,9 @@ The rules to build ADR-005 from: the Listings module, core and always on, needin
 ## 1. Who does what
 
 1. **Listings writes** listings, their identifiers and presence, listing groups, suggestions, links, "separate stock" answers, not-stock marks and Amazon offer requests. No other module writes them.
-2. **Channels reads.** It owns each read's schedule, cursor, budget and lane, calls the connector, and hands each chunk to Listings' port with the read's id, scope and `asOf`. It never writes a listing.
+2. **Channels reads.** It owns each read's schedule, cursor, budget and lane, calls the connector, and hands each chunk to Listings' port with the read's id, scope and `asOf`, each listing with its key and the attributes read; a field not read is absent, never empty; a relist names its parent's key; at most 500 listings a chunk. The read's end answers the new, changed and ended counts, and whether the read is held (8.4). It never writes a listing. Channels also tells Listings of each account through its port (`listings_account`, section 19): id, marketplace, label, served marketplaces, connected, disconnected or off, shadow or live, default warehouse.
 3. **Listings asks by event.** A core module never calls Channels, so Listings asks for a single-listing read, a refresh or an Amazon offer send by an event Channels hears after commit.
-4. **Listings announces link changes by event:** made, changed or closed, with the version, the units per sale and, on a close, the seller's choice of 0 or leave. Orders reserves waiting lines from it ([ADR-006 SPEC 6.5](../../stock-ledger/spec/#6-what-a-line-reserves)); Stock sync recomputes the figure ([ADR-008 SPEC 1](../../inventory-sync/spec/#1-the-figure-per-listing)).
+4. **Listings announces link changes by event:** made, changed or closed, with the version, the units per sale and, on a close, the seller's choice of 0 or leave. Orders reserves waiting lines from it ([ADR-006 SPEC 6.5](../../stock-ledger/spec/#6-what-a-line-reserves)); Stock sync recomputes the figure ([ADR-008 SPEC 1](../../inventory-sync/spec/#1-the-figure-per-listing)); and a listing's state and observed fulfilment changes (`listing_changed`, with what changed), which Stock sync hears too.
 5. **Listings sends held-raise reasons by event** (section 11.8); Stock sync keeps and clears them ([ADR-008 SPEC 7](../../inventory-sync/spec/#7-held-raises)).
 6. **Orders calls Listings' port** to resolve a line to the link valid at purchase, to report an unknown listing, and to open a fulfilment conflict (section 16).
 7. **Connectors stay isolated and switchable** ([ADR-004](../../channel-connectors/)): an account switched off reads nothing, and one marketplace's trouble stays its own.
@@ -70,7 +70,7 @@ An optional capability, added to the connector contract as a typed addition ([AD
 4. **Catalogue work comes last:** after stock writes, order fetches and read-backs, on the bulk lane, never a safety lane ([ADR-004 SPEC 7](../../channel-connectors/spec/#7-shared-daily-pools)).
 5. **Reads survive crashes.** A page read saves its cursor with every chunk; a report read saves each step (requested, processing, downloading, applying, complete). A crash costs one lease period.
 6. **Complete means complete:** every page or the whole report arrived, and the account, the company and the platform stayed switched on. Each chunk's transaction checks the account and the read's lease again, and drops the chunk if either changed. Switching off or disconnecting ends the read.
-7. **Only what changed is written.** Each listing has a fingerprint of its attributes, leaving out quantity. Every value carries the time the marketplace observed it, and an older observation never overwrites a newer one.
+7. **Only what changed is written.** Each listing has a fingerprint of its attributes, leaving out quantity. Every value carries the time its source observed it (one time for presence, status and figure, one for details, one per identifier), and an older observation never overwrites a newer one.
 
 ## 6. Read plan per marketplace
 
@@ -102,8 +102,8 @@ A notice is a hint ([ADR-004 SPEC 8](../../channel-connectors/spec/#8-notices-in
 1. **A new listing** (from a notice, a changes read, a full read or an order line) gets suggestions at once. A shared-stock listing alerts the seller (section 12).
 2. **First proof:** missing from a complete read of its scope whose `asOf` is later than when the listing was first seen. It becomes `missing`.
 3. **Second proof:** for a linked listing, a read of that one listing says it ended or does not exist; eBay's report may leave out a listing at 0, and the search leaves out inactive SKUs. For an unlinked listing, that, or missing again from a complete read at least 20 hours later.
-4. **A read that would end too much is held:** more than 10 % of a scope missing, and at least 20 listings. Nothing changes, the operator is alerted, and the read is due again in an hour. If the next read finds the same listings missing, it stays held until the operator releases it after checking ([Settle a held catalogue read](../../runbooks/settle-a-held-catalogue-read/)).
-5. **An ended listing keeps its link,** gets no figure, and resolves late orders and returns. The seller sees it in the daily digest; it alerts only if it had open orders, or its product still has stock and no seller-shipped listing left. An ended listing does not count against retiring a product ([ADR-003 SPEC 9](../../product-model/spec/#9-status)); retiring closes its link.
+4. **A read that would end too much is held:** more than 10 % of a scope missing, and at least 20 listings. Nothing changes, the operator is alerted, and the read is due again in an hour. If the next read finds the same listings missing, it stays held until the operator releases it after checking ([Settle a held catalogue read](../../runbooks/settle-a-held-catalogue-read/)). Listings works out a read's missing share at its end and answers "held" to Channels, which keeps the read's state; the release is Listings' port, called from the runbook's console step.
+5. **An ended listing keeps its link,** gets no figure, and resolves late orders and returns. The seller sees it in the daily digest; it alerts only if it had open orders, or its product still has stock and no seller-shipped listing left. An ended listing does not count against retiring a product ([ADR-003 SPEC 9](../../product-model/spec/#9-status)); retiring closes its link, and a link closed because its product was retired records 0 (an ended listing gets no figure anyway).
 6. **A listing that comes back** keeps its link only if its marketplace product (ASIN, eBay item or parent) and its barcodes are unchanged, and its raises are held until the seller looks. Otherwise its link closes and the old product is offered as a suggestion.
 
 ## 9. Relists and SKU changes
@@ -126,7 +126,7 @@ A notice is a hint ([ADR-004 SPEC 8](../../channel-connectors/spec/#8-notices-in
 | Medium | A SKU match once a known suffix is removed (`-FBA`, `-6PK`); a barcode only from the marketplace's catalogue; the same ASIN or barcode linked on another account of the company; a successor; a strong match demoted by a veto or a shared barcode | One at a time |
 | Weak | A similar title | Shown only |
 
-2. **Vetoes** demote strong to medium, and the row says why: a pack word or count in the title or SKU, from a fixed, tested list per language; the marketplace's pack quantity above 1; the barcode belongs to a pack product or a box size (then the box's units per sale is proposed); the marketplace's figure near a whole multiple of 2 or more of Vervoro's; two products match; the product is retired.
+2. **Vetoes** demote strong to medium, and the row says why: a pack word or count in the title or SKU, from a fixed, tested list per language; the marketplace's pack quantity above 1; the barcode belongs to a pack product or a box size (then the box's units per sale is proposed); the marketplace's figure near a whole multiple of 2 or more of Vervoro's (both figures at least 1, and the larger divided by the smaller within 10 % of a whole number of 2 or more; a 0 on either side fires nothing); two products match; the product is retired.
 3. **A veto that could not be checked counts as fired.** A listing whose title, or pack quantity where the marketplace has one, is not yet read is never strong; the row says "details not yet read".
 4. **Packs and bundles.** The picker offers simple products, packs and bundles, each with its kind. A sealed pack's barcode suggests the pack product. Three units of one product is units per sale = 3, never a bundle ([ADR-003 SPEC 6](../../product-model/spec/#6-product-kinds)).
 5. **Suggestions record the listing and product versions they used.** Accepting checks both again; a stale suggestion is recomputed, never applied. A dismissed one stays dismissed until its evidence changes.
@@ -137,7 +137,7 @@ The link's fields and what a sale reserves are [ADR-003 SPEC 8](../../product-mo
 
 ### 11.1 The preview
 
-1. **Every link screen and bulk preview shows units per sale** (1 written out, never assumed) **and the figure change:** what the marketplace shows now and what Vervoro would send.
+1. **Every link screen and bulk preview shows units per sale** (1 written out, never assumed) **and the figure change:** what the marketplace shows now and what Vervoro would send: up to the product's sellable in the account's warehouse divided by units per sale (Inventory's port; Stock sync's buffers come later, [ADR-008 SPEC 1](../../inventory-sync/spec/#1-the-figure-per-listing)), shown only to a person whose scope covers that warehouse ([ADR-010 SPEC 3.2](../../users-and-access/spec/#3-roles-and-warehouse-scope)); tiers and vetoes are worked out as the system, whoever looks.
 2. **A ratio of 3 or more either way** is highlighted and leaves bulk accept. The shadow check runs the same ratio over confirmed links ([ADR-008 SPEC 14.1](../../inventory-sync/spec/#14-shadow-and-going-live)).
 3. **It says what happens to orders:** how many open orders keep their old link, and how many waiting lines will be reserved, and how many short ([ADR-006 SPEC 6.5](../../stock-ledger/spec/#6-what-a-line-reserves)).
 
@@ -183,6 +183,7 @@ Closing a link without a new one, by a person or by an undo. A product with link
 1. **Seller-shipped to marketplace-shipped** stops figures at once.
 2. **Marketplace-shipped to seller-shipped** gets no figure until the seller confirms, because it exposes warehouse stock.
 3. **An order line's own fulfilment decides whether it reserves** ([ADR-006 SPEC 6.8](../../stock-ledger/spec/#6-what-a-line-reserves)); a mismatch opens a conflict.
+4. **A read changes only the listing's observed fulfilment;** the link keeps its own. A figure goes only while both say seller; the change to seller-shipped is confirmed by a person's relink.
 
 ### 11.8 Held-raise reasons Listings sends
 
@@ -204,6 +205,8 @@ The listing came back after ending (8.6); its SKU was edited onto another produc
 3. **Filters:** account, tier, who ships it, open orders, sold recently, has a barcode, no SKU, needed for going live, ended. **Search** by SKU, title, barcode, item number or ASIN, or by scanning with the phone's camera.
 4. **The header** shows each account's read: in progress with counts, or why it waits and when it resumes, and when it last completed.
 5. **Listings that cannot be linked** stay on the list with the fix: a variation without a SKU (add one on eBay, then refresh that listing), a SKU on an unserved marketplace.
+6. **Orders' values** (open orders, 30-day sales, the preview's order counts) are Orders' values on Listings' list extension point and an Orders card on the link screen; Listings never calls Orders.
+7. **Every listing,** linked or ended included, is reachable from Listings › All listings with the same search and filters, read by every role ([ADR-010 SPEC 4](../../users-and-access/spec/#4-who-may-do-what)).
 
 ## 14. Making a product from a listing
 
@@ -251,17 +254,18 @@ Answered one at a time, never in bulk.
 
 ## 19. Storage
 
-Listings' tables carry the `listing_` prefix, are declared through `tenantTable()` and queried through the typed query builder; modules write no SQL ([ADR-001 SPEC 5](../../database-architecture/spec/#5-declaring-tables)). Schema changes expand, then contract ([ADR-000 SPEC 11](../../system-architecture/spec/#11-deploying)).
+Listings' tables carry the `listings_` prefix ([ADR-000 SPEC 2.1](../../system-architecture/spec/#2-tables): the module's id), are declared through `tenantTable()` and queried through the typed query builder; modules write no SQL ([ADR-001 SPEC 5](../../database-architecture/spec/#5-declaring-tables)). Schema changes expand, then contract ([ADR-000 SPEC 11](../../system-architecture/spec/#11-deploying)).
 
 | Table | Holds |
 | --- | --- |
-| `listing` | Account, key, SKU, title, image, figure shown, observed fulfilment, state, linkable and why not, group, fingerprint, observed at, version, not-stock mark and VAT class |
-| `listing_identifier` | Item numbers, ASINs per marketplace, unit labels, barcodes, each indexed |
-| `listing_presence` | Per listing and scope: present, missing or absent, and the read that last saw it |
-| `listing_suggestion` | Listing, product, rule, tier, proposed units per sale, evidence, versions used, state |
-| `listing_link` | One row per version: listing, product, units per sale, fulfilment, how made, began, ended, who, the closing choice (0 or leave), batch |
-| `listing_decision` | "Separate stock" answers: listing, evidence, who, when |
-| `listing_offer_request` | Amazon offer: product, ASIN, SKU, condition, units per sale, state, Amazon's issues; never the price |
+| `listings_account` | Channels' account id, marketplace, label, served marketplaces, connected, disconnected or off, shadow or live, default warehouse; written only through Listings' port, which Channels calls in its own transaction |
+| `listings_listing` | Account, key, SKU, title, image, figure shown, observed fulfilment, state, linkable and why not, group, fingerprint, observed at (per source group, 5.7), first seen, version, not-stock mark and VAT class |
+| `listings_identifier` | Item numbers, ASINs per marketplace, unit labels, barcodes, each indexed |
+| `listings_presence` | Per listing and scope: present, missing or absent, the read that last saw it, missing since (the `asOf`), the read holding it |
+| `listings_suggestion` | Listing, product, rule, tier, proposed units per sale, evidence, versions used, state |
+| `listings_link` | One row per version: listing, product, units per sale, fulfilment, how made, began, ended, who, the closing choice (0 or leave), batch |
+| `listings_decision` | "Separate stock" answers: listing, evidence, who, when |
+| `listings_offer_request` | Amazon offer: product, ASIN, SKU, condition, units per sale, state, Amazon's issues; never the price (made with section 15) |
 | `chan_catalogue_read` (Channels) | Each read: account, scope, trigger, method, `asOf`, cursor, counts, state (running, complete, partial, suspect, held, failed) |
 
 1. **One current link per listing,** by a partial unique index.
@@ -319,7 +323,7 @@ For someone reviewing code an AI wrote. Each line says where to look.
 - [ ] **No SQL:** every query uses the typed query builder; no `sql` or `raw` import in the module.
 - [ ] **Key:** one key builder per connector, shared by catalogue and order parsing; the key test is green for each.
 - [ ] **Compare-and-set:** every link write, bulk, relist carry and undo included, goes through one function that checks the version seen.
-- [ ] **Versions:** links are closed and inserted, never updated in place except the end time.
+- [ ] **Versions:** links are closed and inserted, never updated in place except the end time, who ended it and the closing choice.
 - [ ] **Proofs:** the ending code reads `asOf`, the read's completeness and the held state; a linked listing's second proof is a single-listing read.
 - [ ] **Vetoes:** an unread field is treated as a fired veto in one place.
 - [ ] **Events:** link made, changed and closed carry the version and closing choice; Orders and Stock sync handle them after commit.
