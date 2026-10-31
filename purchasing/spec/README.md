@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-015: Purchasing](../) |
 | **Procedures** | None yet |
-| **Date** | 27 October 2026, Proposed; owner rulings of 27 October 2026: two steps, purchase orders never required, the draft's open questions decided as recommended |
+| **Date** | 27 October 2026, Proposed; owner rulings of 27 October 2026: two steps, purchase orders never required, the draft's open questions decided as recommended; owner rulings of 31 October 2026, the developer's review of step 1: Access joins the needs (6.3.4), Inventory's `position` and `suppliersUsed` ports (10.2), the receipt's supplier picker through a field slot (10.4), the not-tracked filter (5.6), the bundle card, the Today card and the floor for scoped people (5.3, 6.6.2, 7.2), the list's paging (6.4) |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-015 from: the Purchasing module. Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/). This batch writes **step 1** in full. Step 2 (purchase orders) is an outline in [section 12](#12-step-2-purchase-orders-outline) and gets its own SPEC batch before it is built.
@@ -109,10 +109,10 @@ Quantities are integers of base units ([ADR-003 SPEC 2.1](../../product-model/sp
 
 1. **Company-wide at launch.** The level is compared with the position summed over every warehouse of the company. The cost, accepted by the owner on 27 October 2026: a seller with two sites that cannot share stock sees no need while one site is empty. A warehouse-specific level is *Later*.
 2. **The Purchasing card on the product page** shows, in this order: Supplier (preferred), Supplier's code, Reorder level, Lead time (the one used, with its source). A product with several suppliers shows "+ 2 more" and opens a small list. Editing is on the card; there is no separate settings screen.
-3. **Bundle:** no level. The bundle's page shows, read-only, "Components that need reordering" (the components on the list). A bundle with no component on the list shows nothing.
+3. **Bundle:** no level. The bundle's page shows, read-only, "Components that need reordering" (the components on the list) to people who may see the list and are not scoped to warehouses. A bundle with no component on the list shows nothing. A product that becomes a bundle before its first use keeps its links and level, unread while it is a bundle.
 4. **A pack** has its own level and suppliers when the seller buys sealed packs; a pack made by repacking singles has none ([ADR-003 SPEC 6.2](../../product-model/spec/#62-pack)). Singles and their packs are counted apart, because their stock is ([ADR-003 SPEC 6.2](../../product-model/spec/#62-pack)).
 5. *Later:* **a suggested level.** Worked out from the average daily sales over a window that leaves out days the product was out of stock, times the lead time used, plus a safety margin the seller sets as days; shown as "Suggested: 40" beside the seller's number with the figures behind it. It is never written by Vervoro. Not built until Orders has history.
-6. **Products with no level** are a filter in Purchasing ("not tracked") and a count on the list's page, so a product the seller forgot does not silently never reorder.
+6. **Products with no level** (simple products and packs, not retired) are a filter Purchasing adds to the products list ("not tracked", through Products' list extension point) and a count on the list's page linking to it, so a product the seller forgot does not silently never reorder.
 
 ## 6. Needs reordering
 
@@ -147,7 +147,7 @@ A product is on the list when all hold: it has a reorder level; its status is `a
 | Suggested quantity | The larger of the usual order and the shortfall, `max(usual_order_qty, short by)`, through the rounding rule of section 4.4, for the preferred link; blank when the product has no link |
 | Supplier, supplier's code, lead time used | Purchasing, preferred link |
 
-1. **Sorting and filters:** by short by (default), supplier, and "no supplier". Group by supplier, because sellers decide at the supplier level to meet minimums.
+1. **Sorting and filters:** by short by (default), supplier, and "no supplier". Group by supplier, because sellers decide at the supplier level to meet minimums. The list is computed whole and shown 50 rows a page; the download holds all of it.
 2. **A product on the list with no supplier** stays on it, flagged "no supplier".
 3. **Archived supplier:** the row shows it flagged and suggests nothing until another link is preferred.
 
@@ -160,13 +160,13 @@ A product is on the list when all hold: it has a reorder level; its status is `a
 ### 6.6 Taking it away
 
 1. **Download.** The list downloads as a spreadsheet, one sheet per supplier or filtered, with SKU, supplier's code, product name, suggested quantity, lead time and supplier contact (to Owner, Admin and Manager only). It contains no costs and no buyer data. This is the seller's order sheet when there are no purchase orders.
-2. **Today** (the Home screen) shows a card "Needs reordering (n)", n from the same query, computed when Home is opened.
+2. **Today** (the Home screen) shows a card "Needs reordering (n)", n from the same query, computed when Home is opened; a person scoped to warehouses is not shown the card.
 3. **No mail at launch** (owner ruling, 27 October 2026). A daily mail is *Later* ([section 0](#0-at-launch-and-later)).
 
 ## 7. Screens
 
 1. **Purchasing** (menu): Needs reordering (default), Suppliers, a supplier's page (its details and its products), Import/export. Step 2 adds Purchase orders.
-2. **Product page:** the Purchasing card (section 5.2). **Today:** the card of section 6.6.
+2. **Product page:** the Purchasing card (section 5.2); no Purchasing card on the floor's product screen in step 1. **Today:** the card of section 6.6.
 3. **Receipt screen** (Inventory's): when Purchasing is on, the supplier is a pick list of active suppliers with a free-text fallback; otherwise free text.
 4. Every word comes from the catalogue ([rulebook](../../rulebook/)); no screen waits for anything outside Vervoro.
 
@@ -200,11 +200,12 @@ Roles are [ADR-010's](../../users-and-access/spec/#4-who-may-do-what). These row
 ## 10. Ports, events and tables
 
 1. **Purchasing provides:** `suppliers.list` (id, name, status) for receipt screens and the card; `product.purchasing` (the card's data for a product); `reorder.list` (the list).
-2. **Purchasing uses:** Products' read port (status, kind, SKU and name for ids; the pack and bundle shape), Inventory's read port (sellable and incoming per product and warehouse, batched, with the ledger sequence), and from step 2 Orders' read port (units missing per product) and Inventory's receive port.
+2. **Purchasing uses:** Products' read port (status, kind, SKU and name for ids; the pack and bundle shape), Inventory's `position` port (sellable and units in transit per product and warehouse, batched, with the ledger sequence; Stock sync's `sellable` port is unchanged) and its `suppliersUsed` port (which of the supplier ids asked a batch of the company names, read when a supplier is deleted, 3.2), Access's member facts for a person's warehouse scope (6.3.4; Access is in the needs, [ADR-000 SPEC 4](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)), once Listings is built its read port for marketplace-shipped products (6.3.1; Listings then joins the needs), and from step 2 Orders' read port (units missing per product) and Inventory's receive port.
 3. **Events.** Purchasing publishes and handles none in step 1: the list reads a product's status through Products' port, so no `product.retired` handler is needed. It needs no event from Inventory because the list reads the port when opened. If a later feature (a mail, a Home count held in a table) needs "stock changed", it listens to the stock note ([ADR-006 SPEC 13](../../stock-ledger/spec/#13-telling-stock-sync)).
 4. **Where core and Purchasing meet** (owner ruling, 27 October 2026; made in the records named, in the same batch):
    - *Retiring and first use* ([ADR-003 SPEC 9.2, 3.3](../../product-model/spec/#9-status)) name open purchase orders. Products is core and cannot call Purchasing. Products ([ADR-003 SPEC 9.2](../../product-model/spec/#9-status)) declares an extension point "blocks retiring / counts as first use" that modules contribute to; Purchasing contributes open purchase order lines in step 2 and nothing in step 1. Step 1 has no purchase orders, so nothing breaks before then.
    - *A batch's supplier* ([ADR-006 SPEC 1](../../stock-ledger/spec/#1-where-stock-is-counted)): `stock_batch` holds `supplier_id` (plain id, no foreign key) and `supplier_name` (a copy at receipt, [ADR-006 SPEC 15](../../stock-ledger/spec/#15-storage)); the receive port takes both. Inventory never reads Purchasing's tables.
+   - *The receipt's supplier picker* (7.3): Inventory's receipt screens, desk and floor, declare a field slot; Purchasing contributes the supplier picker, which returns the id and name; Inventory's receive takes `supplierId` beside the name and stores both as given, reading nothing of Purchasing's.
    - *Incoming from purchase orders* beside the four numbers ([ADR-006 SPEC 3.2](../../stock-ledger/spec/#3-the-four-numbers)): Inventory cannot call Purchasing. Inventory declares a slot on the product and stock screens that Purchasing contributes the "incoming" figure to, and Purchasing adds it to the list through its own query; Inventory stores none. Step 2.
 5. **Tables** (tenant tables with the `purchasing_` prefix, declared through `tenantTable()`, queried through the typed query builder; no foreign key crosses modules, [ADR-000 SPEC 2](../../system-architecture/spec/#2-tables)): `purchasing_supplier`, `purchasing_product_supplier`, `purchasing_reorder`. Step 2 adds `purchasing_order`, `purchasing_order_line`. Schema changes expand, then contract ([ADR-000 SPEC 11](../../system-architecture/spec/#11-deploying)). The unique indexes are on the company and the lower-cased name (suppliers), on the company, product and supplier (links), with a partial unique index on the company and product where `preferred` (one preferred per product), and on the company and product (levels).
 6. **No stock write, no listing figure, no outside call.** Purchasing never inserts into `stock_*` and never sends anything in step 1.
