@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-015: Purchasing](../) |
 | **Procedures** | None yet |
-| **Date** | 27 October 2026, Proposed; owner rulings of 27 October 2026: two steps, purchase orders never required, the draft's open questions decided as recommended; owner rulings of 31 October 2026, the developer's review of step 1: Access joins the needs (6.3.4), Inventory's `position` and `suppliersUsed` ports (10.2), the receipt's supplier picker through a field slot (10.4), the not-tracked filter (5.6), the bundle card, the Today card and the floor for scoped people (5.3, 6.6.2, 7.2), the list's paging (6.4) |
+| **Date** | 27 October 2026, Proposed; owner rulings of 27 October 2026: two steps, purchase orders never required, the draft's open questions decided as recommended; owner rulings of 31 October 2026, the developer's review of step 1: Access joins the needs (6.3.4), Inventory's `position` and `suppliersUsed` ports (10.2), the receipt's supplier picker through a field slot (10.4), the not-tracked filter (5.6), the bundle card, the Today card and the floor for scoped people (5.3, 6.6.2, 7.2), the list's paging (6.4); the build of step 1 (owner delegation, 1 November 2026): an archived supplier editable (3), a retired product's removals (4.5), the filter's comma lists (5.6), the groups' order (6.4.1), the reads (6.5), the whole download (6.6.1), Import (7.1), only what changed (8), a blank level cell (8.3), refusal codes (9) |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-015 from: the Purchasing module. Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/). This batch writes **step 1** in full. Step 2 (purchase orders) is an outline in [section 12](#12-step-2-purchase-orders-outline) and gets its own SPEC batch before it is built.
@@ -62,7 +62,7 @@ Quantities are integers of base units ([ADR-003 SPEC 2.1](../../product-model/sp
 | --- | --- | --- | --- |
 | `id` | uuidv7 | Yes | Never shown to sellers |
 | `name` | text | Yes | 1–200 characters. Unique in the company whatever its case, among all suppliers including archived |
-| `status` | `active`, `archived` | Yes | Default `active`. An archived supplier is not offered for new links or receipts and stays on what it was used for. Archiving is allowed with links in place; they keep showing and drop off the list's suggestions |
+| `status` | `active`, `archived` | Yes | Default `active`. An archived supplier is not offered for new links or receipts, stays on what it was used for, and stays editable. Archiving is allowed with links in place; they keep showing and drop off the list's suggestions |
 | `lead_time_days` | integer | No | The supplier's usual lead time, 0–365. Used when a link has none |
 | `contact_name` | text | No | Up to 100 characters. **Personal data** (section 11) |
 | `contact_email` | text | No | Up to 254 characters; one address, checked for shape only. **Personal data** |
@@ -92,7 +92,7 @@ Quantities are integers of base units ([ADR-003 SPEC 2.1](../../product-model/sp
 2. **One preferred link.** The first link is preferred. Setting another preferred clears the old one in the same change. Removing the preferred link makes the oldest remaining one preferred, and the activity entry says so. No preferred link exists when no link does.
 3. **Lead time used** is the link's, else the supplier's, else none. The screen shows which one it used. Step 2 adds the measured lead time beside it ([section 12](#12-step-2-purchase-orders-outline)).
 4. **Rounding rule.** A wanted quantity `q` becomes `max(q, min_order_qty)` rounded up to a multiple of `order_multiple`. If `min_order_qty` is not a multiple, the larger multiple is taken. One function, used by the list, the export and (step 2) the purchase order.
-5. **A retired product** takes no new link and no level; existing ones stay readable. An `inactive` product keeps them but is not suggested ([ADR-003 SPEC 9](../../product-model/spec/#9-status)).
+5. **A retired product** takes no new link and no level; existing ones stay readable and may be removed, never added. An `inactive` product keeps them but is not suggested ([ADR-003 SPEC 9](../../product-model/spec/#9-status)).
 6. **Finding by supplier's code** works inside Purchasing's own search and on the card. The product list does not search it at launch ([section 0](#0-at-launch-and-later)).
 7. Every change writes an activity entry.
 
@@ -112,7 +112,7 @@ Quantities are integers of base units ([ADR-003 SPEC 2.1](../../product-model/sp
 3. **Bundle:** no level. The bundle's page shows, read-only, "Components that need reordering" (the components on the list) to people who may see the list and are not scoped to warehouses. A bundle with no component on the list shows nothing. A product that becomes a bundle before its first use keeps its links and level, unread while it is a bundle.
 4. **A pack** has its own level and suppliers when the seller buys sealed packs; a pack made by repacking singles has none ([ADR-003 SPEC 6.2](../../product-model/spec/#62-pack)). Singles and their packs are counted apart, because their stock is ([ADR-003 SPEC 6.2](../../product-model/spec/#62-pack)).
 5. *Later:* **a suggested level.** Worked out from the average daily sales over a window that leaves out days the product was out of stock, times the lead time used, plus a safety margin the seller sets as days; shown as "Suggested: 40" beside the seller's number with the figures behind it. It is never written by Vervoro. Not built until Orders has history.
-6. **Products with no level** (simple products and packs, not retired) are a filter Purchasing adds to the products list ("not tracked", through Products' list extension point) and a count on the list's page linking to it, so a product the seller forgot does not silently never reorder.
+6. **Products with no level** (simple products and packs, not retired) are a filter Purchasing adds to the products list ("not tracked", through Products' list extension point; the filter combines with the list's own kind and status filters, which take several values separated by commas) and a count on the list's page linking to it, so a product the seller forgot does not silently never reorder.
 
 ## 6. Needs reordering
 
@@ -147,25 +147,25 @@ A product is on the list when all hold: it has a reorder level; its status is `a
 | Suggested quantity | The larger of the usual order and the shortfall, `max(usual_order_qty, short by)`, through the rounding rule of section 4.4, for the preferred link; blank when the product has no link |
 | Supplier, supplier's code, lead time used | Purchasing, preferred link |
 
-1. **Sorting and filters:** by short by (default), supplier, and "no supplier". Group by supplier, because sellers decide at the supplier level to meet minimums. The list is computed whole and shown 50 rows a page; the download holds all of it.
+1. **Sorting and filters:** by short by (default), supplier, and "no supplier". Group by supplier, because sellers decide at the supplier level to meet minimums; groups are ordered by their largest shortfall, products without a supplier last. The list is computed whole and shown 50 rows a page; the download holds all of it.
 2. **A product on the list with no supplier** stays on it, flagged "no supplier".
 3. **Archived supplier:** the row shows it flagged and suggests nothing until another link is preferred.
 
 ### 6.5 Computing it
 
-1. **A query, never stored.** Purchasing reads its levels and links (two queries, one for each table, with the company's rows only), Products' status and kind in one port call, and Inventory's sellable and incoming for those product ids in one batched port call. About three round trips per opening, whatever the number of products (tested at 5,000 levels). Nothing runs on a stock change, so a stock command is unchanged.
+1. **A query, never stored.** Purchasing reads its levels and links (two queries, one for each table, with the company's rows only), Products' status and kind in one port call, and Inventory's sellable and incoming for those product ids in one batched port call. Three reads per opening (its own tables, Products' facts, Inventory's position), about a dozen statements in one transaction, whatever the number of products (tested at 5,000 levels). Nothing runs on a stock change, so a stock command is unchanged.
 2. **What the rule costs:** one batched read per list opening (and per Today opening, section 7.2). At 10 sellers this is a few reads a day; at 1,000 sellers, each opening a few times a day, a few thousand reads a day. Storing the state would remove the read but add a second copy of stock that can drift and a handler on every stock note; rejected.
 3. **Stale reads:** the list is a snapshot of the moment it was read and says when. A receipt made afterwards shows on the next opening.
 
 ### 6.6 Taking it away
 
-1. **Download.** The list downloads as a spreadsheet, one sheet per supplier or filtered, with SKU, supplier's code, product name, suggested quantity, lead time and supplier contact (to Owner, Admin and Manager only). It contains no costs and no buyer data. This is the seller's order sheet when there are no purchase orders.
+1. **Download.** The list downloads as a spreadsheet, the whole list, one sheet per supplier, with SKU, supplier's code, product name, suggested quantity, lead time and supplier contact (to Owner, Admin and Manager only). It contains no costs and no buyer data. This is the seller's order sheet when there are no purchase orders.
 2. **Today** (the Home screen) shows a card "Needs reordering (n)", n from the same query, computed when Home is opened; a person scoped to warehouses is not shown the card.
 3. **No mail at launch** (owner ruling, 27 October 2026). A daily mail is *Later* ([section 0](#0-at-launch-and-later)).
 
 ## 7. Screens
 
-1. **Purchasing** (menu): Needs reordering (default), Suppliers, a supplier's page (its details and its products), Import/export. Step 2 adds Purchase orders.
+1. **Purchasing** (menu): Needs reordering (default for people who may see it, else Suppliers), Suppliers (with Export for every reader, the contact columns by permission), a supplier's page (its details and its products), Import (export is on the same page). Step 2 adds Purchase orders.
 2. **Product page:** the Purchasing card (section 5.2); no Purchasing card on the floor's product screen in step 1. **Today:** the card of section 6.6.
 3. **Receipt screen** (Inventory's): when Purchasing is on, the supplier is a pick list of active suppliers with a free-text fallback; otherwise free text.
 4. Every word comes from the catalogue ([rulebook](../../rulebook/)); no screen waits for anything outside Vervoro.
@@ -176,7 +176,7 @@ Purchasing has its own workbook (owner ruling, 27 October 2026), not columns in 
 
 1. **Sheets:** Suppliers (key: name), Product suppliers (SKU, supplier name, supplier's code, minimum order, order multiple, lead time, preferred) and Reorder levels (SKU, level, usual order). Only one sheet is required.
 2. **Match keys:** supplier name (whatever its case), SKU (whatever its case) with supplier name. A known key updates; a new key creates.
-3. **A blank cell or a missing column changes nothing;** `(clear)` empties. **Lists replace per product:** a SKU named on Product suppliers gets exactly those links.
+3. **A blank cell or a missing column changes nothing** (a blank Reorder level cell keeps the current level, so `(clear)` on the usual order alone is valid); `(clear)` empties. **Only what changed is written:** an unchanged file writes nothing and no activity entry. **Lists replace per product:** a SKU named on Product suppliers gets exactly those links.
 4. **Preview first, errors never apply,** one transaction on confirm, up to 10,000 rows per sheet, exactly as [ADR-003 SPEC 14.6–14.9](../../product-model/spec/#14-spreadsheet-import-and-bulk-edit).
 5. **Refused outright:** a SKU that is a bundle or unknown (Products' port is asked once for the file's SKUs); a supplier twice in one sheet; more than 10 suppliers for a SKU; two preferred for one SKU; a retired product.
 6. **A SKU that does not exist is never created here.** Products create products.
@@ -195,7 +195,7 @@ Roles are [ADR-010's](../../users-and-access/spec/#4-who-may-do-what). These row
 
 1. **No costs in step 1,** so no cost permission is needed. Step 2 adds purchase order rows and, for prices, "See costs" ([ADR-010 SPEC 4](../../users-and-access/spec/#4-who-may-do-what)).
 2. **Warehouse users read the supplier and the supplier's code** because a delivery note carries them; they pick a supplier on a receipt.
-3. Each action is declared in the module's manifest ([ADR-000 SPEC 1](../../system-architecture/spec/#1-modules-and-the-manifest)). While a company is restricted, purchasing is read-only ([ADR-012 SPEC 8](../../billing-and-plans/spec/#8-what-runs-in-each-state)).
+3. Each action is declared in the module's manifest ([ADR-000 SPEC 1](../../system-architecture/spec/#1-modules-and-the-manifest)). A refusal by the guard is 403; a module's own refusal is 409 with a reason. While a company is restricted, purchasing is read-only ([ADR-012 SPEC 8](../../billing-and-plans/spec/#8-what-runs-in-each-state)).
 
 ## 10. Ports, events and tables
 

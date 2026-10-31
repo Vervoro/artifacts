@@ -34,7 +34,7 @@ Extension points (several providers of one port, chosen per key, such as connect
 | Publishes and handles | The events it writes and the events it reacts to |
 | Permissions | Named actions a role can be granted ([ADR-010 SPEC 4](../../users-and-access/spec/#4-who-may-do-what)) |
 | Routes | Its server routes, each with the permission and warehouse scope it needs |
-| Slots | Its screens and menu entries, `column`: a column for another module's list, its value read by that list's one query |
+| Slots | Its screens and menu entries, `column`: a column for another module's list, its value read by that list's one query (or its filters alone, with no column), `card`: a card on another module's record page, `field`: a field in another module's form (the form's path and the field's name; a `/floor/` path loads on the floor), `widget`: a card on Today (owner delegation, 1 November 2026) |
 | Migrations | Ordered, forward-only changes to its own tables |
 | Settings | A typed schema, validated at start-up, with its secrets named so they are never printed |
 
