@@ -11,7 +11,7 @@ Every hour an order stays overdue counts against Amazon's 30 days. Fix the cause
 
 ## Steps
 
-1. Open the alert: the companies, the number of overdue orders per company, and the oldest due time.
+1. Open the alert: the company and its number of overdue orders (one alert per company and night); the oldest due time is read in the console's check.
 2. Look at the sweeper for that cell: is it running, and is the `due` work for buyer anonymisation failing or waiting behind others?
 3. **Failing:** read the error on the due row. A decrypt failure on a company mismatch is a possible breach: follow [Report a personal-data breach](../report-a-personal-data-breach/). Anything else, fix the cause and let the sweep retry.
 4. **Never due:** an order with buyer data and no due row is a bug in the import. Run the repair that sets due times from each order's dates (delivery, dispatch, cancellation, connection end). It is a recorded command and needs no grant.
