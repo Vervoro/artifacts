@@ -115,7 +115,7 @@ Solid arrows are port calls inside the caller's transaction; dashed arrows are e
 - **Set-up calls.** Connecting runs the seller's approval, seals the credentials and subscribes to notices, in shadow too ([ADR-004](../../channel-connectors/)).
 - **Cancellations.** Vervoro never sends one: the seller cancels on the marketplace, and the confirmed cancellation comes in like any other order change, as the "A buyer cancels" row shows ([ADR-007 SPEC 12](../../order-ingestion/spec/#12-cancellations-and-refunds)).
 - **Invoices and refunds.** Orders records refunds; Invoicing hears shipped and refunded orders and acts by its own rules ([ADR-011](../../invoicing-and-vat/)).
-- *Later:* **purchase orders** ([ADR-015 SPEC 12](../../purchasing/spec/#12-step-2-purchase-orders-outline)). Purchasing calls Inventory's receive port when a supplier delivers; Amazon Vendor brings Amazon's purchase orders through Channels into Orders once a person approves them.
+- *Later:* **purchase orders** ([ADR-015 SPEC 12](../../purchasing/spec/#12-step-2-purchase-orders)). Purchasing calls Inventory's receive port when a supplier delivers; Amazon Vendor brings Amazon's purchase orders through Channels into Orders once a person approves them.
 
 ## 5. Results
 

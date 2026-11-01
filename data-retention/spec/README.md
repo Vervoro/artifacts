@@ -27,7 +27,7 @@ At launch only the deletions in [section 2](#2-the-retention-schedule) run (`eve
 
 | Data | In the cell | Archive | Then |
 | --- | --- | --- | --- |
-| Products, listings, stock levels, open orders and purchase orders, suppliers and their contacts, product–supplier links and reorder levels, settings, users | Always | Never | Deleted with the company |
+| Products, listings, stock levels, open orders; purchase orders, open or closed ([ADR-015 SPEC 12.11](../../purchasing/spec/#12-step-2-purchase-orders)); suppliers and their contacts, product–supplier links and reorder levels, settings, users | Always | Never | Deleted with the company |
 | Closed orders, their lines, holds and cancellations | 24 months | Until 7 years after the month ends | Deleted |
 | Sold day rows ([ADR-007 SPEC 23](../order-ingestion/spec/#23-storage)) | 24 months, as closed orders | Never (derived from the archived lines) | Deleted with the month, in batches, as the lifecycle role |
 | Import problems, resolved ([ADR-007 SPEC 9](../order-ingestion/spec/#9-import-problems)) | 30 days after | Never | Deleted by Orders' nightly |
