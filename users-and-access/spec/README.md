@@ -123,7 +123,11 @@ A module declares each action in its manifest ([ADR-000 SPEC 1](../../system-arc
 | Make a counter sale (paid and collected at once) | Yes | Yes | Yes | Yes | No | No | [ADR-007](../../order-ingestion/spec/#18-manual-orders) |
 | Attach an order line to a product (its listing stays unlinked) | Yes | Yes | Yes | Yes | No | No | [ADR-007](../../order-ingestion/spec/#14-orders-for-unlinked-listings) |
 | Pin a batch for a line, resolve a line again | Yes | Yes | Yes | No | No | No | [ADR-006](../../stock-ledger/), [ADR-007](../../order-ingestion/) |
-| Reverse a shipment reported outside Vervoro | Yes | Yes | Yes | No | No | No | [ADR-006](../../stock-ledger/), [ADR-007](../../order-ingestion/spec/#17-shipped-outside-vervoro) |
+| Reverse a shipment reported outside Vervoro, or a counter sale | Yes | Yes | Yes | No | No | No | [ADR-006](../../stock-ledger/), [ADR-007](../../order-ingestion/spec/#17-shipped-outside-vervoro) |
+| Set a warehouse's collection cut-off and its exceptions | Yes | Yes | Yes | No | No | No | [ADR-007](../../order-ingestion/spec/#20-deadlines-and-the-handover) |
+| Say who ships an Amazon marketplace's orders | Yes | Yes | Yes | No | No | No | [ADR-007](../../order-ingestion/spec/#21-amazon-orders-from-the-regions-other-marketplaces) |
+| Switch on the owner's alert for missed leave-bys | Yes | No | No | No | No | No | [ADR-007](../../order-ingestion/spec/#11-holds) |
+| Mark an import problem resolved | Yes | Yes | Yes | No | No | No | [ADR-007](../../order-ingestion/spec/#9-import-problems) |
 | **Invoicing** | | | | | | | |
 | Issue an invoice; confirm a credit note | Yes | Yes | Yes | No | No | No | [ADR-011](../../invoicing-and-vat/) |
 | Issue on Vervoro's figure despite a VAT flag (reason required) | Yes | Yes | No | No | No | No | [ADR-011](../../invoicing-and-vat/) |

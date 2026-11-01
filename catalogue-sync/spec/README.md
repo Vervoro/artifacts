@@ -208,7 +208,7 @@ The listing came back after ending (8.6); its SKU was edited onto another produc
 3. **Filters:** account, tier, who ships it, open orders, sold recently, has a barcode, no SKU, needed for going live, ended. **Search** by SKU, title, barcode, item number or ASIN, or by scanning with the phone's camera.
 4. **The header** shows each account's read: in progress with counts, or why it waits and when it resumes, and when it last completed.
 5. **Listings that cannot be linked** stay on the list with the fix: a variation without a SKU (add one on eBay, then refresh that listing), a SKU on an unserved marketplace.
-6. **Orders' values** (open orders, 30-day sales, the preview's order counts) are Orders' values on Listings' list extension point and an Orders card on the link screen; Listings never calls Orders.
+6. **Orders' values** (open orders, 30-day sales, the preview's order counts) are Orders' values on Listings' list extension point and an Orders card on the link screen, through a provider contributed to Listings' list extension, which gives the values, the order of 13.1 and the filters of 13.3; Listings never calls Orders. Orders' values on a listing count the company's orders, as the catalogue is not scoped ([ADR-010 SPEC 3.2](../../users-and-access/spec/#3-roles-and-warehouse-scope)).
 7. **Every listing,** linked or ended included, is reachable from Listings › All listings with the same search and filters, read by every role ([ADR-010 SPEC 4](../../users-and-access/spec/#4-who-may-do-what)).
 8. **A listing answered "separate stock" leaves the unlinked list** and stays under All listings and the "needed for going live" filter; one marked not stock leaves it and stays under All listings.
 

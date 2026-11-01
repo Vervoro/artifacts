@@ -29,6 +29,7 @@ At launch only the deletions in [section 2](#2-the-retention-schedule) run (`eve
 | --- | --- | --- | --- |
 | Products, listings, stock levels, open orders and purchase orders, suppliers and their contacts, product–supplier links and reorder levels, settings, users | Always | Never | Deleted with the company |
 | Closed orders, their lines, holds and cancellations | 24 months | Until 7 years after the month ends | Deleted |
+| Import problems, resolved ([ADR-007 SPEC 9](../order-ingestion/spec/#9-import-problems)) | 30 days after | Never | Deleted by Orders' nightly |
 | Invoices, credit notes, VAT records, export evidence and payments ([ADR-011](../../invoicing-and-vat/)) | 24 months | Until 7 years after the month ends | Deleted |
 | Stock ledger entries | 24 months, then a checkpoint | Until 7 years after the month ends | Deleted |
 | Counts and count lines ([ADR-006 SPEC 9](../../stock-ledger/spec/#9-counts-and-adjustments)) | 24 months, as stock ledger entries | Until 7 years after the month ends | Deleted |
