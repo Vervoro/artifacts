@@ -71,11 +71,11 @@ Extension points (several providers of one port, chosen per key, such as connect
 | **Listings** | Core | ADR-005 | Marketplace listings, listing groups, versioned links, suggestions | Products, Inventory (sellable, for the figure change and the multiple veto), Access (a person's warehouse scope, for the preview's figure; owner delegation, 31 October and 1 November 2026) | Listings: unlinked listings, all listings; Products: a product's channels and the list's Listed on; Today: listings to link |
 | **Inventory** | Core | ADR-006 | Warehouses and spots, batches, the ledger and balances, reservations and short lines' queue, receipts, counts, transfers | Products, Access (the company's settings) | Inventory; Settings: warehouses |
 | **Orders** | Core | ADR-007 | Orders, lines, statuses, holds, cancellations, refunds, manual orders | Products, Listings, Inventory, Buyer data | Orders |
-| **Buyer data** | Core | ADR-009 | Buyers' names and addresses, their anonymisation, the record of who viewed them | — | Inside an order |
+| **Buyer data** | Core | ADR-009 | Buyers' names and addresses, their anonymisation, the record of who viewed them | Access (the actor's role and warehouse scope, for who sees an order's buyer fields; owner delegation, 1 November 2026) | Inside an order; Settings: privacy requests (with Orders) |
 | **Access** | Core | ADR-010 | People, memberships, roles, invitations, the activity view, company settings | — | Settings |
 | **Fulfilment** | Always on | ADR-014 | Pick lists, packing, shipments, returns inspection | Orders, Inventory, Buyer data | Orders: pick and pack, returns |
 | **Billing** | Always on | ADR-012 | The company's plan and payments | Access | Settings: billing |
-| **Channels** (ADR-004's host) | Switchable | ADR-004 | Connections, sealed credentials, modes, rate budgets, notices, egress records, each account's default warehouse, marketplace stock readings | Listings, Orders | Channels |
+| **Channels** (ADR-004's host) | Switchable | ADR-004 | Connections, sealed credentials, modes, rate budgets, notices, egress records, each account's default warehouse, marketplace stock readings | Listings, Orders, Buyer data (an ended connection's 30 days, a marketplace's privacy notice, eBay's deletion match; owner delegation, 1 November 2026) | Channels |
 | **Connectors** (one per marketplace) | Switchable | ADR-004.1–004.3 | Nothing: translators, contributed to Channels | Channels | — |
 | **Stock sync** | Switchable | ADR-008 | The figure each listing should show, what each marketplace was last told and confirmed, read-backs, held raises | Inventory, Listings, Orders, Channels | Channels; a product's channels |
 | **Invoicing** | Switchable | ADR-011 | Invoices, VAT records, invoiced customers | Orders, Products, Buyer data (owner ruling, 22 October 2026) | Invoices |
@@ -99,7 +99,7 @@ When a change alters a module's contract, it re-runs the tests of:
 | A change to the contract of | Re-runs the tests of |
 | --- | --- |
 | Fulfilment, Billing, Stock sync, Invoicing, Purchasing, a connector | Itself only |
-| Access | Itself, Billing, Products and Inventory, and every module that re-runs for them |
+| Access | Itself, Billing, Products, Inventory and Buyer data, and every module that re-runs for them |
 | Channels | Itself, the connectors and Stock sync |
 | Orders | Itself, Channels, the connectors, Stock sync, Fulfilment and Invoicing |
 | Inventory, Buyer data | Those of Orders, plus Inventory or Buyer data (and Purchasing and Listings, for Inventory) |

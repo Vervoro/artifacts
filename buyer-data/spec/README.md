@@ -4,10 +4,10 @@
 | --- | --- |
 | **Decision** | [ADR-009: Buyer data and privacy](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-009-buyer-data-and-privacy) |
-| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: `audit_log` kept 13 months (7), anonymisation once a day, 48 hours ahead (8.2), views logged once per person, order and day, and the restricted role applied for ahead of labels (7.2, 16.1); and the SPEC batch of phases 3 and 4: staging's team logins (3), a reset and an operator's mark and hold in the sign-in data (17) |
+| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: `audit_log` kept 13 months (7), anonymisation once a day, 48 hours ahead (8.2), views logged once per person, order and day, and the restricted role applied for ahead of labels (7.2, 16.1); and the SPEC batch of phases 3 and 4: staging's team logins (3), a reset and an operator's mark and hold in the sign-in data (17); and the phase 5.4 batch (owner delegation, 1 November 2026): the tracking number's end (4), `pii` outside the buyer tables (4.4), the two secrets (6.4, 16.2.3), the Warehouse row, the UTC day and a system actor's read (7), the sweep brought forward, the mark with no row and a discarded draft (8), a request's audit entries (10), the access file downloaded at once (12.3), key use (14), the synthetic ranges (15), both eBay ids (16.2.3), `buyer_view` and retention (18), Buyer data's one import (How to check) |
 | **For** | The developer and coding agents building it, the person reviewing their work, and marketplaces' data-protection reviewers |
 
-The rules to build ADR-009 from: the Buyer data module, core and always on, needing nothing ([ADR-000 SPEC 4](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)), and the privacy rules every other module keeps. Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/).
+The rules to build ADR-009 from: the Buyer data module, core and always on, needing Access (the actor's role and warehouse scope; owner delegation, 1 November 2026) ([ADR-000 SPEC 4](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)), and the privacy rules every other module keeps. Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/).
 
 ## 0. At launch and later
 
@@ -60,13 +60,13 @@ Each field only for its purpose, and only from the marketplaces that send it. Un
 | Order note, gift message and customisation | Read by the packer; the gift message is printed | Yes, where the marketplace sends them | Anonymisation |
 | Business buyer's company name and VAT number | A business invoice | Yes | Anonymisation, except on an issued invoice |
 | eBay buyer's user id, as a keyed hash | Matching eBay's account deletion notices | Yes | Anonymisation |
-| Tracking number | Confirming and following the shipment | Yes | Anonymisation; for an order delivered outside the UK, kept as export evidence (section 9) |
+| Tracking number | Confirming and following the shipment | Yes | Anonymisation; the export evidence of an order delivered outside the UK is Invoicing's own record (section 9.3, [ADR-011 SPEC 11.2](../../invoicing-and-vat/spec/)), kept there |
 | Label file | Printing and reprinting | No: labels are bought on the marketplace | Anonymisation |
 
 1. **Never kept:** buyer email; billing addresses and payment details (except the customer block printed on an issued full invoice); the eBay user id itself, which eBay forbids storing; anything that ties one buyer across orders, marketplaces or sellers.
 2. **Used only to ship, for tax and for the seller's service to that order** ([Amazon AUP](#19-constraints)): never for marketing, reviews or profiling.
 3. **Masked and missing values stay missing.** A withheld field is left out, never stored blank or made up, and a later read without it never erases what an earlier read kept ([ADR-004 SPEC 1](../../channel-connectors/spec/#1-the-connector-contract)).
-4. **Every buyer field carries ADR-001's `pii` tag** ([ADR-001 SPEC 5](../../database-architecture/spec/#5-declaring-tables)). The tag drives encryption, masking, the logger's drop, anonymisation, export and the AI mask. A build check refuses a column holding buyer data without it.
+4. **Every buyer field carries ADR-001's `pii` tag** ([ADR-001 SPEC 5](../../database-architecture/spec/#5-declaring-tables)). The tag drives encryption, masking, the logger's drop, anonymisation, export and the AI mask. A build check refuses a column holding buyer data without it: in a buyer table every column is `pii` and stored as ciphertext unless the table names it structural (ids, times, reasons); outside the buyer tables a `pii` column is personal data that is not a buyer's (a member's address, a supplier's contact), each named to the check.
 5. **The destination country and tax territory are Orders' fields,** not buyer data ([ADR-007 SPEC 5](../../order-ingestion/spec/#5-the-order-and-its-lines)). A postcode a marketplace sends is used to work out the territory and is not kept.
 
 ## 5. Where it lives
@@ -85,7 +85,7 @@ Each field only for its purpose, and only from the marketplaces that send it. Un
 1. **In transit:** TLS 1.2 or higher on every connection, inside and outside the platform, databases and object storage included ([DPP 1.5](#19-constraints)).
 2. **At rest:** the database and object storage encrypt everything, backups included.
 3. **Field by field:** each buyer field is encrypted with AES-256-GCM under the company's data key, with the company id as associated data ([ADR-001 SPEC 10](../../database-architecture/spec/#encryption)). A row read under the wrong company fails to decrypt; a dump or a console query shows ciphertext.
-4. **Keys:** the company keys are wrapped by a key-encryption key held as a platform secret, rotated yearly and at once on suspicion by re-wrapping.
+4. **Keys:** the company keys are wrapped by a key-encryption key held as a platform secret (`DATA_KEYS`, versioned, newest first: new wraps use the newest version and any listed version opens), rotated yearly and at once on suspicion by re-wrapping. The eBay buyer hash key (section 16.2) is a separate platform secret that is never rotated: a rotation would need the ids eBay sent, which are never stored. Any later keyed index derives its own key from the company key, never the field key itself.
 5. **Label files** are encrypted with the company's key before storing, in a bucket of their own with no versioning or soft delete, so deleting one deletes it. This is the one exception to ADR-001's file rule ([ADR-001 SPEC 10](../../database-architecture/spec/#backups)).
 6. **Search:** only an exact-match blind index on the phone. Its entry goes with the field.
 
@@ -94,15 +94,16 @@ Each field only for its purpose, and only from the marketplaces that send it. Un
 | Role | Name, address and phone | When |
 | --- | --- | --- |
 | Owner, admin, manager | Yes | Any order that still holds buyer data |
-| Warehouse | Yes, in their warehouses only | From picking until shipped, and label reprints for 24 hours after ([ADR-014](../../fulfilment/)) |
+| Warehouse | Yes, in their warehouses only | From picking until 24 hours after shipping, for label reprints ([ADR-014](../../fulfilment/)) |
 | Accountant | Only as printed on issued invoices | Never on orders |
 | Staff | No | Never |
 
 1. **Everyone else sees the order masked:** number, country and lines.
-2. **Every view is logged, once per person, order and day:** opening an order with buyer data, the packing screen, printing or reprinting a label each write the day's one `audit_log` entry for that person and order, by a single insert that writes nothing when the day's entry exists. It names the user, the order, the fields shown (never their values), the screen and the first time that day. A buyer search and an export each write an entry of their own, every time (owner ruling, 25 October 2026). Lists show no buyer data and write nothing. The seller sees the entries; `audit_log` is kept 13 months ([ADR-010 SPEC 8](../../users-and-access/spec/#8-audit)).
+2. **Every view is logged, once per person, order and day (the UTC date):** opening an order with buyer data, the packing screen, printing or reprinting a label each write the day's one `audit_log` entry for that person and order, by a single insert that writes nothing when the day's entry exists. It names the user, the order, the fields shown (never their values), the screen and the first time that day. A buyer search and an export each write an entry of their own, every time (owner ruling, 25 October 2026). Lists show no buyer data and write nothing. The seller sees the entries; `audit_log` is kept 13 months ([ADR-010 SPEC 8](../../users-and-access/spec/#8-audit)).
 3. **The operator** reaches a company only under a grant: one company, a written reason, at most 8 hours, seen by the seller and ended by them at will. Buyer fields stay encrypted unless the seller's owner or admin switches them on for that grant ([ADR-010 SPEC 7](../../users-and-access/spec/#7-operator-access-to-a-company)).
 4. **Developers** have no access to production data. The database owner role is used only through the CI migration job, with the reason recorded first and an alert ([ADR-001 SPEC 3](../../database-architecture/spec/#3-roles)); even then buyer fields are ciphertext.
 5. **Leavers:** a person's platform access ends within 24 hours of leaving or changing role, and access is reviewed every quarter.
+6. **A system actor** (a handler building an invoice's customer block) reads for its named purpose and writes no view entry; the person's view of the result is logged where it is shown. A scoped Manager or Warehouse member sees an order's buyer fields only when the order's warehouse is in their scope ([ADR-010 SPEC 3](../../users-and-access/spec/#3-roles-and-warehouse-scope)).
 
 ## 8. Retention and anonymisation
 
@@ -116,10 +117,11 @@ Each field only for its purpose, and only from the marketplaces that send it. Un
 | Named in a buyer's erasure | No wait: at once |
 
 1. **An order still to be shipped keeps its address.** Delivery is the rule and dispatch the fallback; this is the rule ADR-002 cites ([ADR-002](../../data-retention/)).
-2. **Once a day** the sweeper takes every order of the company due within the next 48 hours, so none passes its 30 days ([ADR-001 SPEC 9](../../database-architecture/spec/#the-due-table); owner ruling, 25 October 2026), and in one transaction per company: clears every `pii` field on the order and its lines; removes the phone index entry and the eBay hash; marks the order anonymised with the time and reason; deletes its label files.
-3. **Once anonymised, never again.** A later read or notice that brings the details back stores nothing personal for that order.
+2. **Once a day** the sweeper takes every order of the company due within the next 48 hours, so none passes its 30 days ([ADR-001 SPEC 9](../../database-architecture/spec/#the-due-table); owner ruling, 25 October 2026), and in one transaction per company: clears every `pii` field on the order and its lines; removes the phone index entry and the eBay hash; marks the order anonymised with the time and reason; deletes its label files. A start that makes an order due within 48 hours brings the company's sweep forward to now.
+3. **Once anonymised, never again.** A later read or notice that brings the details back stores nothing personal for that order. Anonymising an order Buyer data holds nothing for still records its mark.
 4. **Proof:** a nightly check counts, per company, orders past their due time still holding buyer data. Anything but zero alerts the operator ([runbook](../../runbooks/check-the-anonymisation-job/)).
 5. **What survives:** the marketplace order id, dates, lines, prices, totals and fees (accounting records); the batch and lot shipped (a recall reaches buyers through the marketplace by order id, [ADR-014](../../fulfilment/)); the country and tax territory, on the order (VAT); the carrier and service. Not the postcode district or the town: Amazon counts postal codes as personal data.
+6. **A discarded manual-order draft** starts the 30 days as a cancellation ([ADR-007 SPEC 18](../../order-ingestion/spec/#18-manual-orders) hands a draft's address over).
 
 ## 9. Invoices and export evidence
 
@@ -142,6 +144,7 @@ A buyer asks the seller or a marketplace, never Vervoro. Each request becomes a 
 1. **Finding the orders:** by marketplace order id, or by an exact phone number. An eBay deletion names a user, matched by hash (section 16.2).
 2. **An erasure keeps issued invoices.** The request records that an invoice was kept, and why, so the seller can tell the buyer.
 3. **Only owners and admins** handle privacy requests ([ADR-010 SPEC 4](../../users-and-access/spec/#4-who-may-do-what)). Procedure: [Answer a buyer's data request](../../runbooks/answer-a-buyers-data-request/).
+4. **Every privacy request writes an `audit_log` entry** when it is opened and when it is done ([ADR-010 SPEC 8](../../users-and-access/spec/#8-audit)), naming the request, its kind and the count of orders.
 
 ## 11. Erasure, backups and restores
 
@@ -156,7 +159,7 @@ A buyer asks the seller or a marketplace, never Vervoro. Each request becomes a 
 
 1. **A company export** ([ADR-001 SPEC 10](../../database-architecture/spec/#export)) holds buyer data only for orders that still have it, anonymised orders as they are, issued invoices as issued, and the archive files.
 2. **Only an owner or admin** makes an export with buyer data; for anyone else the fields are left out. The file is encrypted, offered through a link that expires after 24 hours, deleted after 7 days, and logged with who made it and what it held.
-3. **A one-buyer file** for an access request holds only the named orders' buyer data, made the same way.
+3. **A one-buyer file** for an access request holds only the named orders' buyer data. It is built in the route's answer and downloaded at once over TLS, by an Owner or Admin after a fresh check, never stored, logged with who made it and what it held (ids and counts), and alerts the operator (section 13.1) (owner delegation, 1 November 2026).
 
 ## 13. Incidents
 
@@ -184,7 +187,7 @@ Amazon's schedule is the strictest, so it is the schedule for every marketplace 
 | Multi-factor sign-in | Every user, operator and developer account ([ADR-013](../../sign-in/)) | Always |
 | Passwords | Only with an authenticator code, under Amazon's password rules ([ADR-013 SPEC 4](../../sign-in/spec/#4-password-policy)) | Always |
 | One person, one account | No shared or generic accounts | Always |
-| Security logs | Sign-ins, grants, buyer-data views, exports, key use, admin actions; central, protected from change, no buyer data | Kept 12 months; alerts at once, the rest every two weeks |
+| Security logs | Sign-ins, grants, buyer-data views, exports, key use (a data key made, written to the central security log through a kernel note in the transaction that made it; a key re-wrapped and a key-encryption-key rotation, written by the command that does it; never each unwrap), admin actions; central, protected from change, no buyer data | Kept 12 months; alerts at once, the rest every two weeks |
 | Vulnerability scans | Every system touching seller or buyer data; the code before each release | At least every 30 days |
 | Fixing findings | Critical in 7 days, high in 30 | As found |
 | Penetration test | By an outside tester | Yearly |
@@ -197,8 +200,8 @@ Amazon's schedule is the strictest, so it is the schedule for every marketplace 
 
 ## 15. No real buyer data outside production
 
-1. **Synthetic buyers only** in simulators, tests, fixtures and demos: generated names, `example.com` and `.test` emails, phone numbers 07700 900000 to 900999, and the postcode `ZZ99 9ZZ`.
-2. **A build check** scans fixtures, recordings and seed data and refuses an email, phone or postcode outside those ranges.
+1. **Synthetic buyers only** in simulators, tests, fixtures and demos: generated names, `example.com` and `.test` emails, phone numbers 07700 900000 to 900999 in national or +44 form, and the postcode `ZZ99 9ZZ`.
+2. **A build check** scans fixtures, recordings and seed data and refuses an email, phone or postcode outside those ranges; it covers every address in fixtures, a seller's and a warehouse's included.
 3. **Recordings of real marketplace replies** ([ADR-000 SPEC 9](../../system-architecture/spec/#9-simulators)) come from sandboxes and the team's own test accounts, with buyer fields replaced before saving.
 4. **A production branch made for a restore** holds real data, is reached only by the lifecycle tool, and is deleted within 24 hours ([ADR-001](../../database-architecture/)).
 5. **Staging** runs on simulators and synthetic companies only.
@@ -219,7 +222,7 @@ Amazon's schedule is the strictest, so it is the schedule for every marketplace 
 
 1. **eBay's terms:** delete personal data when no longer needed or when asked, never store user ids, destroy within 10 days of leaving the developer programme.
 2. **Account deletion notices** arrive for every eBay user who closes their account and are answered at once ([ADR-004.1 SPEC](../../ebay-connector/spec/)). A connected seller's is a privacy request; anyone else's is matched.
-3. **The match:** on import, a keyed hash of the buyer id eBay sends (its username, or its immutable user id) is stored with the order and in `buyer_ref(hash, company_id, order_id)`. A notice is hashed and looked up in each cell with one indexed query through ADR-001's allow-listed function ([ADR-001 SPEC 4](../../database-architecture/spec/#4-functions)). A match anonymises that buyer's orders at once. The notice is never kept; the lookup row goes when the order is anonymised.
+3. **The match:** on import, a keyed hash of each id eBay sends (the username and the immutable user id, so a renamed username still matches) is stored in `buyer_ref(hash, company_id, order_id)`, under the platform's hash key (section 6.4), and nowhere else. A notice is hashed and looked up in each cell with one indexed query through ADR-001's allow-listed function ([ADR-001 SPEC 4](../../database-architecture/spec/#4-functions)). A match anonymises that buyer's orders at once. The notice is never kept; the lookup row goes when the order is anonymised.
 
 ### 16.3 Shopify
 
@@ -239,9 +242,10 @@ Not buyer data: Vervoro is its controller, under its privacy notice. Listed here
 
 | Table | Holds | Notes |
 | --- | --- | --- |
-| `buyer_recipient` | One row per order: the buyer fields of section 4, the eBay hash, the phone index, anonymised time and reason | Every buyer field tagged `pii`; one row per order, never shared across orders |
-| `buyer_ref` | `(hash, company_id, order_id)` for eBay buyers | ADR-001's named exception, read across companies only through its allow-listed function |
-| `buyer_privacy_request` | Source, order ids, kind, due date, done time, invoices kept and why | No buyer field |
+| `buyer_recipient` | One row per order: the order's account (Channels' account id, or `manual`, for a connection's end), the buyer fields of section 4, the fields a person set, the due time and its reason, the anonymised time and reason; the phone index *Later* | Every buyer field tagged `pii`; one row per order, never shared across orders; deleted with its order ([ADR-002 SPEC 2](../../data-retention/spec/#2-the-retention-schedule)) |
+| `buyer_ref` | `(hash, company_id, order_id)` for eBay buyers | ADR-001's named exception, read across companies only through its allow-listed function; the only place an eBay hash lives |
+| `buyer_view` | Login, order, day, the fields shown, the screen, the first time | The day's first view, so a second writes nothing (section 7.2); deleted at the order's anonymisation |
+| `buyer_privacy_request` | Source, order ids, kind, due date, done time, invoices kept and why | No buyer field; kept always, deleted with the company ([ADR-002 SPEC 2](../../data-retention/spec/#2-the-retention-schedule)) |
 | Label files | One per label, encrypted under the company key | Object storage, its own bucket, no versioning; keys carry no personal data |
 
 ## 19. Constraints
@@ -296,9 +300,9 @@ Checked against the official sources on 18 October 2026; Amazon's Data Protectio
 For someone reviewing code an AI wrote. Each line says where to look.
 
 - [ ] **One writer:** only Buyer data's code writes `buyer_` tables and the label bucket; Orders, Fulfilment and Invoicing import only its port.
-- [ ] **No calls out of the core:** Buyer data imports no other module.
+- [ ] **No calls out of the core:** Buyer data imports only Access's contract (`memberFacts`, to decide what a role sees; the fresh check's window for an export) ([ADR-000 SPEC 4](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)).
 - [ ] **Tags:** every buyer column is declared with `pii`; the lint runs in CI and fails on an untagged one.
-- [ ] **Reads:** every read of a buyer field goes through one port function that checks role, order state and grant, and writes the audit entry.
+- [ ] **Reads:** every read of a buyer field goes through one port function that checks role, order state and grant, and writes the audit entry; the one other read is the access request's file, built only in Buyer data's own route under the privacy-request action (section 12.3).
 - [ ] **Ids only:** queue, Durable Object, outbox, event and live-update payload types have no buyer field.
 - [ ] **Logger:** the drop of `pii` values is in the logger, not at call sites.
 - [ ] **Client:** no buyer field is written to local storage, IndexedDB or a cache; no buyer data in a URL.

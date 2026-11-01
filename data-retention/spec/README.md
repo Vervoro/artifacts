@@ -39,6 +39,7 @@ At launch only the deletions in [section 2](#2-the-retention-schedule) run (`eve
 | Invitations used, withdrawn or expired ([ADR-010 SPEC 6](../../users-and-access/spec/#6-invitations-sign-up-and-removal)) | 30 days after use, withdrawal or expiry | Never | Deleted, with the address of a member row still invited; `audit_log` keeps the event (owner ruling, 22 October 2026) |
 | Outbox notes every handler has received ([ADR-001 SPEC 9](../../database-architecture/spec/#the-outbox)) | 30 days after the last receipt | Never | Deleted (owner ruling, 21 October 2026) |
 | Buyer personal data | 30 days after delivery, dispatch as the fallback ([ADR-009 SPEC 8](../../buyer-data/spec/#8-retention-and-anonymisation)) | Only anonymised, except on issued invoices | Deleted with the order or the invoice |
+| Privacy requests (ids, kinds and times; [ADR-009 SPEC 10](../../buyer-data/spec/#10-buyers-requests)) | Always | Never | Deleted with the company (owner delegation, 1 November 2026) |
 
 Every period applies while the company exists. A closed company is erased by [ADR-012](../../billing-and-plans/spec/#16-cancellation-export-erasure-and-refunds), archive included.
 
