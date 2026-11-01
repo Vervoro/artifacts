@@ -60,7 +60,7 @@ Each field only for its purpose, and only from the marketplaces that send it. Un
 | Order note, gift message and customisation | Read by the packer; the gift message is printed | Yes, where the marketplace sends them | Anonymisation |
 | Business buyer's company name and VAT number | A business invoice | Yes | Anonymisation, except on an issued invoice |
 | eBay buyer's user id, as a keyed hash | Matching eBay's account deletion notices | Yes | Anonymisation |
-| Tracking number | Confirming and following the shipment | Yes | Anonymisation; the export evidence of an order delivered outside the UK is Invoicing's own record (section 9.3, [ADR-011 SPEC 11.2](../../invoicing-and-vat/spec/)), kept there |
+| Tracking number (one Vervoro did not enter: Fulfilment holds Vervoro's own) | Confirming and following the shipment | Yes | Anonymisation; the export evidence of an order delivered outside the UK is Invoicing's own record (section 9.3, [ADR-011 SPEC 11.2](../../invoicing-and-vat/spec/)), kept there |
 | Label file | Printing and reprinting | No: labels are bought on the marketplace | Anonymisation |
 
 1. **Never kept:** buyer email; billing addresses and payment details (except the customer block printed on an issued full invoice; a manual order's receipt or transaction number is not one, [ADR-007 SPEC 18.6](../../order-ingestion/spec/#18-manual-orders)); the eBay user id itself, which eBay forbids storing; anything that ties one buyer across orders, marketplaces or sellers.

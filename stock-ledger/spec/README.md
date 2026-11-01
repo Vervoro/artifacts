@@ -21,6 +21,7 @@ Everything below is built at launch except these parts, which keep their rules h
 | Serial numbers | ADR-003's serial tracking is built; the stock side goes to [ADR-014](../../fulfilment/) | None here |
 | A lock finer than the company's | Measured lock wait passes its threshold ([12](#12-the-lock-keys-and-the-sequence)) | A new record |
 | Checkpoints (`opening_balance`) and reading archived months in a lot trace | The archiver ([ADR-002](../../data-retention/spec/#0-at-launch-and-later)) | [10.1](#10-lot-trace-and-recalls), [14](#14-the-nightly-check-and-checkpoints) |
+| Days of stock beside the four numbers on the Stock list and the stock page | The next Inventory list change (the list has no extension point yet; the figure is on the product page's figures card meanwhile, phase 5.5, PR 2) | [3.4](#3-the-four-numbers) |
 
 ## 1. Where stock is counted
 
@@ -77,6 +78,8 @@ Everything below is built at launch except these parts, which keep their rules h
 1. **Quarantined** units wait for a decision: an uninspected return, a receipt waiting for a manager, a counted shortfall, units set aside. Set-aside units go back on sale (`inspected`) or are marked damaged or written off, except a held receipt's, which leave only by the manager's decision on it (section 8.4). **Damaged** units are never sellable or reserved; they leave by write-off or come back by a recorded restore.
 2. **Incoming** (open purchase order quantity not yet received, units in transit) is shown beside the four numbers, never added to sellable, never sent. Inventory stores and reads no purchase order: it keeps a slot on the product and stock screens that Purchasing fills with the purchase order part ([ADR-015 SPEC 10.4](../../purchasing/spec/#10-ports-events-and-tables)); units in transit are Inventory's own.
 3. A product's numbers in a warehouse are the sums of its batch positions. A bundle has only a sellable figure, worked out from its components ([ADR-003 SPEC 6.3](../../product-model/spec/#63-bundle)).
+
+4. **Days of stock** (owner ruling, 28 October 2026) = sellable ÷ rate of sale (Orders' `soldFigures`, 28 days, summed over the company's accounts), rounded down, shown beside the four numbers on the product's stock figures and as a column of the stock list (*Later*, section 0; on the product page's figures card meanwhile), with incoming shown apart as now (rule 2). A product with no sale in the window shows "no sales in 28 days", never a number; a product with a rate but no sellable stock shows 0. The days of the window on which sellable, worked back from today's through the window's entries, was 0 at the day's end (blocks and dates as they stand today; a bundle takes the worst of its components) are shown beside the figure ("out of stock 6 of 28 days"), because a plain rate under-counts a product that sold out; the rate itself is not corrected until [ADR-015 SPEC 5.5](../../purchasing/spec/) is built. It is a reading for planning: it reserves nothing, sends nothing, and is never written to the ledger.
 
 ## 4. Dates, blocks and the date pass
 
