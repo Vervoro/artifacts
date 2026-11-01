@@ -12,9 +12,9 @@ A buyer never asks Vervoro. Erasures that arrive from a marketplace (an eBay acc
 ## Steps
 
 1. Open Privacy requests and choose the kind: access, correction or erasure.
-2. Find the buyer's orders by their marketplace order ids, or by the exact phone number the buyer gave. Add every order the buyer names; the request stores order ids only.
+2. Find the buyer's orders by their marketplace order ids (*Later*, with shipping labels: by the exact phone number the buyer gave). Add every order the buyer names; the request stores order ids only.
 3. **Erasure:** confirm. The orders are anonymised at once and their label files deleted. If an issued invoice names the buyer, the request records that it was kept and why; tell the buyer so.
-4. **Access:** confirm. A file of the named orders' buyer data is ready within 7 days, through a link that expires after 24 hours. Download it and send it to the buyer through the marketplace's messages.
+4. **Access:** confirm. Download the file of the named orders' buyer data at once (it is built in the answer and never stored, [SPEC 12.3](../../buyer-data/spec/#12-exports)); it says, for every order named, what it holds and where each field came from, or that it holds nothing and when it was anonymised. Send it to the buyer through the marketplace's messages, within the 7 days.
 5. **Correction:** edit the field on the order. It is saved as set by a person, and a later marketplace read does not overwrite it.
 6. Tell the buyer it is done, through the marketplace. The law gives the seller one month.
 
@@ -27,4 +27,4 @@ A buyer never asks Vervoro. Erasures that arrive from a marketplace (an eBay acc
 
 - An open request keeps its due date; the operator is alerted 2 days before it.
 - Confirming an erasure again is safe: an anonymised order stays anonymised.
-- An expired access link is made again from the request.
+- A file not sent is downloaded again from the request; each download is logged.

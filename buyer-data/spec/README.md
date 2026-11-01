@@ -141,7 +141,7 @@ A buyer asks the seller or a marketplace, never Vervoro. Each request becomes a 
 | Delete on Amazon's notice | Amazon ([DPP 1.7](#19-constraints)) | The named data is deleted | Within Amazon's 30 days |
 | *Later:* forget a shop | Shopify's `shop/redact`, 48 hours after uninstall | Recorded for a person; the uninstall already ended the connection, so the shop's buyer data is due within 30 days (section 8) | Inside Shopify's 30 days ([ADR-004.3 SPEC 8](../../shopify-connector/spec/#8-buyer-data-and-privacy)) |
 
-1. **Finding the orders:** by marketplace order id, or by an exact phone number. An eBay deletion names a user, matched by hash (section 16.2).
+1. **Finding the orders:** by marketplace order id (*Later*, with shipping labels: or by an exact phone number, section 0). An eBay deletion names a user, matched by hash (section 16.2).
 2. **An erasure keeps issued invoices.** The request records that an invoice was kept, and why, so the seller can tell the buyer.
 3. **Only owners and admins** handle privacy requests ([ADR-010 SPEC 4](../../users-and-access/spec/#4-who-may-do-what)). Procedure: [Answer a buyer's data request](../../runbooks/answer-a-buyers-data-request/).
 4. **Every privacy request writes an `audit_log` entry** when it is opened and when it is done ([ADR-010 SPEC 8](../../users-and-access/spec/#8-audit)), naming the request, its kind and the count of orders.
@@ -159,7 +159,7 @@ A buyer asks the seller or a marketplace, never Vervoro. Each request becomes a 
 
 1. **A company export** ([ADR-001 SPEC 10](../../database-architecture/spec/#export)) holds buyer data only for orders that still have it, anonymised orders as they are, issued invoices as issued, and the archive files.
 2. **Only an owner or admin** makes an export with buyer data; for anyone else the fields are left out. The file is encrypted, offered through a link that expires after 24 hours, deleted after 7 days, and logged with who made it and what it held.
-3. **A one-buyer file** for an access request holds only the named orders' buyer data. It is built in the route's answer and downloaded at once over TLS, by an Owner or Admin after a fresh check, never stored, logged with who made it and what it held (ids and counts), and alerts the operator (section 13.1) (owner delegation, 1 November 2026).
+3. **A one-buyer file** for an access request holds only the named orders' buyer data. It is built in the route's answer and downloaded at once over TLS, by an Owner or Admin after a fresh check, never stored, logged with who made it and what it held (ids and counts), and alerts the operator (section 13.1) (owner delegation, 1 November 2026). It lists every named order: its fields with where each came from (the marketplace or a person), the time they are due to be anonymised and why, or that the order holds nothing, with when and why it was anonymised (UK GDPR Article 15(1); owner delegation, 1 November 2026).
 
 ## 13. Incidents
 

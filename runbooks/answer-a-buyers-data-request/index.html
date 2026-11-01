@@ -90,9 +90,9 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2 id="steps">Steps</h2>
 <ol>
 <li>Open Privacy requests and choose the kind: access, correction or erasure.</li>
-<li>Find the buyer&#39;s orders by their marketplace order ids, or by the exact phone number the buyer gave. Add every order the buyer names; the request stores order ids only.</li>
+<li>Find the buyer&#39;s orders by their marketplace order ids (<em>Later</em>, with shipping labels: by the exact phone number the buyer gave). Add every order the buyer names; the request stores order ids only.</li>
 <li><strong>Erasure:</strong> confirm. The orders are anonymised at once and their label files deleted. If an issued invoice names the buyer, the request records that it was kept and why; tell the buyer so.</li>
-<li><strong>Access:</strong> confirm. A file of the named orders&#39; buyer data is ready within 7 days, through a link that expires after 24 hours. Download it and send it to the buyer through the marketplace&#39;s messages.</li>
+<li><strong>Access:</strong> confirm. Download the file of the named orders&#39; buyer data at once (it is built in the answer and never stored, <a href="../../buyer-data/spec/#12-exports">SPEC 12.3</a>); it says, for every order named, what it holds and where each field came from, or that it holds nothing and when it was anonymised. Send it to the buyer through the marketplace&#39;s messages, within the 7 days.</li>
 <li><strong>Correction:</strong> edit the field on the order. It is saved as set by a person, and a later marketplace read does not overwrite it.</li>
 <li>Tell the buyer it is done, through the marketplace. The law gives the seller one month.</li>
 </ol>
@@ -105,7 +105,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ul>
 <li>An open request keeps its due date; the operator is alerted 2 days before it.</li>
 <li>Confirming an erasure again is safe: an anonymised order stays anonymised.</li>
-<li>An expired access link is made again from the request.</li>
+<li>A file not sent is downloaded again from the request; each download is logged.</li>
 </ul>
 
 <footer>Vervoro</footer>
