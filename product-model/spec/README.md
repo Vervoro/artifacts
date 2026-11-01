@@ -23,6 +23,7 @@ Everything below is built at launch except these parts, which keep their rules h
 | Creating a family as a grid, a SKU pattern, "add a size", and editing members together | Sellers with ranges ask for faster creation than the spreadsheet | [10](#10-sizes-and-colours) |
 | Creating a product from a pasted Amazon link or ASIN | Sellers ask for it beyond "make product" from their own listings | [13](#13-creating-products) |
 | Dangerous goods (`un_number`, `battery`) and age-restricted goods (`min_age`) on the product | The shipping record, when carriers and labels need them | [2](#2-fields) |
+| Sold, rate of sale, revenue and gross margin on the list and the product page (revenue and gross margin as list columns: a module extends a list once with one permission; the kernel's per-value permission on a list extension) | Built in phase 5.5, PR 2 (the card and the Sold column); the list's revenue and margin columns wait for that kernel change | [2.4](#2-fields) |
 | Serial tracking (`tracks_serial`): a serial recorded at packing and checked on return (owner ruling, 21 October 2026) | A first customer needs it | [12](#12-best-before-lot-and-serial-numbers), rules 7–8 |
 
 ## 1. What a product is
@@ -107,6 +108,10 @@ Owner ruling, 21 October 2026: non-stock charges are charge lines, not a product
 ### 2.3 Activity
 
 Every change to a product, its barcodes, components or box sizes writes an activity entry (the event log, kept 90 days: [ADR-002 SPEC 2](../../data-retention/spec/#2-the-retention-schedule)): who, when, which field, the old value and the new value. A bulk change writes one per product. A change also writes one `product_changed` note per product, naming the fields changed, for other modules' handlers; a product's creation and deletion are announced the same way (`created`, `deleted`), so Listings recomputes its suggestions (owner delegation, 31 October 2026).
+
+### 2.4 The product's figures
+
+**The product's figures** (owner ruling, 28 October 2026; built in phase 5.5, PR 2). From Orders' `soldFigures` ([ADR-007 SPEC 1.7](../../order-ingestion/spec/#1-the-module)), a product shows, on its page and on the list: **Sold** (units, 28 days) with the **Rate of sale** (units a day over 28 days, one decimal) as a column of the list through a list extension ([ADR-000 SPEC 1.3](../../system-architecture/spec/#1-modules)), so the list stays one query, sortable and filterable; on the page's figures card, per account and summed, over 28 days with 7 and 90 as a choice: Sold, Rate of sale, Days of stock ([ADR-006 SPEC 3.4](../../stock-ledger/spec/#3-the-four-numbers)), **Revenue** (without VAT) and **Gross margin** (revenue less sold × `standard_cost`, and as a percentage of revenue), labelled "before fees" until the Profit record is built. Sold and rate of sale are shown to every role that reads products; revenue and gross margin only to the roles that see costs ([ADR-010 SPEC 4](../../users-and-access/spec/#4-who-may-do-what)), left out, never blanked. A product with no `standard_cost` shows no margin and says why; a cost in another currency is said. Units sold in another currency are counted and said, left out of the money. The spreadsheet export carries the list's figures (section 14). Revenue and gross margin as columns of the list are *Later* (section 0).
 
 ## 3. SKU
 
@@ -319,6 +324,7 @@ Database tests run on real Postgres under the runtime role ([ADR-000 SPEC 15](..
 | Spreadsheet | A blank cell and a missing column change nothing; `(clear)` empties; a file with errors writes only its valid rows, all at once; a SKU twice in a file is refused |
 | Serials (*Later*) | A serial-tracked unit cannot be packed without a serial; a serial already shipped and not returned is refused; a return with a different serial goes to a manager |
 | Concurrent edits | An edit on an older `version` is refused |
+| Sold figures | Margin uses the product's cost at the time of the read, not the sale's; a Warehouse member's figures carry no revenue or margin; a product sold in two currencies shows units for both and money for the company's |
 | VAT | A rate change writes no past line; a class with no rate in a country is not offered there |
 
 ## How to check it was built right

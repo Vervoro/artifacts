@@ -96,7 +96,8 @@ A module declares each action in its manifest ([ADR-000 SPEC 1](../../system-arc
 | **Products** | | | | | | | |
 | Read products and stock | Yes | Yes | Yes | Yes | Yes | Yes | ADR-010 |
 | Create, edit, import products | Yes | Yes | Yes | No | No | No | [ADR-003](../../product-model/spec/#13-creating-products) |
-| See costs, landed cost and margins | Yes | Yes | Yes | No | Yes | No | ADR-010 |
+| See costs, landed cost and margins, revenue and gross margin, also per account | Yes | Yes | Yes | No | Yes | No | ADR-010, [ADR-003 SPEC 2.4](../../product-model/spec/#2-fields) |
+| Read sold, rate of sale, days of stock and days of cover | Yes | Yes | Yes | Yes | Yes | Yes | [ADR-003 SPEC 2.4](../../product-model/spec/#2-fields), [ADR-006 SPEC 3.4](../../stock-ledger/spec/#3-the-four-numbers) |
 | Read supplier names, supplier's codes, reorder levels and lead times | Yes | Yes | Yes | Yes | Yes | Yes | [ADR-015](../../purchasing/spec/#9-who-may-do-what) |
 | Read a supplier's contact (name, email, phone) and note | Yes | Yes | Yes | No | No | No | [ADR-015](../../purchasing/spec/#9-who-may-do-what) |
 | Create, edit, archive suppliers; set a product's suppliers and reorder level; import them | Yes | Yes | Yes | No | No | No | [ADR-015](../../purchasing/spec/#9-who-may-do-what) |

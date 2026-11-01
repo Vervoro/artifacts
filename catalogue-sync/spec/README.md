@@ -253,7 +253,7 @@ Answered one at a time, never in bulk.
 
 ## 18. What people see
 
-1. **The seller, per account:** the last complete read and its source, a read in progress or why it waits, notices in the last day, "not notified" or "notices unreliable", and counts of unlinked, shared-stock and missing listings.
+1. **The seller, per account:** the last complete read and its source, a read in progress or why it waits, notices in the last day, "not notified" or "notices unreliable", and counts of unlinked, shared-stock and missing listings. From phase 5.5, per account: **What sells here**, the account's products by units over 28 days (and revenue, *Later*, with [ADR-003 SPEC 2.4](../../product-model/spec/#2-fields)'s trigger), and **No sale in 90 days**, listings with no sale in the window, each a filter of the account's listing list; the values come from the sold-day rows through the listing's linked product and account (*Missing*: until the kernel's list extension hands the fragment the host row's product, units come from the listing's own lines, and No sale in 90 days covers every listing, linked or not). The same product's figures on two accounts sit side by side on the product page (ADR-003 SPEC 2.4), which is where "which channel sells this" is answered.
 2. **The operator:** catalogue's share of each shared pool; accounts with no complete read for 48 hours (an alert); held reads; notice bursts turned into one read; dead letters. Many accounts failing on one marketplace is one incident ([ADR-004](../../channel-connectors/)).
 
 ## 19. Storage

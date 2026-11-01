@@ -163,6 +163,8 @@ A product is on the list when all hold: it has a reorder level; its status is `a
 2. **Today** (the Home screen) shows a card "Needs reordering (n)", n from the same query, computed when Home is opened; a person scoped to warehouses is not shown the card.
 3. **No mail at launch** (owner ruling, 27 October 2026). A daily mail is *Later* ([section 0](#0-at-launch-and-later)).
 
+*Later* (owner ruling, 28 October 2026; the reorder row has no extension point yet: the next Purchasing list change, ROADMAP 5.5.1). **6.4, appended:** the row also shows **Sold (28 days)** and **Days of stock** ([ADR-006 SPEC 3.4](../../stock-ledger/spec/#3-the-four-numbers)), and **Days of cover after reorder** = days of stock plus `usual_order_qty` ÷ rate of sale, so the Manager sees whether the usual order outlasts the lead time; the days out of stock in the window sit beside the rate, so a sold-out week is not read as low demand. The list's default order becomes days of stock, fewest first, among the products at or below their level. **6.7, Running low:** a second tab, products with a level whose days of stock are at or below their lead time (the one used, section 5) plus 7 days, and whose position is still above the level; the list the Manager plans from before a shelf is empty; it alerts nothing; until built the tab is not shown.
+
 ## 7. Screens
 
 1. **Purchasing** (menu): Needs reordering (default for people who may see it, else Suppliers), Suppliers (with Export for every reader, the contact columns by permission), a supplier's page (its details and its products), Import (export is on the same page). Step 2 adds Purchase orders.
