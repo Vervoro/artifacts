@@ -267,7 +267,7 @@ Database tests run on real Postgres under the runtime role ([ADR-000 SPEC 15](..
 For someone reviewing code an AI wrote. Each line says where to look and which test proves it.
 
 - [ ] **Matrix:** every action a manifest declares is a row of section 4; the build check fails on a missing row; the matrix test has one case per action and role.
-- [ ] **One check path:** every route goes through one resolver that reads the member row first in the work's transaction; no route checks a role by hand (search for role names outside the resolver).
+- [ ] **One check path:** every route goes through one resolver that reads the member row first in the work's transaction; no route checks a role by hand (search for role names outside the resolver). The one exception is Buyer data's read port, which decides what a role sees of an order in its state from Access's `memberFacts` ([ADR-009 SPEC 1.6](../../buyer-data/spec/#1-who-does-what); owner delegation, 1 November 2026).
 - [ ] **Reasons:** every refusal returns a reason code the screen shows; none is a bare 403.
 - [ ] **Scope:** every read and command port of the core modules takes the scope argument; the scope test covers each port; row-level security policies mention only the company.
 - [ ] **Self-change:** the role-change, scope-change and reset commands refuse the actor's own login; the last-Owner guard runs in the same transaction as the change.
