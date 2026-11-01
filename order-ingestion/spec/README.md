@@ -206,7 +206,7 @@ An order that cannot be read into the contract's types (a missing field the cont
 
 1. **One shipment per order,** possibly several boxes ([ADR-014 SPEC 4](../../fulfilment/spec/#4-shipments)).
 2. **Ready to pick:** open or part shipped, shipped by the seller, every line it ships linked and fully reserved, and no hold.
-3. **A short order waits.** Short is worked out, not a hold, and clears itself when stock arrives and the refill reaches it ([ADR-006 SPEC 5.3](../../stock-ledger/spec/#53-reserving-an-order-line)). The order shows a decision: wait for stock (with the next expected delivery, from Purchasing's card on the order's page when Purchasing is on, [ADR-015 SPEC 12.11](../../purchasing/spec/#12-step-2-purchase-orders)) or change the order on the marketplace.
+3. **A short order waits.** Short is worked out, not a hold, and clears itself when stock arrives and the refill reaches it ([ADR-006 SPEC 5.3](../../stock-ledger/spec/#53-reserving-an-order-line)). The order shows a decision: wait for stock (with the next expected delivery, from Purchasing's card on the order's page when Purchasing is on, which reads Orders' `shortProducts({ order })` port, the order's lines short of stock with the product and the units missing, [ADR-015 SPEC 12.11](../../purchasing/spec/#12-step-2-purchase-orders)) or change the order on the marketplace.
 4. **A waiting line blocks the same way** until linked, attached or cancelled on the marketplace.
 5. **Part shipped happens only when the marketplace reports it;** the rest stays reserved and ships whole.
 
