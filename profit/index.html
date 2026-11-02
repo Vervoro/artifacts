@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ADR-016: Profit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono&display=swap">
+<style>
+:root {
+  --bg: #f6f6f8; --surface: #ffffff; --sunken: #ededf1; --text: #16161a; --muted: #5c5c66; --border: #e0e0e6;
+  --accent: #4338ca; --accent-soft: #eef0ff; --edge: #8a8a96; --tint: #f0f0f4;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #111114; --surface: #1a1a1f; --sunken: #23232a; --text: #ececf1; --muted: #a2a2ad; --border: #2d2d35;
+  --accent: #a5b4fc; --accent-soft: #23264a; --edge: #74747f; --tint: #202027; color-scheme: dark; } }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 var(--sans); }
+main { max-width: 860px; margin: 0 auto; padding: 48px max(20px, env(safe-area-inset-left)) 80px; }
+header.site { max-width: 860px; margin: 0 auto; padding: 20px max(20px, env(safe-area-inset-left)) 0; font-size: 14px; }
+header.site a { color: var(--muted); text-decoration: none; }
+header.site a:hover { color: var(--accent); }
+h1, h2, h3 { line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(28px, 4vw, 38px); letter-spacing: -0.02em; margin: 0 0 20px; }
+h2 { font-size: 23px; margin: 48px 0 12px; padding-top: 20px; border-top: 1px solid var(--border); }
+h3 { font-size: 18px; margin: 32px 0 8px; }
+p, li { max-width: 72ch; }
+a { color: var(--accent); }
+code { font-family: var(--mono); font-size: 0.86em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--sunken); padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 13.5px; line-height: 1.5; }
+pre code { background: none; padding: 0; overflow-wrap: normal; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 16px 0; background: var(--surface); }
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+.table-wrap table { margin: 0; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+th { background: var(--sunken); font-weight: 600; font-size: 13px; color: var(--muted); }
+tr:last-child td { border-bottom: none; }
+ul, ol { padding-left: 22px; }
+li + li { margin-top: 4px; }
+figure { margin: 20px 0; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; }
+svg.diagram { display: block; width: 100%; min-width: 640px; height: auto; font-family: var(--sans); }
+svg .ink { fill: var(--text); } svg .quiet { fill: var(--muted); }
+svg .edge { stroke: var(--edge); } svg .edge-fill { fill: var(--edge); }
+svg .accent { stroke: var(--accent); } svg .accent-fill { fill: var(--accent); }
+svg .box { fill: none; stroke: var(--edge); stroke-width: 1.25; }
+svg .box-main { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+svg .band { fill: var(--tint); stroke: var(--edge); stroke-width: 1.25; }
+.cards { list-style: none; padding: 0; display: grid; gap: 12px; }
+.cards a { display: block; padding: 18px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; text-decoration: none; color: var(--text); }
+.cards a:hover, .cards a:focus-visible { border-color: var(--accent); outline: none; }
+.cards.sub { margin: 12px 0 0 24px; padding-left: 16px; border-left: 2px solid var(--border); }
+.parts { margin: 6px 0 0 20px; font-size: 14px; color: var(--muted); } .cards .parts a { display: inline; padding: 0; background: none; border: none; border-radius: 0; color: var(--accent); font-weight: 600; text-decoration: none; } .cards .parts a:hover { text-decoration: underline; }
+.cards b { display: block; font-size: 17px; } .cards span { color: var(--muted); font-size: 14px; }
+.order li { margin-top: 10px; } .order span { color: var(--muted); font-size: 14px; }
+footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header class="site"><a href="../">← Vervoro artifacts</a></header>
+<main>
+<h1 id="adr-016-profit">ADR-016: Profit</h1>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Status</strong></td>
+<td>Draft for the owner&#39;s approval, 2 November 2026 (ROADMAP 5.6.1; drafted by owner delegation, nothing built until approved)</td>
+</tr>
+<tr>
+<td><strong>Date</strong></td>
+<td>2 November 2026; revised the same day after its plan review and completeness review</td>
+</tr>
+<tr>
+<td><strong>Scope</strong></td>
+<td>The Profit module: what an order line earned after the marketplace&#39;s fees and the labels and advertising the marketplace ties to it; each account&#39;s charges that belong to no order; the cost at the time of sale; the figures per product, account and period, and who sees them</td>
+</tr>
+<tr>
+<td><strong>Builds on</strong></td>
+<td><a href="../system-architecture/">ADR-000</a>, <a href="../database-architecture/">ADR-001</a>, <a href="../data-retention/">ADR-002</a>, <a href="../product-model/">ADR-003</a>, <a href="../channel-connectors/">ADR-004</a> with <a href="../ebay-connector/">ADR-004.1</a> and <a href="../amazon-seller-connector/">ADR-004.2</a>, <a href="../stock-ledger/">ADR-006</a>, <a href="../order-ingestion/">ADR-007</a>, <a href="../users-and-access/">ADR-010</a>, <a href="../invoicing-and-vat/">ADR-011</a>, <a href="../billing-and-plans/">ADR-012</a>, <a href="../fulfilment/">ADR-014</a></td>
+</tr>
+<tr>
+<td><strong>SPEC</strong></td>
+<td><a href="spec/">The rules to build from, and how to check them</a></td>
+</tr>
+<tr>
+<td><strong>RUNBOOK</strong></td>
+<td>None yet</td>
+</tr>
+</tbody></table></div>
+<h2 id="context">Context</h2>
+<p>What the marketplaces give, what sellers expect and what Vervoro already holds (sources in <a href="spec/#14-research-and-constraints">SPEC 14</a>):</p>
+<ul>
+<li><strong>Vervoro shows gross margin before fees</strong> (<a href="../product-model/spec/#24-the-products-figures">ADR-003 SPEC 2.4</a>): revenue without VAT from Orders&#39; sold figures (<a href="../order-ingestion/spec/#1-the-module">ADR-007 SPEC 1.7</a>) less units sold × the product&#39;s standard cost. It says &quot;before fees&quot; because no record holds a marketplace&#39;s fees.</li>
+<li><strong>eBay gives fees per order line.</strong> The Finances API&#39;s sale transaction lists each line&#39;s fees (final value fee, its fixed per-order part, regulatory fees, the ad fee of a promoted listing); a refund lists the fee credits per line; some fees are billed later as separate charges naming the order. An ad fee can be adjusted for up to 72 hours. UK and EU sellers&#39; Finances calls are signed with Vervoro&#39;s own key pair (eBay&#39;s digital signatures); the scope is <code>sell.finances</code>; only the eBay account&#39;s owner can approve it (no team access).</li>
+<li><strong>Amazon gives fees per SKU within an order.</strong> The Finances API&#39;s transactions name the order and the SKU (the older events Amazon withdraws on 27 August 2027); fees post at shipment, up to 48 hours late, and some are held back until released. The role is Finance and Accounting, not restricted. Sponsored Products spend appears only as an account total; spend per SKU needs the Amazon Ads API with its own approval.</li>
+<li><strong>Postage is mostly not seen.</strong> eBay&#39;s labels show as transactions; Vervoro buys no labels (<a href="../fulfilment/">ADR-014</a>: &quot;label on the marketplace&quot; or &quot;own carrier&quot;, shipping labels parked in <a href="../system-architecture/spec/">ADR-000 SPEC 4.7</a>); Amazon Buy Shipping needs a restricted role. The buyer&#39;s delivery charge is on the order (<a href="../order-ingestion/spec/">ADR-007 SPEC 5.1</a>).</li>
+<li><strong>Some costs belong to no order:</strong> subscriptions, storage, cost-per-click advertising.</li>
+<li><strong>Profit tools use the cost at the time of sale;</strong> sellers dislike past profit moving when a cost is edited. Vervoro holds a standard cost per product and a landed cost per batch (<a href="../stock-ledger/">ADR-006</a>), the batch known only at packing and its landed cost provisional until Purchasing&#39;s correction (<a href="../purchasing/">ADR-015</a>).</li>
+<li><strong>Fees in the UK carry VAT,</strong> which only a VAT-registered seller reclaims (<a href="../invoicing-and-vat/">ADR-011</a> holds the registration).</li>
+</ul>
+<h2 id="decision">Decision</h2>
+<p>Parts marked <em>Later</em> keep their rules in the SPEC but are built only when their trigger arrives.</p>
+<ol>
+<li><strong>Profit is a module of its own</strong> (<code>profit</code>, switchable, in every plan until Billing sets tiers, <a href="../billing-and-plans/">ADR-012</a>), the only writer of fee entries, line costs and Profit&#39;s day rows. It reads Orders&#39; lines through a line read port and Channels&#39; fee reads; it shows itself through slots (a card on the product and account pages, a column on the Products list, its own page). No module calls Profit.</li>
+<li><strong>A line&#39;s profit</strong> = revenue (the sold figures&#39; line revenue plus its share of the buyer&#39;s delivery charge, without VAT) − fees − marketplace labels − cost − refunds + fee credits. Every part is shown, never only the result. Revenue is the sold figures&#39; own; refunds are their own part.</li>
+<li><strong>The cost at sale is the product&#39;s standard cost when Profit first sees the line,</strong> never overwritten; a line with no cost takes the product&#39;s cost when it is first set. <em>Later:</em> the shipped batch&#39;s landed cost, trigger: sellers ask for profit on it.</li>
+<li><strong>Fees come only from the marketplaces&#39; own figures.</strong> Profit&#39;s own daily job asks Channels to read them through each account&#39;s connector. A line waiting for fees shows <strong>waiting for fees</strong>, never an estimate, and shows &quot;fees not found&quot; after 60 days; a fee posted late is found by the next daily read. Manual orders and accounts whose connector reads no fees never wait. <em>Later:</em> an estimate, trigger: sellers ask for same-day profit.</li>
+<li><strong>Advertising the marketplace ties to a line counts on the line;</strong> advertising it gives only as an account total is an <strong>account charge</strong> for its day, never spread over products. <em>Later:</em> Amazon&#39;s spend per SKU (the Ads API), trigger: the owner approves it and sellers ask.</li>
+<li><strong>Account charges</strong> (subscriptions, storage, account advertising, fees on no order) are shown below the products&#39; profit for the account and the company.</li>
+<li><strong>Postage:</strong> a label bought on the marketplace is its order&#39;s, split by units; a line the seller ships whose postage Vervoro cannot see says <strong>postage not known</strong>, and its profit is before postage; a marketplace-shipped line&#39;s postage is in its fulfilment fee. <em>Later:</em> labels Vervoro buys (with the shipping-labels record), Amazon Buy Shipping (a restricted role), a postage cost per product (sellers ask).</li>
+<li><strong>VAT:</strong> fees count without VAT when the company is VAT-registered on the order&#39;s day, with VAT when it is not (<a href="../invoicing-and-vat/">ADR-011</a>).</li>
+<li><strong>Money in another currency</strong> is left out of the sums and counted, as the sold figures do. <em>Later:</em> conversion, trigger: a seller sells in a second currency.</li>
+<li><strong>The period is the order&#39;s day;</strong> a later refund or fee counts on its order&#39;s day (the Profit page says the VAT export counts refunds on the refund&#39;s day); account charges on the day they post.</li>
+<li><strong>Who sees profit:</strong> the costs permission (<a href="../users-and-access/spec/">ADR-010 SPEC 4</a>): Owner, Admin, Manager, Accountant. The figures are the company&#39;s; a scoped Manager sees them whole, as the sold figures. No personal data is read or kept.</li>
+<li><strong>Switched on, Profit reads the last 90 days</strong> of lines and fees, their cost at sale taken from today&#39;s cost and marked so.</li>
+<li><strong>Built in its own phase once approved,</strong> with <code>sell.finances</code> granted to Vervoro&#39;s eBay keyset and Amazon&#39;s Finance and Accounting role on its developer profile before the first seller connects, so no seller approves again for fees (<a href="../ebay-connector/spec/">ADR-004.1 SPEC 1.1</a>).</li>
+</ol>
+<h2 id="consequences">Consequences</h2>
+<ul>
+<li>A seller sees what each product and account earned in the marketplace&#39;s own figures, with nothing guessed, and every part checkable against the marketplace&#39;s statement.</li>
+<li>The newest days show &quot;waiting for fees&quot; until the fees post; most parcels show &quot;postage not known&quot; until Vervoro buys labels.</li>
+<li>Amazon&#39;s advertising and every subscription or storage fee stay as account totals.</li>
+<li>Editing a product&#39;s cost changes only lines seen afterwards.</li>
+<li>The other records gain: ADR-000 (the module, the parked list), ADR-002 (retention rows), ADR-003 SPEC 2.4 (which card shows which margin), ADR-004 with 004.1 and 004.2 (the fee read, its contract type, the Finances calls, rates and signing key), ADR-007 (the line read port, Profit as a reader of revenue), ADR-010 (row 39 names Profit), ADR-012 (the plan).</li>
+</ul>
+
+<footer>Vervoro</footer>
+</main>
+</body>
+</html>

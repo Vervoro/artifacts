@@ -95,6 +95,8 @@ Architecture decisions and plans, published with GitHub Pages.
   - [ADR-014 SPEC: Fulfilment](fulfilment/spec/README.md)
 - [ADR-015: Purchasing](purchasing/README.md)
   - [ADR-015 SPEC: Purchasing](purchasing/spec/README.md)
+- [ADR-016: Profit](profit/README.md)
+  - [ADR-016 SPEC: Profit](profit/spec/README.md)
 
 ## Build order
 
@@ -112,4 +114,5 @@ The order to build in. Each step needs the ones before it.
 10. **[ADR-008: Inventory sync](inventory-sync/README.md).** Right after Channels, because it needs only Inventory, Listings, Orders and Channels, and every account starts in shadow mode: figures are worked out and recorded, never sent. Building it here starts the shadow time the launch gates need (ADR-004) while Invoicing and Billing are built; no account goes live before those exist.
 11. **[ADR-011: Invoicing and VAT](invoicing-and-vat/README.md).** Invoices follow orders: needs order lines, refunds, the buyer-data rules and the roles. Built before any real sale, so every sale line has its VAT record from the first day.
 12. **[ADR-012: Billing and plans](billing-and-plans/README.md).** Before any connection goes live: going live needs a payment method, the stop choice (leave the figures or send zero) and a stock contact, even in a trial. It is beside the stock path, never in it: nothing in it stops orders or stock.
-13. **[ADR-002: Data retention and archiving](data-retention/README.md).** The log drops run from launch; archiving is switched on by its trigger (a cell past 500 GB, or the start of year 2).
+13. **[ADR-016: Profit](profit/README.md).** After Fulfilment: profit needs the marketplaces' fee reads, Orders' lines and the label costs Fulfilment buys. Built once the owner approves the record and the fee scopes are granted.
+14. **[ADR-002: Data retention and archiving](data-retention/README.md).** The log drops run from launch; archiving is switched on by its trigger (a cell past 500 GB, or the start of year 2).
