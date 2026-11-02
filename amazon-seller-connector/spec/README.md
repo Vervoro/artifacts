@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-004.2: Amazon Seller connector](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-0042-amazon-seller-connector) |
-| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: the backup read hourly (4.1) |
+| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: the backup read hourly (4.1); the bridge's region and the outside watcher beside it (3.1), owner delegation, 2 November 2026 |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 Only what is particular to Amazon. Everything the host does (credentials, HTTP, outcomes, notices in, the completeness check, shadow mode) is [ADR-004 SPEC](../../channel-connectors/spec/) and is not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed.
@@ -40,7 +40,7 @@ Only what is particular to Amazon. Everything the host does (credentials, HTTP, 
 | Order change; Amazon-held stock change | An SQS queue only | A pipe reads the queue and posts each message |
 | Listing quantity and status change | An EventBridge bus only | A rule posts each event |
 
-1. **One bridge for every Amazon region,** in an EU AWS region, with no code: a queue, a pipe and an API destination ([ADR-000 SPEC 8](../../system-architecture/spec/#8-connectors-and-orders-in)). It keeps nothing and decides nothing.
+1. **One bridge for every Amazon region,** in an EU AWS region, with no code: a queue, a pipe and an API destination ([ADR-000 SPEC 8](../../system-architecture/spec/#8-connectors-and-orders-in)). It keeps nothing and decides nothing. The bridge is in eu-central-1 (Frankfurt) where Amazon supports it for the EU endpoint, else eu-west-1 (Ireland); the outside watcher is in the same AWS account and region (owner delegation, 2 November 2026).
 2. **A shared secret** on every post; the endpoint accepts the current or previous one ([ADR-004 SPEC 8](../../channel-connectors/spec/#8-notices-in)). Rotated yearly, or at once if it may have leaked.
 3. **The notice must be ours.** Any application can name our queue as its destination, so the endpoint also checks Vervoro's application id. Anything else is answered and dropped.
 4. **Failures are visible.** A post the endpoint refuses is retried by AWS, then lands in the bridge's dead-letter queue, whose alarm pages the operator.
