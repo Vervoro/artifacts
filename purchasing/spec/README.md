@@ -249,8 +249,7 @@ Roles are [ADR-010's](../../users-and-access/spec/#4-who-may-do-what). These row
    quantities, delivered to the warehouse the person picks (the only one by default); rows with no supplier or an
    archived one are skipped and named; an open draft for the same supplier and warehouse takes the new lines, a
    product already on it keeps its quantity; the request's key is kept on the order (`purchasing_order`, unique per company), so a repeat is harmless. By hand: a supplier, then
-   lines, with no list involved. Who: an unscoped Owner, Admin or Manager (section 6.3.4); a scoped Manager sees and
-   receives the orders for their warehouses and is refused creating from the list.
+   lines, with no list involved. Who: from the list, an unscoped Owner, Admin or Manager (section 6.3.4); by hand and every later action, any Owner, Admin or Manager within their warehouses; a scoped person is refused creating from the list and sees, edits and receives only their warehouses' orders.
 5. **Sending.** Download (a spreadsheet) and print (a page through the browser's print dialog) mark nothing; the
    screen then offers "Mark as sent", which also covers a phoned order. The document carries the company's name, the
    delivery warehouse's name and address, the supplier's name, and the lines with their codes, quantities and, for a
@@ -262,19 +261,18 @@ Roles are [ADR-010's](../../users-and-access/spec/#4-who-may-do-what). These row
    which Purchasing calls Inventory's receive port with each line's source (the purchase order line) and the cost
    (rule 7); each delivery makes its own batch, with lot and date as ADR-006 SPEC 8.2 requires; the short-dated check
    applies; the unusual-size check (ADR-006 SPEC 8.4) does not apply to a receipt against an order, because the order is
-   the manager's baseline, and a surplus is received sellable and shown on the order. Fewer than ordered leaves the rest on its way until a manager closes the line. More than
-   ordered is received as counted, sellable, and the surplus is shown on the order. A Warehouse member never sees or
+   the manager's baseline, and a surplus is received sellable and shown on the order. Fewer than ordered leaves the rest on its way until a manager closes the line. More than ordered is received as counted. A Warehouse member never sees or
    types a cost. **Attaching:** a manager may attach a receipt made without the order (the same product, not yet
    attached) to an open or closed line, and detach it again; stock does not move; a batch with no cost takes the
    line's landed cost through the cost port.
 7. **Cost hand-off.** The landed unit cost is the line's unit cost plus its share of the extras, apportioned by the
    lines' ordered value, at four decimals, passed in the receive call; a line with no cost gets no share and its
-   batch's cost stays blank. A later change to a line's cost or to the extras, on an open or closed order,
+   batch's cost stays blank; clearing a line's cost after a receipt leaves its batches' cost as it was (a figure replaces one, a blank does not). A later change to a line's ordered value on a sent order with extras, or to a line's cost or to the extras, on an open or closed order,
    recomputes every batch received against the order and sends only the changed figures to Inventory's cost port,
    which never touches quantities or the ledger (ADR-006 SPEC 8.6). Purchase VAT and import VAT are the seller's
    accounting, not Vervoro's (ADR-011).
 8. **Measured lead time:** the days from sending to a line's first receipt, in the company's calendar days; per
-   product and supplier the median of the last five, read from Purchasing's own tables and never stored; shown
+   product and supplier the median of the last five (a receipt attached later is left out), read from Purchasing's own tables and never stored; shown
    beside the quoted lead time on the card and the list, never replacing it.
 9. **First use and retiring.** Sending an order is the product's first use for its lines (Products' use port, reason
    `purchase_order_line`, section 10.4): the SKU is fixed (ADR-003 SPEC 3.3) and retiring is blocked (ADR-003 SPEC
