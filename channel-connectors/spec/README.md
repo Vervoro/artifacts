@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-004: Channel connectors](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-004-channel-connectors) |
-| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: a shared pool claimed in blocks, Amazon's backup read hourly (9.2), per-order timings kept 30 days after the gates (10, 15); amended by owner delegation, 2 November 2026: marketplace keys as data in core contracts (12.1), the directory's account and active state (8.3), a platform topic's hashed id (8.4), the not-visible retries (8.6), usage rollups (4.3), two modes for Orders and Listings (12), the tables other records give Channels and the account's label (15) |
+| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: a shared pool claimed in blocks, Amazon's backup read hourly (9.2), per-order timings kept 30 days after the gates (10, 15); amended by owner delegation, 2 November 2026: marketplace keys as data in core contracts (12.1), the directory's account and active state (8.3), a platform topic's hashed id (8.4), the not-visible retries (8.6), usage rollups (4.3), two modes for Orders and Listings (12), the tables other records give Channels and the account's label (15); the Channels host as built: what a connector declares (2), credentials opened for the binding (3.1), one write out per target (5.2), a wait and a bucket for every job (5.5, 6.1), a crashed job's block, the pool's day and the share floor (7.1, 7.4), what the queue message carries (8.4), a throttled notice fetch (8.6), the seller's own privacy topic (8.9), where a read starts, a long or cut-short window and a watermark behind (9.1, 9.4), an order Orders names (9.5), the measurements per account under a grant (10), resuming and pausing (12), "many accounts" (13.5), the `channels_` prefix, the credential row and two new tables (15, How to check), reading the clock (17), owner delegation, 2 November 2026 |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-004 from: the Channels module, switchable per company and needing Listings and Orders, and the connector modules, each switchable and needing Channels ([ADR-000 SPEC 4](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)). What each marketplace adds is in its own record: [ADR-004.1 eBay](../../ebay-connector/spec/), [ADR-004.2 Amazon Seller](../../amazon-seller-connector/spec/), [ADR-004.3 Shopify](../../shopify-connector/spec/). Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/).
@@ -55,9 +55,11 @@ Each connector module contributes one definition to Channels' connector extensio
 | When the approval expires, and which app secrets rotate how often | Warns the seller before the approval ends, and the operator before a secret is due |
 | The completeness check's interval and the soonest an early one may follow | Schedules the check ([9](#9-the-completeness-check)) |
 
+A connector also declares its display name, its pools' display names, whether Listings serves it, and what each platform topic means (owner delegation, 2 November 2026).
+
 ## 3. Credentials and approval
 
-1. **Sealed at rest** under the company's data key ([ADR-001 SPEC 10](../../database-architecture/spec/#10-company-lifecycle), Encryption), opened only inside the HTTP binding. No handler, screen or connector sees an opened credential.
+1. **Sealed at rest** under the company's credential key, a data key per purpose kept in the kernel's `secrets` ([ADR-001 SPEC 10](../../database-architecture/spec/#10-company-lifecycle), Encryption). Credentials are opened only by the host for the binding, in memory, never stored, logged or queued (owner delegation, 2 November 2026). No handler, screen or connector sees an opened credential.
 2. **Approval by the marketplace's own flow** where it offers one. The host builds the approval address, signs a single-use state, checks the redirect, exchanges the code and seals the reply. The address is checked against the marketplace's declared consent pages.
 3. **One company per marketplace account.** The marketplace's account id is claimed in the external directory; a second company connecting the same account is refused.
 4. **Refresh under a lock** on the account's credentials, so two workers never spend one refresh token. A rotated refresh token is sealed in the same step, before it is used.
@@ -84,23 +86,23 @@ This section owns the unknown-write rule; other records link here.
 | `unknown` | No clear answer, a timeout included | Settled by rule 2 before anything else is sent |
 
 1. **The connector maps every reply** of its marketplace onto one outcome, with a test per mapping.
-2. **An unknown write is settled before anything else is sent to that listing.** Reading back is the default: the host asks what the marketplace shows now and decides from that. A connector may instead send an absolute figure again, the one Vervoro wants now and never an older one (owner ruling, 22 October 2026), only when the write sets a value and never adds to one, repeating it cannot compound, and its record names the exception. At launch the one exception is eBay's Trading API ([ADR-004.1 SPEC 4](../../ebay-connector/spec/#4-listings-and-stock)). When the figure is sent is [ADR-008 SPEC 6](../../inventory-sync/spec/#6-confirming-every-write).
+2. **An unknown write is settled before anything else is sent to that listing.** Reading back is the default: the host asks what the marketplace shows now and decides from that. A connector may instead send an absolute figure again, the one Vervoro wants now and never an older one (owner ruling, 22 October 2026), only when the write sets a value and never adds to one, repeating it cannot compound, and its record names the exception. At launch the one exception is eBay's Trading API ([ADR-004.1 SPEC 4](../../ebay-connector/spec/#4-listings-and-stock)). When the figure is sent is [ADR-008 SPEC 6](../../inventory-sync/spec/#6-confirming-every-write). One write to a target is out at a time. A read-back that finds a write not applied settles it, and the host decides again with a new record. A send whose lease ended mid-flight is `unknown` (owner delegation, 2 November 2026).
 3. **Repeats are safe** because every write carries the gate's idempotency key ([ADR-000 SPEC 7](../../system-architecture/spec/#7-the-egress-gate)).
 4. **Reads are retried** by the host with growing delays, within the job's deadline.
-5. **The marketplace's wait is honoured.** A 429, or any reply naming a wait, holds that operation for the account until then, whichever job asks next. The wait is capped at one hour; a longer one alerts the operator.
+5. **The marketplace's wait is honoured.** A 429, or any reply naming a wait, holds that operation for the account until then, whichever job asks next. The wait is capped at one hour; a longer one alerts the operator. A later wait is never shortened by an earlier job's write (owner delegation, 2 November 2026).
 
 ## 6. Rate limits per account
 
-1. **A bucket per account and operation,** sized from the declared limit. A call our own bucket refuses is `throttled` and never leaves.
+1. **A bucket per account and operation,** sized from the declared limit. A call our own bucket refuses is `throttled` and never leaves. Like the marketplace's wait, the bucket is kept per account and operation and holds every job (owner delegation, 2 November 2026).
 2. **Live figures win:** where the marketplace reports the account's real limit in a reply, it replaces the declared one.
 3. **Per-application per-second ceilings are not counted centrally.** Each seller's bucket keeps Vervoro far below them; if the marketplace throttles the application as a whole, the call waits like any throttle and the operator is alerted.
 
 ## 7. Shared daily pools
 
-1. **One counter per pool, for the whole platform,** in control ([ADR-001 SPEC 7](../../database-architecture/spec/#7-control-database-and-routing)). A job claims its calls in a block of up to 10 in a single statement that refuses once the day is spent, so the pool never overruns; the calls it did not use go back when it ends, and a block held by a job that crashed is freed when its lease ends. Within the reserve (rule 3) a block is one call, so blocks never take the safety lane's share. A pool of 50,000 calls a day or more (eBay's order calls) is counted from the hourly usage rollups until its day passes half its size, then claimed in blocks like any other; until then its calls take no token and control's count is the rollups (such a pool carries reads only, never a send) (owner ruling, 25 October 2026).
+1. **One counter per pool, for the whole platform,** in control ([ADR-001 SPEC 7](../../database-architecture/spec/#7-control-database-and-routing)). A job claims its calls in a block of up to 10 in a single statement that refuses once the day is spent, so the pool never overruns; the calls it did not use go back when it ends. A block held by a job that crashed is freed by the next claim once its lease ends, with all its calls returned (owner delegation, 2 November 2026). A pool's day is the marketplace's reset day in the zone the connector declares, and the notice fetch claims its block like any job (owner delegation, 2 November 2026). Within the reserve (rule 3) a block is one call, so blocks never take the safety lane's share. A pool of 50,000 calls a day or more (eBay's order calls) is counted from the hourly usage rollups until its day passes half its size, then claimed in blocks like any other; until then its calls take no token and control's count is the rollups (such a pool carries reads only, never a send) (owner ruling, 25 October 2026).
 2. **Two lanes.** The safety lane carries the calls that protect a seller: a decrease, or any figure near zero. The bulk lane carries the rest.
 3. **The reserve** is a tenth of the pool, split equally among the accounts using it, with no fixed floor. Once the day's count reaches the pool less the reserve, the bulk lane pauses for everyone until the reset. The safety lane goes on until the account's share is spent, never past the pool.
-4. **The pool caps how many accounts it serves.** When an account's share would fall below 50 calls a day, the operator is alerted and a new account that needs the pool waits in shadow until the pool is raised.
+4. **The pool caps how many accounts it serves.** When an account's share would fall below the pool's share floor, the operator is alerted and a new account that needs the pool waits in shadow until the pool is raised. The floor is a platform setting, 50 calls a day unless the operator sets another (owner delegation, 2 November 2026).
 5. **Within an account,** queued work is claimed safety writes first, then order fetches, then the rest, oldest first. Who goes next across listings is [ADR-008 SPEC 8](../../inventory-sync/spec/#8-limits-and-who-goes-next).
 6. **A paused pool holds only its own calls;** other APIs of the marketplace go on.
 7. **The operator is alerted at 90 %** of a pool's day, never the seller. The pool's size is a platform setting, changed without code when the marketplace raises it.
@@ -112,20 +114,20 @@ Orders arrive by notice; the scheduled read is only the backup ([9](#9-the-compl
 1. **Two ways in.** Direct: the marketplace calls Vervoro's address and signs the request (eBay, Shopify). Through the bridge: Amazon delivers only into AWS, and a small bridge in an EU region posts each notice to the same endpoint with a shared secret ([ADR-000 SPEC 8](../../system-architecture/spec/#8-connectors-and-orders-in)).
 2. **Check before any database read:** the marketplace's signature, or the bridge's secret (current or previous, compared in constant time). A request that fails is refused.
 3. **Find the account** by the marketplace's id in the external directory. A notice for no held account, an account that is off, or a connector off for that company is answered and kept nowhere. The external directory row names the company, the Vervoro account and whether it is active; Channels writes it through the outbox on connect, switch and disconnect, so the endpoint reads only control before queueing (owner delegation, 2 November 2026).
-4. **Queue ids only:** the topic, the notice id, the account and the order ids, never the body. Queues are in the EU jurisdiction. A platform topic with no account (eBay's account deletion) queues the keyed hash of the user id, never the id (owner delegation, 2 November 2026).
+4. **Queue ids only:** the queue message carries the company, the account (Vervoro's and the marketplace's ids), the topic, the notice id and the order ids, never the body (owner delegation, 2 November 2026). Queues are in the EU jurisdiction. A platform topic with no account (eBay's account deletion) queues the keyed hash of the user id, never the id (owner delegation, 2 November 2026).
 5. **Answer only after the message is on the queue.** A failed enqueue answers with an error, so the marketplace sends again.
-6. **The consumer fetches, then imports.** It has the connector parse the message and fetches each order seen, one call, and hands it to Orders. An order not visible yet is fetched again after 30 seconds, doubling, for about half an hour, then left to the completeness check: these retries are the consumer's own and end with an early completeness check due, never in the dead-letter queue (owner delegation, 2 November 2026). A failed delivery goes to the dead-letter queue, which pages the operator ([ADR-000 SPEC 8](../../system-architecture/spec/#8-connectors-and-orders-in)).
+6. **The consumer fetches, then imports.** It has the connector parse the message and fetches each order seen, one call, and hands it to Orders. An order not visible yet is fetched again after 30 seconds, doubling, for about half an hour, then left to the completeness check: these retries are the consumer's own and end with an early completeness check due, never in the dead-letter queue (owner delegation, 2 November 2026). A failed delivery goes to the dead-letter queue, which pages the operator ([ADR-000 SPEC 8](../../system-architecture/spec/#8-connectors-and-orders-in)). A throttled notice fetch hands its orders to the completeness check when the wait ends (owner delegation, 2 November 2026).
 7. **A notice is a hint.** Vervoro imports what it fetches, never the notice body, and a notice never moves the watermark.
 8. **Subscriptions are made on connect** by the connector's hook and removed on disconnect. A failing hook is retried and alerts. An account with no working subscription shows as "not notified".
-9. **The host handles some topics itself.** Approval revoked disconnects the account. A privacy request is recorded with its due date, and Buyer data opens the company's privacy request ([ADR-009 SPEC 10](../../buyer-data/spec/#10-buyers-requests)).
+9. **The host handles some topics itself.** Approval revoked disconnects the account. A privacy request is recorded with its due date, and Buyer data opens the company's privacy request ([ADR-009 SPEC 10](../../buyer-data/spec/#10-buyers-requests)). Only a privacy topic the connector declares as the seller's own ends the connection's buyer data; any other is recorded with its due date and alerts the operator (owner delegation, 2 November 2026).
 
 ## 9. The completeness check
 
-1. **It reads the orders changed since the watermark,** with a small overlap, and is the only thing that moves the watermark, and only after a complete window ([ADR-007 SPEC 2.3](../../order-ingestion/spec/#2-how-an-order-comes-in)).
+1. **It reads the orders changed since the watermark,** from the watermark less 5 minutes, and is the only thing that moves the watermark, and only after a complete window ([ADR-007 SPEC 2.3](../../order-ingestion/spec/#2-how-an-order-comes-in)). A window longer than one run continues from its saved cursor to the same end; a window cut short is read again in 10 minutes (owner delegation, 2 November 2026).
 2. **The interval is per marketplace:** hourly on eBay and Amazon, and every 10 minutes on Shopify (*Later*), whose order limit is each shop's own. Notices are how orders arrive; this read only catches one that was lost (owner ruling, 25 October 2026: Amazon from 10 minutes to hourly). Rule 4 and a failed launch gate (11.6) shorten it. The operator can change it per connector without code.
 3. **Any complete read resets the timer,** including one a raise asks for.
-4. **Broken notices are read every 10 minutes:** an account whose subscription is failing, or whose read finds an order no notice announced, until its notices work again. The operator is alerted.
-5. **On demand:** after an outage, and before a raise is sent unless a complete read already covers the moment it became due. Decreases never wait. How long a raise may wait is [ADR-008 SPEC 5](../../inventory-sync/spec/#5-the-order-read-before-a-raise).
+4. **Broken notices are read every 10 minutes:** an account whose subscription is failing, or whose read finds an order no notice announced, until its notices work again. The operator is alerted. A watermark behind by its interval plus 15 minutes pages the operator (owner delegation, 2 November 2026).
+5. **On demand:** after an outage, and before a raise is sent unless a complete read already covers the moment it became due. Decreases never wait. How long a raise may wait is [ADR-008 SPEC 5](../../inventory-sync/spec/#5-the-order-read-before-a-raise). An order Orders names is fetched by id once per request, as well as by an early check; several orders go to Orders oldest first by the marketplace's last change (owner delegation, 2 November 2026).
 6. **The operator can switch the schedule off** per connector. On-demand reads still run, and the operator's screen says a lost notice on a quiet account is then found only by such a read.
 
 ## 10. What is measured
@@ -136,7 +138,7 @@ Every account, in shadow and live, records for each order: when the marketplace 
 2. **Detection delay:** from the order's placed time to its import, as a 99th percentile.
 3. **Unreserved-order exposure:** orders that waited unreserved while their product's sellable stock was within the near-zero zone ([ADR-008 SPEC 3](../../inventory-sync/spec/#3-when-a-figure-is-sent)), and for how long.
 
-The operator sees all three per marketplace and per account. Once a marketplace passes its launch gates, each order's timings are kept 30 days, then only daily counts per account (owner ruling, 25 October 2026).
+The operator sees the three measurements per marketplace; per account only under a grant ([ADR-010 SPEC 7](../../users-and-access/spec/#7-operator-access-to-a-company), owner delegation, 2 November 2026). Once a marketplace passes its launch gates, each order's timings are kept 30 days, then only daily counts per account (owner ruling, 25 October 2026).
 
 ## 11. Shadow mode and launch gates
 
@@ -167,7 +169,7 @@ This section owns shadow mode; other records link here.
 | Company | The plan, and its Owner or an Admin ([ADR-010](../../users-and-access/)) | No reads, no writes, notices dropped. Refused while a live account has no stop choice |
 | Account | The seller | The mode: shadow, live, paused, decrease-only or disconnected. Disconnected forgets the credentials |
 
-Orders and Listings see two modes: a paused or decrease-only account is `live` to them, a disconnected one is disconnected (owner delegation, 2 November 2026).
+Orders and Listings see two modes: a paused or decrease-only account is `live` to them, a disconnected one is disconnected (owner delegation, 2 November 2026). Resuming a paused account returns it to live if it had gone live, else to shadow; resuming to live is going live (Owner, Admin, the fresh check). Pausing a shadow account asks nothing (owner delegation, 2 November 2026).
 
 2. **A connector that is off costs nothing:** its accounts have no work due, so the sweeper never visits them ([ADR-001 SPEC 9](../../database-architecture/spec/#9-background-work-and-the-outbox)).
 
@@ -177,7 +179,7 @@ Orders and Listings see two modes: a paused or decrease-only account is `live` t
 2. **Claims are leases.** A stuck job costs one lease period, and its result is written only if the claim is still its own.
 3. **A connector's mistake fails one call.** An unexpected error in connector code becomes a typed failure for that call at the binding, logged with the account and operation.
 4. **Connector output is checked** against the contract types before Orders or Listings see it. One that fails is held as an import problem in Orders ([ADR-007 SPEC 9](../../order-ingestion/spec/#9-import-problems)) with its reason for a person, never dropped or guessed.
-5. **Sustained failure is visible.** An account that keeps failing shows as unhealthy to its seller, with the reason. When many accounts on one marketplace fail at once, the operator gets one marketplace incident alert, not one per seller.
+5. **Sustained failure is visible.** An account that keeps failing shows as unhealthy to its seller, with the reason. When many accounts on one marketplace fail at once, the operator gets one marketplace incident alert, not one per seller. "Many accounts" is at least 3, and a third of that marketplace's accounts, failing at once (owner delegation, 2 November 2026).
 
 ## 14. Simulators and recorded replies
 
@@ -187,18 +189,20 @@ Orders and Listings see two modes: a paused or decrease-only account is `live` t
 
 ## 15. Storage
 
-Channels' tables carry the `chan_` prefix, are declared through `tenantTable()` and queried through the typed query builder ([ADR-001 SPEC 5](../../database-architecture/spec/#5-declaring-tables)); modules write no SQL.
+Channels' tables carry the module's prefix `channels_` (owner delegation, 2 November 2026). They are declared through `tenantTable()` and queried through the typed query builder ([ADR-001 SPEC 5](../../database-architecture/spec/#5-declaring-tables)); modules write no SQL.
 
 | Where | Holds |
 | --- | --- |
-| `chan_account` | Marketplace key, the marketplace's account id, the seller's label for it, mode, stop choice, setup choices, default warehouse ([ADR-000 SPEC 4](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)), approval expiry, notified state, health |
-| `chan_listing_read` | Per account and scope: the running listing read, its lease and whether it is held ([ADR-005 SPEC 8.4](../../catalogue-sync/spec/)) |
-| `chan_stock_reading` | Stock a marketplace holds: a dated reading per product or listing and account ([ADR-004.2 SPEC 7](../../amazon-seller-connector/spec/#7-stock-amazon-holds)) |
-| `chan_order_read` | Per account: the watermark, the last complete read, the next one due, whether notices look broken |
-| `chan_wait` | Per account and operation: the marketplace's wait and the bucket |
-| `chan_privacy_request` | Privacy requests from marketplaces, with their due dates |
-| `chan_order_timing` | Per order: placed, notice and import times, for [10](#10-what-is-measured); after the launch gates pass, kept 30 days, then daily counts |
-| Kernel `secrets` | Sealed credentials, purpose per account |
+| `channels_account` | Marketplace key, the marketplace's account id, the seller's label for it, mode, stop choice, setup choices, default warehouse ([ADR-000 SPEC 4](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)), approval expiry, notified state, health |
+| `channels_listing_read` | Per account and scope: the running listing read, its lease and whether it is held ([ADR-005 SPEC 8.4](../../catalogue-sync/spec/)) |
+| `channels_stock_reading` | Stock a marketplace holds: a dated reading per product or listing and account ([ADR-004.2 SPEC 7](../../amazon-seller-connector/spec/#7-stock-amazon-holds)) |
+| `channels_order_read` | Per account: the watermark, the last complete read, the next one due, whether notices look broken |
+| `channels_wait` | Per account and operation: the marketplace's wait and the bucket |
+| `channels_privacy_request` | Privacy requests from marketplaces, with their due dates |
+| `channels_order_timing` | Per order: placed, notice and import times, for [10](#10-what-is-measured); after the launch gates pass, kept 30 days, then daily counts |
+| `channels_credential` | Per account, the credentials sealed under the company's credential key (kernel `secrets`, a purpose per account), opened only for the binding (owner delegation, 2 November 2026) |
+| `channels_connect` | A pending connect: its state and the person, for 10 minutes (owner delegation, 2 November 2026) |
+| `channels_order_fetch` | An order Orders named, until it is fetched (owner delegation, 2 November 2026) |
 | Control | External directory (with the Vervoro account and whether it is active), shared pool counters, usage rollups, per-connector platform settings, the operator's hold per marketplace |
 
 An account is shown by the label the seller gives it, by default the marketplace, site and a number; the marketplace's own store or user name is not stored (owner delegation, 2 November 2026).
@@ -239,6 +243,8 @@ Pure mappings run as unit tests; pools, leases and the queue path on real Postgr
 | Refresh | Two workers refreshing at once spend one refresh token; the new one is sealed before use |
 | Contract suite | Every connector passes it on its simulator |
 
+"Read the clock" ([1](#1-the-connector-contract), rule 4) means `Date.now()`, a bare `new Date()` or `Date()`, or `performance.now()`; parsing a timestamp is allowed (owner delegation, 2 November 2026).
+
 ## How to check it was built right
 
 For someone reviewing code an AI wrote. Each line says where to look.
@@ -252,7 +258,7 @@ For someone reviewing code an AI wrote. Each line says where to look.
 - [ ] **Notices:** checked before any database read; the queue message holds ids only; answer after enqueue.
 - [ ] **Completeness check:** only it moves the watermark; intervals are per connector settings; broken notices drop to 10 minutes.
 - [ ] **Gates:** the three measurements are recorded per order, and going live checks the marketplace's gates.
-- [ ] **No SQL:** every query uses the typed query builder; tables carry `chan_`.
+- [ ] **No SQL:** every query uses the typed query builder; tables carry `channels_`.
 - [ ] **Core:** no import of a connector and no marketplace API in the kernel, the core modules, the gate or the screens; a marketplace key in a core contract only where that module's record gives the marketplace a rule.
 - [ ] **Simulators:** only calls a connector makes are simulated; recordings replay in tests; production refuses a simulator address.
 - [ ] **Later parts:** no Shopify or Vendor connector, no Amazon feed path, no central per-second counter at launch.
