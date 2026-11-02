@@ -18,12 +18,13 @@ Sellers' own tokens are refreshed by the host and need no person. These are Verv
 
 ## Steps
 
-1. Create the new secret in the marketplace's developer account, or a new random value for the bridge. Do not revoke the old one yet.
-2. Add the new value to the platform's secret store as current, keeping the old one as previous. The host accepts both.
-3. Deploy, so every Worker reads the new pair.
-4. For the bridge, update the API destination's connection to send the new secret.
-5. Wait until the marketplace has switched: a token refresh, or a notice checked with the new value, succeeds.
-6. Revoke the old secret at the marketplace, then remove the previous value from the store.
+1. **On a leak** of an Amazon app secret, the bridge's secret or an Amazon seller's token, report the incident to Amazon at security@amazon.com within 24 hours of detecting it, as Amazon's Data Protection Policy 1.6.3 requires (checked 2 November 2026), before or beside the rotation (owner delegation, 2 November 2026).
+2. Create the new secret in the marketplace's developer account, or a new random value for the bridge. Do not revoke the old one yet.
+3. Add the new value to the platform's secret store as current, keeping the old one as previous. The host accepts both.
+4. Deploy, so every Worker reads the new pair.
+5. For the bridge, update the API destination's connection to send the new secret.
+6. Wait until the marketplace has switched: a token refresh, or a notice checked with the new value, succeeds.
+7. Revoke the old secret at the marketplace, then remove the previous value from the store.
 
 ## Verify
 
@@ -32,4 +33,4 @@ Sellers' own tokens are refreshed by the host and need no person. These are Verv
 
 ## If it stops halfway
 
-Before step 6 both values work, so nothing breaks. If the new value fails, remove it and keep the old one as current.
+Before step 7 both values work, so nothing breaks. If the new value fails, remove it and keep the old one as current.

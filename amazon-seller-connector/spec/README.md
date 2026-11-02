@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-004.2: Amazon Seller connector](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-0042-amazon-seller-connector) |
-| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: the backup read hourly (4.1); the bridge's region and the outside watcher beside it (3.1), owner delegation, 2 November 2026; the Amazon connector as built: the bridge's secret header (3.2), the window's bound (4.3), a 401 or 403 on a patch (5.1), a report per marketplace, a cancelled or fatal report and its cursor (5.5), unsellable and under-investigation units (7.2), a notice's change read (7.3), a full read across runs (7.4), one reading per account, marketplace and SKU (7.6), the application-wide throttle (10.3), the fulfilled-by-Amazon refusal (How to check), owner delegation, 2 November 2026 |
+| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: the backup read hourly (4.1); the bridge's region and the outside watcher beside it (3.1), owner delegation, 2 November 2026; the Amazon connector as built: the bridge's secret header (3.2), the window's bound (4.3), a 401 or 403 on a patch (5.1), a report per marketplace, a cancelled or fatal report and its cursor (5.5), unsellable and under-investigation units (7.2), a notice's change read (7.3), a full read across runs (7.4), one reading per account, marketplace and SKU (7.6), the application-wide throttle (10.3), the fulfilled-by-Amazon refusal (How to check), owner delegation, 2 November 2026; phase 5.6's close: marketplace fees (0), `version=beta` while in Draft (1.1), owner delegation, 2 November 2026 |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 Only what is particular to Amazon. Everything the host does (credentials, HTTP, outcomes, notices in, the completeness check, shadow mode) is [ADR-004 SPEC](../../channel-connectors/spec/) and is not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed.
@@ -16,10 +16,11 @@ Only what is particular to Amazon. Everything the host does (credentials, HTTP, 
 | Listings feeds for many raises | Single patches fall short ([ADR-008](../../inventory-sync/spec/#0-at-launch-and-later)) | [5](#5-stock) |
 | Selling to Amazon as a vendor | ADR-004.4 is written | None here |
 | The Direct-to-Consumer Shipping (Restricted) role: name, address, phone, gift message and customisation for seller-shipped orders | Shipping labels in Vervoro; the application is sent once ADR-009's security controls are evidenced (owner ruling, 22 October 2026) | [8](#8-buyer-data) |
+| Marketplace fees through the Finance and Accounting role | The Profit record's approval ([ADR-000 SPEC 4.7](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)); the role is added to the developer profile before the first seller connects (owner delegation, 2 November 2026) | [1](#1-connecting-and-renewing) |
 
 ## 1. Connecting and renewing
 
-1. **Two ways in, one flow.** From Vervoro (the seller picks a marketplace) or from Amazon's app store. The seller is sent only to Seller Central's consent or confirm page; Amazon does not sign its redirect, so the host's single-use state proves it. The code is exchanged for a refresh token at Amazon's login service.
+1. **Two ways in, one flow.** From Vervoro (the seller picks a marketplace) or from Amazon's app store. The seller is sent only to Seller Central's consent or confirm page; Amazon does not sign its redirect, so the host's single-use state proves it. The code is exchanged for a refresh token at Amazon's login service. While the application is in Draft, the consent link carries `version=beta`, a non-secret connector setting on by default and switched off once Amazon publishes the application (owner delegation, 2 November 2026).
 2. **Proof before the claim.** One read with the new token for that seller id; a seller id changed on the way is refused.
 3. **Marketplaces.** The seller's marketplaces are read with the new token. The account starts on the one picked (refused with a message if they do not sell there); others of the region are a setup choice.
 4. **Tokens.** Access tokens last as long as Amazon's reply says (an hour today).
