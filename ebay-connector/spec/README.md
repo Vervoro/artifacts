@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-004.1: eBay connector](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-0041-ebay-connector) |
-| **Date** | 21 October 2026; amended by owner delegation, 2 November 2026 (phase 5.6 as built): the refresh token's lifetime when eBay names none (1.5), an account's refusal in a batch (4.2), a listing eBay will not show (4.8), the resend's old write (4.9), the day spent and the pools' reset (5.5, 5.6, 10), the left-out reason (6.1), the order calls' pool (10), the page cap declared (How to check); a key id not held, looked up in control (2.3, How to check), ruled by delegation, 2 November 2026, for the owner's confirmation |
+| **Date** | 21 October 2026; amended by owner delegation, 2 November 2026 (phase 5.6 as built): the refresh token's lifetime when eBay names none (1.5), an account's refusal in a batch (4.2), a listing eBay will not show (4.8), the resend's old write (4.9), the day spent and the pools' reset (5.5, 5.6, 10), the left-out reason (6.1), the order calls' pool (10), the page cap declared (How to check); a key id not held, looked up in control (2.3, How to check), ruled by delegation, 2 November 2026, for the owner's confirmation; phase 5.6's close: marketplace fees and the deletion-mail runbook (0), `sell.finances` in the consent (1.1), owner delegation, 2 November 2026 |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 Only what is particular to eBay. Everything the host does (credentials, HTTP, outcomes, pools, notices in, the completeness check, shadow mode) is [ADR-004 SPEC](../../channel-connectors/spec/) and is not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed.
@@ -15,10 +15,12 @@ Only what is particular to eBay. Everything the host does (credentials, HTTP, ou
 | --- | --- | --- |
 | eBay item-change notices for Seller Hub listings | Hand edits near zero are seen too late in shadow ([ADR-008](../../inventory-sync/spec/#0-at-launch-and-later)) | [4](#4-listings-and-stock) |
 | Moving Seller Hub listings to the Inventory API | The Growth Check grants less than the reserve rule needs ([ADR-008](../../inventory-sync/spec/#0-at-launch-and-later)) | [5](#5-the-trading-pool) |
+| Marketplace fees through eBay's `sell.finances` scope, which needs its Growth Check and, for UK and EU sellers, digital signatures on the calls | The Profit record's approval ([ADR-000 SPEC 4.7](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)); the scope is asked for before the first seller connects, so no seller reconnects for it (owner delegation, 2 November 2026) | [1](#1-connecting) |
+| A runbook for eBay's "deletion endpoint not responding" mail | Written with the production keyset, as eBay marks the application non-compliant after 30 days (owner delegation, 2 November 2026) | [8](#8-account-deletion-notices) |
 
 ## 1. Connecting
 
-1. **Consent.** The seller is sent only to eBay's consent page with Vervoro's scopes: inventory, fulfilment, account and identity (read only), notification subscriptions, cancellations. A scope eBay does not know refuses every seller, so the list changes only after the scope is confirmed on Vervoro's keyset.
+1. **Consent.** The seller is sent only to eBay's consent page with Vervoro's scopes: inventory, fulfilment, account and identity (read only), notification subscriptions, cancellations. A scope eBay does not know refuses every seller, so the list changes only after the scope is confirmed on Vervoro's keyset. `sell.finances` joins the consent once eBay grants it to Vervoro's app (the owner's Growth Check), before the first seller connects, so no seller approves again for fees (owner delegation, 2 November 2026).
 2. **eBay does not sign its redirect;** the host's single-use state proves it ([ADR-004 SPEC 3](../../channel-connectors/spec/#3-credentials-and-approval)).
 3. **Who approved.** The token reply names no user, so the connector asks eBay's Identity API with the new token. The stable user id is claimed in the external directory. Approving again from the same eBay account renews it.
 4. **One account is one eBay site** (such as the UK site), which the Trading API calls name.
