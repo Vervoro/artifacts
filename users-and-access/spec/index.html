@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>21 October 2026; four Purchasing rows added to the matrix (4) by owner ruling, 27 October 2026; amended by owner rulings of 25 October 2026: <code>audit_log</code> kept 13 months (8), a receipt quarantined only when unusual (4), the session pass&#39;s 60 seconds for revocation and pauses (5, 6, 11), admission in the first statement (5.1), an operator&#39;s off-module request refused after its entry (7), the first invitation mail&#39;s link (6), and the owner&#39;s sign-off of ADR-003 and ADR-006: company settings and their matrix rows, warehouses, spots, transfers and relabels (4), sign-up&#39;s default settings (6); and SPEC wording approved 25 October 2026 for the owner&#39;s rulings of 24 October on operator grants: read-only as a viewer, told by email and in Settings, the grant&#39;s order, a grant running out, seeing Vervoro access, the operator by id (4, 7); and the SPEC batch of phases 3 and 4: the account menu&#39;s own address (2), the invitation page and joining (6), an operator command&#39;s reason in the audit log (8); and the one-by-one rulings: the recorded commands in the grant rules (7, 11, checklist), the module switch in the Vervoro access view (7), a reset&#39;s entry naming both ids (8); and SPEC batch 3: Access&#39;s matrix rows (4), an expired invitation&#39;s address and a withdrawal as a removal (6), and the grant runbook&#39;s reason; warehouse mode (3), the asker&#39;s role (2.4), Team&#39;s summary of the matrix (4), owner rulings, 29 October 2026; Team&#39;s summary shows built rows (4), owner delegation, 29 October 2026; the Listings read row and Make product (4), by owner delegation, 31 October 2026; the Listings export row (4), by owner delegation, 1 November 2026</td>
+<td>21 October 2026; four Purchasing rows added to the matrix (4) by owner ruling, 27 October 2026; amended by owner rulings of 25 October 2026: <code>audit_log</code> kept 13 months (8), a receipt quarantined only when unusual (4), the session pass&#39;s 60 seconds for revocation and pauses (5, 6, 11), admission in the first statement (5.1), an operator&#39;s off-module request refused after its entry (7), the first invitation mail&#39;s link (6), and the owner&#39;s sign-off of ADR-003 and ADR-006: company settings and their matrix rows, warehouses, spots, transfers and relabels (4), sign-up&#39;s default settings (6); and SPEC wording approved 25 October 2026 for the owner&#39;s rulings of 24 October on operator grants: read-only as a viewer, told by email and in Settings, the grant&#39;s order, a grant running out, seeing Vervoro access, the operator by id (4, 7); and the SPEC batch of phases 3 and 4: the account menu&#39;s own address (2), the invitation page and joining (6), an operator command&#39;s reason in the audit log (8); and the one-by-one rulings: the recorded commands in the grant rules (7, 11, checklist), the module switch in the Vervoro access view (7), a reset&#39;s entry naming both ids (8); and SPEC batch 3: Access&#39;s matrix rows (4), an expired invitation&#39;s address and a withdrawal as a removal (6), and the grant runbook&#39;s reason; warehouse mode (3), the asker&#39;s role (2.4), Team&#39;s summary of the matrix (4), owner rulings, 29 October 2026; Team&#39;s summary shows built rows (4), owner delegation, 29 October 2026; the Listings read row and Make product (4), by owner delegation, 31 October 2026; the Listings export row (4), by owner delegation, 1 November 2026; reading the marketplace accounts and their calls (4), owner delegation, 2 November 2026; renaming a marketplace account and changing its default warehouse (4) and pausing a live account (5.5), owner delegation, 2 November 2026</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -408,6 +408,26 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td></td>
 </tr>
 <tr>
+<td>Read the marketplace accounts, their modes and health</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td><a href="../../channel-connectors/">ADR-004</a> (owner delegation, 2 November 2026)</td>
+</tr>
+<tr>
+<td>Read the calls each marketplace account spent</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td><a href="../../channel-connectors/spec/#4-http">ADR-004 SPEC 4.3</a> (owner delegation, 2 November 2026)</td>
+</tr>
+<tr>
 <td>Connect or disconnect an account; switch a connector on or off</td>
 <td>Yes</td>
 <td>Yes</td>
@@ -436,6 +456,16 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>No</td>
 <td>No</td>
 <td>ADR-010; <a href="../../system-architecture/">ADR-000</a></td>
+</tr>
+<tr>
+<td>Rename a marketplace account and change its default warehouse</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td><a href="../../channel-connectors/">ADR-004</a> (owner delegation, 2 November 2026)</td>
 </tr>
 <tr>
 <td>Read listings and their links (the unlinked list, All listings, a listing&#39;s page, a product&#39;s channels)</td>
@@ -508,14 +538,24 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="../../product-model/spec/#13-creating-products">ADR-003</a></td>
 </tr>
 <tr>
-<td>See costs, landed cost and margins</td>
+<td>See costs, landed cost and margins, revenue and gross margin, also per account</td>
 <td>Yes</td>
 <td>Yes</td>
 <td>Yes</td>
 <td>No</td>
 <td>Yes</td>
 <td>No</td>
-<td>ADR-010</td>
+<td>ADR-010, <a href="../../product-model/spec/#2-fields">ADR-003 SPEC 2.4</a></td>
+</tr>
+<tr>
+<td>Read sold, rate of sale, days of stock and days of cover</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td><a href="../../product-model/spec/#2-fields">ADR-003 SPEC 2.4</a>, <a href="../../stock-ledger/spec/#3-the-four-numbers">ADR-006 SPEC 3.4</a></td>
 </tr>
 <tr>
 <td>Read supplier names, supplier&#39;s codes, reorder levels and lead times</td>
@@ -586,6 +626,36 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>No</td>
 <td>No</td>
 <td><a href="../../stock-ledger/">ADR-006</a></td>
+</tr>
+<tr>
+<td>Read purchase orders, without prices</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td><a href="../../purchasing/spec/#12-step-2-purchase-orders">ADR-015 SPEC 12</a></td>
+</tr>
+<tr>
+<td>Create, edit, send, cancel or close a purchase order; attach a receipt; the extras</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td><a href="../../purchasing/spec/#12-step-2-purchase-orders">ADR-015 SPEC 12</a></td>
+</tr>
+<tr>
+<td>Receive against a purchase order</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td><a href="../../purchasing/spec/#12-step-2-purchase-orders">ADR-015 SPEC 12</a></td>
 </tr>
 <tr>
 <td>Approve a count; confirm reserved units are gone (packed outside Vervoro)</td>
@@ -778,7 +848,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="../../stock-ledger/">ADR-006</a>, <a href="../../order-ingestion/">ADR-007</a></td>
 </tr>
 <tr>
-<td>Reverse a shipment reported outside Vervoro</td>
+<td>Reverse a shipment reported outside Vervoro, or a counter sale</td>
 <td>Yes</td>
 <td>Yes</td>
 <td>Yes</td>
@@ -786,6 +856,46 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>No</td>
 <td>No</td>
 <td><a href="../../stock-ledger/">ADR-006</a>, <a href="../../order-ingestion/spec/#17-shipped-outside-vervoro">ADR-007</a></td>
+</tr>
+<tr>
+<td>Set a warehouse&#39;s collection cut-off and its exceptions</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td><a href="../../order-ingestion/spec/#20-deadlines-and-the-handover">ADR-007</a></td>
+</tr>
+<tr>
+<td>Say who ships an Amazon marketplace&#39;s orders</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td><a href="../../order-ingestion/spec/#21-amazon-orders-from-the-regions-other-marketplaces">ADR-007</a></td>
+</tr>
+<tr>
+<td>Switch on the owner&#39;s alert for missed leave-bys</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td><a href="../../order-ingestion/spec/#11-holds">ADR-007</a></td>
+</tr>
+<tr>
+<td>Mark an import problem resolved</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td><a href="../../order-ingestion/spec/#9-import-problems">ADR-007</a></td>
 </tr>
 <tr>
 <td><strong>Invoicing</strong></td>
@@ -957,7 +1067,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>A grant needs every condition:</strong> the module is on for the company, the role holds the action, the scope covers the warehouse, the person is <code>active</code>, and the membership in control is not <code>paused</code>, read from control at most once every 60 seconds per session and company (the session pass, <a href="../../sign-in/spec/#5-sessions">ADR-013 SPEC 5</a> rule 5). A pause or an unpause reaches a live session within 60 seconds (owner decision, 25 October 2026).</li>
 <li><strong>Every refusal carries its reason</strong> (&quot;needs a manager&quot;, &quot;outside your warehouses&quot;), so the screen can show it.</li>
 <li><strong>A role or scope change applies to the next request,</strong> because it is read in the request&#39;s own transaction.</li>
-<li><strong>Account changes need a fresh check</strong> (<a href="../../sign-in/spec/#5-sessions">ADR-013 SPEC 5</a>): inviting, removing or changing anyone&#39;s role or scope; resetting anyone&#39;s sign-in; connecting, disconnecting, going live on or switching off a marketplace account; an export with buyer data; switching on buyer data for an operator grant; closing the company or changing an Owner; the billing steps <a href="../../billing-and-plans/spec/#19-who-may-manage-billing">ADR-012 SPEC 19</a> names. Picking, packing, printing and counting never ask.</li>
+<li><strong>Account changes need a fresh check</strong> (<a href="../../sign-in/spec/#5-sessions">ADR-013 SPEC 5</a>): inviting, removing or changing anyone&#39;s role or scope; resetting anyone&#39;s sign-in; connecting, disconnecting, going live on or switching off a marketplace account, and pausing a live account (owner delegation, 2 November 2026); an export with buyer data; switching on buyer data for an operator grant; closing the company or changing an Owner; the billing steps <a href="../../billing-and-plans/spec/#19-who-may-manage-billing">ADR-012 SPEC 19</a> names. Picking, packing, printing and counting never ask.</li>
 </ol>
 <p><strong>Who manages whom:</strong></p>
 <ol>

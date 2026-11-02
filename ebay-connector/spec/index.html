@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>21 October 2026</td>
+<td>21 October 2026; amended by owner delegation, 2 November 2026 (phase 5.6 as built): the refresh token&#39;s lifetime when eBay names none (1.5), an account&#39;s refusal in a batch (4.2), a listing eBay will not show (4.8), the resend&#39;s old write (4.9), the day spent and the pools&#39; reset (5.5, 5.6, 10), the left-out reason (6.1), the order calls&#39; pool (10), the page cap declared (How to check); a key id not held, looked up in control (2.3, How to check), ruled by delegation, 2 November 2026, for the owner&#39;s confirmation; phase 5.6&#39;s close: marketplace fees and the deletion-mail runbook (0), <code>sell.finances</code> in the consent (1.1), owner delegation, 2 November 2026</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -106,20 +106,30 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>The Growth Check grants less than the reserve rule needs (<a href="../../inventory-sync/spec/#0-at-launch-and-later">ADR-008</a>)</td>
 <td><a href="#5-the-trading-pool">5</a></td>
 </tr>
+<tr>
+<td>Marketplace fees through eBay&#39;s <code>sell.finances</code> scope, which needs its Growth Check and, for UK and EU sellers, digital signatures on the calls</td>
+<td>The Profit record&#39;s approval (<a href="../../system-architecture/spec/#4-the-foundation-and-the-launch-modules">ADR-000 SPEC 4.7</a>); the scope is asked for before the first seller connects, so no seller reconnects for it (owner delegation, 2 November 2026)</td>
+<td><a href="#1-connecting">1</a></td>
+</tr>
+<tr>
+<td>A runbook for eBay&#39;s &quot;deletion endpoint not responding&quot; mail</td>
+<td>Written with the production keyset, as eBay marks the application non-compliant after 30 days (owner delegation, 2 November 2026)</td>
+<td><a href="#8-account-deletion-notices">8</a></td>
+</tr>
 </tbody></table></div>
 <h2 id="1-connecting">1. Connecting</h2>
 <ol>
-<li><strong>Consent.</strong> The seller is sent only to eBay&#39;s consent page with Vervoro&#39;s scopes: inventory, fulfilment, account and identity (read only), notification subscriptions, cancellations. A scope eBay does not know refuses every seller, so the list changes only after the scope is confirmed on Vervoro&#39;s keyset.</li>
+<li><strong>Consent.</strong> The seller is sent only to eBay&#39;s consent page with Vervoro&#39;s scopes: inventory, fulfilment, account and identity (read only), notification subscriptions, cancellations. A scope eBay does not know refuses every seller, so the list changes only after the scope is confirmed on Vervoro&#39;s keyset. <code>sell.finances</code> joins the consent once eBay grants it to Vervoro&#39;s app (the owner&#39;s Growth Check), before the first seller connects, so no seller approves again for fees (owner delegation, 2 November 2026).</li>
 <li><strong>eBay does not sign its redirect;</strong> the host&#39;s single-use state proves it (<a href="../../channel-connectors/spec/#3-credentials-and-approval">ADR-004 SPEC 3</a>).</li>
 <li><strong>Who approved.</strong> The token reply names no user, so the connector asks eBay&#39;s Identity API with the new token. The stable user id is claimed in the external directory. Approving again from the same eBay account renews it.</li>
 <li><strong>One account is one eBay site</strong> (such as the UK site), which the Trading API calls name.</li>
-<li><strong>Tokens.</strong> The credential is the refresh token. Its lifetime and each access token&#39;s come from eBay&#39;s reply. An <code>invalid_grant</code> refusal means the seller removed Vervoro: the account is disconnected.</li>
+<li><strong>Tokens.</strong> The credential is the refresh token. Its lifetime and each access token&#39;s come from eBay&#39;s reply. An <code>invalid_grant</code> refusal means the seller removed Vervoro: the account is disconnected. Where eBay&#39;s reply names no refresh-token lifetime, 18 months (547 days) (owner delegation, 2 November 2026).</li>
 </ol>
 <h2 id="2-notices">2. Notices</h2>
 <ol>
 <li><strong>One destination per environment,</strong> made by the operator, because it needs the endpoint&#39;s verification token, which no hook sees. eBay also needs the application&#39;s alert address and checks the endpoint&#39;s challenge first. Procedure: <a href="../../runbooks/set-up-ebay-notices/">Set up eBay notices</a>.</li>
 <li><strong>Three topics per seller,</strong> subscribed on connect and removed on disconnect: <code>ORDER_CONFIRMATION</code>, <code>ORDER_CANCELLATION_ACTIVITY</code>, <code>ITEM_MARKED_SHIPPED</code>.</li>
-<li><strong>Checked with eBay&#39;s public key</strong> before any database read. The queue message holds the topic, the notice id, the seller&#39;s user id and the order ids.</li>
+<li><strong>Checked with eBay&#39;s public key</strong> before any company database read; a key id the endpoint does not hold is looked up in control as <a href="../../channel-connectors/spec/#8-notices-in">ADR-004 SPEC 8</a> says (ruled by delegation, 2 November 2026; for the owner&#39;s confirmation). The queue message holds the topic, the notice id, the seller&#39;s user id and the order ids.</li>
 <li><strong>What each leads to.</strong> A confirmation fetches the order. A cancellation notice fetches it again, and the fetched order&#39;s own cancellation state decides; a reminder to answer is ignored. An item marked shipped outside Vervoro fetches the order; Vervoro&#39;s own shipments return on the same topic and are not fetched again (<a href="../../order-ingestion/spec/#2-how-an-order-comes-in">ADR-007</a>).</li>
 </ol>
 <h2 id="3-orders">3. Orders</h2>
@@ -152,14 +162,14 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 </tbody></table></div>
 <ol start="2">
-<li><strong>One failure does not stop the rest:</strong> a refused inventory update does not keep the figure from Seller Hub listings, nor one Trading batch from the next.</li>
+<li><strong>One failure does not stop the rest:</strong> a refused inventory update does not keep the figure from Seller Hub listings, nor one Trading batch from the next, except a refusal of the whole account (a REST 401/403 after the refresh, an account-level Trading error), which stops the batch; nothing is resent listing by listing (owner delegation, 2 November 2026).</li>
 <li><strong>Synchronous.</strong> A write is <code>applied</code> or refused, never <code>accepted</code>. &quot;Identical quantity&quot; is <code>applied</code>.</li>
 <li><strong>A refused batch</strong> is resent one listing at a time for the listings its reply does not name as revised, to learn which one eBay refused.</li>
 <li><strong>An unknown SKU</strong> goes to the Inventory API first. If eBay does not know it there, the Trading API finds its Seller Hub listings, which get no figure and come back to the catalogue to be linked.</li>
 <li><strong>A listing that has gone</strong> (ended, relisted, SKU removed) makes the connector look the SKU up afresh. A relist eBay declares carries the link; any other is suggested. A SKU on no listing is <code>rejected</code> with eBay&#39;s reason.</li>
 <li><strong>No compare-and-set.</strong> The order watermark is the guard (<a href="../../inventory-sync/">ADR-008</a>). eBay&#39;s 250 revisions per listing per day are counted by <a href="../../inventory-sync/spec/#8-limits-and-who-goes-next">ADR-008 SPEC 8</a>.</li>
-<li><strong>Read back</strong> uses the API that took the write. A listing eBay will not show is looked up afresh by SKU first.</li>
-<li><strong>The unknown-write exception.</strong> An unknown Trading API write is settled by sending the figure Vervoro wants now again, at the time <a href="../../inventory-sync/spec/#6-confirming-every-write">ADR-008 SPEC 6</a> sets, because <code>ReviseInventoryStatus</code> sets the quantity and never adds to it, and a read costs the same pool call. An unknown Inventory API write is read back as usual (<a href="../../channel-connectors/spec/#5-retries-and-outcomes">ADR-004 SPEC 5</a>; owner ruling, 21 October 2026).</li>
+<li><strong>Read back</strong> uses the API that took the write. A listing eBay will not show is looked up afresh by the write&#39;s SKU, never its listing key; what it finds goes to Listings; a write without a SKU is read back again (owner delegation, 2 November 2026).</li>
+<li><strong>The unknown-write exception.</strong> An unknown Trading API write is settled by sending the figure Vervoro wants now again, at the time <a href="../../inventory-sync/spec/#6-confirming-every-write">ADR-008 SPEC 6</a> sets, because <code>ReviseInventoryStatus</code> sets the quantity and never adds to it, and a read costs the same pool call. An unknown Inventory API write is read back as usual (<a href="../../channel-connectors/spec/#5-retries-and-outcomes">ADR-004 SPEC 5</a>; owner ruling, 21 October 2026). The resend settles the old write not applied; the newest figure goes next (owner delegation, 2 November 2026).</li>
 <li><strong>A variation without a SKU</strong> is read and its orders come in by item number and variation id, but it is neither linked nor written. The seller is told to add a SKU in Seller Hub.</li>
 </ol>
 <h2 id="5-the-trading-pool">5. The Trading pool</h2>
@@ -168,11 +178,12 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Seller Hub listings are read only when a linked SKU needs them.</strong> A Seller Hub listing that shares a SKU otherwise served by the Inventory API is found only when that SKU needs the Trading API.</li>
 <li><strong>A daily page cap per account:</strong> 50 pages of 200 listings. A read that runs out resumes the next day from where it stopped; nothing is taken as gone from a read that did not run first page to last.</li>
 <li><strong>Full catalogue reads prefer the Feed API&#39;s daily active listings report</strong> (outside the Trading pool), and use the Trading API only for listings new since that report, and only while that costs fewer calls than page reads (<a href="../../catalogue-sync/">ADR-005</a>).</li>
-<li><strong>When eBay says the day is spent,</strong> the pool is <code>throttled</code> for 15 minutes at a time and the operator is alerted. If the Trading API cannot be read at all, inventory items are still read and written, and each Seller Hub SKU says why it waits.</li>
+<li><strong>When eBay says the day is spent,</strong> the pool is <code>throttled</code> for 15 minutes at a time and the operator is alerted. If the Trading API cannot be read at all, inventory items are still read and written, and each Seller Hub SKU says why it waits. The day spent holds the whole shared pool, for every account on it, through control&#39;s hold on the pool&#39;s day, 15 minutes at a time (owner delegation, 2 November 2026).</li>
+<li><strong>The reset.</strong> eBay&#39;s daily pools reset at midnight America/Los_Angeles (to be checked against eBay&#39;s page when the owner records; owner delegation, 2 November 2026).</li>
 </ol>
 <h2 id="6-the-out-of-stock-option">6. The out-of-stock option</h2>
 <ol>
-<li><strong>Asked, never changed.</strong> When a read finds Seller Hub listings, the connector reads the seller&#39;s selling preferences. While the option is off (eBay&#39;s default), every SKU on a Seller Hub listing is left out with a note: turn it on, or eBay ends a listing at 0 and removes a variation.</li>
+<li><strong>Asked, never changed.</strong> When a read finds Seller Hub listings, the connector reads the seller&#39;s selling preferences. While the option is off (eBay&#39;s default), every SKU on a Seller Hub listing is left out with a note: turn it on, or eBay ends a listing at 0 and removes a variation. Each SKU left out carries the reason in Listings; the account&#39;s notice, with the count left out, shows to every role that reads the account (owner delegation, 2 November 2026).</li>
 <li><strong>It blocks going live:</strong> a linked listing that cannot be read blocks the shadow check.</li>
 <li><strong>Turned off later,</strong> sends still go, zero included: selling stock that is gone is worse than an ended listing. The next read shows the note again.</li>
 </ol>
@@ -249,7 +260,13 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>The three above; some topics restricted to approved partners; <code>getTopics</code> gives each topic&#39;s scopes</td>
 <td><a href="https://developer.ebay.com/develop/api/buy/notification_events">Notification topics</a></td>
 </tr>
+<tr>
+<td>Daily pools&#39; reset</td>
+<td>Midnight America/Los_Angeles (owner delegation, 2 November 2026)</td>
+<td>Not yet checked; to be checked against <a href="https://developer.ebay.com/develop/api/sell/api_call_limits">API call limits</a> when the owner records</td>
+</tr>
 </tbody></table></div>
+<p>The order calls&#39; pool is 100,000 a day (50,000 is the rollup threshold, <a href="../../channel-connectors/spec/#7-shared-daily-pools">ADR-004 SPEC 7.1</a>) (owner delegation, 2 November 2026).</p>
 <h2 id="11-tests-that-prove-each-rule">11. Tests that prove each rule</h2>
 <div class="table-wrap"><table>
 <thead>
@@ -310,11 +327,11 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2 id="how-to-check-it-was-built-right">How to check it was built right</h2>
 <ul>
 <li><input disabled="" type="checkbox"> <strong>Two APIs:</strong> the write path chooses by what the read learned; inventory items never go through the Trading API.</li>
-<li><input disabled="" type="checkbox"> <strong>Pool:</strong> every Trading call names the shared pool; the page cap is a setting.</li>
+<li><input disabled="" type="checkbox"> <strong>Pool:</strong> every Trading call names the shared pool; the page cap is the connector&#39;s declaration.</li>
 <li><input disabled="" type="checkbox"> <strong>Backwards:</strong> the order read pages from last to first; the completion mark is set only after offset 0.</li>
 <li><input disabled="" type="checkbox"> <strong>Exception:</strong> the resend path exists only for <code>ReviseInventoryStatus</code>.</li>
 <li><input disabled="" type="checkbox"> <strong>No settings writes:</strong> no <code>SetUserPreferences</code> call anywhere.</li>
-<li><input disabled="" type="checkbox"> <strong>Notices:</strong> signature checked with eBay&#39;s key before any database read; the queue message has no user name or buyer field.</li>
+<li><input disabled="" type="checkbox"> <strong>Notices:</strong> signature checked with eBay&#39;s key before any company database read; the queue message has no user name or buyer field.</li>
 <li><input disabled="" type="checkbox"> <strong>No cancellation sent:</strong> no Post-Order call in the connector.</li>
 <li><input disabled="" type="checkbox"> <strong>Later parts:</strong> no item-change notice subscription, no listing migration.</li>
 </ul>

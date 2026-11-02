@@ -113,6 +113,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tbody></table></div>
 <h2 id="steps">Steps</h2>
 <ol>
+<li><strong>On a leak</strong> of an Amazon app secret, the bridge&#39;s secret or an Amazon seller&#39;s token, report the incident to Amazon at <a href="mailto:security@amazon.com">security@amazon.com</a> within 24 hours of detecting it, as Amazon&#39;s Data Protection Policy 1.6.3 requires (checked 2 November 2026), before or beside the rotation (owner delegation, 2 November 2026).</li>
 <li>Create the new secret in the marketplace&#39;s developer account, or a new random value for the bridge. Do not revoke the old one yet.</li>
 <li>Add the new value to the platform&#39;s secret store as current, keeping the old one as previous. The host accepts both.</li>
 <li>Deploy, so every Worker reads the new pair.</li>
@@ -126,7 +127,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li>The console shows the secret&#39;s next due date.</li>
 </ul>
 <h2 id="if-it-stops-halfway">If it stops halfway</h2>
-<p>Before step 6 both values work, so nothing breaks. If the new value fails, remove it and keep the old one as current.</p>
+<p>Before step 7 both values work, so nothing breaks. If the new value fails, remove it and keep the old one as current.</p>
 
 <footer>Vervoro</footer>
 </main>
