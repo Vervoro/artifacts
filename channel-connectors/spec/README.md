@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-004: Channel connectors](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-004-channel-connectors) |
-| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: a shared pool claimed in blocks, Amazon's backup read hourly (9.2), per-order timings kept 30 days after the gates (10, 15) |
+| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: a shared pool claimed in blocks, Amazon's backup read hourly (9.2), per-order timings kept 30 days after the gates (10, 15); amended by owner delegation, 2 November 2026: marketplace keys as data in core contracts (12.1), the directory's account and active state (8.3), a platform topic's hashed id (8.4), the not-visible retries (8.6), usage rollups (4.3), two modes for Orders and Listings (12), the tables other records give Channels and the account's label (15) |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-004 from: the Channels module, switchable per company and needing Listings and Orders, and the connector modules, each switchable and needing Channels ([ADR-000 SPEC 4](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)). What each marketplace adds is in its own record: [ADR-004.1 eBay](../../ebay-connector/spec/), [ADR-004.2 Amazon Seller](../../amazon-seller-connector/spec/), [ADR-004.3 Shopify](../../shopify-connector/spec/). Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/).
@@ -68,7 +68,7 @@ Each connector module contributes one definition to Channels' connector extensio
 
 1. **One binding per account and job.** It adds the base address, authentication and settings, nothing else. Production refuses a simulator address ([ADR-000 SPEC 9](../../system-architecture/spec/#9-simulators)).
 2. **Every call has a timeout and a size cap,** and none runs inside a database transaction ([ADR-000 SPEC 10](../../system-architecture/spec/#10-runtime)).
-3. **Every call is a telemetry line** with the account, operation and job (order fetch, completeness check, listing read, stock write, read back), rolled up by hour into control's usage rollups. The operator sees what each job spends; the seller sees their own account's calls.
+3. **Every call is a telemetry line** with the account, operation and job (order fetch, completeness check, listing read, stock write, read back), rolled up by hour into control's usage rollups. The operator sees what each job spends; the seller sees their own account's calls. Each job adds its calls to control's hourly usage rollup once, at its end, in one statement; the telemetry lines stay logs ([ADR-000 SPEC 10](../../system-architecture/spec/#10-runtime)) (owner delegation, 2 November 2026).
 
 ## 5. Retries and outcomes
 
@@ -111,10 +111,10 @@ Orders arrive by notice; the scheduled read is only the backup ([9](#9-the-compl
 
 1. **Two ways in.** Direct: the marketplace calls Vervoro's address and signs the request (eBay, Shopify). Through the bridge: Amazon delivers only into AWS, and a small bridge in an EU region posts each notice to the same endpoint with a shared secret ([ADR-000 SPEC 8](../../system-architecture/spec/#8-connectors-and-orders-in)).
 2. **Check before any database read:** the marketplace's signature, or the bridge's secret (current or previous, compared in constant time). A request that fails is refused.
-3. **Find the account** by the marketplace's id in the external directory. A notice for no held account, an account that is off, or a connector off for that company is answered and kept nowhere.
-4. **Queue ids only:** the topic, the notice id, the account and the order ids, never the body. Queues are in the EU jurisdiction.
+3. **Find the account** by the marketplace's id in the external directory. A notice for no held account, an account that is off, or a connector off for that company is answered and kept nowhere. The external directory row names the company, the Vervoro account and whether it is active; Channels writes it through the outbox on connect, switch and disconnect, so the endpoint reads only control before queueing (owner delegation, 2 November 2026).
+4. **Queue ids only:** the topic, the notice id, the account and the order ids, never the body. Queues are in the EU jurisdiction. A platform topic with no account (eBay's account deletion) queues the keyed hash of the user id, never the id (owner delegation, 2 November 2026).
 5. **Answer only after the message is on the queue.** A failed enqueue answers with an error, so the marketplace sends again.
-6. **The consumer fetches, then imports.** It has the connector parse the message and fetches each order seen, one call, and hands it to Orders. An order not visible yet is fetched again after 30 seconds, doubling, for about half an hour, then left to the completeness check. A failed delivery goes to the dead-letter queue, which pages the operator ([ADR-000 SPEC 8](../../system-architecture/spec/#8-connectors-and-orders-in)).
+6. **The consumer fetches, then imports.** It has the connector parse the message and fetches each order seen, one call, and hands it to Orders. An order not visible yet is fetched again after 30 seconds, doubling, for about half an hour, then left to the completeness check: these retries are the consumer's own and end with an early completeness check due, never in the dead-letter queue (owner delegation, 2 November 2026). A failed delivery goes to the dead-letter queue, which pages the operator ([ADR-000 SPEC 8](../../system-architecture/spec/#8-connectors-and-orders-in)).
 7. **A notice is a hint.** Vervoro imports what it fetches, never the notice body, and a notice never moves the watermark.
 8. **Subscriptions are made on connect** by the connector's hook and removed on disconnect. A failing hook is retried and alerts. An account with no working subscription shows as "not notified".
 9. **The host handles some topics itself.** Approval revoked disconnects the account. A privacy request is recorded with its due date, and Buyer data opens the company's privacy request ([ADR-009 SPEC 10](../../buyer-data/spec/#10-buyers-requests)).
@@ -159,13 +159,15 @@ This section owns shadow mode; other records link here.
 
 ## 12. Switching on and off
 
-1. **No marketplace is named in the core.** Notice addresses carry the marketplace's key; a key no module contributes is refused from the module registry. Removing a connector module removes the marketplace, after its accounts are stopped.
+1. **No marketplace is named in the core.** No core module imports a connector or speaks a marketplace's API; a marketplace key may appear in a core contract as data where that module's own record gives the marketplace a rule (owner delegation, 2 November 2026). Notice addresses carry the marketplace's key; a key no module contributes is refused from the module registry. Removing a connector module removes the marketplace, after its accounts are stopped.
 
 | Level | Who | What off means |
 | --- | --- | --- |
 | Platform | The operator | Not offered to new companies. The operator's hold on a marketplace keeps every send waiting as Stock sync's rows; the latest figure goes when released ([runbook](../../runbooks/handle-a-marketplace-outage/)) |
 | Company | The plan, and its Owner or an Admin ([ADR-010](../../users-and-access/)) | No reads, no writes, notices dropped. Refused while a live account has no stop choice |
 | Account | The seller | The mode: shadow, live, paused, decrease-only or disconnected. Disconnected forgets the credentials |
+
+Orders and Listings see two modes: a paused or decrease-only account is `live` to them, a disconnected one is disconnected (owner delegation, 2 November 2026).
 
 2. **A connector that is off costs nothing:** its accounts have no work due, so the sweeper never visits them ([ADR-001 SPEC 9](../../database-architecture/spec/#9-background-work-and-the-outbox)).
 
@@ -189,13 +191,17 @@ Channels' tables carry the `chan_` prefix, are declared through `tenantTable()` 
 
 | Where | Holds |
 | --- | --- |
-| `chan_account` | Marketplace key, the marketplace's account id, mode, stop choice, setup choices, approval expiry, notified state, health |
+| `chan_account` | Marketplace key, the marketplace's account id, the seller's label for it, mode, stop choice, setup choices, default warehouse ([ADR-000 SPEC 4](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)), approval expiry, notified state, health |
+| `chan_listing_read` | Per account and scope: the running listing read, its lease and whether it is held ([ADR-005 SPEC 8.4](../../catalogue-sync/spec/)) |
+| `chan_stock_reading` | Stock a marketplace holds: a dated reading per product or listing and account ([ADR-004.2 SPEC 7](../../amazon-seller-connector/spec/#7-stock-amazon-holds)) |
 | `chan_order_read` | Per account: the watermark, the last complete read, the next one due, whether notices look broken |
 | `chan_wait` | Per account and operation: the marketplace's wait and the bucket |
 | `chan_privacy_request` | Privacy requests from marketplaces, with their due dates |
 | `chan_order_timing` | Per order: placed, notice and import times, for [10](#10-what-is-measured); after the launch gates pass, kept 30 days, then daily counts |
 | Kernel `secrets` | Sealed credentials, purpose per account |
-| Control | External directory, shared pool counters, usage rollups, per-connector platform settings |
+| Control | External directory (with the Vervoro account and whether it is active), shared pool counters, usage rollups, per-connector platform settings, the operator's hold per marketplace |
+
+An account is shown by the label the seller gives it, by default the marketplace, site and a number; the marketplace's own store or user name is not stored (owner delegation, 2 November 2026).
 
 ## 16. Constraints
 
@@ -247,6 +253,6 @@ For someone reviewing code an AI wrote. Each line says where to look.
 - [ ] **Completeness check:** only it moves the watermark; intervals are per connector settings; broken notices drop to 10 minutes.
 - [ ] **Gates:** the three measurements are recorded per order, and going live checks the marketplace's gates.
 - [ ] **No SQL:** every query uses the typed query builder; tables carry `chan_`.
-- [ ] **Core:** no marketplace name in the kernel, the core modules, the gate or the screens.
+- [ ] **Core:** no import of a connector and no marketplace API in the kernel, the core modules, the gate or the screens; a marketplace key in a core contract only where that module's record gives the marketplace a rule.
 - [ ] **Simulators:** only calls a connector makes are simulated; recordings replay in tests; production refuses a simulator address.
 - [ ] **Later parts:** no Shopify or Vendor connector, no Amazon feed path, no central per-second counter at launch.
