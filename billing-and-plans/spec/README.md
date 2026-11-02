@@ -91,7 +91,7 @@ This section owns [the rulebook's billing rule](../../rulebook/#7-money-and-coun
 ## 8. What runs in each state
 
 1. **Trial and active** change nothing in [ADR-010's table](../../users-and-access/spec/#4-who-may-do-what).
-2. **Restricted:** the stock path, billing pages and the export run. Catalogue edits and linking, new connections and going live, purchasing, settings, imports and every module that is neither warehouse nor stock are read-only. Inviting a Warehouse or Staff member, removing a person and ending sessions are still allowed.
+2. **Restricted:** the stock path, billing pages and the export run. Catalogue edits and linking, new connections and going live, purchasing (except receiving against a purchase order, which runs as the stock path), settings, imports and every module that is neither warehouse nor stock are read-only. Inviting a Warehouse or Staff member, removing a person and ending sessions are still allowed.
 3. **Closed:** every screen is read-only; sign-in, billing pages and the export run; orders import and reserve in the background under decrease-only (section 9).
 4. *Later:* restricted companies get the capped share of shared marketplace allowances that ADR-001 gives trials, with the same exception for stock decreases on a live connection.
 

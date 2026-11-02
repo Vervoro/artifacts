@@ -79,7 +79,7 @@ Extension points (several providers of one port, chosen per key, such as connect
 | **Connectors** (one per marketplace) | Switchable | ADR-004.1–004.3 | Nothing: translators, contributed to Channels | Channels | — |
 | **Stock sync** | Switchable | ADR-008 | The figure each listing should show, what each marketplace was last told and confirmed, read-backs, held raises | Inventory, Listings, Orders, Channels | Channels; a product's channels |
 | **Invoicing** | Switchable | ADR-011 | Invoices, VAT records, invoiced customers | Orders, Products, Buyer data (owner ruling, 22 October 2026) | Invoices |
-| **Purchasing** | Switchable, in every plan | ADR-015 | Suppliers, each product's suppliers, reorder levels (step 2: purchase orders) | Products, Inventory, Access (a person's warehouse scope; owner rulings, 27 and 31 October 2026) | Purchasing; a card on a product; a card on Today |
+| **Purchasing** | Switchable, in every plan | ADR-015 | Suppliers, each product's suppliers, reorder levels (step 2: purchase orders) | Products, Inventory, Orders (from its step 2: the sold figures and short lines), Access (a person's warehouse scope; owner rulings, 27 and 31 October 2026) | Purchasing; a card on a product; a card on Today |
 
 2. **Calls point toward the core.** A core module calls only other core modules and the kernel. Any other module calls the core and the modules in its needs. The core learns of other modules' work only through events. The build refuses a cycle in needs: when a module must react to a module that needs it, it reacts by event (a new link reaches Stock sync as an event from Listings).
 3. **Imports come in through the core.** Channels fetches orders and listings through the connectors and hands them to Orders' and Listings' ports; neither core module knows a marketplace exists.
@@ -115,7 +115,7 @@ Solid arrows are port calls inside the caller's transaction; dashed arrows are e
 - **Set-up calls.** Connecting runs the seller's approval, seals the credentials and subscribes to notices, in shadow too ([ADR-004](../../channel-connectors/)).
 - **Cancellations.** Vervoro never sends one: the seller cancels on the marketplace, and the confirmed cancellation comes in like any other order change, as the "A buyer cancels" row shows ([ADR-007 SPEC 12](../../order-ingestion/spec/#12-cancellations-and-refunds)).
 - **Invoices and refunds.** Orders records refunds; Invoicing hears shipped and refunded orders and acts by its own rules ([ADR-011](../../invoicing-and-vat/)).
-- *Later:* **purchase orders** ([ADR-015 SPEC 12](../../purchasing/spec/#12-step-2-purchase-orders-outline)). Purchasing calls Inventory's receive port when a supplier delivers; Amazon Vendor brings Amazon's purchase orders through Channels into Orders once a person approves them.
+- *Later:* **purchase orders** ([ADR-015 SPEC 12](../../purchasing/spec/#12-step-2-purchase-orders)). Purchasing calls Inventory's receive port when a supplier delivers; Amazon Vendor brings Amazon's purchase orders through Channels into Orders once a person approves them.
 
 ## 5. Results
 

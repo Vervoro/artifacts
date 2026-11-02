@@ -105,6 +105,9 @@ A module declares each action in its manifest ([ADR-000 SPEC 1](../../system-arc
 | **Stock** | | | | | | | |
 | Receive, move between spots, repack between a pack and its singles, count | Yes | Yes | Yes | Yes | No | No | [ADR-006](../../stock-ledger/) |
 | Record a receipt without a purchase order (an unusual one is quarantined until a manager accepts it, ADR-006 SPEC 8.4) | Yes | Yes | Yes | Yes | No | No | [ADR-006](../../stock-ledger/) |
+| Read purchase orders, without prices | Yes | Yes | Yes | Yes | Yes | Yes | [ADR-015 SPEC 12](../../purchasing/spec/#12-step-2-purchase-orders) |
+| Create, edit, send, cancel or close a purchase order; attach a receipt; the extras | Yes | Yes | Yes | No | No | No | [ADR-015 SPEC 12](../../purchasing/spec/#12-step-2-purchase-orders) |
+| Receive against a purchase order | Yes | Yes | Yes | Yes | No | No | [ADR-015 SPEC 12](../../purchasing/spec/#12-step-2-purchase-orders) |
 | Approve a count; confirm reserved units are gone (packed outside Vervoro) | Yes | Yes | Yes | No | No | No | [ADR-006](../../stock-ledger/) |
 | Adjust, write off (reason required) | Yes | Yes | Yes | No | No | No | [ADR-006](../../stock-ledger/) |
 | Accept or refuse a quarantined receipt | Yes | Yes | Yes | No | No | No | [ADR-006](../../stock-ledger/) |

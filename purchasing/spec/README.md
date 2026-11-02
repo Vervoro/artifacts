@@ -4,10 +4,10 @@
 | --- | --- |
 | **Decision** | [ADR-015: Purchasing](../) |
 | **Procedures** | None yet |
-| **Date** | 27 October 2026, Proposed; owner rulings of 27 October 2026: two steps, purchase orders never required, the draft's open questions decided as recommended; owner rulings of 31 October 2026, the developer's review of step 1: Access joins the needs (6.3.4), Inventory's `position` and `suppliersUsed` ports (10.2), the receipt's supplier picker through a field slot (10.4), the not-tracked filter (5.6), the bundle card, the Today card and the floor for scoped people (5.3, 6.6.2, 7.2), the list's paging (6.4); the build of step 1 (owner delegation, 1 November 2026): an archived supplier editable (3), a retired product's removals (4.5), the filter's comma lists (5.6), the groups' order (6.4.1), the reads (6.5), the whole download (6.6.1), Import (7.1), only what changed (8), a blank level cell (8.3), refusal codes (9) |
+| **Date** | step 2 (purchase orders) ruled by owner delegation, 1 November 2026 (`docs/spec-batch-2026-11-01-adr-015-step2.md` in the monorepo); 27 October 2026, Proposed; owner rulings of 27 October 2026: two steps, purchase orders never required, the draft's open questions decided as recommended; owner rulings of 31 October 2026, the developer's review of step 1: Access joins the needs (6.3.4), Inventory's `position` and `suppliersUsed` ports (10.2), the receipt's supplier picker through a field slot (10.4), the not-tracked filter (5.6), the bundle card, the Today card and the floor for scoped people (5.3, 6.6.2, 7.2), the list's paging (6.4); the build of step 1 (owner delegation, 1 November 2026): an archived supplier editable (3), a retired product's removals (4.5), the filter's comma lists (5.6), the groups' order (6.4.1), the reads (6.5), the whole download (6.6.1), Import (7.1), only what changed (8), a blank level cell (8.3), refusal codes (9) |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
-The rules to build ADR-015 from: the Purchasing module. Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/). This batch writes **step 1** in full. Step 2 (purchase orders) is an outline in [section 12](#12-step-2-purchase-orders-outline) and gets its own SPEC batch before it is built.
+The rules to build ADR-015 from: the Purchasing module. Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/). This batch writes **step 1** in full. Step 2 (purchase orders) is an outline in [section 12](#12-step-2-purchase-orders) and gets its own SPEC batch before it is built.
 
 ## 0. At launch and later
 
@@ -15,12 +15,12 @@ Step 1 is built when ROADMAP 5.2.1 is reached. Everything marked *Later* keeps i
 
 | Later part | Trigger | Rules |
 | --- | --- | --- |
-| Purchase orders, sending them, receiving against them, measured lead time, landed cost hand-off (step 2) | ROADMAP 5.5.1: Orders is built | [12](#12-step-2-purchase-orders-outline) |
+| Email of a purchase order to the supplier | Channels' sending half is built and the owner approves the mail (a new mail) | [12.5](#12-step-2-purchase-orders) |
 | Customer shortfalls (order lines short of stock) counted in the position | Orders is built (step 2) | [6.2](#62-the-position) |
 | A reorder level per product and warehouse | A seller with two sites that cannot share stock asks | [5](#5-reorder-settings) |
 | A reorder level suggested from sales, lead time and stock-out days | Orders has 8 weeks of history for the company, and sellers ask | [5.5](#5-reorder-settings) |
 | A daily mail "n products need reordering" | The owner approves the mail (a new mail is a drift) | [6.6](#6-needs-reordering) |
-| Searching products by the supplier's code from the product list | Sellers ask for it beyond Purchasing's own search | [4.6](#4-a-products-suppliers) |
+| Searching products by the supplier's code from the product list | Sellers ask for it beyond Purchasing's own search; the floor's Find too (a Warehouse member may read supplier codes, 9.2) | [4.6](#4-a-products-suppliers) |
 | Reorder advice for stock held in a marketplace's warehouse (FBA) | FBA shipments get their record ([ADR-000 SPEC 4.7](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)) | [6.3](#63-what-counts) |
 
 ## 1. What Purchasing is
@@ -70,8 +70,8 @@ Quantities are integers of base units ([ADR-003 SPEC 2.1](../../product-model/sp
 | `note` | text | No | Up to 1,000 characters. Internal. Asked not to hold personal details beyond the fields above |
 | `created_at`, `updated_at`, `version` | | Yes | Set by the data layer; an edit on an older `version` is refused ([ADR-003 SPEC 2](../../product-model/spec/#2-fields)) |
 
-1. **Deliberately not here in step 1:** address, account number, payment terms, currency, VAT number, price lists, free-text "ordering instructions". Step 2 adds only what a purchase order needs ([section 12](#12-step-2-purchase-orders-outline)), as an expand-only change.
-2. **Deleting** a supplier is allowed only while nothing uses it (no link, no batch naming it by id); otherwise it is archived. No fixed limit on suppliers per company beyond 5,000.
+1. **Deliberately not here in step 1:** address, account number, payment terms, currency, VAT number, price lists, free-text "ordering instructions". Step 2 adds only what a purchase order needs ([section 12](#12-step-2-purchase-orders)), as an expand-only change.
+2. **Deleting** a supplier is allowed only while nothing uses it (no purchase order names it; no link, no batch naming it by id); otherwise it is archived. No fixed limit on suppliers per company beyond 5,000.
 3. Every change writes an activity entry: who, when, field, old and new value. The contact fields' old and new values are written as "changed", not as text, so the activity view holds no copy of personal data (section 11.3).
 
 ## 4. A product's suppliers
@@ -90,7 +90,7 @@ Quantities are integers of base units ([ADR-003 SPEC 2.1](../../product-model/sp
 
 1. **Up to 10 links per product.** More is refused with the reason.
 2. **One preferred link.** The first link is preferred. Setting another preferred clears the old one in the same change. Removing the preferred link makes the oldest remaining one preferred, and the activity entry says so. No preferred link exists when no link does.
-3. **Lead time used** is the link's, else the supplier's, else none. The screen shows which one it used. Step 2 adds the measured lead time beside it ([section 12](#12-step-2-purchase-orders-outline)).
+3. **Lead time used** is the link's, else the supplier's, else none. The screen shows which one it used. Step 2 adds the measured lead time beside it ([section 12](#12-step-2-purchase-orders)).
 4. **Rounding rule.** A wanted quantity `q` becomes `max(q, min_order_qty)` rounded up to a multiple of `order_multiple`. If `min_order_qty` is not a multiple, the larger multiple is taken. One function, used by the list, the export and (step 2) the purchase order.
 5. **A retired product** takes no new link and no level; existing ones stay readable and may be removed, never added. An `inactive` product keeps them but is not suggested ([ADR-003 SPEC 9](../../product-model/spec/#9-status)).
 6. **Finding by supplier's code** works inside Purchasing's own search and on the card. The product list does not search it at launch ([section 0](#0-at-launch-and-later)).
@@ -108,7 +108,7 @@ Quantities are integers of base units ([ADR-003 SPEC 2.1](../../product-model/sp
 | `version` | | Yes | As elsewhere |
 
 1. **Company-wide at launch.** The level is compared with the position summed over every warehouse of the company. The cost, accepted by the owner on 27 October 2026: a seller with two sites that cannot share stock sees no need while one site is empty. A warehouse-specific level is *Later*.
-2. **The Purchasing card on the product page** shows, in this order: Supplier (preferred), Supplier's code, Reorder level, Lead time (the one used, with its source). A product with several suppliers shows "+ 2 more" and opens a small list. Editing is on the card; there is no separate settings screen.
+2. **The Purchasing card on the product page** shows, in this order: Supplier (preferred), Supplier's code, Reorder level, Lead time (the one used, with its source). A product with several suppliers shows "+ 2 more" and opens a small list. Editing is on the card; there is no separate settings screen. From step 2 the card also shows the product's open purchase orders (number, expected date, to come) and the measured lead time beside the quoted one (12.8).
 3. **Bundle:** no level. The bundle's page shows, read-only, "Components that need reordering" (the components on the list) to people who may see the list and are not scoped to warehouses. A bundle with no component on the list shows nothing. A product that becomes a bundle before its first use keeps its links and level, unread while it is a bundle.
 4. **A pack** has its own level and suppliers when the seller buys sealed packs; a pack made by repacking singles has none ([ADR-003 SPEC 6.2](../../product-model/spec/#62-pack)). Singles and their packs are counted apart, because their stock is ([ADR-003 SPEC 6.2](../../product-model/spec/#62-pack)).
 5. *Later:* **a suggested level.** Worked out from the average daily sales over a window that leaves out days the product was out of stock, times the lead time used, plus a safety margin the seller sets as days; shown as "Suggested: 40" beside the seller's number with the figures behind it. It is never written by Vervoro. Not built until Orders has history.
@@ -125,8 +125,8 @@ A product is on the list when all hold: it has a reorder level; its status is `a
 `position = sellable + on its way`, summed over the company's warehouses, from Inventory's read port ([ADR-006 SPEC 13.2](../../stock-ledger/spec/#13-telling-stock-sync)).
 
 1. **Sellable** is on hand less reserved less held, as [ADR-006 SPEC 3](../../stock-ledger/spec/#3-the-four-numbers) defines it. Reserved stock is promised, so it is gone. Held stock (quarantined, damaged, short-dated, expired, blocked) cannot be sold, so it does not count.
-2. **On its way** at step 1 is units in transit between the company's own warehouses (a transit spot belongs to no warehouse's on hand, [ADR-006 SPEC 1.2](../../stock-ledger/spec/#1-where-stock-is-counted)). Without them a transfer would show as a need. From step 2 it also holds open purchase order quantity not yet received ([ADR-006 SPEC 3.2](../../stock-ledger/spec/#3-the-four-numbers)).
-3. **Short lines** (order lines that reserved less than they needed, [ADR-006 SPEC 5.3](../../stock-ledger/spec/#53-reserving-an-order-line)) are customers waiting for stock. Sellable cannot go below zero, so they are invisible to it. From step 2 (Orders exists) the position is reduced by the units missing on open short lines of that product, read through Orders' port; Veeqo does the same by a setting, here it is the rule.
+2. **On its way** at step 1 is units in transit between the company's own warehouses (a transit spot belongs to no warehouse's on hand, [ADR-006 SPEC 1.2](../../stock-ledger/spec/#1-where-stock-is-counted)). Without them a transfer would show as a need. From step 2 it also adds the open quantity of `sent` and `part_received` purchase order lines ([12.3](#12-step-2-purchase-orders)); a product already ordered outside Vervoro stays on the list, and in Today's count, until it is received; a purchase order takes it off.
+3. **Short lines** (order lines that reserved less than they needed, [ADR-006 SPEC 5.3](../../stock-ledger/spec/#53-reserving-an-order-line)) are customers waiting for stock. Sellable cannot go below zero, so they are invisible to it. From step 2 (Orders exists) the position is reduced by the units missing on open short lines of that product, read through Inventory's position port (the demands' missing units); Veeqo does the same by a setting, here it is the rule.
 4. The position may be negative once short lines count; the list shows the figure.
 
 ### 6.3 What counts
@@ -153,7 +153,7 @@ A product is on the list when all hold: it has a reorder level; its status is `a
 
 ### 6.5 Computing it
 
-1. **A query, never stored.** Purchasing reads its levels and links (two queries, one for each table, with the company's rows only), Products' status and kind in one port call, and Inventory's sellable and incoming for those product ids in one batched port call. Three reads per opening (its own tables, Products' facts, Inventory's position), about a dozen statements in one transaction, whatever the number of products (tested at 5,000 levels). Nothing runs on a stock change, so a stock command is unchanged.
+1. **A query, never stored.** Purchasing reads its levels and links (two queries, one for each table, with the company's rows only), Products' status and kind in one port call, and Inventory's sellable and incoming for those product ids in one batched port call. Three reads per opening (its own tables, Products' facts, Inventory's position), about a dozen statements in one transaction, whatever the number of products (tested at 5,000 levels). Nothing runs on a stock change, so a stock command is unchanged. From step 2 the list also reads Orders' sold figures and Inventory's days out of stock for the products on it, in batches of 500 products (the ports' limit; for Running low, every product with a level), so at 5,000 levels the figures are about ten calls each, stated in the test.
 2. **What the rule costs:** one batched read per list opening (and per Today opening, section 7.2). At 10 sellers this is a few reads a day; at 1,000 sellers, each opening a few times a day, a few thousand reads a day. Storing the state would remove the read but add a second copy of stock that can drift and a handler on every stock note; rejected.
 3. **Stale reads:** the list is a snapshot of the moment it was read and says when. A receipt made afterwards shows on the next opening.
 
@@ -167,7 +167,7 @@ A product is on the list when all hold: it has a reorder level; its status is `a
 
 ## 7. Screens
 
-1. **Purchasing** (menu): Needs reordering (default for people who may see it, else Suppliers), Suppliers (with Export for every reader, the contact columns by permission), a supplier's page (its details and its products), Import (export is on the same page). Step 2 adds Purchase orders.
+1. **Purchasing** (menu): Needs reordering (default for people who may see it, else Suppliers), Suppliers (with Export for every reader, the contact columns by permission), a supplier's page (its details and its products), Import (export is on the same page). Step 2 adds Purchase orders (a third tab; an order's page; New purchase order) and, on the floor, Receive against an order.
 2. **Product page:** the Purchasing card (section 5.2); no Purchasing card on the floor's product screen in step 1. **Today:** the card of section 6.6.
 3. **Receipt screen** (Inventory's): when Purchasing is on, the supplier is a pick list of active suppliers with a free-text fallback; otherwise free text.
 4. Every word comes from the catalogue ([rulebook](../../rulebook/)); no screen waits for anything outside Vervoro.
@@ -197,20 +197,20 @@ Roles are [ADR-010's](../../users-and-access/spec/#4-who-may-do-what). These row
 
 1. **No costs in step 1,** so no cost permission is needed. Step 2 adds purchase order rows and, for prices, "See costs" ([ADR-010 SPEC 4](../../users-and-access/spec/#4-who-may-do-what)).
 2. **Warehouse users read the supplier and the supplier's code** because a delivery note carries them; they pick a supplier on a receipt.
-3. Each action is declared in the module's manifest ([ADR-000 SPEC 1](../../system-architecture/spec/#1-modules-and-the-manifest)). A refusal by the guard is 403; a module's own refusal is 409 with a reason. While a company is restricted, purchasing is read-only ([ADR-012 SPEC 8](../../billing-and-plans/spec/#8-what-runs-in-each-state)).
+3. Each action is declared in the module's manifest ([ADR-000 SPEC 1](../../system-architecture/spec/#1-modules-and-the-manifest)). A refusal by the guard is 403; a module's own refusal is 409 with a reason. While a company is restricted, purchasing is read-only except receiving against a purchase order, which runs as the stock path (12.10; [ADR-012 SPEC 8](../../billing-and-plans/spec/#8-what-runs-in-each-state)).
 
 ## 10. Ports, events and tables
 
 1. **Purchasing provides:** `suppliers.list` (id, name, status) for receipt screens and the card; `product.purchasing` (the card's data for a product); `reorder.list` (the list).
-2. **Purchasing uses:** Products' read port (status, kind, SKU and name for ids; the pack and bundle shape), Inventory's `position` port (sellable and units in transit per product and warehouse, batched, with the ledger sequence; Stock sync's `sellable` port is unchanged) and its `suppliersUsed` port (which of the supplier ids asked a batch of the company names, read when a supplier is deleted, 3.2), Access's member facts for a person's warehouse scope (6.3.4; Access is in the needs, [ADR-000 SPEC 4](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)), once Listings is built its read port for marketplace-shipped products (6.3.1; Listings then joins the needs), and from step 2 Orders' read port (units missing per product) and Inventory's receive port.
+2. **Purchasing uses** (from step 2: Products' read and use ports; Inventory's position, receive, cost, `receiptLines` and `warehouses` ports and the Stock list's extension point; Orders' `soldFigures`, which reads Inventory's `daysOutOfStock`, and `shortProducts`): Products' read port (status, kind, SKU and name for ids; the pack and bundle shape), Inventory's `position` port (sellable and units in transit per product and warehouse, batched, with the ledger sequence; Stock sync's `sellable` port is unchanged) and its `suppliersUsed` port (which of the supplier ids asked a batch of the company names, read when a supplier is deleted, 3.2), Access's member facts for a person's warehouse scope (6.3.4; Access is in the needs, [ADR-000 SPEC 4](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)), once Listings is built its read port for marketplace-shipped products (6.3.1; Listings then joins the needs).
 3. **Events.** Purchasing publishes and handles none in step 1: the list reads a product's status through Products' port, so no `product.retired` handler is needed. It needs no event from Inventory because the list reads the port when opened. If a later feature (a mail, a Home count held in a table) needs "stock changed", it listens to the stock note ([ADR-006 SPEC 13](../../stock-ledger/spec/#13-telling-stock-sync)).
-4. **Where core and Purchasing meet** (owner ruling, 27 October 2026; made in the records named, in the same batch):
+4. **Where core and Purchasing meet** (the extension point is Products' use port, `useProduct` / `releaseProduct` with reason `purchase_order_line`, 12.9) (owner ruling, 27 October 2026; made in the records named, in the same batch):
    - *Retiring and first use* ([ADR-003 SPEC 9.2, 3.3](../../product-model/spec/#9-status)) name open purchase orders. Products is core and cannot call Purchasing. Products ([ADR-003 SPEC 9.2](../../product-model/spec/#9-status)) declares an extension point "blocks retiring / counts as first use" that modules contribute to; Purchasing contributes open purchase order lines in step 2 and nothing in step 1. Step 1 has no purchase orders, so nothing breaks before then.
    - *A batch's supplier* ([ADR-006 SPEC 1](../../stock-ledger/spec/#1-where-stock-is-counted)): `stock_batch` holds `supplier_id` (plain id, no foreign key) and `supplier_name` (a copy at receipt, [ADR-006 SPEC 15](../../stock-ledger/spec/#15-storage)); the receive port takes both. Inventory never reads Purchasing's tables.
    - *The receipt's supplier picker* (7.3): Inventory's receipt screens, desk and floor, declare a field slot; Purchasing contributes the supplier picker, which returns the id and name; Inventory's receive takes `supplierId` beside the name and stores both as given, reading nothing of Purchasing's.
    - *Incoming from purchase orders* beside the four numbers ([ADR-006 SPEC 3.2](../../stock-ledger/spec/#3-the-four-numbers)): Inventory cannot call Purchasing. Inventory declares a slot on the product and stock screens that Purchasing contributes the "incoming" figure to, and Purchasing adds it to the list through its own query; Inventory stores none. Step 2.
-5. **Tables** (tenant tables with the `purchasing_` prefix, declared through `tenantTable()`, queried through the typed query builder; no foreign key crosses modules, [ADR-000 SPEC 2](../../system-architecture/spec/#2-tables)): `purchasing_supplier`, `purchasing_product_supplier`, `purchasing_reorder`. Step 2 adds `purchasing_order`, `purchasing_order_line`. Schema changes expand, then contract ([ADR-000 SPEC 11](../../system-architecture/spec/#11-deploying)). The unique indexes are on the company and the lower-cased name (suppliers), on the company, product and supplier (links), with a partial unique index on the company and product where `preferred` (one preferred per product), and on the company and product (levels).
-6. **No stock write, no listing figure, no outside call.** Purchasing never inserts into `stock_*` and never sends anything in step 1.
+5. **Tables** (tenant tables with the `purchasing_` prefix, declared through `tenantTable()`, queried through the typed query builder; no foreign key crosses modules, [ADR-000 SPEC 2](../../system-architecture/spec/#2-tables)): `purchasing_supplier`, `purchasing_product_supplier`, `purchasing_reorder`. Step 2 adds `purchasing_order`, `purchasing_order_line`, `purchasing_order_receipt`. Schema changes expand, then contract ([ADR-000 SPEC 11](../../system-architecture/spec/#11-deploying)). The unique indexes are on the company and the lower-cased name (suppliers), on the company, product and supplier (links), with a partial unique index on the company and product where `preferred` (one preferred per product), and on the company and product (levels).
+6. **No stock write except through Inventory's receive and cost ports, no listing figure, no outside call.** Purchasing never inserts into `stock_*` and never sends anything (email to a supplier is *Later*, 12.5).
 
 ## 11. Personal data and retention
 
@@ -221,21 +221,76 @@ Roles are [ADR-010's](../../users-and-access/spec/#4-who-may-do-what). These row
 5. **Seen by:** Owner, Admin, Manager only (section 9). No view log: it is not buyer data.
 6. **Not shared:** contacts are never sent to a marketplace, a connector or another module, except in the list's download (section 6.6) to a role that may read them.
 
-## 12. Step 2: purchase orders (outline)
+## 12. Step 2: purchase orders
 
-*Later, ROADMAP 5.5.1, after Orders. Step 1 is ROADMAP 5.2.1. This outline is not a rule set and nothing here is built at step 1; step 2 gets its own SPEC batch first.*
+*Built in ROADMAP 5.5.1 (owner delegation, 1 November 2026). Step 1 is ROADMAP 5.2.1.*
 
-1. **Optional.** Every rule of section 1.3 holds.
-2. **A purchase order** has a number (a gap-free series per company, so a supplier can quote it), a supplier, lines (product, the supplier's code and name as they were that day, quantity, unit cost in the company's currency only (owner ruling, 27 October 2026), expected date = sent date + lead time used), and a status.
-3. **Statuses:** `draft` → `sent` → `part_received` → `received`; `closed` (a manager closes a line or order that will not complete); `cancelled` (from draft or sent with nothing received). A purchase order with receipts cannot be cancelled. The list's position counts the open quantity of `sent` and `part_received` orders.
-4. **Creating one:** from the list, one draft per supplier with the suggested quantities; or by hand, with no list involved.
-5. **Sending:** download, print, or email, where the email is an egress effect through the gate ([ADR-000 SPEC 7](../../system-architecture/spec/#7-the-egress-gate)); in shadow, recorded only. The seller can mark it sent after phoning.
-6. **Receiving.** On the order a Warehouse user or above receives a delivery: Purchasing calls Inventory's receive port with the order line as the source, one batch per delivery, lot and date as ADR-006 requires ([ADR-006 SPEC 8.5](../../stock-ledger/spec/#8-receiving)). Fewer than ordered leaves the rest incoming until a manager closes the line; more is received as counted and the surplus is shown. A receipt made without the order can be attached to its line later.
-7. **Cost hand-off.** The line's unit cost plus the order's extras (freight, duty, handling, entered on the order, apportioned by value) is the batch's provisional landed unit cost, in the receive call. Correcting a cost afterwards calls Inventory's cost port and never touches quantities or the ledger ([ADR-006 SPEC 8.6](../../stock-ledger/spec/#8-receiving)). Purchase VAT and import VAT are the seller's accounting, not Vervoro's ([ADR-011](../../invoicing-and-vat/)).
-8. **Measured lead time:** days from sent to first receipt, kept per product and supplier from the last five receipts, shown beside the quote on the card and the list.
-9. **Retiring and first use:** the product's SKU is fixed after the first purchase order line ([ADR-003 SPEC 3.3](../../product-model/spec/#3-sku)); an open purchase order blocks retiring ([ADR-003 SPEC 9.2](../../product-model/spec/#9-status)), through the extension point of section 10.4.
-10. **Permissions to add:** create, edit and send (Owner, Admin, Manager); receive (also Warehouse); see costs ([ADR-010](../../users-and-access/spec/#4-who-may-do-what)).
-11. **Not in step 2:** several currencies on one order, landed cost by weight, forecasting, supplier portals, EDI, approvals, blanket orders, returns to supplier (a write-off or a return is Inventory's, [ADR-006 SPEC 8.4](../../stock-ledger/spec/#8-receiving)).
+1. **Optional.** Every rule of section 1.3 holds. A receipt without an order stays complete on its own (ADR-006 SPEC
+   8.4); switching Purchasing off changes no stock, product or order command.
+2. **A purchase order** has a number, gap-free per company (the kernel's counter, `purchasing_order`), taken when the
+   draft is made and shown as `PO-<n>`; a draft is never deleted, only cancelled, so the series stays gap-free. It
+   names one supplier (active when made) and one delivery warehouse, carries optional extras (freight, duty,
+   handling; the company's currency only, owner ruling of 27 October 2026) and a note of up to 1,000 characters. Its
+   lines (1 to 200, the most one receipt takes) each hold a product (a simple product or a pack; a bundle or a
+   retired product is refused; an inactive product is allowed and flagged; a product with no link to the supplier is
+   allowed and makes no link), a quantity (1 to 1,000,000), an optional unit cost in the company's currency, and
+   copies of the SKU, the product's name and the supplier's code taken when the line is added and again at sending.
+   The expected date is the sent date plus the lead time used (section 4.3), none when there is no lead time; anyone
+   who may edit the order may change it. A suggested quantity goes through section 4.4's rounding; a quantity typed
+   below the minimum or off the multiple is flagged, never refused.
+3. **Statuses:** `draft` → `sent` (by sending or "mark as sent") → `part_received` (the first receipt) → `received`
+   (every line received in full); `closed` when a manager closes a line (its open quantity becomes 0) and every line
+   is received or closed; `cancelled` from `draft`, or from `sent` with nothing received. An order with receipts is
+   never cancelled; closed and cancelled are final (a late delivery is received without the order and attached, rule
+   6). The open quantity of a line is `max(0, ordered − received)` on a `sent` or `part_received` order while the
+   line is not closed; the list's position counts it as on its way (section 6.2). A sent order's lines may still be
+   edited, never below what was received; every change is an activity entry.
+4. **Creating one.** From the list: for the rows chosen, one draft per preferred supplier with the suggested
+   quantities, delivered to the warehouse the person picks (the only one by default); rows with no supplier or an
+   archived one are skipped and named; an open draft for the same supplier and warehouse takes the new lines, a
+   product already on it keeps its quantity; the request's key is kept on the order (`purchasing_order`, unique per company), so a repeat is harmless. By hand: a supplier, then
+   lines, with no list involved. Who: from the list, an unscoped Owner, Admin or Manager (section 6.3.4); by hand and every later action, any Owner, Admin or Manager within their warehouses; a scoped person is refused creating from the list and sees, edits and receives only their warehouses' orders.
+5. **Sending.** Download (a spreadsheet) and print (a page through the browser's print dialog) mark nothing; the
+   screen then offers "Mark as sent", which also covers a phoned order. The document carries the company's name, the
+   delivery warehouse's name and address, the supplier's name, and the lines with their codes, quantities and, for a
+   person who may see costs, prices; no contact detail is copied onto it (section 11.6). **Email to the supplier is
+   *Later*:** a new mail (the rulebook's "Changing a rule"), sent as an egress effect through the gate (ADR-000 SPEC
+   7; recorded only in shadow) once Channels' sending half exists and the owner approves the mail (section 0).
+6. **Receiving.** A Warehouse member or above, in their warehouses, receives a delivery from the order or from the
+   floor's "Receive against an order": one transaction that takes the company's lock first (ADR-006 SPEC 12.1), in
+   which Purchasing calls Inventory's receive port with each line's source (the purchase order line) and the cost
+   (rule 7); each delivery makes its own batch, with lot and date as ADR-006 SPEC 8.2 requires; the short-dated check
+   applies; the unusual-size check (ADR-006 SPEC 8.4) does not apply to a receipt against an order, because the order is
+   the manager's baseline, and a surplus is received sellable and shown on the order. Fewer than ordered leaves the rest on its way until a manager closes the line. More than ordered is received as counted. A Warehouse member never sees or
+   types a cost. **Attaching:** a manager may attach a receipt made without the order (the same product, not yet
+   attached) to an open or closed line, and detach it again; stock does not move; a batch with no cost takes the
+   line's landed cost through the cost port.
+7. **Cost hand-off.** The landed unit cost is the line's unit cost plus its share of the extras, apportioned by the
+   lines' ordered value, at four decimals, passed in the receive call; a line with no cost gets no share and its
+   batch's cost stays blank; clearing a line's cost after a receipt leaves its batches' cost as it was (a figure replaces one, a blank does not). A later change to a line's ordered value on a sent order with extras, or to a line's cost or to the extras, on an open or closed order,
+   recomputes every batch received against the order and sends only the changed figures to Inventory's cost port,
+   which never touches quantities or the ledger (ADR-006 SPEC 8.6). Purchase VAT and import VAT are the seller's
+   accounting, not Vervoro's (ADR-011).
+8. **Measured lead time:** the days from sending to a line's first receipt, in the company's calendar days; per
+   product and supplier the median of the last five (a receipt attached later is left out), read from Purchasing's own tables and never stored; shown
+   beside the quoted lead time on the card and the list, never replacing it.
+9. **First use and retiring.** Sending an order is the product's first use for its lines (Products' use port, reason
+   `purchase_order_line`, section 10.4): the SKU is fixed (ADR-003 SPEC 3.3) and retiring is blocked (ADR-003 SPEC
+   9.2) until the product's last open line ends (received, closed or cancelled), when the use is released. A draft
+   fixes nothing. Sending a retired product is refused, naming it.
+10. **Who may do what** (the rows in ADR-010 SPEC 4): read purchase orders without prices, every role; create,
+    edit, send, cancel, close, attach, and the extras, Owner, Admin and Manager; receive against an order, those and
+    Warehouse; prices, extras and landed costs follow the "See costs" row. In a restricted company (ADR-012 SPEC
+    8.2) receiving against an order runs as the stock path; everything else here is read-only.
+11. **Tables, events, what others read, data, retention.** Tables `purchasing_order`, `purchasing_order_line` and
+    `purchasing_order_receipt` (the line, Inventory's receipt line and batch as plain ids, units, received at,
+    attached or not), added expand-only, unique on (company, number). No event is published or handled. Orders
+    shows, through Purchasing's card on an order's page, a short line's next expected delivery (the earliest expected
+    date with open quantity, marked late when passed; ADR-007 SPEC 10.3). No personal data beyond the supplier's
+    (section 11). Purchase orders, open or closed, are kept for the company's life and deleted with it (ADR-002
+    SPEC 2); every cost in an activity entry is kept with its value and hidden from a person without "See costs".
+12. **Not in step 2:** several currencies on one order, landed cost by weight, forecasting, supplier portals, EDI,
+    approvals, blanket orders, returns to supplier (a write-off or a return is Inventory's, ADR-006 SPEC 8.4).
 
 ## 13. Research and constraints
 
@@ -271,13 +326,15 @@ Database tests run on real Postgres under the runtime role ([ADR-000 SPEC 15](..
 | Personal data | Contact values are not in the activity entry; Warehouse, Accountant and Staff do not see contacts or the export columns |
 | Isolation | Another company's suppliers, links and levels are invisible (the cross-company suite, [ADR-001 SPEC 14](../../database-architecture/spec/#14-tests-that-prove-each-rule)) |
 
+**Step 2:** the number series gap-free under rollback; the status transitions and a cancel with receipts refused; the open quantity in the position, drafts not counted; from the list one draft per supplier, no-supplier rows skipped and named; receive fewer, receive more, short-dated, a Warehouse member sees and sends no cost; attach without a stock move; the landed cost apportioned and a correction leaving the ledger untouched; the measured lead time's median; the SKU fixed at sending, retiring blocked then released; the scope refusal; round trips pinned; isolation.
+
 ## How to check it was built right
 
 For someone reviewing code an AI wrote. Each line says where to look.
 
 - [ ] **Writers:** only Purchasing inserts into `purchasing_*`; the product tables have no supplier, lead time or level column.
 - [ ] **No requirement:** no stock command, product command or listing command reads Purchasing; the no-purchase-order test is green.
-- [ ] **No stock write:** nothing in Purchasing imports Inventory's write ports at step 1 (search the module).
+- [ ] **No stock write:** nothing in Purchasing imports Inventory's write ports but `receive` and `setLandedCost` (search the module).
 - [ ] **No SQL:** all queries use the typed query builder.
 - [ ] **Bundles:** the level and link commands refuse a bundle in the same transaction.
 - [ ] **Position:** one function; held stock and reserved stock are not added; transit is.
