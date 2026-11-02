@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-004.1: eBay connector](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-0041-ebay-connector) |
-| **Date** | 21 October 2026; amended by owner delegation, 2 November 2026 (phase 5.6 as built): the refresh token's lifetime when eBay names none (1.5), an account's refusal in a batch (4.2), a listing eBay will not show (4.8), the resend's old write (4.9), the day spent and the pools' reset (5.5, 5.6, 10), the left-out reason (6.1), the order calls' pool (10), the page cap declared (How to check); a key id not held, looked up in control (2.3, How to check), ruled by delegation, 2 November 2026, for the owner's confirmation; phase 5.6's close: marketplace fees and the deletion-mail runbook (0), `sell.finances` in the consent (1.1), owner delegation, 2 November 2026 |
+| **Date** | 21 October 2026; amended by owner delegation, 2 November 2026 (phase 5.6 as built): the refresh token's lifetime when eBay names none (1.5), an account's refusal in a batch (4.2), a listing eBay will not show (4.8), the resend's old write (4.9), the day spent and the pools' reset (5.5, 5.6, 10), the left-out reason (6.1), the order calls' pool (10), the page cap declared (How to check); a key id not held, looked up in control (2.3, How to check), ruled by delegation, 2 November 2026, for the owner's confirmation; phase 5.6's close: marketplace fees and the deletion-mail runbook (0), `sell.finances` in the consent (1.1), owner delegation, 2 November 2026; phase 5.7's developer's review: the stop and unlink choices with the option off (6.3), owner delegation, 2 November 2026 |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 Only what is particular to eBay. Everything the host does (credentials, HTTP, outcomes, pools, notices in, the completeness check, shadow mode) is [ADR-004 SPEC](../../channel-connectors/spec/) and is not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed.
@@ -71,7 +71,7 @@ Only what is particular to eBay. Everything the host does (credentials, HTTP, ou
 
 1. **Asked, never changed.** When a read finds Seller Hub listings, the connector reads the seller's selling preferences. While the option is off (eBay's default), every SKU on a Seller Hub listing is left out with a note: turn it on, or eBay ends a listing at 0 and removes a variation. Each SKU left out carries the reason in Listings; the account's notice, with the count left out, shows to every role that reads the account (owner delegation, 2 November 2026).
 2. **It blocks going live:** a linked listing that cannot be read blocks the shadow check.
-3. **Turned off later,** sends still go, zero included: selling stock that is gone is worse than an ended listing. The next read shows the note again.
+3. **Turned off later,** sends still go, zero included: selling stock that is gone is worse than an ended listing. The next read shows the note again. The stop and unlink choices say that eBay ends a listing sent 0 (owner delegation, 2 November 2026).
 
 ## 7. Cancellations and dispatch
 
