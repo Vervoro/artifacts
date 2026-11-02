@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-008: Inventory sync](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-008-inventory-sync) |
-| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: the sync epoch read once per sending job; amended by owner delegation, 2 November 2026 (phase 5.7's developer's review): the seams by event and port, S = 0 with no stock and the guard's sequence (1), a nightly-check reason's clearing (7.3), the ladder's order recorded (8.1), the default priority account (9), a stop that sends zeros (10.2), a shared write target, the lease and the first go-live kept in control (13.1, 13.2, 13.4), our own outage (15), alerts' place, an incident and "marketplace down" (16.2–16.4), no lease in `sync_listing_state` and the egress record as the send log (17); chosen listings at a first go-live (14.2), owner ruling, 25 October 2026 |
+| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: the sync epoch read once per sending job; amended by owner delegation, 2 November 2026 (phase 5.7's developer's review): the seams by event and port, S = 0 with no stock and the guard's sequence (1), a nightly-check reason's clearing (7.3), the ladder's order recorded (8.1), the default priority account (9), a stop that sends zeros (10.2), a shared write target, the lease and the first go-live kept in control (13.1, 13.2, 13.4), our own outage (15), alerts' place, an incident and "marketplace down" (16.2–16.4), no lease in `sync_listing_state` and the egress record as the send log (17); chosen listings at a first go-live (14.2), owner ruling, 25 October 2026; Stock sync's engine as built (phase 5.7, PR 1): a frozen item in the email later (0), a link change's guard (1.3), not vouched in the zone (3), a raise due when a first read finds B below D (5.1), an Amazon quantity notice by SKU (6.2), eBay's "limit reached" tried hourly (8.4), the default priority account by its listing and a keep naming no account (9), kept units in shadow (9.2), a not-managed listing over what the stock allows (10.1), a stopping account with Stock sync off (10.2), who names the write target (13.1), alerts for accounts that send (16), the 10-minute deadline (16.2), how the email names listings and accounts (16.3), the `unknown` write's 30 minutes and a page's end (16.4), the `stocksync_` prefix and two more tables (17), owner delegation, 2 November 2026; an import problem on the listing's current link (1), the outage reset on a round past due and the round after a lift (15), the stock beside a not-managed listing and a figure's age since first shown (16.1), stock writes' daily count per account kept 13 months (17), ruled by delegation, 2 November 2026, for the owner's confirmation |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-008 from: the Stock sync module, switchable per company, needing Inventory, Listings, Orders and Channels ([ADR-000 SPEC 4](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)). Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/).
@@ -21,14 +21,15 @@ The rules to build ADR-008 from: the Stock sync module, switchable per company, 
 | eBay item-change notices for Seller Hub listings | Hand edits near zero are seen too late in shadow | [6](#6-confirming-every-write) |
 | Every Shopify rule in this SPEC (location, write target, compare-and-set, webhooks) | The Shopify connector is built ([ADR-004.3](../../shopify-connector/)) | [1](#1-the-figure-per-listing), [2](#2-terms), [4](#4-the-belief), [5](#5-the-order-read-before-a-raise), [6](#6-confirming-every-write), [8](#8-limits-and-who-goes-next) |
 | The tolerance for Amazon accounts on several marketplaces | Notices during shadow prove Amazon keeps the marketplaces in step | [12](#12-amazon-accounts-on-several-marketplaces) |
+| A frozen item in the one email | A connector's outcome names a frozen item | [16.3](#16-what-the-seller-and-the-operator-see) (owner delegation, 2 November 2026) |
 
 ## 1. The figure per listing
 
 This section owns the rule that Stock sync alone writes each listing's figure (owner ruling, 21 October 2026, [ADR-000 SPEC 4.6](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)).
 
-1. **Inventory writes, Stock sync works out.** Inventory writes each stock change with its ledger sequence and an outbox note in one transaction ([ADR-006 SPEC 13](../../stock-ledger/spec/#13-telling-stock-sync)). Stock sync's handler hears the note after commit ([ADR-001 SPEC 9](../../database-architecture/spec/#9-background-work-and-the-outbox)), reads sellable and its sequence through Inventory's port and the links through Listings' port, and writes the rows in its own transaction. No other module writes `sync_listing_figure`. Channels tells Stock sync each write's outcome and Listings each figure a read finds, by event; Orders' and Channels' ports give the watermark, the unfetched orders and the order lines, ids only (owner delegation, 2 November 2026).
+1. **Inventory writes, Stock sync works out.** Inventory writes each stock change with its ledger sequence and an outbox note in one transaction ([ADR-006 SPEC 13](../../stock-ledger/spec/#13-telling-stock-sync)). Stock sync's handler hears the note after commit ([ADR-001 SPEC 9](../../database-architecture/spec/#9-background-work-and-the-outbox)), reads sellable and its sequence through Inventory's port and the links through Listings' port, and writes the rows in its own transaction. No other module writes `stocksync_listing_figure`. Channels tells Stock sync each write's outcome and Listings each figure a read finds, by event; Orders' and Channels' ports give the watermark, the unfetched orders and the order lines, ids only (owner delegation, 2 November 2026).
 2. **One row per linked listing:** D (or no figure), a version, the link version, and the ledger sequence and time it came from.
-3. **An older sequence never replaces a newer one.** A recompute first locks the listing's row, then reads its inputs, and writes only if its sequence is at least the stored one. So the last recompute to commit always read the newest inputs. The sequence is the one Inventory's port reports with the product's sellable (owner delegation, 2 November 2026).
+3. **An older sequence never replaces a newer one.** A recompute first locks the listing's row, then reads its inputs, and writes only if its sequence is at least the stored one. So the last recompute to commit always read the newest inputs. The sequence is the one Inventory's port reports with the product's sellable (owner delegation, 2 November 2026). A link change is guarded by Listings' link version; on the same link, an older sequence never replaces a newer one (owner delegation, 2 November 2026).
 4. **Other recomputes:** a link made, changed or closed (Listings' event), a bundle's components changed (Products' event), a policy or account-setting change (Stock sync's own), an import problem opened or closed (Orders' event). They run at the current sequence, without a ledger entry.
 5. **The version rises only when D changes,** so a recompute that changes nothing sends nothing.
 6. **Nothing is lost:** the note commits with the stock change, and the handler is idempotent with a receipt. Recomputing every row from committed state gives the stored rows; the nightly check runs this ([ADR-006 SPEC 14](../../stock-ledger/spec/#14-the-nightly-check-and-checkpoints)).
@@ -41,7 +42,7 @@ This section owns the rule that Stock sync alone writes each listing's figure (o
 4. **A bundle** takes, per component, that component's avail for A divided by the quantity per bundle, rounded down, and the smallest of them.
 5. **D = floor(avail ÷ u).**
 
-**Import problems** ([ADR-007 SPEC 9](../../order-ingestion/spec/#9-import-problems)): each line whose listing and quantity were read takes quantity × the units per sale of the link valid at purchase off avail for every account, never below zero, until the order imports, when its reservations replace the deduction. A line whose quantity was not read holds raises on its listing; a line whose listing was not read holds every raise on the account, and pages the operator after 60 minutes. A mirror's lines (a Shopify copy of a sale also connected directly) count the same.
+**Import problems** ([ADR-007 SPEC 9](../../order-ingestion/spec/#9-import-problems)): each line whose listing and quantity were read takes quantity × the units per sale of the listing's current link off avail for every account, never below zero, until the order imports, when its reservations replace the deduction (ruled by delegation, 2 November 2026; for the owner's confirmation). A line whose quantity was not read holds raises on its listing; a line whose listing was not read holds every raise on the account, and pages the operator after 60 minutes. A mirror's lines (a Shopify copy of a sale also connected directly) count the same.
 
 **No figure** (never sent as 0): marketplace-shipped listings; pending and ended listings ([ADR-005 SPEC 3](../../catalogue-sync/spec/#3-states)); a missing listing keeps its figure; eBay variations without a SKU; eBay Seller Hub listings never read because the out-of-stock option is off ([ADR-004.1](../../ebay-connector/)); listings not managed; disconnected accounts.
 
@@ -67,10 +68,11 @@ This section owns the rule that Stock sync alone writes each listing's figure (o
 | Above the zone, B − D ≥ T | D | Safety | At once |
 | Above the zone, D − B ≥ T | D | Bulk | After the order read |
 | Above the zone, gap under T | Nothing | | With the next write |
-| Not vouched | D whenever D ≠ B | Safety if lower, bulk if higher | At once if lower; after the order read if higher |
+| Not vouched, above the zone | D whenever D ≠ B | Safety if lower, bulk if higher | At once if lower; after the order read if higher |
 
 1. **W is in the listing's own units,** so a six-pack or a bundle is in the zone as soon as its own figure is, and one large trade order on one listing never puts the whole account in the zone.
 2. **One write in flight per listing.** New figures only update the row; when a write ends, the latest D is compared with B again.
+3. **Not vouched:** in the zone, the zone's rows; above it, every change (safety if lower, bulk if higher) (owner delegation, 2 November 2026).
 
 ## 4. The belief
 
@@ -89,7 +91,7 @@ This section owns the rule that Stock sync alone writes each listing's figure (o
 
 ## 5. The order read before a raise
 
-1. **A raise becomes due** when D rises above B, or a read lowers B. A decrease, or a read that changes nothing, does not restart the wait.
+1. **A raise becomes due** when D rises above B, or a read lowers B, or finds B, unknown until then, below D (owner delegation, 2 November 2026). A decrease, or a read that changes nothing, does not restart the wait.
 2. **It goes** when the account's order watermark ([ADR-007 SPEC 2.3](../../order-ingestion/spec/#2-how-an-order-comes-in)) is at least that moment plus 2 minutes, and **sends the latest D,** never the figure it became due with.
 3. **A notice naming an order without its lines** holds the account's raises until the order is fetched or recorded as an import problem; after 30 minutes the operator is paged.
 4. **One on-demand read per account** covers every raise waiting on it:
@@ -112,7 +114,7 @@ This section owns the rule that Stock sync alone writes each listing's figure (o
 | `unknown` | Unknown | Settled before anything else is sent, by [ADR-004's rule](../../channel-connectors/spec/#5-retries-and-outcomes), with its eBay Trading exception ([ADR-004.1](../../ebay-connector/spec/#4-listings-and-stock)) |
 
 1. **A read-back that does not match** after the deadline closes the write as "send again".
-2. **Drift** (a figure Vervoro did not send) is found by notices where they exist (Amazon's listing-quantity notices, Shopify's inventory webhook), eBay inventory item reads every 6 hours from the Inventory API's own allowance, and the daily safety read ([ADR-005](../../catalogue-sync/)). A reading replaces B and the rules decide.
+2. **Drift** (a figure Vervoro did not send) is found by notices where they exist (Amazon's listing-quantity notices, Shopify's inventory webhook), eBay inventory item reads every 6 hours from the Inventory API's own allowance, and the daily safety read ([ADR-005](../../catalogue-sync/)). A reading replaces B and the rules decide. An Amazon listing-quantity notice names a SKU; it sets B on the account's listings of that SKU (owner delegation, 2 November 2026).
 3. **Entering the zone:** an eBay inventory item is read once, from the Inventory API's allowance; a Seller Hub listing only within the account's share of the Trading pool, otherwise at the daily read.
 
 ## 7. Held raises
@@ -134,7 +136,7 @@ This section owns the rule that Stock sync alone writes each listing's figure (o
 | 150 to 239 | Decreases, and raises from 0 |
 | 240 to 249 | Only a 0; a listing in the zone is sent 0 at 240 |
 
-   From 1,800 in 30 days an item takes only zeros. eBay's own "limit reached" reply stops every write to the item until the window frees a revision, and the seller is told at once. A Trading call carries up to four listings or variations of one account, waits at most 2 seconds to fill, and a zero never waits.
+   From 1,800 in 30 days an item takes only zeros. eBay's own "limit reached" reply stops every write to the item until the window frees a revision, and the seller is told at once; after that reply the item is tried again hourly (owner delegation, 2 November 2026). A Trading call carries up to four listings or variations of one account, waits at most 2 seconds to fill, and a zero never waits.
 5. **Amazon:** single patches only, one open write per SKU (a decrease may overtake it). Scheduled reads use the all-listings report and notices, never one read per listing.
 6. **Shopify:** compare-and-set on every write ([ADR-004.3](../../shopify-connector/)), in batches of up to 250 on the bulk lane, singly on the safety lane, always leaving 55 points in the bucket.
 7. **Budget.** At 2,000 linked listings and 150 orders a day per seller, stock writes and reads use about 100 Trading calls a day for 10 sellers and 740 for 100. What binds is ADR-004's reserve rule ([ADR-004 SPEC 7](../../channel-connectors/spec/)), so the default 5,000 serves 10, and more need eBay's Growth Check.
@@ -143,18 +145,18 @@ This section owns the rule that Stock sync alone writes each listing's figure (o
 
 | Setting | Set for | Default |
 | --- | --- | --- |
-| Keep the last K units for one account | The company, with an override per product, optionally until an end date | K = 2, for the earliest-connected seller-shipped account still connected that is not an Amazon account on several marketplaces; with none, nothing is kept (owner delegation, 2 November 2026) |
+| Keep the last K units for one account | The company, with an override per product, optionally until an end date | K = 2, for the earliest-connected account still connected whose listing of the product is seller-shipped, not an Amazon account on several marketplaces; with none, nothing is kept. A keep that names no account keeps for the default priority account (owner delegation, 2 November 2026) |
 | Buffer (units an account is never shown) | Product and account, optionally until an end date | 0 |
 | Tolerance T | Account | 20 |
 
 1. **One keep per product at a time.** A dated keep replaces the default until its end. It may not keep more than the product's sellable when it is set.
-2. **Kept units are never stranded:** they are kept only while the priority account is live and its listing of the product is managed.
+2. **Kept units are never stranded:** they are kept only while the priority account is live and its listing of the product is managed. In shadow, kept units are worked out as if the priority account were live (owner delegation, 2 November 2026).
 3. **Every change shows a preview** (what each other account can still sell, and how long that lasts at last week's pace), is made by an Owner, Admin or Manager, recomputes the figures in one transaction, and its decreases go at once.
 
 ## 10. Listing modes and stopping
 
-1. **A listing is managed or not managed,** optionally until a date. Not managed sends no figure; its orders still reserve. One that shows more than the stock is flagged to the seller.
-2. **Every stop asks: leave the figure, or send 0.** It applies to stopping an account, stepping it back to shadow, disconnecting, switching a marketplace off, setting a listing to not managed, and unlinking a listing, where the closed link carries the seller's answer ([ADR-005 SPEC 11.6](../../catalogue-sync/spec/#116-unlinking)). A 0 is confirmed applied before the mode changes. Until then the account keeps sending, only zeros and decreases go, and it shows as stopping. A zero `rejected` is listed for the seller and does not hold the stop. A disconnect forgets the credentials only after its zeros. A module switched off with "send 0" goes off once its accounts' zeros are confirmed; an Owner or Admin may stop at once, leaving the listed figures (owner delegation, 2 November 2026).
+1. **A listing is managed or not managed,** optionally until a date. Not managed sends no figure; its orders still reserve. One that shows more than the stock allows it (the figure it would get if managed, in its own units, with the keep) is flagged to the seller, on the listing and on Today alike (owner delegation, 2 November 2026).
+2. **Every stop asks: leave the figure, or send 0.** It applies to stopping an account, stepping it back to shadow, disconnecting, switching a marketplace off, setting a listing to not managed, and unlinking a listing, where the closed link carries the seller's answer ([ADR-005 SPEC 11.6](../../catalogue-sync/spec/#116-unlinking)). A 0 is confirmed applied before the mode changes. Until then the account keeps sending, only zeros and decreases go, and it shows as stopping. A zero `rejected` is listed for the seller and does not hold the stop. A disconnect forgets the credentials only after its zeros. A module switched off with "send 0" goes off once its accounts' zeros are confirmed; an Owner or Admin may stop at once, leaving the listed figures (owner delegation, 2 November 2026). With Stock sync switched off or unavailable, a stopping account finishes at once (owner delegation, 2 November 2026).
 3. **Decrease-only** is an account mode for a company closed under [ADR-012](../../billing-and-plans/spec/#9-closing-a-company), from its closing date until erasure. D is worked out as usual, but a figure is sent only when it is lower than B.
 
 ## 11. The first figure after a link
@@ -169,7 +171,7 @@ One patch sets one quantity for every marketplace the account serves ([ADR-004.2
 
 ## 13. One writer per listing
 
-1. **One job per write target at a time.** A batch takes the lease of every member; a member already leased is left out. A write target serving several listings is sent the lowest of their figures (owner delegation, 2 November 2026).
+1. **One job per write target at a time.** A batch takes the lease of every member; a member already leased is left out. A write target serving several listings is sent the lowest of their figures (owner delegation, 2 November 2026). The connector names the write target; an open write of any listing on it holds the next one. Listings of one account sharing an Amazon SKU or an eBay inventory item are one target; each eBay Seller Hub listing or variation is its own (owner delegation, 2 November 2026).
 2. **A lease** lasts the call's timeout plus 15 seconds. An expired lease is written `unknown` and settled first. The lease is the egress record's claim on the write target ([ADR-000 SPEC 7.5](../../system-architecture/spec/#7-the-egress-gate); owner delegation, 2 November 2026).
 3. **The idempotency key** is the company's sync epoch, the write target, the version, the figure, and how many writes of that figure at that version have already settled. A repeat after a crash carries the same key; a deliberate second write of the same figure gets a new one.
 4. **The sync epoch** is one number per company in the control database ([ADR-001 SPEC 7](../../database-architecture/spec/#7-control-database-and-routing)), so a restore never rolls it back. Every restore raises it. A job that sends reads it from control once, when it starts, and uses it for every key it makes; nothing carries it from one job to the next (owner ruling, 25 October 2026). Control also keeps when the company first went live (owner delegation, 2 November 2026).
@@ -187,30 +189,34 @@ Every account starts in shadow by [ADR-004's rule](../../channel-connectors/spec
 
 | Event | What happens |
 | --- | --- |
-| A crash or our own outage | Leases expire, open writes are `unknown` and settled first. Rows are current, so nothing is replayed. Every raise waits for a fresh order read; each account's first read is spread over 5 minutes; a run that finds its account's last run more than 5 minutes old makes every waiting raise due again at that moment (owner delegation, 2 November 2026) |
+| A crash or our own outage | Leases expire, open writes are `unknown` and settled first. Rows are current, so nothing is replayed. Every raise waits for a fresh order read; each account's first read is spread over 5 minutes; a run that finds its account's round past due by more than 5 minutes makes every waiting raise due again at that moment (ruled by delegation, 2 November 2026; for the owner's confirmation) |
 | A marketplace outage | Calls back off; after 5 failures in a row an account's writes stop for 1 minute, doubling to 15, with one probe each interval. On recovery the latest figures go in ladder order |
-| The operator's hold on a marketplace ([ADR-004](../../channel-connectors/)) | Figures wait as rows; on release, `unknown` writes are settled first |
+| The operator's hold on a marketplace ([ADR-004](../../channel-connectors/)) | Figures wait as rows; on release, `unknown` writes are settled first; on release, and when a marketplace incident ends, the account's round resumes within 15 minutes (ruled by delegation, 2 November 2026; for the owner's confirmation) |
 | A restore ([ADR-001](../../database-architecture/)) | The sync epoch rises; every account returns to shadow; every B is unknown; listings are read by reports and bulk reads; eBay revisions count at their worst for 24 hours; the operator signs off before anything is sent ([runbook](../../runbooks/recover-stock-sync-after-a-restore/)) |
 | An account reconnects | A new shadow period with B unknown; it goes live on the listing check |
 | A closed company reopens ([ADR-012 SPEC 10](../../billing-and-plans/spec/#10-reopening-a-closed-company)) | Every account returns to shadow with B unknown; goods received while closed are recorded first |
 
 ## 16. What the seller and the operator see
 
-1. **Every listing shows two figures,** Vervoro's and what the marketplace last showed, each with its age in words. An account's health is one of: not measured, right, catching up, needs you.
-2. **Seller alerts in the app:** a listing at 0 with stock for 5 minutes that no rule is fixing; a refused figure; a figure not confirmed 20 minutes after its deadline; a not-managed listing showing more than the stock. Alerts are cards on Today and flags on the listing (owner delegation, 2 November 2026).
-3. **One email:** "a marketplace shows more than you have and Vervoro cannot fix it" (a refused decrease, eBay's revision limit, a frozen item), to the account's Owners and Admins, grouped per account, at most every 30 minutes, never during an incident on the marketplace's side ([ADR-004 SPEC 13.5](../../channel-connectors/spec/#13-keeping-failures-apart)'s incident alert, or the operator's hold; owner delegation, 2 November 2026), naming the listings and the fix.
-4. **Operator pages, per marketplace, never per listing:** the order watermark behind by more than its marketplace's backup-read interval plus 15 minutes ([ADR-004 SPEC 9](../../channel-connectors/spec/)); a decrease or a change in the zone, unheld, unsent for 15 minutes; a shared pool at 90 %; an Amazon write accepted but unconfirmed after 60 minutes; an `unknown` write unsettled after three reads. When many accounts on one marketplace page at once ([ADR-004 SPEC 13.5](../../channel-connectors/spec/#13-keeping-failures-apart)), one "marketplace down" page replaces them (owner delegation, 2 November 2026).
+Alerts, the email and the operator pages concern accounts that send; an account in shadow shows its differences in the shadow check ([ADR-004 SPEC 11.2](../../channel-connectors/spec/#11-shadow-mode-and-launch-gates)) (owner delegation, 2 November 2026).
+
+1. **Every listing shows two figures,** Vervoro's and what the marketplace last showed, each with its age in words. An account's health is one of: not measured, right, catching up, needs you. A not-managed listing shows the stock beside what the marketplace shows. A read that finds the figure already shown keeps its first reading's time: the age is how long it has shown it (ruled by delegation, 2 November 2026; for the owner's confirmation).
+2. **Seller alerts in the app:** a listing at 0 with stock for 5 minutes that no rule is fixing; a refused figure; a figure not confirmed 20 minutes after its 10-minute deadline (owner delegation, 2 November 2026); a not-managed listing showing more than the stock. Alerts are cards on Today and flags on the listing (owner delegation, 2 November 2026).
+3. **One email:** "a marketplace shows more than you have and Vervoro cannot fix it" (a refused decrease, eBay's revision limit, a frozen item), to the account's Owners and Admins, grouped per account, at most every 30 minutes, never during an incident on the marketplace's side ([ADR-004 SPEC 13.5](../../channel-connectors/spec/#13-keeping-failures-apart)'s incident alert, or the operator's hold; owner delegation, 2 November 2026), naming each listing by its SKU, else its title, and the account by its label, and the fix (owner delegation, 2 November 2026).
+4. **Operator pages, per marketplace, never per listing:** the order watermark behind by more than its marketplace's backup-read interval plus 15 minutes ([ADR-004 SPEC 9](../../channel-connectors/spec/)); a decrease or a change in the zone, unheld, unsent for 15 minutes; a shared pool at 90 %; an Amazon write accepted but unconfirmed after 60 minutes; an `unknown` write unsettled for 30 minutes (three reads) (owner delegation, 2 November 2026). When many accounts on one marketplace page at once ([ADR-004 SPEC 13.5](../../channel-connectors/spec/#13-keeping-failures-apart)), one "marketplace down" page replaces them (owner delegation, 2 November 2026). A page is per marketplace and ends once no company raises it again within 15 minutes (owner delegation, 2 November 2026).
 
 ## 17. Storage
 
-Stock sync's tables carry the `sync_` prefix, are declared through `tenantTable()` and queried through the typed query builder ([ADR-001 SPEC 5](../../database-architecture/spec/#5-declaring-tables)); they name other modules' rows by plain ids, with no foreign key.
+Stock sync's tables carry the `stocksync_` prefix (the module's id, ADR-001 SPEC 5; owner delegation, 2 November 2026), are declared through `tenantTable()` and queried through the typed query builder ([ADR-001 SPEC 5](../../database-architecture/spec/#5-declaring-tables)); they name other modules' rows by plain ids, with no foreign key.
 
 | Table | Holds |
 | --- | --- |
-| `sync_listing_figure` | Listing, link version, account, D or no figure, version, ledger sequence and time it came from, the time a raise became due |
-| `sync_policy` | K and the priority account per company and product, buffers per product and account (each with an end date), T per account |
-| `sync_listing_state` | B or unknown, when and how observed, W, the mode, revisions in 24 hours and 30 days, the held-raise reasons (no lease, [13.2](#13-one-writer-per-listing); owner delegation, 2 November 2026) |
-| `sync_send` | The egress record ([ADR-004 SPEC 5](../../channel-connectors/spec/#5-retries-and-outcomes)) is the send log: write target, figure, lane, key, outcome and times; Stock sync keeps none of its own (owner delegation, 2 November 2026) |
+| `stocksync_listing_figure` | Listing, link version, account, D or no figure, version, ledger sequence and time it came from, the time a raise became due |
+| `stocksync_policy` | K and the priority account per company and product, buffers per product and account (each with an end date), T per account |
+| `stocksync_listing_state` | B or unknown, when and how observed, W, the mode, revisions in 24 hours and 30 days, the held-raise reasons (no lease, [13.2](#13-one-writer-per-listing); owner delegation, 2 November 2026) |
+| `stocksync_send` | The egress record ([ADR-004 SPEC 5](../../channel-connectors/spec/#5-retries-and-outcomes)) is the send log: write target, figure, lane, key, outcome and times; Stock sync keeps none of its own (owner delegation, 2 November 2026). Stock writes keep 30 days of detail, then a daily count per account, kept 13 months after its day (ruled by delegation, 2 November 2026; for the owner's confirmation) |
+| `stocksync_account` | Per account: the last run, when its round is due next, since when its marketplace has been held or in an incident, when its first order read may go, the last mail, when it was last right, the incident at the last round (owner delegation, 2 November 2026) |
+| `stocksync_run` | A paged job's place: the product the full recompute stopped after (owner delegation, 2 November 2026) |
 
 The sync epoch is in control. Schema changes expand, then contract ([ADR-000 SPEC 11](../../system-architecture/spec/#11-deploying)).
 
@@ -236,7 +242,7 @@ Pure send rules run as unit tests; the handler and leases on real Postgres; mark
 
 | Test | Proves |
 | --- | --- |
-| Writer | Only Stock sync writes `sync_listing_figure`; Inventory's transaction writes a note and no figure |
+| Writer | Only Stock sync writes `stocksync_listing_figure`; Inventory's transaction writes a note and no figure |
 | Sequence | Two handlers for sequences 10 and 11 in either commit order leave the row at 11; a policy change racing a note ends with both applied |
 | Recompute | Recomputing every row from committed state gives the stored rows |
 | Belief | B never falls without a confirmed write, a read, or a vouched own sale on the listing the order names |
@@ -256,7 +262,7 @@ Pure send rules run as unit tests; the handler and leases on real Postgres; mark
 
 For someone reviewing code an AI wrote. Each line says where to look.
 
-- [ ] **One writer:** only Stock sync's code inserts or updates `sync_listing_figure`; Inventory imports nothing from Listings or Stock sync.
+- [ ] **One writer:** only Stock sync's code inserts or updates `stocksync_listing_figure`; Inventory imports nothing from Listings or Stock sync.
 - [ ] **After commit:** the figure is written in the outbox handler, never inside a stock command's transaction.
 - [ ] **Sequence guard:** the update locks the row first, reads inputs after, and compares the sequence; the sequence test is green.
 - [ ] **No SQL:** every query uses the typed query builder; no `sql` or `raw` import in the module.
