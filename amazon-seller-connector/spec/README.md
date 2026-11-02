@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-004.2: Amazon Seller connector](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-0042-amazon-seller-connector) |
-| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: the backup read hourly (4.1); the bridge's region and the outside watcher beside it (3.1), owner delegation, 2 November 2026 |
+| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: the backup read hourly (4.1); the bridge's region and the outside watcher beside it (3.1), owner delegation, 2 November 2026; the Amazon connector as built: the bridge's secret header (3.2), the window's bound (4.3), a 401 or 403 on a patch (5.1), a report per marketplace, a cancelled or fatal report and its cursor (5.5), unsellable and under-investigation units (7.2), a notice's change read (7.3), a full read across runs (7.4), one reading per account, marketplace and SKU (7.6), the application-wide throttle (10.3), the fulfilled-by-Amazon refusal (How to check), owner delegation, 2 November 2026 |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 Only what is particular to Amazon. Everything the host does (credentials, HTTP, outcomes, notices in, the completeness check, shadow mode) is [ADR-004 SPEC](../../channel-connectors/spec/) and is not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed.
@@ -41,7 +41,7 @@ Only what is particular to Amazon. Everything the host does (credentials, HTTP, 
 | Listing quantity and status change | An EventBridge bus only | A rule posts each event |
 
 1. **One bridge for every Amazon region,** in an EU AWS region, with no code: a queue, a pipe and an API destination ([ADR-000 SPEC 8](../../system-architecture/spec/#8-connectors-and-orders-in)). It keeps nothing and decides nothing. The bridge is in eu-central-1 (Frankfurt) where Amazon supports it for the EU endpoint, else eu-west-1 (Ireland); the outside watcher is in the same AWS account and region (owner delegation, 2 November 2026).
-2. **A shared secret** on every post; the endpoint accepts the current or previous one ([ADR-004 SPEC 8](../../channel-connectors/spec/#8-notices-in)). Rotated yearly, or at once if it may have leaked.
+2. **A shared secret** on every post; the endpoint accepts the current or previous one ([ADR-004 SPEC 8](../../channel-connectors/spec/#8-notices-in)). Rotated yearly, or at once if it may have leaked. The bridge sends the secret in the header `x-vervoro-bridge-secret`; Amazon's body is unchanged (owner delegation, 2 November 2026).
 3. **The notice must be ours.** Any application can name our queue as its destination, so the endpoint also checks Vervoro's application id. Anything else is answered and dropped.
 4. **Failures are visible.** A post the endpoint refuses is retried by AWS, then lands in the bridge's dead-letter queue, whose alarm pages the operator.
 5. **Subscriptions on connect,** with the seller's token, to order, listing and Amazon-held stock notices at the region's destination. One already at our destination is kept; one at another destination is an error. Disconnect deletes them without the seller's token, so it works after the seller removed the app.
@@ -53,7 +53,7 @@ Procedure: [Set up the Amazon notice bridge](../../runbooks/set-up-the-amazon-no
 
 1. **Hourly,** and every 10 minutes while the account's notices look broken or after a failed launch gate ([ADR-004 SPEC 9](../../channel-connectors/spec/#9-the-completeness-check); owner ruling, 25 October 2026), on every marketplace of the region in one search (up to 50). An early read is never closer than three minutes, because the search refills that slowly.
 2. **Each page carries its orders' items,** so nothing is fetched per order.
-3. **Amazon stops a search two minutes before its own clock** and says where it stopped; that bound is the window's completeness.
+3. **Amazon stops a search two minutes before its own clock** and says where it stopped; that bound is the window's completeness. No bound in the reply: the window is not complete. A bound later than the window's end: the end (owner delegation, 2 November 2026).
 
 ## 5. Stock
 
@@ -66,10 +66,12 @@ Procedure: [Set up the Amazon notice bridge](../../runbooks/set-up-the-amazon-no
 | 429 | `throttled`, with Amazon's wait if given |
 | 5xx, timeout, unreadable | `unknown`; read back before anything is sent again |
 
+A 401 or 403 on a patch is the account's access problem ([ADR-004 SPEC 3.6](../../channel-connectors/spec/#3-credentials-and-approval), after one refresh), not `rejected` (owner delegation, 2 November 2026).
+
 2. **Read back** with `getListingsItem`: the quantity sent is `applied`; an error issue on the quantity, or a listing that has gone, is `rejected`; anything else is still pending. When the reads happen is [ADR-008 SPEC 6](../../inventory-sync/spec/#6-confirming-every-write).
 3. **No compare-and-set.** The order watermark is the guard ([ADR-008](../../inventory-sync/)).
 4. *Later:* **listings feeds for raises only.** A feed is uploaded, then named; its report names refused messages by position, so the host keeps the order it sent them in. A feed never carries a decrease: it lands when Amazon processes it, and could undo a later single decrease.
-5. **Reading every listing** uses the merchant listings report, one per marketplace ([ADR-005](../../catalogue-sync/)).
+5. **Reading every listing** uses the merchant listings report, one per marketplace ([ADR-005](../../catalogue-sync/)). A report is read for each served marketplace. A CANCELLED report ends that marketplace's read as incomplete: nothing is ended from it, the read goes on to the next marketplace, and the next scheduled read asks for a new report. A FATAL report is asked for again. The report's cursor names its document and row; the document is fetched from Amazon's pre-signed address and unpacked (owner delegation, 2 November 2026).
 
 ## 6. Listings Amazon ships
 
@@ -78,10 +80,11 @@ A SKU Amazon fulfils on any of the account's marketplaces is Amazon's and is nev
 ## 7. Stock Amazon holds
 
 1. **A reading, not stock.** Read with `getInventorySummaries`, kept by Channels as a dated reading per product and account, shown beside Inventory's four numbers ([ADR-006 SPEC 6.9](../../stock-ledger/spec/#6-what-a-line-reserves)). It moves no stock and sends no figure.
-2. **What is read,** per marketplace, with details: units Amazon can ship, reserved or in transfer, unsellable, under investigation, inbound. A summary reaches the product through the listing's link; a pack's units are multiplied by its units per sale. A SKU with no link is kept on the listing until linked.
-3. **When:** a full read daily, and after each `FBA_INVENTORY_AVAILABILITY_CHANGES` notice for the SKUs it names. A change read misses inbound units, so the daily read is always full.
-4. **Paging:** up to 50 SKUs a filtered call; a page token lasts 30 seconds, so a read pages straight through and restarts if it stalls.
+2. **What is read,** per marketplace, with details: units Amazon can ship, reserved or in transfer, unsellable, under investigation, inbound. A summary reaches the product through the listing's link; a pack's units are multiplied by its units per sale. A SKU with no link is kept on the listing until linked. Unsellable and under-investigation units are kept and shown as their own line when there are any (owner delegation, 2 November 2026).
+3. **When:** a full read daily, and after each `FBA_INVENTORY_AVAILABILITY_CHANGES` notice for the SKUs it names. A change read misses inbound units, so the daily read is always full. A notice makes a read of its SKUs due within 60 minutes, merged per account; a change read never overwrites inbound units, and a SKU first seen by one has them unknown (owner delegation, 2 November 2026).
+4. **Paging:** up to 50 SKUs a filtered call; a page token lasts 30 seconds, so a read pages straight through and restarts if it stalls. A full read past a run's pages keeps its marketplace and the time it began, deleting nothing until every page is read; a kept page token older than its declared life (30 seconds), refused by Amazon, or older than a day restarts that read (owner delegation, 2 November 2026).
 5. **Role:** Product Listing or Amazon Fulfillment, neither restricted; Product Listing is already asked for.
+6. **One dated reading per account, marketplace and SKU,** no history; held stock arrives by a declared `held-stock-changed` topic and a declared read (owner delegation, 2 November 2026).
 
 ## 8. Buyer data
 
@@ -100,6 +103,7 @@ A shipment is confirmed with Amazon's carrier code, or "Other" with the carrier'
 
 1. **Buckets per seller and application** for most operations, from Amazon's figures, with the live limit from `x-amzn-RateLimit-Limit` when present.
 2. **The slow buckets** (order search, report requests, feed creation) refill in minutes; nothing a notice or single call can do is spent from them.
+3. **An application-wide throttle** is a 429 on an operation with a per-application ceiling while the seller's own live limit is not lower: at least 5 a second; with no limit header none is inferred ([ADR-004 SPEC 6](../../channel-connectors/spec/#6-rate-limits-per-account), owner delegation, 2 November 2026).
 
 ## 11. Simulator and pre-launch recordings
 
@@ -142,7 +146,7 @@ Checked against Amazon's documentation on 17 October 2026; Amazon-held stock row
 - [ ] **Bridge:** the endpoint checks the shared secret and the application id before any database read.
 - [ ] **No AWS credentials** in any Worker; nothing reads SQS in production.
 - [ ] **Accepted:** no code path marks an Amazon write applied without a read or notice.
-- [ ] **Amazon ships:** the write path refuses a fulfilled-by-Amazon SKU.
+- [ ] **Amazon ships:** the host refuses a write to a listing Listings marks fulfilled by the marketplace, before sending, as `rejected` with the reason (owner delegation, 2 November 2026).
 - [ ] **Buyer data:** no restricted role is asked for at launch; no recipient field reaches Orders.
 - [ ] **Held stock:** the reading lives beside the ledger and is never summed into it.
 - [ ] **Later parts:** no feed path at launch.
