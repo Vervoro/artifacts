@@ -22,7 +22,7 @@ A recall must name whom the seller supplied, and the seller needs every buyer to
 ## Verify
 
 - The lot shows as blocked, with no sellable units in any warehouse, and the affected listings' figures have fallen.
-- Every order on the list is marked contacted.
+- The downloaded list is kept with the recall notice (owner delegation, 3 November 2026).
 
 ## If it stops halfway
 
