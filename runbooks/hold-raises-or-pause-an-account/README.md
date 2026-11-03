@@ -12,7 +12,7 @@ Choose the smallest tool that makes it safe. Holding raises keeps every decrease
 ## Steps
 
 1. Decide the scope: one listing, a product's listings, one account, or one marketplace for every company.
-2. **To hold raises** on listings or an account, add the operator's hold with a reason. D is still worked out, and every decrease still goes.
+2. **To hold raises** on listings or an account, add the operator's hold with a reason. The reason is shown to the seller on the account's Stock sync card, so write it for them (1 to 500 characters, nothing about another company; owner delegation, 3 November 2026). D is still worked out, and every decrease still goes.
 3. **To pause an account,** step it back to shadow. Answer the stop question for it: leave the figures, or send 0. A 0 is confirmed applied before the mode changes.
 4. **To stop a marketplace** during an incident on its side, use the platform hold ([ADR-004](../../channel-connectors/)). Figures wait as rows, and nothing is replayed later.
 5. Tell the affected sellers in the app what is held and why. The seller's screen shows those listings as held.
