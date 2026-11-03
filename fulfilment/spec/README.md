@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-014: Fulfilment](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-014-fulfilment) |
-| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: a lot tapped at packing only for use-by products and business buyers (3.2); amended by owner delegation, 3 November 2026 (phase 5.8's developer's review): Products and Access in the needs (1.1), several orders started in one tap (2.1), what the packing screen shows (3.7), own carrier per box and a manual order's shipping (4.1), dispatch without packing from an open, picking or packed order (4.5), shadow (4.9), the returns nightly check (6.5), the block through Inventory's port (7.3); the tracking number kept by Buyer data (1.2), the label scanned on the open order (4.8), ruled by delegation, 3 November 2026, for the owner's confirmation |
+| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: a lot tapped at packing only for use-by products and business buyers (3.2); amended by owner delegation, 3 November 2026 (phase 5.8's developer's review): Products and Access in the needs (1.1), several orders started in one tap (2.1), what the packing screen shows (3.7), own carrier per box and a manual order's shipping (4.1), dispatch without packing from an open, picking or packed order (4.5), shadow (4.9), the returns nightly check (6.5), the block through Inventory's port (7.3); the tracking number kept by Buyer data (1.2), the label scanned on the open order (4.8), ruled by delegation, 3 November 2026, for the owner's confirmation; Fulfilment's pick and pack as built (phase 5.8, PR 1): the table names (1.2), where "not found" leads (2.3), a barcode that carries a lot (3.2), the company's day (3.3), nobody says (3.4), the packing spot's count (3.5), a short line at packing (3.8), ruled by delegation, 4 November 2026, for the owner's confirmation |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-014 from: the Fulfilment module. Every stock change below is a call to an Inventory port defined in [ADR-006 SPEC 7](../../stock-ledger/spec/#7-ports-fulfilment-and-orders-call), and every status change a call to Orders ([ADR-007](../../order-ingestion/spec/#1-the-module)). Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/).
@@ -21,7 +21,7 @@ The rules to build ADR-014 from: the Fulfilment module. Every stock change below
 ## 1. The module
 
 1. **Always on, outside the core.** Needs Orders, Inventory, Buyer data, Products (a product's facts and codes) and Access (a person's role and warehouse scope) ([ADR-000 SPEC 4](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules); owner delegation, 3 November 2026). The core never calls it.
-2. **Its tables,** with the `fulfil_` prefix, declared through `tenantTable()` and queried through the typed query builder: `fulfil_pick_task`, `fulfil_packing`, `fulfil_shipment`, `fulfil_put_back`, `fulfil_return` and `fulfil_inspection`, each with its lines. `fulfil_shipment` holds the order, lines and quantities, boxes, method and carrier; the tracking number Vervoro is given goes to Buyer data's port ([ADR-009 SPEC 4](../../buyer-data/spec/#4-what-is-kept)) (ruled by delegation, 3 November 2026; for the owner's confirmation).
+2. **Its tables,** with the `fulfilment_` prefix (the module's id, [ADR-001 SPEC 5](../../database-architecture/spec/)), declared through `tenantTable()` and queried through the typed query builder: `fulfilment_pick_task`, `fulfilment_packing`, `fulfilment_shipment`, `fulfilment_put_back`, `fulfilment_return` and `fulfilment_inspection`, each with its lines as child tables, and `fulfilment_command`, the floor commands' keys. `fulfilment_shipment` holds the order, lines and quantities, boxes, method and carrier; the tracking number Vervoro is given goes to Buyer data's port ([ADR-009 SPEC 4](../../buyer-data/spec/#4-what-is-kept)) (ruled by delegation, 3 November 2026; for the owner's confirmation).
 3. **One transaction per floor command.** Fulfilment writes its own row and calls Inventory's (and, for a shipment, Orders') port inside the same transaction, under the company's lock, with the command's key ([ADR-006 SPEC 12](../../stock-ledger/spec/#12-the-lock-keys-and-the-sequence)).
 4. **Screens:** Orders → pick and pack, returns, and the recall list.
 
@@ -29,7 +29,7 @@ The rules to build ADR-014 from: the Fulfilment module. Every stock change below
 
 1. **Starting to pick** an order creates a pick task. For each reservation it asks Inventory to claim a spot: the spot of that batch with the fewest units first, less what other open pick tasks already claim from it, unless the caller names one (Inventory's claim port, [ADR-006 SPEC 7.1](../../stock-ledger/spec/#7-ports-fulfilment-and-orders-call); owner delegation, 30 October 2026). A person may start several orders in one tap; each starts as its own command, so a held order is refused alone (owner delegation, 3 November 2026).
 2. **The pick list** names the batch, its lot and date, and the spot. A pick task writes no ledger entry.
-3. **"Not found"** calls Inventory's quarantine port ([ADR-006 SPEC 7.7](../../stock-ledger/spec/#7-ports-fulfilment-and-orders-call)); the pick list then shows the new batch, or the line as short.
+3. **"Not found"** calls Inventory's quarantine port ([ADR-006 SPEC 7.7](../../stock-ledger/spec/#7-ports-fulfilment-and-orders-call)); the pick list then shows the new batch, or the line as short. The walk says where "not found" leads before the tap: the spot of the batch the reservation would move to, or the line short.
 4. **A unit taken from a spot the books do not show** is reported as it is; Inventory records it as a move or a find (ADR-006 SPEC 7.8).
 5. An order whose line is waiting or short does not join the pick list ([ADR-007](../../order-ingestion/spec/#10-whole-orders)).
 
@@ -38,12 +38,13 @@ The rules to build ADR-014 from: the Fulfilment module. Every stock change below
 Packing (ADR-007's "packed") is a server command, keyed by the packing id. For each unit it names the batch:
 
 1. **One eligible batch** of the product in the spot (or the warehouse, without spots): implied.
-2. **Several:** for a use-by product, or a line of an order to a business buyer, the packer taps the date or lot on the unit, or scans a barcode that carries it. A product barcode alone names no batch. Any other product packs as its reserved batch, marked "batch assumed", unless a scanned barcode carries the lot (owner ruling, 25 October 2026).
-3. **Another eligible batch than planned** (in date, not blocked, meeting the demand's need) is taken without a manager; Inventory moves or exchanges the reservation. Choices of a later date than planned are listed daily for a manager.
-4. **Nothing to exchange, or nobody says:** the line keeps its reserved batch, marked "batch assumed", with any lot tapped.
-5. **Packed units** move, still reserved, to the packing spot. Units there for more than 24 hours are listed on Home.
+2. **Several:** for a use-by product, or a line of an order to a business buyer, the packer taps the date or lot on the unit, or scans a barcode that carries it. A product barcode alone names no batch. A barcode carries a lot when it is a GS1 element string: with a symbology identifier (`]C1`, `]d2`, `]Q3`), a leading FNC1, bracketed AIs, or more than 14 digits opening with AI 01; a plain 8 to 14 digit number is the product's GTIN and names no batch. Any other product packs as its reserved batch, marked "batch assumed", unless a scanned barcode carries the lot (owner ruling, 25 October 2026).
+3. **Another eligible batch than planned** (in date, not blocked, meeting the demand's need) is taken without a manager; Inventory moves or exchanges the reservation. Choices of a later date than planned are listed daily, by the company's day ([ADR-000 SPEC 13.2](../../system-architecture/spec/)), for a manager.
+4. **Nothing to exchange, or nobody says** (the packer marks it packed without tapping): the line keeps its reserved batch, marked "batch assumed", with any lot tapped.
+5. **Packed units** move, still reserved, to the packing spot. The orders with units there for more than 24 hours are counted on Home and on Today, opening their list.
 6. **A use-by unit on or after its date, or of a blocked lot,** is refused at packing and swapped.
 7. **What the packing screen shows.** The packing screen shows, through Buyer data's port, the order note, the gift message and customisation and, on a manual order to be delivered, the recipient's name, address and phone ([ADR-009 SPEC 4 and 7.2](../../buyer-data/spec/#4-what-is-kept)); Amazon's gift flag says to print the message from Seller Central ([ADR-004.2 SPEC 8](../../amazon-seller-connector/spec/#8-buyer-data)). The pick list shows no buyer field (owner delegation, 3 November 2026).
+8. **A line short at packing** refuses "packed": the order goes back to waiting with the reason, as an order with a short line waits (2.5, 4.3).
 
 ## 4. Shipments
 
@@ -106,13 +107,13 @@ Database tests run on real Postgres under the runtime role ([ADR-000 SPEC 15](..
 | Put-back | A confirmed cancellation of picked or packed units leaves a put-back task open until each unit is confirmed |
 | Returns | A return enters held, into a batch the line dispatched, at most what it dispatched; inspection outcomes write the right entries |
 | Recall | The list includes bundles and lists "batch assumed" lines apart; it shows no buyer name or address |
-| Boundaries | Fulfilment writes no `stock_` or order table; every stock change goes through an Inventory port |
+| Boundaries | Fulfilment writes no `inventory_` or order table; every stock change goes through an Inventory port |
 
 ## How to check it was built right
 
 For someone reviewing code an AI wrote. Each line says where to look.
 
-- [ ] **Writers:** Fulfilment inserts only into `fulfil_` tables; stock and status changes are port calls (search the module for `stock_` and order tables).
+- [ ] **Writers:** Fulfilment inserts only into `fulfilment_` tables; stock and status changes are port calls (search the module for `inventory_` and order tables).
 - [ ] **One transaction:** each floor command writes its row and calls the ports inside one transaction with its key.
 - [ ] **Packing:** the batch rule (implied, tap, scan) is one function; there is no path that packs without naming a batch or marking "batch assumed".
 - [ ] **Shipment:** one shipment per order; the confirm command refuses an order with a short or waiting line.
