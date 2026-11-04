@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-011: Invoicing and VAT](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-011-invoicing-and-vat) |
-| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: VAT records not partitioned (14); phase 5.9, PR 1 (the developer's review, the plan review, the build and its review): Access in the needs (1.1), the start date (1.4), an eBay account's issuer and a day not registered (2.1), the tax point and when a record is written (3.2, 6.2), the VAT checks page (3.3, 8.2), a correction for a registration date (4.5), a line with no class (6.1), bundles and the minor-item rule (7.4, 7.5), delivery and order discounts split by values as priced (7.7, 7.8), the files after commit (10.1), the VAT summary's row, sections and exactly-once rule (12.1, 12.3, 12.4), Invoicing's own tables (14), ruled by delegation, 4 November 2026, for the owner's confirmation |
+| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: VAT records not partitioned (14); phase 5.9, PR 1 (the developer's review, the plan review, the build and its review): Access in the needs (1.1), the start date (1.4), an eBay account's issuer and a day not registered (2.1), the tax point and when a record is written (3.2, 6.2), the VAT checks page (3.3, 8.2), a correction for a registration date (4.5), a line with no class (6.1), bundles and the minor-item rule (7.4, 7.5), delivery and order discounts split by values as priced (7.7, 7.8), the files after commit (10.1), a refund naming no lines (9.2), the VAT summary's row, sections, exactly-once rule and currencies (12.1, 12.3, 12.4, 12.7), Invoicing's own tables (14), ruled by delegation, 4 November 2026, for the owner's confirmation |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-011 from: the Invoicing module, switchable, needing Orders, Products, Buyer data and Access ([ADR-000 SPEC 4](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)). Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/). Amounts in pounds below are legal thresholds, not prices.
@@ -129,7 +129,7 @@ The rules to build ADR-011 from: the Invoicing module, switchable, needing Order
 | Invoice issued in error | A credit note for all of it, then a new invoice if needed |
 
 1. **A refund record** is negative against the original line, with its treatment, rate and split, in the VAT period of the refund date.
-2. **A refund naming no lines** is split by gross values, like an order discount.
+2. **A refund naming no lines** is split by the lines' values as the order prices them, like an order discount (ruled by delegation, 4 November 2026, for the owner's confirmation).
 3. **An invoice asked for after a refund** shows the order less what was refunded.
 4. **Refunds are made in the channel's tools;** Orders records them ([ADR-007 SPEC 12](../../order-ingestion/spec/#12-cancellations-and-refunds)).
 
@@ -158,7 +158,7 @@ The rules to build ADR-011 from: the Invoicing module, switchable, needing Order
 4. **Corrections to a period already exported** are their own section, with their net effect per period. Each file gives its range's records as written when it is made. A record written after a file that covered its day is a correction: it is given once, in the corrections section of the next file made after it was written, whatever that file's range, with the period it corrects. A file covers its days only up to when it is made. The corrections section names, for each correction, the export that first covered its day. A file once made reads again unchanged, and the export page lists past exports, each downloadable again (ruled by delegation, 4 November 2026, for the owner's confirmation). Nothing in a period changes silently; the accountant decides where a correction goes.
 5. **The header states the method:** per-line rounding, bundles by cost, delivery and order discounts by value.
 6. **No buyer data,** except business customers' names on business documents.
-7. **Currency:** the summary uses the sterling amounts the channel reports; exports and marketplace-collected lines carry no UK VAT to convert.
+7. **Currency:** the summary uses the sterling amounts the channel reports; exports and marketplace-collected lines carry no UK VAT to convert. An order in another currency is recorded and summed only in its own currency; its sterling amount is *Later*, until a seller sells outside pounds (ruled by delegation, 4 November 2026, for the owner's confirmation).
 
 ## 13. Who may do what
 

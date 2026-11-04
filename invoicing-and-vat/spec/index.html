@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>21 October 2026; amended by owner rulings of 25 October 2026: VAT records not partitioned (14); phase 5.9, PR 1 (the developer&#39;s review, the plan review, the build and its review): Access in the needs (1.1), the start date (1.4), an eBay account&#39;s issuer and a day not registered (2.1), the tax point and when a record is written (3.2, 6.2), the VAT checks page (3.3, 8.2), a correction for a registration date (4.5), a line with no class (6.1), bundles and the minor-item rule (7.4, 7.5), delivery and order discounts split by values as priced (7.7, 7.8), the files after commit (10.1), the VAT summary&#39;s row, sections and exactly-once rule (12.1, 12.3, 12.4), Invoicing&#39;s own tables (14), ruled by delegation, 4 November 2026, for the owner&#39;s confirmation</td>
+<td>21 October 2026; amended by owner rulings of 25 October 2026: VAT records not partitioned (14); phase 5.9, PR 1 (the developer&#39;s review, the plan review, the build and its review): Access in the needs (1.1), the start date (1.4), an eBay account&#39;s issuer and a day not registered (2.1), the tax point and when a record is written (3.2, 6.2), the VAT checks page (3.3, 8.2), a correction for a registration date (4.5), a line with no class (6.1), bundles and the minor-item rule (7.4, 7.5), delivery and order discounts split by values as priced (7.7, 7.8), the files after commit (10.1), a refund naming no lines (9.2), the VAT summary&#39;s row, sections, exactly-once rule and currencies (12.1, 12.3, 12.4, 12.7), Invoicing&#39;s own tables (14), ruled by delegation, 4 November 2026, for the owner&#39;s confirmation</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -379,7 +379,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tbody></table></div>
 <ol>
 <li><strong>A refund record</strong> is negative against the original line, with its treatment, rate and split, in the VAT period of the refund date.</li>
-<li><strong>A refund naming no lines</strong> is split by gross values, like an order discount.</li>
+<li><strong>A refund naming no lines</strong> is split by the lines&#39; values as the order prices them, like an order discount (ruled by delegation, 4 November 2026, for the owner&#39;s confirmation).</li>
 <li><strong>An invoice asked for after a refund</strong> shows the order less what was refunded.</li>
 <li><strong>Refunds are made in the channel&#39;s tools;</strong> Orders records them (<a href="../../order-ingestion/spec/#12-cancellations-and-refunds">ADR-007 SPEC 12</a>).</li>
 </ol>
@@ -410,7 +410,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Corrections to a period already exported</strong> are their own section, with their net effect per period. Each file gives its range&#39;s records as written when it is made. A record written after a file that covered its day is a correction: it is given once, in the corrections section of the next file made after it was written, whatever that file&#39;s range, with the period it corrects. A file covers its days only up to when it is made. The corrections section names, for each correction, the export that first covered its day. A file once made reads again unchanged, and the export page lists past exports, each downloadable again (ruled by delegation, 4 November 2026, for the owner&#39;s confirmation). Nothing in a period changes silently; the accountant decides where a correction goes.</li>
 <li><strong>The header states the method:</strong> per-line rounding, bundles by cost, delivery and order discounts by value.</li>
 <li><strong>No buyer data,</strong> except business customers&#39; names on business documents.</li>
-<li><strong>Currency:</strong> the summary uses the sterling amounts the channel reports; exports and marketplace-collected lines carry no UK VAT to convert.</li>
+<li><strong>Currency:</strong> the summary uses the sterling amounts the channel reports; exports and marketplace-collected lines carry no UK VAT to convert. An order in another currency is recorded and summed only in its own currency; its sterling amount is <em>Later</em>, until a seller sells outside pounds (ruled by delegation, 4 November 2026, for the owner&#39;s confirmation).</li>
 </ol>
 <h2 id="13-who-may-do-what">13. Who may do what</h2>
 <p>The rows are in <a href="../../users-and-access/spec/#4-who-may-do-what">ADR-010 SPEC 4</a> under &quot;Invoicing&quot;. Overriding a VAT flag decides what VAT the seller owes on a document they cannot withdraw, so only Owners and Admins may; a Manager fixes the class or asks an Admin.</p>
