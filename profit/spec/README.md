@@ -153,6 +153,7 @@ Written into each record on approval, in the SPEC batch of 4 November 2026 (part
 - **ADR-000:** SPEC 4.1 a Profit row (switchable; needs Orders, Products, Channels, Access; shows a card on a product and an account, a Products column, its page), the re-run table and both diagrams; 4.7 takes "profit" off the parked list ("ads" and "shipping labels" stay); the guide's parked line.
 - **ADR-001 SPEC 9:** the launch kinds table gains Profit's fee read and switch-on.
 - **ADR-002 SPEC 2:** the retention rows of section 10.
+- **ADR-003 SPEC 2.1:** the cost-set event (the product, the new cost, and whether it was first set), which Profit hears (3.3, 10.2).
 - **ADR-003 SPEC 2.4 and How to check:** with Profit on, Profit's card shows the accounts that read fees; Products' card keeps gross margin before fees, at today's cost, for the accounts that do not and with Profit off.
 - **ADR-004:** SPEC 1.1 a "Read fees" call, 1.2 the fee entry contract type, 1.3 `read-fees`, 4.3 the job name, 7.5 its place in the order, 13.4 a failing fee entry held as Profit's fee problem.
 - **ADR-004.1:** SPEC 0 and 1.1: whether `sell.finances` needs the Growth Check is confirmed on the keyset (today's wording says it does); a Finances section (section 4.10), the signing key as an app secret with its 3-year rotation, the owner-only approval for fees, the Finances limits in SPEC 10, the simulator's Finances calls.
