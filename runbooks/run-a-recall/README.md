@@ -12,10 +12,10 @@ A recall must name whom the seller supplied, and the seller needs every buyer to
 ## Steps
 
 1. Open the recall list and enter the lot number from the recall notice. It is Orders › Recall list; Stock › Lot trace (`/inventory/lots`) lists the same from Inventory ([ADR-006 SPEC 10.1](../../stock-ledger/spec/#10-lot-trace-and-recalls)) and blocks the lot too.
-2. Block the lot at once from the list. Every batch of that lot is held in every warehouse, and its unpacked reservations move to other batches or leave lines short.
+2. Block the lot at once from the list. Every batch of that lot is held in every warehouse, and its unpacked reservations move to other batches or leave lines short. Then report the recall to each marketplace (Amazon's product recall process; eBay's) and ask it to tell its buyers. If the notice covers the whole product and not one lot, end its listings in Listings, so no other lot sells.
 3. Check the parcels waiting in the packing spot. A unit of a blocked lot is refused at dispatch; the packer swaps it.
 4. Download the list: the orders that received the lot, with the order id, date and the order's destination country, then the lines that may have received it ("batch assumed", "lot not traced" or "label unchecked"). Vervoro records no units handed to a marketplace's warehouse yet; check the marketplace's own stock for those.
-5. Contact each buyer through the marketplace's own messaging, using the order id. Contact the "may have received it" buyers too, unless the recall notice says otherwise.
+5. Contact each buyer through the marketplace's own messaging, using the order id. Contact the "may have received it" buyers too, unless the recall notice says otherwise. Where a buyer cannot be messaged (a marketplace limits messages to recent orders), rely on the marketplace's own notice and the producer's public recall notice, and keep a note of it with the list (EU GPSR 2023/988 Art. 35).
 6. For the stock still on hand, write it off with the reason "recall", or return it to the supplier, as the notice says.
 7. Keep the downloaded list with the recall notice. Archived months are not searched yet; while archiving is not built, nothing is archived, so the list is whole.
 
