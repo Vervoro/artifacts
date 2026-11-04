@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-003: Product model](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-003-product-model) |
-| **Date** | 21 October 2026; amended by owner rulings of 27 October 2026: the words shown to people (1.4), the description left off the form (2), an image from a web address (5.5), an error names its column by the file's heading (14.6), the blocker extension point (3.3, 9.2), Purchasing linked (1.2, 9); amended by owner rulings of 25 October 2026: the rate table kept 5 minutes (11.2); amended by the owner's sign-off of 25 October 2026 (the developer's review): who writes `vat_rate` (1.3), `version` (2), `product_use` (2.2), the activity log (2.3), the SKU's characters (3.1), first use (3.3), changing a used SKU (3.5), a retired component (6.3.1), the retire check (9.2), delivery days and use-by (12.2), the lot a dispatch records (12.3), box-size barcodes (14.4), where the units setting is kept (15.1); one note per product change (2.3), owner delegation, 29 October 2026; the create port, family and code ports and the created/deleted events for Listings (2.3, 13.3), by owner delegation, 31 October 2026; the create port's refusal (13.3), by owner delegation, 1 November 2026; the cost-set event and which card shows which margin with Profit (2.1, 2.4, tests, How to check), on the owner's approval of [ADR-016](../../profit/), 4 November 2026 |
+| **Date** | 21 October 2026; amended by owner rulings of 27 October 2026: the words shown to people (1.4), the description left off the form (2), an image from a web address (5.5), an error names its column by the file's heading (14.6), the blocker extension point (3.3, 9.2), Purchasing linked (1.2, 9); amended by owner rulings of 25 October 2026: the rate table kept 5 minutes (11.2); amended by the owner's sign-off of 25 October 2026 (the developer's review): who writes `vat_rate` (1.3), `version` (2), `product_use` (2.2), the activity log (2.3), the SKU's characters (3.1), first use (3.3), changing a used SKU (3.5), a retired component (6.3.1), the retire check (9.2), delivery days and use-by (12.2), the lot a dispatch records (12.3), box-size barcodes (14.4), where the units setting is kept (15.1); one note per product change (2.3), owner delegation, 29 October 2026; the create port, family and code ports and the created/deleted events for Listings (2.3, 13.3), by owner delegation, 31 October 2026; the create port's refusal (13.3), by owner delegation, 1 November 2026; the cost-set event and which card shows which margin with Profit (2.1, 2.4, tests, How to check), on the owner's approval of [ADR-016](../../profit/), 4 November 2026; a bundle's minor-item mark, for Invoicing (2, 6.3), ruled by delegation, 4 November 2026, for the owner's confirmation |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-003 from. Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/).
@@ -80,6 +80,7 @@ Owner ruling, 21 October 2026: non-stock charges are charge lines, not a product
 | `battery` | `none`, `in_equipment`, `with_equipment`, `alone` | No | *Later.* Whether and how a lithium battery travels, as carriers ask it |
 | `min_age` | integer | No | *Later.* 16 or 18. The buyer's age a carrier must check on delivery (alcohol, knives) |
 | `vat_class` | Section 11 | Yes | Default `standard` |
+| `minor_item` | boolean | Bundle only | Default off. Section 6.3 (ruled by delegation, 4 November 2026, for the owner's confirmation) |
 | `standard_cost`, `standard_cost_currency` | decimal (4 places), ISO 4217 | No; together | Expected cost of one unit, for planning before any batch exists. The company's currency at launch |
 | `created_at`, `updated_at`, `version` | | Yes | Set by the module's update command. An edit based on an older `version` is refused, so two people never overwrite each other unseen |
 
@@ -169,6 +170,7 @@ Every change to a product, its barcodes, components or box sizes writes an activ
 5. **Changing the components** applies to orders received afterwards. An open order keeps the components it was reserved with, recorded on its line.
 6. **Cost** is the sum of the components' standard costs, worked out when read. **Weight and size** are entered for the packed bundle.
 7. **A ledger entry against a bundle is refused** ([ADR-006](../../stock-ledger/)).
+8. **The minor-item mark** (`minor_item`): the seller may mark a bundle for [ADR-011's minor-item rule](../../invoicing-and-vat/spec/#7-working-out-the-vat) (7.5). The bundle form shows today's split of its cost by the components' standard costs per VAT class, and whether the rule passes; Invoicing tests the mark at every record (ruled by delegation, 4 November 2026, for the owner's confirmation).
 
 ### 6.4 Changing a kind
 

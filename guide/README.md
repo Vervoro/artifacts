@@ -225,8 +225,8 @@ One word per concept, defined once, with the record that owns it. Where two word
 | **Plan** | A row in control: the modules it includes, a monthly order ceiling and a support level; prices live only at the payment provider (ADR-012) |
 | **Stock contact** | The person a company names to hear about stock if billing goes wrong; needed, with a payment method and a stop choice, before a connection first goes live (ADR-012 decision 4) |
 | **Issuer** | Who issues a sale's invoices: the marketplace (Amazon through its VAT Calculation Service, eBay when the seller opted in) or Vervoro in the seller's name. One per sale (ADR-011 SPEC 2) |
-| **VAT record** | The append-only record of each sale line's VAT, written when the order is imported, invoiced or not; corrections and reversals are new records (ADR-011 SPEC 6) |
-| **Tax point** | The date that fixes a sale's VAT rate and period: for a marketplace order its payment, for a manual order its dispatch or an earlier payment (ADR-011 SPEC 3) |
+| **VAT record** | The append-only record of each sale line's VAT, written when the order has its tax point, invoiced or not; corrections and reversals are new records (ADR-011 SPEC 6) |
+| **Tax point** | The date that fixes a sale's VAT rate and period: the earlier of the payment the marketplace or the seller reports and the dispatch, so an eBay order's payment and an Amazon order's dispatch (ADR-011 SPEC 3; ruled by delegation, 4 November 2026, for the owner's confirmation) |
 | **Rate table** | The VAT rates by country and class, platform data in control, changed only by the operator (ADR-003 SPEC 11) |
 
 ### Data and retention

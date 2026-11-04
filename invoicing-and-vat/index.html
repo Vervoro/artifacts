@@ -75,7 +75,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>18 October 2026; charge lines added with <a href="../product-model/">ADR-003</a>, and split into ADR, SPEC and RUNBOOK 21 October 2026; needs and the customer block&#39;s starting point aligned with buyer data at launch (owner ruling, 22 October 2026)</td>
+<td>18 October 2026; charge lines added with <a href="../product-model/">ADR-003</a>, and split into ADR, SPEC and RUNBOOK 21 October 2026; needs and the customer block&#39;s starting point aligned with buyer data at launch (owner ruling, 22 October 2026); the tax point of every order the earlier of its payment and its dispatch (decision 5, open items; phase 5.9, PR 1), ruled by delegation, 4 November 2026, for the owner&#39;s confirmation</td>
 </tr>
 <tr>
 <td><strong>Scope</strong></td>
@@ -107,7 +107,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>One issuer per sale.</strong> Each marketplace account records who invoices its orders, and Vervoro refuses to issue for an account the marketplace invoices. Amazon invoices its own orders through VCS: Vervoro has no tax invoicing role at Amazon and uploads nothing. eBay invoices if the seller opted in to eBay&#39;s VAT invoices; otherwise Vervoro does, and each such invoice carries the issuer&#39;s confirmation that eBay holds none for the order.</li>
 <li><strong>A document is made only when one is needed or asked for.</strong> A manual order to a business gets a full invoice when it is dispatched. Any other order gets one when a person asks for it for a buyer. The seller sends it: Vervoro keeps no buyer email and sends nothing to buyers.</li>
 <li><strong>One invoice layout, with an optional customer block.</strong> Filled, it is a full invoice; empty, it is a simplified invoice, which the law allows up to £250 for a consumer who has not asked for their details. The same layout shows no VAT for a zero-rated order or a seller who is not VAT-registered.</li>
-<li><strong>Every sale line gets a VAT record when its order is imported,</strong> invoiced or not, because a marketplace order&#39;s tax point (the date that fixes its rate and VAT period) is its payment. Charge lines get one too, at their own VAT class. A cancellation writes a reversing record and a change writes a correction; nothing is rewritten. Documents, refunds and the export read these records.</li>
+<li><strong>Every sale line gets a VAT record when its order has its tax point,</strong> invoiced or not. The tax point (the date that fixes its rate and VAT period) is the earlier of the payment the marketplace or the seller reports and the dispatch, so an eBay order paid at checkout is recorded when it is imported (ruled by delegation, 4 November 2026, for the owner&#39;s confirmation). Charge lines get one too, at their own VAT class. A cancellation writes a reversing record and a change writes a correction; nothing is rewritten. Documents, refunds and the export read these records.</li>
 <li><strong>Vervoro works out the VAT itself, and what the buyer paid wins.</strong> The gross is what the marketplace says the buyer paid. VAT comes from the product&#39;s class and the rate valid at the tax point. The marketplace&#39;s own tax figure sits beside Vervoro&#39;s, never in its place. Goods are compared per order and per rate: a difference over 1p flags the order and blocks invoicing until a person settles it. The flag never holds dispatch.</li>
 <li><strong>One stated rule for rounding and splits.</strong> VAT is rounded per line to the nearest penny, half up, never down. A bundle whose parts have different classes is split by its components&#39; standard costs. A delivery charge follows the VAT liability of the goods it carries, split by their value on a mixed order. Discounts reduce the lines they apply to.</li>
 <li><strong>Documents are numbered, frozen and corrected only by credit note.</strong> Invoices and credit notes share one gap-free series per company, numbered in the transaction that issues them. An issued document, its PDF and its data file never change. A credit note is issued only against an invoice Vervoro issued; other refunds become VAT records only.</li>
@@ -139,14 +139,14 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <li><strong>Recalculate the gross from Vervoro&#39;s VAT:</strong> documents would match no payment.</li>
 <li><strong>Round VAT once per invoice, or down:</strong> lines could not be traced to totals, and retailers may not round down.</li>
 <li><strong>Split hampers by selling price:</strong> products hold no selling price; cost is always there and fair.</li>
-<li><strong>Write the VAT record at dispatch:</strong> orders paid on the last weekend of a quarter would fall into the next one.</li>
+<li><strong>Write the VAT record at dispatch for an order paid earlier:</strong> orders paid on the last weekend of a quarter would fall into the next one.</li>
 <li><strong>Compare delivery and discounts with the marketplace:</strong> shops tax delivery by their own method, so almost every mixed basket would flag.</li>
 <li><strong>Drafts, or separate kinds for full and simplified invoices:</strong> drafts need states and leave gaps; the law decides what one layout prints.</li>
 <li><strong>A self-service invoice link for buyers, or emailing invoices:</strong> a public page, buyer-typed personal data and buyer email, to save a short wait.</li>
 </ul>
 <h2 id="open-items">Open items</h2>
 <ul>
-<li><strong>Marketplace and HMRC sources</strong> were checked on 18 October 2026; recheck them before launch.</li>
+<li><strong>Marketplace and HMRC sources</strong> were checked on 18 October 2026; recheck them before launch, with when Amazon takes payment: two Amazon pages could not be read on 4 November 2026, and the SPEC takes an Amazon order&#39;s tax point as its dispatch (<a href="spec/#3-when-a-document-is-made">SPEC 3.2</a>) (ruled by delegation, 4 November 2026, for the owner&#39;s confirmation).</li>
 <li><strong>Switching Invoicing on after orders already exist:</strong> the SPEC writes VAT records back to a start date the seller picks (<a href="spec/#1-the-module">SPEC 1.4</a>); confirm with an accountant that this suits a seller who joins mid-period.</li>
 </ul>
 
