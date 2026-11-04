@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>21 October 2026; four Purchasing rows added to the matrix (4) by owner ruling, 27 October 2026; amended by owner rulings of 25 October 2026: <code>audit_log</code> kept 13 months (8), a receipt quarantined only when unusual (4), the session pass&#39;s 60 seconds for revocation and pauses (5, 6, 11), admission in the first statement (5.1), an operator&#39;s off-module request refused after its entry (7), the first invitation mail&#39;s link (6), and the owner&#39;s sign-off of ADR-003 and ADR-006: company settings and their matrix rows, warehouses, spots, transfers and relabels (4), sign-up&#39;s default settings (6); and SPEC wording approved 25 October 2026 for the owner&#39;s rulings of 24 October on operator grants: read-only as a viewer, told by email and in Settings, the grant&#39;s order, a grant running out, seeing Vervoro access, the operator by id (4, 7); and the SPEC batch of phases 3 and 4: the account menu&#39;s own address (2), the invitation page and joining (6), an operator command&#39;s reason in the audit log (8); and the one-by-one rulings: the recorded commands in the grant rules (7, 11, checklist), the module switch in the Vervoro access view (7), a reset&#39;s entry naming both ids (8); and SPEC batch 3: Access&#39;s matrix rows (4), an expired invitation&#39;s address and a withdrawal as a removal (6), and the grant runbook&#39;s reason; warehouse mode (3), the asker&#39;s role (2.4), Team&#39;s summary of the matrix (4), owner rulings, 29 October 2026; Team&#39;s summary shows built rows (4), owner delegation, 29 October 2026; the Listings read row and Make product (4), by owner delegation, 31 October 2026; the Listings export row (4), by owner delegation, 1 November 2026; reading the marketplace accounts and their calls (4), owner delegation, 2 November 2026; renaming a marketplace account and changing its default warehouse (4) and pausing a live account (5.5), owner delegation, 2 November 2026</td>
+<td>21 October 2026; four Purchasing rows added to the matrix (4) by owner ruling, 27 October 2026; amended by owner rulings of 25 October 2026: <code>audit_log</code> kept 13 months (8), a receipt quarantined only when unusual (4), the session pass&#39;s 60 seconds for revocation and pauses (5, 6, 11), admission in the first statement (5.1), an operator&#39;s off-module request refused after its entry (7), the first invitation mail&#39;s link (6), and the owner&#39;s sign-off of ADR-003 and ADR-006: company settings and their matrix rows, warehouses, spots, transfers and relabels (4), sign-up&#39;s default settings (6); and SPEC wording approved 25 October 2026 for the owner&#39;s rulings of 24 October on operator grants: read-only as a viewer, told by email and in Settings, the grant&#39;s order, a grant running out, seeing Vervoro access, the operator by id (4, 7); and the SPEC batch of phases 3 and 4: the account menu&#39;s own address (2), the invitation page and joining (6), an operator command&#39;s reason in the audit log (8); and the one-by-one rulings: the recorded commands in the grant rules (7, 11, checklist), the module switch in the Vervoro access view (7), a reset&#39;s entry naming both ids (8); and SPEC batch 3: Access&#39;s matrix rows (4), an expired invitation&#39;s address and a withdrawal as a removal (6), and the grant runbook&#39;s reason; warehouse mode (3), the asker&#39;s role (2.4), Team&#39;s summary of the matrix (4), owner rulings, 29 October 2026; Team&#39;s summary shows built rows (4), owner delegation, 29 October 2026; the Listings read row and Make product (4), by owner delegation, 31 October 2026; the Listings export row (4), by owner delegation, 1 November 2026; reading the marketplace accounts and their calls (4), owner delegation, 2 November 2026; renaming a marketplace account and changing its default warehouse (4) and pausing a live account (5.5), owner delegation, 2 November 2026; phase 5.7&#39;s developer&#39;s review: setting a listing managed, the on-hand import and the old tool&#39;s confirm (4), the operator&#39;s raise hold with no grant (7), owner delegation, 2 November 2026; Stock sync&#39;s engine as built (phase 5.7, PR 1): reading Stock sync&#39;s alerts on Today, a listing&#39;s figures and an account&#39;s sync health (4), owner delegation, 2 November 2026; going live as built (phase 5.7, PR 2): a restore&#39;s sign-off shows accounts by id with their counts (7), owner delegation, 3 November 2026; Fulfilment&#39;s developer&#39;s review (phase 5.8): put back, receive a return and see the recall list (4), owner delegation, 3 November 2026; Fulfilment&#39;s pick and pack (phase 5.8, PR 1): its Home cards and the later-date list in the matrix (4), ruled by delegation, 4 November 2026, confirmed by the owner, 4 November 2026; Fulfilment&#39;s ship (phase 5.8, PR 2): &quot;this was our parcel&quot; and confirming the lot that left (4), ruled by delegation, 4 November 2026, confirmed by the owner, 4 November 2026; Profit&#39;s cards, column and page in the costs row (4), on the owner&#39;s approval of <a href="../../profit/">ADR-016</a>, 4 November 2026</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -448,6 +448,16 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>ADR-010</td>
 </tr>
 <tr>
+<td>Import on hand from an old system; confirm its sync is off</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td><a href="../../inventory-sync/">ADR-008</a>, <a href="../../stock-ledger/spec/#8-receiving">ADR-006</a> (owner delegation, 2 November 2026)</td>
+</tr>
+<tr>
 <td>Stop sends on a live account (with its stop choice)</td>
 <td>Yes</td>
 <td>Yes</td>
@@ -498,6 +508,26 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="../../catalogue-sync/">ADR-005</a> (owner delegation, 1 November 2026)</td>
 </tr>
 <tr>
+<td>Read Stock sync&#39;s alerts on Today</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td><a href="../../inventory-sync/">ADR-008</a> (owner delegation, 2 November 2026)</td>
+</tr>
+<tr>
+<td>Read a listing&#39;s figures and an account&#39;s sync health</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td><a href="../../inventory-sync/">ADR-008</a> (owner delegation, 2 November 2026)</td>
+</tr>
+<tr>
 <td>Change the low-stock policy settings</td>
 <td>Yes</td>
 <td>Yes</td>
@@ -506,6 +536,16 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>No</td>
 <td>No</td>
 <td><a href="../../inventory-sync/">ADR-008</a></td>
+</tr>
+<tr>
+<td>Set a listing managed or not managed (with its stop choice when the account is live)</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td><a href="../../inventory-sync/">ADR-008</a> (owner delegation, 2 November 2026)</td>
 </tr>
 <tr>
 <td><strong>Products</strong></td>
@@ -538,14 +578,14 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="../../product-model/spec/#13-creating-products">ADR-003</a></td>
 </tr>
 <tr>
-<td>See costs, landed cost and margins, revenue and gross margin, also per account</td>
+<td>See costs, landed cost and margins, revenue and gross margin, also per account; built with Profit, Profit&#39;s cards, column and page, unscoped: the figures are the company&#39;s, and a person limited to some warehouses sees them whole</td>
 <td>Yes</td>
 <td>Yes</td>
 <td>Yes</td>
 <td>No</td>
 <td>Yes</td>
 <td>No</td>
-<td>ADR-010, <a href="../../product-model/spec/#2-fields">ADR-003 SPEC 2.4</a></td>
+<td>ADR-010, <a href="../../product-model/spec/#2-fields">ADR-003 SPEC 2.4</a>, <a href="../../profit/spec/#11-who-may-see-what">ADR-016 SPEC 11</a></td>
 </tr>
 <tr>
 <td>Read sold, rate of sale, days of stock and days of cover</td>
@@ -698,6 +738,16 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="../../stock-ledger/">ADR-006</a></td>
 </tr>
 <tr>
+<td>Receive a return</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td><a href="../../fulfilment/spec/#6-returns">ADR-014</a> (owner delegation, 3 November 2026)</td>
+</tr>
+<tr>
 <td>Inspect a return: restock or keep as damaged; mark damaged or quarantined; &quot;not found&quot; at a pick</td>
 <td>Yes</td>
 <td>Yes</td>
@@ -718,14 +768,24 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="../../stock-ledger/">ADR-006</a></td>
 </tr>
 <tr>
-<td>Block or unblock a lot</td>
+<td>See the recall list (the same ids, dates, countries and lot stock Stock › Lot trace already shows; no buyer data, no cost)</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td><a href="../../fulfilment/spec/#7-the-recall-list">ADR-014</a> (owner delegation, 3 November 2026)</td>
+</tr>
+<tr>
+<td>Block or unblock a lot (also from the recall list)</td>
 <td>Yes</td>
 <td>Yes</td>
 <td>Yes</td>
 <td>No</td>
 <td>No</td>
 <td>No</td>
-<td><a href="../../stock-ledger/">ADR-006</a></td>
+<td><a href="../../stock-ledger/">ADR-006</a>, <a href="../../fulfilment/spec/#7-the-recall-list">ADR-014</a></td>
 </tr>
 <tr>
 <td>Create, confirm, cancel, send or receive a transfer between warehouses (<code>inventory.transfer</code>)</td>
@@ -768,7 +828,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td><a href="../../buyer-data/spec/#7-who-can-see-it">ADR-009</a></td>
 </tr>
 <tr>
-<td>Pick, pack (and take another eligible batch, recorded), print labels (<em>Later</em>, with shipping labels; owner ruling, 22 October 2026), confirm a shipment</td>
+<td>Pick, pack (and take another eligible batch, recorded), print labels (<em>Later</em>, with shipping labels; owner ruling, 22 October 2026), confirm a shipment, or say one refused &quot;already shipped outside&quot; was our parcel</td>
 <td>Yes</td>
 <td>Yes</td>
 <td>Yes</td>
@@ -776,6 +836,46 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>No</td>
 <td>No</td>
 <td><a href="../../stock-ledger/">ADR-006</a>, <a href="../../order-ingestion/">ADR-007</a></td>
+</tr>
+<tr>
+<td>Confirm the lot of an order shipped outside Vervoro</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td><a href="../../fulfilment/spec/#4-shipments">ADR-014</a> (4.6)</td>
+</tr>
+<tr>
+<td>See Fulfilment&#39;s Home cards: orders with units packed for more than 24 hours</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>Yes</td>
+<td><a href="../../fulfilment/spec/#3-packing">ADR-014</a> (3.5)</td>
+</tr>
+<tr>
+<td>See the later-date list</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td><a href="../../fulfilment/spec/#3-packing">ADR-014</a> (3.3)</td>
+</tr>
+<tr>
+<td>Put back a cancelled order&#39;s picked or packed units</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td><a href="../../fulfilment/spec/#5-cancellations-on-the-floor">ADR-014</a> (owner delegation, 3 November 2026)</td>
 </tr>
 <tr>
 <td>Place or clear a floor hold (including an address check on an order being picked or packed)</td>
@@ -1104,7 +1204,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <p><strong>Leaving a company:</strong> any person can remove themselves, with a fresh check; it runs the same steps as a removal, and the company&#39;s Owners and Admins are told. The last Owner cannot leave until another person is Owner (owner ruling, 22 October 2026).</p>
 <p>All of it happens within minutes, inside ADR-009&#39;s 24 hours.</p>
 <h2 id="7-operator-access-to-a-company">7. Operator access to a company</h2>
-<p><strong>Repairs need no grant.</strong> They are recorded commands that run as system actors and show no company data: rebuilding a balance from the ledger (<a href="../../stock-ledger/">ADR-006</a>), re-importing an order, and <a href="../../database-architecture/spec/#10-company-lifecycle">ADR-001&#39;s</a> export, move and restore by the lifecycle tool. Each writes an <code>audit_log</code> entry naming the operator and the reason. So do the operator&#39;s billing levers (<a href="../../billing-and-plans/spec/#19-who-may-manage-billing">ADR-012 SPEC 19</a>) and switching a module on or off at an Owner&#39;s or Admin&#39;s request (<a href="../../system-architecture/spec/#3-assembly-per-company">ADR-000 SPEC 3</a>), which also need no grant (owner ruling, 22 October 2026). Erasure is never an operator command; it runs on the seller&#39;s privacy request (<a href="../../buyer-data/">ADR-009</a>) or 30 days after the company closes (<a href="../../billing-and-plans/spec/">ADR-012 SPEC 16</a>; owner ruling, 22 October 2026).</p>
+<p><strong>Repairs need no grant.</strong> They are recorded commands that run as system actors and show no company data: rebuilding a balance from the ledger (<a href="../../stock-ledger/">ADR-006</a>), re-importing an order, holding a company&#39;s raises (<a href="../../inventory-sync/spec/#7-held-raises">ADR-008 SPEC 7.2</a>; owner delegation, 2 November 2026), and <a href="../../database-architecture/spec/#10-company-lifecycle">ADR-001&#39;s</a> export, move and restore by the lifecycle tool. Each writes an <code>audit_log</code> entry naming the operator and the reason. A restore&#39;s sign-off shows each account by id with how many of its listings were read again, nothing more (owner delegation, 3 November 2026). So do the operator&#39;s billing levers (<a href="../../billing-and-plans/spec/#19-who-may-manage-billing">ADR-012 SPEC 19</a>) and switching a module on or off at an Owner&#39;s or Admin&#39;s request (<a href="../../system-architecture/spec/#3-assembly-per-company">ADR-000 SPEC 3</a>), which also need no grant (owner ruling, 22 October 2026). Erasure is never an operator command; it runs on the seller&#39;s privacy request (<a href="../../buyer-data/">ADR-009</a>) or 30 days after the company closes (<a href="../../billing-and-plans/spec/">ADR-012 SPEC 16</a>; owner ruling, 22 October 2026).</p>
 <p><strong>Finding a company needs no grant</strong> (owner ruling, 26 October 2026). Any operator sees each company&#39;s id and name, kept in control as a copy of the company&#39;s own (<a href="#6-invitations-sign-up-and-removal">section 6</a>, rule 3), and finds a company by its id, its name, an email domain or a member&#39;s address. Each search is in the platform security log (the operator and how many companies matched, never what was typed). Beyond its name, nothing a company holds is shown; looking inside still needs a grant. A company&#39;s members, billing and usage are for the platform admin only.</p>
 <p><strong>A grant is for looking</strong>, at a company&#39;s screens or, at the seller&#39;s request, at old records in a restore branch (<a href="../../runbooks/restore-a-company-look-back/">ADR-001&#39;s look-back</a>):</p>
 <ol>

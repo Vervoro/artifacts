@@ -189,7 +189,7 @@ const docs: Doc[] = [
   { dir: "fulfilment/spec", partOf: "fulfilment", title: "ADR-014 SPEC: Fulfilment", blurb: "The rules to build ADR-014 from, the tests that prove them, and a checklist for reviewing the code." },
   { dir: "purchasing", title: "ADR-015: Purchasing", blurb: "The Purchasing module, switchable and in every plan: suppliers, each product's suppliers with the supplier's code, order minimums and lead time, a reorder level per product and the Needs reordering list. Purchase orders are never required; they come as a second step. Proposed 27 October 2026.", links: [{ label: "SPEC", href: "purchasing/spec/" }] },
   { dir: "purchasing/spec", partOf: "purchasing", title: "ADR-015 SPEC: Purchasing", blurb: "The rules to build ADR-015 from, the tests that prove them, and a checklist for reviewing the code." },
-  { dir: "profit", title: "ADR-016: Profit", blurb: "The Profit module, switchable: what each order line earned after the marketplace's fees, shipping and the advertising tied to it, each account's charges that belong to no order, and the cost at the time of sale; per product, account and period. Draft for the owner's approval, 2 November 2026.", links: [{ label: "SPEC", href: "profit/spec/" }] },
+  { dir: "profit", title: "ADR-016: Profit", blurb: "The Profit module, switchable: what each order line earned after the marketplace's fees, shipping and the advertising tied to it, each account's charges that belong to no order, and the cost at the time of sale; per product, account and period. Accepted 4 November 2026.", links: [{ label: "SPEC", href: "profit/spec/" }] },
   { dir: "profit/spec", partOf: "profit", title: "ADR-016 SPEC: Profit", blurb: "The rules to build ADR-016 from, the tests that prove them, and a checklist for reviewing the code." },
 ];
 
@@ -207,7 +207,7 @@ const buildOrder: { adrs: string[]; why: string }[] = [
   { adrs: ["inventory-sync"], why: "Right after Channels, because it needs only Inventory, Listings, Orders and Channels, and every account starts in shadow mode: figures are worked out and recorded, never sent. Building it here starts the shadow time the launch gates need (ADR-004) while Invoicing and Billing are built; no account goes live before those exist." },
   { adrs: ["invoicing-and-vat"], why: "Invoices follow orders: needs order lines, refunds, the buyer-data rules and the roles. Built before any real sale, so every sale line has its VAT record from the first day." },
   { adrs: ["billing-and-plans"], why: "Before any connection goes live: going live needs a payment method, the stop choice (leave the figures or send zero) and a stock contact, even in a trial. It is beside the stock path, never in it: nothing in it stops orders or stock." },
-  { adrs: ["profit"], why: "After Fulfilment: profit needs the marketplaces' fee reads, Orders' lines and the label costs Fulfilment buys. Built once the owner approves the record and the fee scopes are granted." },
+  { adrs: ["profit"], why: "After Fulfilment: profit needs the marketplaces' fee reads, Orders' lines and the label costs Fulfilment buys. Accepted 4 November 2026; built once the fee scopes are granted." },
   { adrs: ["data-retention"], why: "The log drops run from launch; archiving is switched on by its trigger (a cell past 500 GB, or the start of year 2)." },
 ];
 const titleOf = (a: string) => docs.find((d) => d.dir === a)?.title ?? a;
