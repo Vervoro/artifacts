@@ -4,16 +4,16 @@
 | --- | --- |
 | **Decision** | [ADR-016: Profit](../) |
 | **Procedures** | None yet |
-| **Date** | 2 November 2026, draft for the owner's approval (owner delegation; ROADMAP 5.6.1); revised the same day after its plan review and completeness review |
+| **Date** | 2 November 2026, draft for the owner's approval (owner delegation; ROADMAP 5.6.1); revised the same day after its plan review and completeness review; accepted 4 November 2026 |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
-The rules to build ADR-016 from: the Profit module. Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/). Nothing here is built until the owner approves the record ([ADR-016 decision 13](../#decision)); section 15 lists what the other records gain.
+The rules to build ADR-016 from: the Profit module. Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/). The owner approved the record on 4 November 2026; it is built in its own phase ([ADR-016 decision 13](../#decision)). Section 15 lists what the other records gained on approval.
 
 ## 0. At launch and later
 
 | Part | When | Trigger |
 | --- | --- | --- |
-| Sections 1–12 | Its own phase | The owner's approval; `sell.finances` on Vervoro's eBay keyset and Amazon's Finance and Accounting role on its developer profile |
+| Sections 1–12 | Its own phase | The owner's approval (given 4 November 2026); `sell.finances` on Vervoro's eBay keyset and Amazon's Finance and Accounting role on its developer profile |
 | An estimate for lines waiting for fees | Later | Sellers ask for same-day profit |
 | Amazon advertising per SKU (the Amazon Ads API) | Later | The owner approves the Ads API application and sellers ask |
 | Labels Vervoro buys | Later | The shipping-labels record ([ADR-000 SPEC 4.7](../../system-architecture/spec/)) |
@@ -146,7 +146,9 @@ Read 2 November 2026.
 - Profit tools: Sellerboard (https://help.sellerboard.com/2025/12/04/2-1-2-products/, cost changes https://blog.sellerboard.com/2020/10/14/accounting-for-changing-cost-of-goods-for-profit-calculation/), A2X (https://support.a2xaccounting.com/a2x-cogs-and-inventory/overview-of-cost-of-goods-sold), Linnworks (https://help.linnworks.com/support/solutions/articles/7000050176), Veeqo (https://help.veeqo.com/en/articles/9626304-veeqo-profit-analyzer-overview)
 - Unconfirmed: Amazon Ads API spend per SKU and its approval (third-party sources only); whether `sell.finances` itself needs eBay's Growth Check (checked when the owner applies).
 
-## 15. What the other records gain on approval
+## 15. What the other records gained on approval
+
+Written into each record on approval, in the SPEC batch of 4 November 2026 (part six). Each is marked there as built with Profit.
 
 - **ADR-000:** SPEC 4.1 a Profit row (switchable; needs Orders, Products, Channels, Access; shows a card on a product and an account, a Products column, its page), the re-run table and both diagrams; 4.7 takes "profit" off the parked list ("ads" and "shipping labels" stay); the guide's parked line.
 - **ADR-001 SPEC 9:** the launch kinds table gains Profit's fee read and switch-on.

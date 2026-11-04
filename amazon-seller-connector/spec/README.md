@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-004.2: Amazon Seller connector](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-0042-amazon-seller-connector) |
-| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: the backup read hourly (4.1); the bridge's region and the outside watcher beside it (3.1), owner delegation, 2 November 2026; the Amazon connector as built: the bridge's secret header (3.2), the window's bound (4.3), a 401 or 403 on a patch (5.1), a report per marketplace, a cancelled or fatal report and its cursor (5.5), unsellable and under-investigation units (7.2), a notice's change read (7.3), a full read across runs (7.4), one reading per account, marketplace and SKU (7.6), the application-wide throttle (10.3), the fulfilled-by-Amazon refusal (How to check), owner delegation, 2 November 2026; phase 5.6's close: marketplace fees (0), `version=beta` while in Draft (1.1), owner delegation, 2 November 2026 |
+| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: the backup read hourly (4.1); the bridge's region and the outside watcher beside it (3.1), owner delegation, 2 November 2026; the Amazon connector as built: the bridge's secret header (3.2), the window's bound (4.3), a 401 or 403 on a patch (5.1), a report per marketplace, a cancelled or fatal report and its cursor (5.5), unsellable and under-investigation units (7.2), a notice's change read (7.3), a full read across runs (7.4), one reading per account, marketplace and SKU (7.6), the application-wide throttle (10.3), the fulfilled-by-Amazon refusal (How to check), owner delegation, 2 November 2026; phase 5.6's close: marketplace fees (0), `version=beta` while in Draft (1.1), owner delegation, 2 November 2026; fees for Profit (0, 10.4, 11, 12, 13), on the owner's approval of [ADR-016](../../profit/), 4 November 2026 |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 Only what is particular to Amazon. Everything the host does (credentials, HTTP, outcomes, notices in, the completeness check, shadow mode) is [ADR-004 SPEC](../../channel-connectors/spec/) and is not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed.
@@ -16,7 +16,7 @@ Only what is particular to Amazon. Everything the host does (credentials, HTTP, 
 | Listings feeds for many raises | Single patches fall short ([ADR-008](../../inventory-sync/spec/#0-at-launch-and-later)) | [5](#5-stock) |
 | Selling to Amazon as a vendor | ADR-004.4 is written | None here |
 | The Direct-to-Consumer Shipping (Restricted) role: name, address, phone, gift message and customisation for seller-shipped orders | Shipping labels in Vervoro; the application is sent once ADR-009's security controls are evidenced (owner ruling, 22 October 2026) | [8](#8-buyer-data) |
-| Marketplace fees through the Finance and Accounting role | The Profit record's approval ([ADR-000 SPEC 4.7](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)); the role is added to the developer profile before the first seller connects (owner delegation, 2 November 2026) | [1](#1-connecting-and-renewing) |
+| Marketplace fees through the Finance and Accounting role | Profit's phase: the record was approved on 4 November 2026 ([ADR-016](../../profit/)); the role is added to the developer profile before the first seller connects (owner delegation, 2 November 2026) | [1](#1-connecting-and-renewing), [13](#13-fees-built-with-profit) |
 
 ## 1. Connecting and renewing
 
@@ -105,10 +105,11 @@ A shipment is confirmed with Amazon's carrier code, or "Other" with the carrier'
 1. **Buckets per seller and application** for most operations, from Amazon's figures, with the live limit from `x-amzn-RateLimit-Limit` when present.
 2. **The slow buckets** (order search, report requests, feed creation) refill in minutes; nothing a notice or single call can do is spent from them.
 3. **An application-wide throttle** is a 429 on an operation with a per-application ceiling while the seller's own live limit is not lower: at least 5 a second; with no limit header none is inferred ([ADR-004 SPEC 6](../../channel-connectors/spec/#6-rate-limits-per-account), owner delegation, 2 November 2026).
+4. **The Finances API's `listTransactions`** (built with Profit) has its own bucket per seller and application, from Amazon's figure for the operation (read from the API's model when built); the daily fee read is one window per account ([ADR-016 SPEC 13.1](../../profit/spec/#13-costs-and-the-rule-behind-each)).
 
 ## 11. Simulator and pre-launch recordings
 
-The simulator speaks only the calls above: consent and tokens, orders, listings, reports, notifications, FBA inventory, Amazon's buckets, and an SQS-style queue the host reads directly in development. Before launch each call is recorded against the sandbox or a real account ([ADR-004 SPEC 14](../../channel-connectors/spec/#14-simulators-and-recorded-replies)), including the approval pages' paths and an Amazon-held stock notice.
+The simulator speaks only the calls above: consent and tokens, orders, listings, reports, notifications, FBA inventory, with Profit the Finances API's transactions (section 13), Amazon's buckets, and an SQS-style queue the host reads directly in development. Before launch each call is recorded against the sandbox or a real account ([ADR-004 SPEC 14](../../channel-connectors/spec/#14-simulators-and-recorded-replies)), including the approval pages' paths and an Amazon-held stock notice.
 
 ## 12. Constraints
 
@@ -125,8 +126,20 @@ Checked against Amazon's documentation on 17 October 2026; Amazon-held stock row
 | Roles for Amazon-held stock | Product Listing or Amazon Fulfillment | [FBA Inventory API use case guide](https://developer-docs.amazon/sp-api/docs/fba-inventory-api-v1-use-case-guide) |
 | Seller approval | Re-authorised every 365 days; no expiry date through the API | [Renew authorizations](https://developer-docs.amazon/sp-api/docs/renew-authorizations) |
 | Client secret | Rotated every 180 days | [Rotate your application's client secret](https://developer-docs.amazon.com/sp-api/docs/rotate-your-application-client-secret) |
+| Finances API (built with Profit) | `listTransactions` by order or posting window, up to 180 days a call; entries posted at least 2 minutes ago; the v0 financial events withdrawn on 27 August 2027; the Finance and Accounting role, not restricted | [List transactions by order](https://developer-docs.amazon/sp-api/docs/list-transactions-by-order.md), [Deprecation of Finances v0](https://developer-docs.amazon/sp-api/changelog/deprecation-of-finances-v0-operations), [Roles](https://developer-docs.amazon/sp-api/docs/roles-in-the-selling-partner-api) |
 
-## 13. Tests that prove each rule
+## 13. Fees, built with Profit
+
+Built in Profit's phase ([ADR-016 SPEC 4.11](../../profit/spec/#4-reading-fees)); until then the connector declares no `read-fees` ([ADR-004 SPEC 1.3](../../channel-connectors/spec/#1-the-connector-contract)).
+
+1. **The call.** The Finances API's `listTransactions`, never the v0 financial events Amazon withdraws on 27 August 2027, for entries posted more than 2 minutes ago, over the window Profit's job asks for.
+2. **By SKU within the order.** A shipment's item fees are the line's by SKU; two lines of one order with the same SKU split them by units. A refund's credits are the refunded lines'.
+3. **Account charges.** Service fees, subscriptions, storage and Sponsored Products invoices name no order: they are the account's charges.
+4. **Deferred entries** are kept as deferred and replaced when Amazon releases them.
+5. **The role** is Finance and Accounting (not restricted), on Vervoro's developer profile before the first seller connects, so no seller approves again for fees.
+6. **No buyer field** leaves the connector ([ADR-016 SPEC 12](../../profit/spec/#12-personal-data)).
+
+## 14. Tests that prove each rule
 
 | Test | Proves |
 | --- | --- |
@@ -141,6 +154,7 @@ Checked against Amazon's documentation on 17 October 2026; Amazon-held stock row
 | Held stock | A reading changes no ledger entry and sends no figure |
 | Renewal | The reminder date is approval plus 365 days less 30 |
 | Dispatch | No tracking number, or an unknown confirmation, goes to a person and is never resent |
+| Fees (13), built with Profit | Two lines with one SKU split its fees by units; a deferred entry is replaced when released; a Sponsored Products invoice is an account charge |
 
 ## How to check it was built right
 

@@ -2,8 +2,8 @@
 
 | | |
 | --- | --- |
-| **Status** | Draft for the owner's approval, 2 November 2026 (ROADMAP 5.6.1; drafted by owner delegation, nothing built until approved) |
-| **Date** | 2 November 2026; revised the same day after its plan review and completeness review |
+| **Status** | Accepted, 4 November 2026 (the owner, by delegation: decision list of 4 November) |
+| **Date** | 2 November 2026, drafted for the owner's approval (ROADMAP 5.6.1, owner delegation); revised the same day after its plan review and completeness review; accepted 4 November 2026 |
 | **Scope** | The Profit module: what an order line earned after the marketplace's fees and the labels and advertising the marketplace ties to it; each account's charges that belong to no order; the cost at the time of sale; the figures per product, account and period, and who sees them |
 | **Builds on** | [ADR-000](../system-architecture/), [ADR-001](../database-architecture/), [ADR-002](../data-retention/), [ADR-003](../product-model/), [ADR-004](../channel-connectors/) with [ADR-004.1](../ebay-connector/) and [ADR-004.2](../amazon-seller-connector/), [ADR-006](../stock-ledger/), [ADR-007](../order-ingestion/), [ADR-010](../users-and-access/), [ADR-011](../invoicing-and-vat/), [ADR-012](../billing-and-plans/), [ADR-014](../fulfilment/) |
 | **SPEC** | [The rules to build from, and how to check them](spec/) |

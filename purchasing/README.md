@@ -38,7 +38,7 @@ Parts marked *Later* keep their rules in the SPEC but are built only when their 
 
 ## Step 2 in one paragraph
 
-A purchase order is optional. It names a supplier and lines (product, supplier's code as it was then, quantity, unit cost), has statuses (draft, sent, part received, received, closed, cancelled), is sent by download or email through the egress gate, and shows incoming quantity beside the four numbers. Receiving against it calls Inventory's receive port, one batch per delivery; its cost goes in as the batch's provisional landed cost. Outline in [SPEC 12](spec/#12-step-2-purchase-orders-outline), written in full as a later SPEC batch.
+A purchase order is optional. It names a supplier and lines (product, supplier's code as it was then, quantity, unit cost), has statuses (draft, sent, part received, received, closed, cancelled), is sent by download or email through the egress gate, and shows incoming quantity beside the four numbers. Receiving against it calls Inventory's receive port, one batch per delivery; its cost goes in as the batch's provisional landed cost. Outline in [SPEC 12](spec/#12-step-2-purchase-orders), written in full as a later SPEC batch.
 
 ## Consequences
 

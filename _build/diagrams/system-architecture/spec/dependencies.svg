@@ -26,6 +26,9 @@
     <path d="M248 400L248 410L293 410L293 456" marker-end="url(#dep-arrow)"/>
     <path d="M610 300L610 356" marker-end="url(#dep-arrow)"/>
     <path d="M700 300L700 523L380 523L380 500" marker-end="url(#dep-arrow)"/>
+    <path d="M620 100L620 138L230 138L230 156" marker-end="url(#dep-arrow)"/>
+    <path d="M640 100L640 244L388 244L388 256" marker-end="url(#dep-arrow)"/>
+    <path d="M724 78L748 78L748 448L372 448L372 456" marker-end="url(#dep-arrow)"/>
   </g>
   <g class="accent" fill="none" stroke-width="1.25" stroke-dasharray="5 4">
     <path d="M571 356L571 120L281 120L281 100" marker-end="url(#dep-event)"/>
@@ -34,6 +37,7 @@
     <path d="M328 256L328 210L316 210L316 200" marker-end="url(#dep-event)"/>
     <path d="M160 256L160 210L147 210L147 200" marker-end="url(#dep-event)"/>
     <path d="M211 356L211 320L83 320L83 110L219 110L219 100" marker-end="url(#dep-event)"/>
+    <path d="M397 256L397 232L660 232L660 100" marker-end="url(#dep-event)"/>
   </g>
   <rect x="40" y="56" width="124" height="44" rx="8" class="box" stroke-dasharray="5 4"/>
   <text x="102" y="75" text-anchor="middle" font-weight="600" class="ink">Connectors</text>
@@ -50,6 +54,9 @@
   <rect x="275" y="156" width="124" height="44" rx="8" class="box" stroke-dasharray="5 4"/>
   <text x="337" y="175" text-anchor="middle" font-weight="600" class="ink">Invoicing</text>
   <text x="337" y="190" text-anchor="middle" font-size="11" class="quiet">switchable</text>
+  <rect x="600" y="56" width="124" height="44" rx="8" class="box" stroke-dasharray="5 4"/>
+  <text x="662" y="75" text-anchor="middle" font-weight="600" class="ink">Profit</text>
+  <text x="662" y="90" text-anchor="middle" font-size="11" class="quiet">switchable, with ADR-016</text>
   <rect x="600" y="256" width="124" height="44" rx="8" class="box" stroke-dasharray="5 4"/>
   <text x="662" y="275" text-anchor="middle" font-weight="600" class="ink">Purchasing</text>
   <text x="662" y="290" text-anchor="middle" font-size="11" class="quiet">switchable</text>
@@ -82,5 +89,5 @@
   <rect x="414" y="530" width="22" height="14" rx="3" class="box"/><text x="442" y="542" font-size="11.5" class="quiet">always on</text>
   <rect x="514" y="530" width="22" height="14" rx="3" class="box" stroke-dasharray="4 3"/><text x="542" y="542" font-size="11.5" class="quiet">switchable</text>
   <text x="16" y="562" font-size="11" class="quiet">Every module also uses the kernel and asks Access whether a person may act; those lines are left out.</text>
-  <text x="16" y="578" font-size="11" class="quiet">The two lines drawn to Access are Products and Inventory reading the company&#8217;s settings.</text>
+  <text x="16" y="578" font-size="11" class="quiet">The two lines drawn to Access are Products and Inventory reading the company&#8217;s settings. Profit also hears Products&#8217; cost set.</text>
 </svg>

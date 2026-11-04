@@ -34,10 +34,11 @@ ADR-000  System architecture: modules and the module map, the outbox, the egress
     │   └── ADR-004.4  Amazon Vendor connector (planned, not written)
     ├── ADR-008  Stock sync: inventory sync
     ├── ADR-015  Purchasing: suppliers, reorder levels, the Needs reordering list (purchase orders in step 2)
+    ├── ADR-016  Profit: each line's margin after the marketplace's fees, per product, account and period
     └── ADR-011  Invoicing and VAT (the seller's own invoices)
 ```
 
-**Parked, with no record yet** ([ADR-000 SPEC 4.7](../system-architecture/spec/#4-the-foundation-and-the-launch-modules)): FBA shipments, profit, ads, AI, shipping labels, order routing, and MCP access for a seller's AI assistant (soon after launch). They stay switched off and are not built further until a record and a launch-bar row need them.
+**Parked, with no record yet** ([ADR-000 SPEC 4.7](../system-architecture/spec/#4-the-foundation-and-the-launch-modules)): FBA shipments, ads, AI, shipping labels, order routing, and MCP access for a seller's AI assistant (soon after launch). They stay switched off and are not built further until a record and a launch-bar row need them.
 
 The order to build them in is on the [index](../).
 

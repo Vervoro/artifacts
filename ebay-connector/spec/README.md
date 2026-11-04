@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-004.1: eBay connector](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-0041-ebay-connector) |
-| **Date** | 21 October 2026; amended by owner delegation, 2 November 2026 (phase 5.6 as built): the refresh token's lifetime when eBay names none (1.5), an account's refusal in a batch (4.2), a listing eBay will not show (4.8), the resend's old write (4.9), the day spent and the pools' reset (5.5, 5.6, 10), the left-out reason (6.1), the order calls' pool (10), the page cap declared (How to check); a key id not held, looked up in control (2.3, How to check), ruled by delegation, 2 November 2026, for the owner's confirmation; phase 5.6's close: marketplace fees and the deletion-mail runbook (0), `sell.finances` in the consent (1.1), owner delegation, 2 November 2026; phase 5.7's developer's review: the stop and unlink choices with the option off (6.3), owner delegation, 2 November 2026; Stock sync's engine as built (phase 5.7, PR 1): the note on 0 only where the option is off (6.3), owner delegation, 2 November 2026; Fulfilment's ship (phase 5.8, PR 2): one dispatch call per box (7.2), ruled by delegation, 4 November 2026, for the owner's confirmation |
+| **Date** | 21 October 2026; amended by owner delegation, 2 November 2026 (phase 5.6 as built): the refresh token's lifetime when eBay names none (1.5), an account's refusal in a batch (4.2), a listing eBay will not show (4.8), the resend's old write (4.9), the day spent and the pools' reset (5.5, 5.6, 10), the left-out reason (6.1), the order calls' pool (10), the page cap declared (How to check); a key id not held, looked up in control (2.3, How to check), ruled by delegation, 2 November 2026, for the owner's confirmation; phase 5.6's close: marketplace fees and the deletion-mail runbook (0), `sell.finances` in the consent (1.1), owner delegation, 2 November 2026; phase 5.7's developer's review: the stop and unlink choices with the option off (6.3), owner delegation, 2 November 2026; Stock sync's engine as built (phase 5.7, PR 1): the note on 0 only where the option is off (6.3), owner delegation, 2 November 2026; Fulfilment's ship (phase 5.8, PR 2): one dispatch call per box (7.2), ruled by delegation, 4 November 2026, for the owner's confirmation; fees for Profit (0, 1.1, 9, 10, 11), on the owner's approval of [ADR-016](../../profit/), 4 November 2026 |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 Only what is particular to eBay. Everything the host does (credentials, HTTP, outcomes, pools, notices in, the completeness check, shadow mode) is [ADR-004 SPEC](../../channel-connectors/spec/) and is not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed.
@@ -15,12 +15,12 @@ Only what is particular to eBay. Everything the host does (credentials, HTTP, ou
 | --- | --- | --- |
 | eBay item-change notices for Seller Hub listings | Hand edits near zero are seen too late in shadow ([ADR-008](../../inventory-sync/spec/#0-at-launch-and-later)) | [4](#4-listings-and-stock) |
 | Moving Seller Hub listings to the Inventory API | The Growth Check grants less than the reserve rule needs ([ADR-008](../../inventory-sync/spec/#0-at-launch-and-later)) | [5](#5-the-trading-pool) |
-| Marketplace fees through eBay's `sell.finances` scope, which needs its Growth Check and, for UK and EU sellers, digital signatures on the calls | The Profit record's approval ([ADR-000 SPEC 4.7](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)); the scope is asked for before the first seller connects, so no seller reconnects for it (owner delegation, 2 November 2026) | [1](#1-connecting) |
+| Marketplace fees through eBay's `sell.finances` scope, which needs its Growth Check and, for UK and EU sellers, digital signatures on the calls | Profit's phase: the record was approved on 4 November 2026 ([ADR-016](../../profit/)); the scope is asked for before the first seller connects, so no seller reconnects for it (owner delegation, 2 November 2026) | [1](#1-connecting), [11](#11-fees-built-with-profit) |
 | A runbook for eBay's "deletion endpoint not responding" mail | Written with the production keyset, as eBay marks the application non-compliant after 30 days (owner delegation, 2 November 2026) | [8](#8-account-deletion-notices) |
 
 ## 1. Connecting
 
-1. **Consent.** The seller is sent only to eBay's consent page with Vervoro's scopes: inventory, fulfilment, account and identity (read only), notification subscriptions, cancellations. A scope eBay does not know refuses every seller, so the list changes only after the scope is confirmed on Vervoro's keyset. `sell.finances` joins the consent once eBay grants it to Vervoro's app (the owner's Growth Check), before the first seller connects, so no seller approves again for fees (owner delegation, 2 November 2026).
+1. **Consent.** The seller is sent only to eBay's consent page with Vervoro's scopes: inventory, fulfilment, account and identity (read only), notification subscriptions, cancellations. A scope eBay does not know refuses every seller, so the list changes only after the scope is confirmed on Vervoro's keyset. `sell.finances` joins the consent once eBay grants it to Vervoro's app (the owner's Growth Check), before the first seller connects, so no seller approves again for fees (owner delegation, 2 November 2026). Today's wording says the scope needs the Growth Check; whether it does is confirmed on Vervoro's keyset before the first seller connects (the owner's to confirm; [ADR-016 SPEC 14](../../profit/spec/#14-research-and-constraints)).
 2. **eBay does not sign its redirect;** the host's single-use state proves it ([ADR-004 SPEC 3](../../channel-connectors/spec/#3-credentials-and-approval)).
 3. **Who approved.** The token reply names no user, so the connector asks eBay's Identity API with the new token. The stable user id is claimed in the external directory. Approving again from the same eBay account renews it.
 4. **One account is one eBay site** (such as the UK site), which the Trading API calls name.
@@ -86,7 +86,7 @@ Only what is particular to eBay. Everything the host does (credentials, HTTP, ou
 
 ## 9. Simulator and pre-launch recordings
 
-The simulator speaks only the calls above: Inventory, Fulfillment, Feed, Notification and Identity APIs, the Trading calls used here, the consent page and token exchange, signed notices, daily usage limits and the out-of-stock preference. Before launch each call is recorded against the sandbox or a real account ([ADR-004 SPEC 14](../../channel-connectors/spec/#14-simulators-and-recorded-replies)). The recordings include that the order list keeps a stable order for one filter across calls, which the backwards read relies on. `getTopics` is read on the production keyset: the three topics must be available to Vervoro with the scopes it asks for; any restricted one is requested from eBay before a seller connects.
+The simulator speaks only the calls above: Inventory, Fulfillment, Feed, Notification and Identity APIs, the Trading calls used here, the consent page and token exchange, signed notices, daily usage limits and the out-of-stock preference; with Profit, the Finances API's transactions, their pages and the signature check (section 11). Before launch each call is recorded against the sandbox or a real account ([ADR-004 SPEC 14](../../channel-connectors/spec/#14-simulators-and-recorded-replies)). The recordings include that the order list keeps a stable order for one filter across calls, which the backwards read relies on. `getTopics` is read on the production keyset: the three topics must be available to Vervoro with the scopes it asks for; any restricted one is requested from eBay before a seller connects.
 
 ## 10. Constraints
 
@@ -104,11 +104,22 @@ Checked against eBay's documentation on 17 October 2026; the order topics row on
 | Trading inventory status revision | Up to 4 listings or variations; a variation is named by its SKU | [ReviseInventoryStatus](https://developer.ebay.com/devzone/xml/docs/Reference/eBay/ReviseInventoryStatus.html) |
 | Notices | Destinations, per-topic subscriptions, public keys to check signatures | [Notification API](https://developer.ebay.com/develop/api/sell/notification_api) |
 | Order topics | The three above; some topics restricted to approved partners; `getTopics` gives each topic's scopes | [Notification topics](https://developer.ebay.com/develop/api/buy/notification_events) |
+| Finances API (built with Profit) | `getTransactions`, up to 1,000 entries a page; a daily call limit per application, shared by every seller (its figure read from the limits page when built); UK and EU sellers' calls signed with the developer's key pair, which lasts 3 years | [API call limits](https://developer.ebay.com/develop/api/sell/api_call_limits), [Finances API](https://developer.ebay.com/api-docs/master/sell/finances/openapi/3/sell_finances_v1_oas3.json), [Digital signatures](https://edp.ebay.com/develop/guides/digital-signatures-for-apis.md) |
 | Daily pools' reset | Midnight America/Los_Angeles (owner delegation, 2 November 2026) | Not yet checked; to be checked against [API call limits](https://developer.ebay.com/develop/api/sell/api_call_limits) when the owner records |
 
 The order calls' pool is 100,000 a day (50,000 is the rollup threshold, [ADR-004 SPEC 7.1](../../channel-connectors/spec/#7-shared-daily-pools)) (owner delegation, 2 November 2026).
 
-## 11. Tests that prove each rule
+## 11. Fees, built with Profit
+
+Built in Profit's phase ([ADR-016 SPEC 4.10](../../profit/spec/#4-reading-fees)); until then the connector declares no `read-fees` ([ADR-004 SPEC 1.3](../../channel-connectors/spec/#1-the-connector-contract)).
+
+1. **The call.** The Finances API's `getTransactions`, 1,000 entries a page, over the window Profit's job asks for. A sale's fees per line come from its line items, a refund's credits per line; a fee billed as a separate charge is matched to its order by the order id; label transactions are their order's.
+2. **Signed calls.** For UK and EU sellers each Finances call is signed with Vervoro's key pair from eBay's Key Management API. The private key is an app secret declared with its rotation ([ADR-004 SPEC 2](../../channel-connectors/spec/#2-what-a-connector-declares)): eBay's key lasts 3 years, and a new pair is made and declared before it ends.
+3. **Only the eBay account's owner approves `sell.finances`.** An account approved by a team login reads no fees; its health says "fees need the eBay account owner's approval", and the seller chooses when to approve again.
+4. **No buyer field** leaves the connector: eBay's transactions name the buyer, and the connector drops it before the host sees an entry ([ADR-016 SPEC 12](../../profit/spec/#12-personal-data)).
+5. **Kinds** map as [ADR-016 SPEC 5](../../profit/spec/#5-kinds-of-fee) says: the final value fee, its fixed per-order part and regulatory fees are selling fees; the promoted listings (general) ad fee is the line's; cost-per-click charges, the store subscription and other non-sale charges are account charges.
+
+## 12. Tests that prove each rule
 
 | Test | Proves |
 | --- | --- |
@@ -124,6 +135,7 @@ The order calls' pool is 100,000 a day (50,000 is the rollup threshold, [ADR-004
 | Pool spent | eBay's "day spent" throttles the pool 15 minutes and alerts |
 | Deletion notice | A buyer match anonymises; nothing is stored from the notice |
 | Settings | No call changes a seller preference |
+| Fees (11), built with Profit | A sale's fees and a refund's credits land per line; a team login's approval reads no fees and says why; no buyer field leaves an entry |
 
 ## How to check it was built right
 
