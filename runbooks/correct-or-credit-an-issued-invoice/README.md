@@ -21,7 +21,7 @@ An issued invoice is never edited or deleted. A refund is credited; a wrong invo
 ## Verify
 
 - The order lists the original invoice, the credit note naming it, and any new invoice, each with its own number and no gap in the series.
-- The VAT summary for the refund's period shows the refund or the correction.
+- The VAT summary for the refund's period shows the refund. A credit note for an invoice issued in error changes nothing there: the sale stands ([SPEC 9](../../invoicing-and-vat/spec/#9-refunds-and-credit-notes); ruled by delegation, 5 November 2026, for the owner's confirmation).
 
 ## If it stops halfway
 
