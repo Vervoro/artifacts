@@ -152,6 +152,7 @@ Rules: [ADR-012 SPEC](../billing-and-plans/spec/). Also: [Erase a company](erase
 | [Work a failed payment](work-a-failed-payment/) | A billing alert: a bounced notice, a lost dispute, a cancelled mandate, a payment that cannot settle before closing |
 | [Close and reopen a company for non-payment](close-and-reopen-a-company/) | A company reaches its closing date, or a closed company pays before erasure |
 | [Refund a seller](refund-a-seller/) | A seller was charged by Vervoro's mistake |
+| [Set up the Stripe account](set-up-the-stripe-account/) | Before the first company subscribes on a Stripe account, and after any change to its settings (ruled by delegation, 5 November 2026, for the owner's confirmation) |
 
 ## ADR-013: Sign-in
 

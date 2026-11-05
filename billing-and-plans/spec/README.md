@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-012: Billing and plans](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-012-billing-and-plans) |
-| **Date** | 21 October 2026; Purchasing in every plan (2) by owner ruling, 27 October 2026; operator assignments and who edits plan rows, owner ruling of 22 October 2026; Profit in every plan until tiers are set (2.2), on the owner's approval of [ADR-016](../../profit/), 4 November 2026; phase 5.10, PR 1 (plans, the trial, the payment method and going live: the plan review, the build and its review): who writes billing rows (1.1, How to check), the plan in the session pass (1.2), event names and `liveStops` (1.5), price lookup keys (2.1), the order count's own table (4.3, 21), the trial's days, its extension, companies from before billing and prices shown (5.1, 7.2), exempt companies (5.6), Billing's part of going live (6.1), the dated job's notices (7.3, 11.2), cancelling while never paid (8), a bounce (11.4), the webhook, an unknown customer and the consumer's order (13.2–13.4), the business declaration (17.4), storage (21); phase 5.10, PRs 2 and 3 (closing, reopening, notices, plan changes, the order ceiling and the operator's levers): the switch-effects point (1.5), what counts and how (4.1, 4.3, 21), the dated acts (7.3), what runs restricted, closed and in every state (8.2, 8.3, 8.5), reopening (10.2, 10.5), a move up's notice (11.2), a bounce (11.4), interval changes (14.1), a complimentary plan at Stripe (14.6, How to check, 23), cancelling (16.1), erasure's day (16.3), the platform admin's levers (19.3), notices and bounces stored (21); phase 5.10's close (the whole-module drift reviews, decisions 166–172): the count's index entry (4.3), a processing payment holds off closing (7.5, decision 168: less strict than the published rule), leaving and invitations in every state (8.5), the last closing's weeks (10.4), active contacts (11.3), interval changes (14.1), a subscription during a complimentary plan (14.6, 14.8), a withdrawal's reason and end (14.8, 19.3), who sees the stock contact (19.1), ruled by delegation, 5 November 2026, for the owner's confirmation |
+| **Date** | 21 October 2026; Purchasing in every plan (2) by owner ruling, 27 October 2026; operator assignments and who edits plan rows, owner ruling of 22 October 2026; Profit in every plan until tiers are set (2.2), on the owner's approval of [ADR-016](../../profit/), 4 November 2026; phase 5.10, PR 1 (plans, the trial, the payment method and going live: the plan review, the build and its review): who writes billing rows (1.1, How to check), the plan in the session pass (1.2), event names and `liveStops` (1.5), price lookup keys (2.1), the order count's own table (4.3, 21), the trial's days, its extension, companies from before billing and prices shown (5.1, 7.2), exempt companies (5.6), Billing's part of going live (6.1), the dated job's notices (7.3, 11.2), cancelling while never paid (8), a bounce (11.4), the webhook, an unknown customer and the consumer's order (13.2–13.4), the business declaration (17.4), storage (21); phase 5.10, PRs 2 and 3 (closing, reopening, notices, plan changes, the order ceiling and the operator's levers): the switch-effects point (1.5), what counts and how (4.1, 4.3, 21), the dated acts (7.3), what runs restricted, closed and in every state (8.2, 8.3, 8.5), reopening (10.2, 10.5), a move up's notice (11.2), a bounce (11.4), interval changes (14.1), a complimentary plan at Stripe (14.6, How to check, 23), cancelling (16.1), erasure's day (16.3), the platform admin's levers (19.3), notices and bounces stored (21); phase 5.10's close (the whole-module drift reviews, decisions 166–172): the count's index entry (4.3), a processing payment holds off closing (7.5, decision 168: less strict than the published rule), leaving and invitations in every state (8.5), the last closing's weeks (10.4), active contacts (11.3), interval changes (14.1), a subscription during a complimentary plan (14.6, 14.8), a withdrawal's reason and end (14.8, 19.3), who sees the stock contact (19.1); phase 5.10's completeness review (decisions 174–177): the Stripe customer's email Later (0, 12), the trial's 7-day notice (11.2), the account's settings in a runbook (12, 17.2, 22, How to check), VAT on every subscription (17.4), ruled by delegation, 5 November 2026, for the owner's confirmation |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-012 from: the Billing module, always on, outside the core, needing Access ([ADR-000 SPEC 4](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)). Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/).
@@ -15,6 +15,7 @@ The rules to build ADR-012 from: the Billing module, always on, outside the core
 | --- | --- | --- |
 | The capped, lower-priority share of shared marketplace allowances for trial and restricted companies | Trials use over 25% of cell A's compute for 7 days ([ADR-001 SPEC 0](../../database-architecture/spec/#0-at-launch-and-later)) | [8](#8-what-runs-in-each-state) |
 | Businesses outside the UK under the reverse charge, with the UK-use apportionment | Vervoro's accountant approves the apportionment; each country outside the UK and the EU after its rules are checked | [17](#17-vervoros-invoices-and-vat) |
+| Setting the billing contact sets the Stripe customer's email, under an intent (ruled by delegation, 5 November 2026, for the owner's confirmation) | Before the first paying seller | [12](#12-payment) |
 | Contract plans with a billing path of their own | A later record, with the first enterprise contract ([ADR-001 SPEC 8](../../database-architecture/spec/#adding-a-dedicated-database)) | [2](#2-plans) |
 
 ## 1. Who does what
@@ -143,6 +144,7 @@ Procedure: [Close and reopen a company for non-payment](../../runbooks/close-and
 | An operator assigns a plan or add-on | What, why, and whether it is complimentary (until when) or charged from which renewal; how to decline a charged one |
 | 30 and 7 days before a complimentary assignment ends, or a charged one is first charged | What ends or is charged, and on which date; for a complimentary plan, what happens without a payment method; how to keep it or decline |
 | A move up a tier is scheduled (mailed to the Owners when set) | The plan, its price, the renewal date, the three-month average and the ceiling (ruled by delegation, 5 November 2026, for the owner's confirmation) |
+| 7 days before a trial ends with no payment method (to the Owners and the billing contact) | The date, what becomes read-only, how to add a way to pay; with the banner for Owners and Admins (ruled by delegation, 5 November 2026, for the owner's confirmation) |
 | Closing | What each choice did; that no listing will rise again; a file of the last figure sent to each listing, ready to upload to the marketplace by hand; the export link; the erasure date; how to reopen |
 
 3. **Who gets them:** every Owner, the billing contact and the stock contact while they are active members (ruled by delegation, 5 November 2026, for the owner's confirmation), by email, with a banner for Owners and Admins. Dates are always named, never only a number of days.
@@ -153,7 +155,7 @@ Procedure: [Close and reopen a company for non-payment](../../runbooks/close-and
 | Need | How |
 | --- | --- |
 | A payment method | Stripe Checkout, a full page Vervoro redirects to. Bacs mandates are collected only there |
-| Changing the method or billing details; reading invoices | Stripe's customer portal, from Vervoro's billing page, with plan switching and cancelling turned off |
+| Changing the method or billing details; reading invoices | Stripe's customer portal, from Vervoro's billing page, with plan switching and cancelling turned off ([Set up the Stripe account](../../runbooks/set-up-the-stripe-account/)). Setting the billing contact sets the Stripe customer's email under an intent (*Later*: before the first paying seller; section 0) (ruled by delegation, 5 November 2026, for the owner's confirmation) |
 | Plan changes and cancellation | Vervoro's own billing screen, which calls Stripe |
 | Charging | Subscriptions, charged automatically; contract plans by invoice with payment terms |
 
@@ -208,9 +210,9 @@ Procedure: [Work a failed payment](../../runbooks/work-a-failed-payment/).
 ## 17. Vervoro's invoices and VAT
 
 1. **Stripe issues** every invoice and credit note in Vervoro's name, in one sequence for the whole account with one prefix, never reset or reused.
-2. **Content:** what a UK VAT invoice must show: number, tax point and issue date, Vervoro's name, address and VAT number, the company's name and address (and VAT number where it has one), what was supplied, the rate and the amounts.
+2. **Content:** what a UK VAT invoice must show: number, tax point and issue date, Vervoro's name, address and VAT number, the company's name and address (and VAT number where it has one), what was supplied, the rate and the amounts. Vervoro's details and the one prefix are set on the account by [Set up the Stripe account](../../runbooks/set-up-the-stripe-account/) (ruled by delegation, 5 November 2026, for the owner's confirmation).
 3. **Issued when Stripe finalises it,** within the 30 days HMRC allows; never edited after issue, corrected by a credit note and, where needed, a new invoice.
-4. **At launch, UK businesses only,** charged UK VAT at the standard rate. The company declares it is a business on the plan step, before the first payment method is added, recorded once (ruled by delegation, 5 November 2026, for the owner's confirmation); consumers are not accepted.
+4. **At launch, UK businesses only,** charged UK VAT at the standard rate, by the tax rate set on every subscription (decision 174; [Set up the Stripe account](../../runbooks/set-up-the-stripe-account/)) (ruled by delegation, 5 November 2026, for the owner's confirmation). The company declares it is a business on the plan step, before the first payment method is added, recorded once (ruled by delegation, 5 November 2026, for the owner's confirmation); consumers are not accepted.
 5. *Later:* **businesses outside the UK.** No UK VAT on the part used abroad; the customer accounts for it under the reverse charge, and the invoice says "reverse charge" with the customer's VAT number. Checkout is refused until that number is verified (VIES for EU customers), because Stripe's tax calculation applies the reverse charge to any well-formed number. Vervoro does not register in the EU. A company with any warehouse in the UK pays UK VAT on the UK share the accountant's apportionment sets (use and enjoyment).
 
 ## 18. Records kept
@@ -248,7 +250,7 @@ All in control, written by Billing ([ADR-001 SPEC 7](../../database-architecture
 
 ## 22. Constraints
 
-Checked against official sources on 18 October 2026.
+Checked against official sources on 18 October 2026. The account settings these rely on are made by [Set up the Stripe account](../../runbooks/set-up-the-stripe-account/) (ruled by delegation, 5 November 2026, for the owner's confirmation).
 
 | Constraint | What it means here | Source |
 | --- | --- | --- |
@@ -303,6 +305,6 @@ For someone reviewing code an AI wrote. Each line says where to look.
 - [ ] **Events in:** the signature check runs before any database read; event ids are recorded; the consumer fetches current state.
 - [ ] **Calls out:** every Stripe POST carries the recorded idempotency key.
 - [ ] **Card data:** no card field in any page; Checkout and the portal are redirects; only brand, last four and expiry stored.
-- [ ] **Portal:** its configuration turns off plan switching and cancelling.
+- [ ] **Portal:** its configuration turns off plan switching and cancelling ([Set up the Stripe account](../../runbooks/set-up-the-stripe-account/), step 4; ruled by delegation, 5 November 2026, for the owner's confirmation).
 - [ ] **Audit:** every billing action writes `audit_log`; plan, payment and cancel ask for the fresh check.
 - [ ] **Later parts:** no reverse charge, no trial or restricted allowance cap, no contract-plan path at launch.
