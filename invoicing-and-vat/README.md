@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Status** | Proposed |
-| **Date** | 18 October 2026; charge lines added with [ADR-003](../product-model/), and split into ADR, SPEC and RUNBOOK 21 October 2026; needs and the customer block's starting point aligned with buyer data at launch (owner ruling, 22 October 2026) |
+| **Date** | 18 October 2026; charge lines added with [ADR-003](../product-model/), and split into ADR, SPEC and RUNBOOK 21 October 2026; needs and the customer block's starting point aligned with buyer data at launch (owner ruling, 22 October 2026); the tax point of every order the earlier of its payment and its dispatch (decision 5, open items; phase 5.9, PR 1), ruled by delegation, 4 November 2026, for the owner's confirmation |
 | **Scope** | The Invoicing module: the invoices and credit notes a seller issues to buyers for marketplace and manual orders, and the VAT record of every sale: who issues, when, what a document holds, numbering, how VAT is worked out, differences from a marketplace's figure, refunds, keeping documents, sales outside the UK and the accounting export. Not how Vervoro bills its own sellers ([ADR-012](../billing-and-plans/)) |
 | **Builds on** | [ADR-000](../system-architecture/), [ADR-001](../database-architecture/), [ADR-002](../data-retention/), [ADR-003](../product-model/), [ADR-004](../channel-connectors/) with [ADR-004.1](../ebay-connector/) and [ADR-004.2](../amazon-seller-connector/), [ADR-007](../order-ingestion/), [ADR-009](../buyer-data/), [ADR-010](../users-and-access/), [ADR-014](../fulfilment/) |
 | **SPEC** | [The rules to build from, the constraints with their sources and how to check them](spec/) |
@@ -22,7 +22,7 @@
 2. **One issuer per sale.** Each marketplace account records who invoices its orders, and Vervoro refuses to issue for an account the marketplace invoices. Amazon invoices its own orders through VCS: Vervoro has no tax invoicing role at Amazon and uploads nothing. eBay invoices if the seller opted in to eBay's VAT invoices; otherwise Vervoro does, and each such invoice carries the issuer's confirmation that eBay holds none for the order.
 3. **A document is made only when one is needed or asked for.** A manual order to a business gets a full invoice when it is dispatched. Any other order gets one when a person asks for it for a buyer. The seller sends it: Vervoro keeps no buyer email and sends nothing to buyers.
 4. **One invoice layout, with an optional customer block.** Filled, it is a full invoice; empty, it is a simplified invoice, which the law allows up to £250 for a consumer who has not asked for their details. The same layout shows no VAT for a zero-rated order or a seller who is not VAT-registered.
-5. **Every sale line gets a VAT record when its order is imported,** invoiced or not, because a marketplace order's tax point (the date that fixes its rate and VAT period) is its payment. Charge lines get one too, at their own VAT class. A cancellation writes a reversing record and a change writes a correction; nothing is rewritten. Documents, refunds and the export read these records.
+5. **Every sale line gets a VAT record when its order has its tax point,** invoiced or not. The tax point (the date that fixes its rate and VAT period) is the earlier of the payment the marketplace or the seller reports and the dispatch, so an eBay order paid at checkout is recorded when it is imported (ruled by delegation, 4 November 2026, for the owner's confirmation). Charge lines get one too, at their own VAT class. A cancellation writes a reversing record and a change writes a correction; nothing is rewritten. Documents, refunds and the export read these records.
 6. **Vervoro works out the VAT itself, and what the buyer paid wins.** The gross is what the marketplace says the buyer paid. VAT comes from the product's class and the rate valid at the tax point. The marketplace's own tax figure sits beside Vervoro's, never in its place. Goods are compared per order and per rate: a difference over 1p flags the order and blocks invoicing until a person settles it. The flag never holds dispatch.
 7. **One stated rule for rounding and splits.** VAT is rounded per line to the nearest penny, half up, never down. A bundle whose parts have different classes is split by its components' standard costs. A delivery charge follows the VAT liability of the goods it carries, split by their value on a mixed order. Discounts reduce the lines they apply to.
 8. **Documents are numbered, frozen and corrected only by credit note.** Invoices and credit notes share one gap-free series per company, numbered in the transaction that issues them. An issued document, its PDF and its data file never change. A credit note is issued only against an invoice Vervoro issued; other refunds become VAT records only.
@@ -55,12 +55,12 @@
 - **Recalculate the gross from Vervoro's VAT:** documents would match no payment.
 - **Round VAT once per invoice, or down:** lines could not be traced to totals, and retailers may not round down.
 - **Split hampers by selling price:** products hold no selling price; cost is always there and fair.
-- **Write the VAT record at dispatch:** orders paid on the last weekend of a quarter would fall into the next one.
+- **Write the VAT record at dispatch for an order paid earlier:** orders paid on the last weekend of a quarter would fall into the next one.
 - **Compare delivery and discounts with the marketplace:** shops tax delivery by their own method, so almost every mixed basket would flag.
 - **Drafts, or separate kinds for full and simplified invoices:** drafts need states and leave gaps; the law decides what one layout prints.
 - **A self-service invoice link for buyers, or emailing invoices:** a public page, buyer-typed personal data and buyer email, to save a short wait.
 
 ## Open items
 
-- **Marketplace and HMRC sources** were checked on 18 October 2026; recheck them before launch.
+- **Marketplace and HMRC sources** were checked on 18 October 2026; recheck them before launch, with when Amazon takes payment: two Amazon pages could not be read on 4 November 2026, and the SPEC takes an Amazon order's tax point as its dispatch ([SPEC 3.2](spec/#3-when-a-document-is-made)) (ruled by delegation, 4 November 2026, for the owner's confirmation).
 - **Switching Invoicing on after orders already exist:** the SPEC writes VAT records back to a start date the seller picks ([SPEC 1.4](spec/#1-the-module)); confirm with an accountant that this suits a seller who joins mid-period.
