@@ -13,15 +13,15 @@ Vervoro's code relies on these account settings and never makes them itself: Str
 
 1. **Failed payments end in "unpaid".** In Stripe's billing settings for failed payments, choose to mark the subscription unpaid after the last retry, never to cancel it ([SPEC 15.3](../../billing-and-plans/spec/#15-failed-payments)).
    Verify: the setting reads "mark the subscription as unpaid"; in the sandbox, a test subscription whose retries all fail shows the status `unpaid`, and its open invoice can still be paid.
-2. **Retries.** Turn on Smart Retries over a 2-week window, with retries for Direct Debit payments on ([SPEC 15.1](../../billing-and-plans/spec/#15-failed-payments)).
-   Verify: the retry schedule reads Smart Retries within 2 weeks, and Direct Debit retries are on.
-3. **Stripe's own emails.** Turn on the customer emails for a trial ending, a failed payment, a card expiring, and a payment that needs authentication ([SPEC 11.1](../../billing-and-plans/spec/#11-notices)).
-   Verify: each of the four is on in the email settings; a sandbox customer with a test card that needs authentication receives the email.
-4. **The customer portal.** Turn the portal on for changing the payment method and billing details and reading invoices, with plan switching and cancelling off ([SPEC 12](../../billing-and-plans/spec/#12-payment)).
+2. **Retries.** Smart Retries over 2 weeks for cards; Direct Debit (Bacs) retries follow Stripe's own fixed limits (2 retries over 30 days), so check they are on, under local payment methods ([SPEC 15.1](../../billing-and-plans/spec/#15-failed-payments)).
+   Verify: the card retry schedule reads Smart Retries within 2 weeks, and retries for Bacs Direct Debit are on under local payment methods.
+3. **Stripe's own emails.** Turn on the customer emails for a trial ending, a failed payment, a card expiring, and a payment that needs authentication ([SPEC 11.1](../../billing-and-plans/spec/#11-notices)). If a kind is not offered in the email settings, tell the operator: Vervoro's own notices then cover it ([SPEC 11.2](../../billing-and-plans/spec/#11-notices)).
+   Verify: the dashboard's own list of customer emails shows each kind it offers on; any of the four it does not offer is reported to the operator.
+4. **The customer portal.** Turn the portal on for changing the payment method and billing details and reading invoices. Turn cancelling off (it is on by default); leave plan switching off (it is off by default) ([SPEC 12](../../billing-and-plans/spec/#12-payment)).
    Verify: a sandbox customer's portal shows the payment method, billing details and invoices, and offers no plan change and no cancel.
 5. **Invoices in Vervoro's name.** Set Vervoro's registered name, address and VAT number on invoices, with one invoice prefix and numbering across the whole account, never reset ([SPEC 17.1, 17.2](../../billing-and-plans/spec/#17-vervoros-invoices-and-vat)).
    Verify: a sandbox invoice shows Vervoro's name, address and VAT number, and its number carries the prefix and follows the account's last.
-6. **The VAT rate.** Create one tax rate: VAT, GB, 20 %, exclusive (not included in the price). Set its id (`txr_…`) as the Worker variable `STRIPE_VAT_RATE` in that environment's configuration, and deploy ([SPEC 17.4](../../billing-and-plans/spec/#17-vervoros-invoices-and-vat)). Until it is set, subscribing is refused and the operator alerted; no invoice is ever made without VAT.
+6. **The VAT rate.** Create one tax rate: VAT, GB, 20 %, exclusive (not included in the price). A tax rate's percentage and country can't be changed after it is created: a wrong one is archived and a new one made. Set its id (`txr_…`) as the Worker variable `STRIPE_VAT_RATE` in that environment's configuration, and deploy ([SPEC 17.4](../../billing-and-plans/spec/#17-vervoros-invoices-and-vat)). Until it is set, subscribing is refused and the operator alerted; no invoice is ever made without VAT.
    Verify: Stripe shows the rate active, 20 %, exclusive, jurisdiction GB; after the deploy, a sandbox subscription's first invoice adds 20 % VAT on top of the plan's price.
 
 ## Verify
