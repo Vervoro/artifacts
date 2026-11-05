@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-011: Invoicing and VAT](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-011-invoicing-and-vat) |
-| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: VAT records not partitioned (14); phase 5.9, PR 1 (the developer's review, the plan review, the build and its review): Access in the needs (1.1), the start date (1.4), an eBay account's issuer and a day not registered (2.1), the tax point and when a record is written (3.2, 6.2), the VAT checks page (3.3, 8.2), a correction for a registration date (4.5), a line with no class (6.1), bundles and the minor-item rule (7.4, 7.5), delivery and order discounts split by values as priced (7.7, 7.8), the files after commit (10.1), a refund naming no lines (9.2), the VAT summary's row, sections, exactly-once rule and currencies (12.1, 12.3, 12.4, 12.7), Invoicing's own tables (14), ruled by delegation, 4 November 2026, for the owner's confirmation |
+| **Date** | 21 October 2026; amended by owner rulings of 25 October 2026: VAT records not partitioned (14); phase 5.9, PR 1 (the developer's review, the plan review, the build and its review): Access in the needs (1.1), the start date (1.4), an eBay account's issuer and a day not registered (2.1), the tax point and when a record is written (3.2, 6.2), the VAT checks page (3.3, 8.2), a correction for a registration date (4.5), a line with no class (6.1), bundles and the minor-item rule (7.4, 7.5), delivery and order discounts split by values as priced (7.7, 7.8), the files after commit (10.1), a refund naming no lines (9.2), the VAT summary's row, sections, exactly-once rule and currencies (12.1, 12.3, 12.4, 12.7), Invoicing's own tables (14), ruled by delegation, 4 November 2026, for the owner's confirmation; phase 5.9, PR 2 (the documents, their plan review, build and review): Buyer data's ports and the tracking read from Buyer data (1.1, 1.2, 11.2), invoices due on the Documents page (3.3), a credit note's customer block and what a document prints (4.1, 4.6), the flags that hold an invoice (8.3), a credit note for an invoice in error (9), downloads through the signed-in route (10.2), export evidence with no hash (11.2, 14), the document register's rows and names (12.1), ruled by delegation, 5 November 2026, for the owner's confirmation |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-011 from: the Invoicing module, switchable, needing Orders, Products, Buyer data and Access ([ADR-000 SPEC 4](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)). Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/). Amounts in pounds below are legal thresholds, not prices.
@@ -24,8 +24,8 @@ The rules to build ADR-011 from: the Invoicing module, switchable, needing Order
 
 ## 1. The module
 
-1. **Switchable, needing Orders, Products, Buyer data and Access.** It writes only its own `invoicing_` tables, through the typed query builder ([ADR-001 SPEC 5](../../database-architecture/spec/#5-declaring-tables)). It calls the core's ports: Orders for order lines and their money ([ADR-007 SPEC 1.9](../../order-ingestion/spec/#1-the-module)), Products for VAT classes and standard costs, Buyer data for the starting point of a customer block ([ADR-009 SPEC 1](../../buyer-data/spec/#1-who-does-what)), Access for the company's time zone (ruled by delegation, 4 November 2026, for the owner's confirmation).
-2. **It acts on events, after commit,** never inside another module's transaction: Orders' order imported, changed, shipped and refunded ([ADR-007 SPEC 1](../../order-ingestion/spec/#1-the-module)); Fulfilment's shipment, for carrier and tracking ([ADR-014](../../fulfilment/spec/#4-shipments)). Every handler is idempotent.
+1. **Switchable, needing Orders, Products, Buyer data and Access.** It writes only its own `invoicing_` tables, through the typed query builder ([ADR-001 SPEC 5](../../database-architecture/spec/#5-declaring-tables)). It calls the core's ports: Orders for order lines and their money ([ADR-007 SPEC 1.9](../../order-ingestion/spec/#1-the-module)), Products for VAT classes and standard costs, Buyer data for the starting point of a customer block ([ADR-009 SPEC 1](../../buyer-data/spec/#1-who-does-what)), Access for the company's time zone (ruled by delegation, 4 November 2026, for the owner's confirmation); Buyer data also for an export's tracking per box, the mark that an order was invoiced, which orders are anonymised and the log of each download (ADR-009 SPEC 1.1, 1.3) (ruled by delegation, 5 November 2026, for the owner's confirmation).
+2. **It acts on events, after commit,** never inside another module's transaction: Orders' order imported, changed, shipped and refunded ([ADR-007 SPEC 1](../../order-ingestion/spec/#1-the-module)). At an export's shipment the carrier and tracking number of each box are read from Buyer data, as the system, for that purpose only ([ADR-009 SPEC 7.6](../../buyer-data/spec/#7-who-can-see-it)); Fulfilment's shipment stores them there ([ADR-014](../../fulfilment/spec/#4-shipments)) (ruled by delegation, 5 November 2026, for the owner's confirmation). Every handler is idempotent.
 3. **The rate table** is ADR-003's, platform data in control. Invoicing only reads it.
 4. **Switched on after orders exist,** it writes VAT records for every order whose tax point is on or after a start date the seller picks, by default the first day of the current calendar quarter. It never writes a record dated before that start date. Until the settings are saved Invoicing writes nothing; the start date may be moved earlier, never later; every switch-on catches up from it (ruled by delegation, 4 November 2026, for the owner's confirmation).
 
@@ -52,12 +52,12 @@ The rules to build ADR-011 from: the Invoicing module, switchable, needing Order
 
 1. **No consumer order is invoiced automatically.** A manual order to a business is invoiced when it is dispatched; any other order when a person asks.
 2. **The tax point** of every order is the earlier of the payment the marketplace or the seller reports and its dispatch ([VAT Notice 700, 14.2](#15-constraints)): an eBay order's payment, an Amazon order's dispatch (Amazon reports no payment time), a manual order's payment or dispatch (ruled by delegation, 4 November 2026, for the owner's confirmation).
-3. **A full invoice is due within 30 days of the tax point.** A flagged manual business order that cannot be invoiced at dispatch is on Invoicing's VAT checks page, counted on Today, until it is (ruled by delegation, 4 November 2026, for the owner's confirmation).
+3. **A full invoice is due within 30 days of the tax point.** A flagged manual business order that cannot be invoiced at dispatch is listed under Invoices due on Invoicing's Documents page, counted on Today, until it is (ruled by delegation, 5 November 2026, for the owner's confirmation).
 4. **There are no drafts.** Issuing is one confirmed command that numbers, freezes and stores the document.
 
 ## 4. What a document holds
 
-1. **One layout.** The customer block is filled for a business buyer, for a buyer who asks, or above £250; otherwise it is empty and the document is a simplified invoice.
+1. **One layout.** The customer block is filled for a business buyer, for a buyer who asks, or above £250; otherwise it is empty and the document is a simplified invoice. A credit note carries its invoice's customer block (ruled by delegation, 5 November 2026, for the owner's confirmation).
 
 | Item | Block filled | Block empty | Credit note |
 | --- | --- | --- | --- |
@@ -76,6 +76,7 @@ The rules to build ADR-011 from: the Invoicing module, switchable, needing Order
 3. **The seller's details** come from the company's invoicing settings: registered name and address, VAT number and registration date. No logo, footer or trading name at launch. They are copied into each document at issue.
 4. **Charge lines** appear beside the goods, each as its own line ([ADR-003 SPEC 1.1](../../product-model/spec/#11-charge-lines-and-listings-that-are-not-stock)). An invoice never adds a charge its order does not hold. Their VAT is [section 7.6](#7-working-out-the-vat).
 5. **Not VAT-registered:** no VAT, no rates, no VAT number; every line takes treatment `none`. Orders with a tax point on or after a registration date use the rates. A registration date set or moved corrects the records from the earlier of the old and new dates, and none before the start date (ruled by delegation, 4 November 2026, for the owner's confirmation).
+6. **What a document prints:** every Latin-1 and Latin Extended-A letter (Welsh ŵ and ŷ included), Ș ș Ț ț and typographic punctuation, in an embedded open-licence font. A name in another script is typed in Latin letters by the issuer; an issue with a text the document cannot print is refused naming the field, and an automatic invoice waits under Invoices due (ruled by delegation, 5 November 2026, for the owner's confirmation).
 
 ## 5. Numbering
 
@@ -114,7 +115,7 @@ The rules to build ADR-011 from: the Invoicing module, switchable, needing Order
 
 1. **Compared:** only goods, per order and per rate, where the marketplace gives a figure (Amazon's per-item tax; *Later:* Shopify's tax lines). eBay gives none for a UK domestic sale. Delivery and discount figures are shown, never compared.
 2. **A difference over 1p flags the order.** The order ships as normal. Flags are grouped on Invoicing's VAT checks page by product, with the VAT at stake, and counted on Today (ruled by delegation, 4 November 2026, for the owner's confirmation).
-3. **No invoice while flagged.** A person settles it by fixing the product's class (a correction record follows) or, with a reason kept on the document, by issuing on Vervoro's figure ([runbook](../../runbooks/settle-a-vat-difference/)).
+3. **No invoice while flagged** for a difference, a cost or a currency; an export's missing tracking ([section 11.3](#11-sales-outside-the-uk-and-export-evidence)) is flagged and does not hold the invoice (ruled by delegation, 5 November 2026, for the owner's confirmation). A person settles a difference by fixing the product's class (a correction record follows) or, with a reason kept on the document, by issuing on Vervoro's figure ([runbook](../../runbooks/settle-a-vat-difference/)).
 4. **Amazon orders** take Amazon's figure on the record, since Amazon's invoice stated it, and keep Vervoro's beside it; the flag asks the seller to fix the product's tax code at Amazon.
 5. **A domestic order not priced in pounds** is flagged and cannot be invoiced at launch: its VAT would need converting to sterling.
 
@@ -126,7 +127,7 @@ The rules to build ADR-011 from: the Invoicing module, switchable, needing Order
 | Refund on an order the marketplace invoiced | A refund VAT record; the marketplace's credit note covers it |
 | Refund on an order nobody invoiced | A refund VAT record at the original rates; no credit note |
 | Return with a replacement, no refund | Nothing; the replacement is not a sale |
-| Invoice issued in error | A credit note for all of it, then a new invoice if needed |
+| Invoice issued in error | A credit note for all of it, then a new invoice if needed. The credit note writes no VAT record: the sale stands (ruled by delegation, 5 November 2026, for the owner's confirmation) |
 
 1. **A refund record** is negative against the original line, with its treatment, rate and split, in the VAT period of the refund date.
 2. **A refund naming no lines** is split by the lines' values as the order prices them, like an order discount (ruled by delegation, 4 November 2026, for the owner's confirmation).
@@ -136,13 +137,13 @@ The rules to build ADR-011 from: the Invoicing module, switchable, needing Order
 ## 10. Files, delivery and keeping
 
 1. **Made once.** Issuing writes the PDF and a data file (the record as JSON) to object storage under keys never overwritten, encrypted under the company's key, with each file's hash on the record. The files are written to object storage after the issuing transaction commits, by a job the transaction starts; a file missing at download is rendered again from the document by the writer version it names and checked against its hash; a re-render whose hash differs is never served and alerts the operator (ruled by delegation, 4 November 2026, for the owner's confirmation). A download always returns the same file.
-2. **Delivery is by the seller.** The roles allowed ([section 13](#13-who-may-do-what)) download through a link that expires after 24 hours; each download is logged ([ADR-009](../../buyer-data/spec/#7-who-can-see-it)).
+2. **Delivery is by the seller.** The roles allowed ([section 13](#13-who-may-do-what)) download through the app's signed-in route, checked again on every request; each download is logged ([ADR-009 SPEC 9.2](../../buyer-data/spec/#9-invoices-and-export-evidence)) (ruled by delegation, 5 November 2026, for the owner's confirmation).
 3. **Kept as accounting records:** 24 months in the cell, then archived with their month, deleted 7 years after its end ([ADR-002 SPEC 2](../../data-retention/spec/#2-the-retention-schedule)). After the order is anonymised, a full invoice is visible only as [ADR-009 SPEC 9](../../buyer-data/spec/#9-invoices-and-export-evidence) says; an erasure request keeps it, with the reason recorded.
 
 ## 11. Sales outside the UK and export evidence
 
 1. **Northern Ireland from Great Britain:** `domestic`, UK rates.
-2. **Delivered outside the UK by the seller:** `export`, zero-rated, needing proof the goods left within 3 months, kept 6 years. The record keeps the carrier, tracking number and dispatch date from Fulfilment's shipment, with a hash; no name or postcode. *Later:* the carrier's delivery event, captured when it arrives.
+2. **Delivered outside the UK by the seller:** `export`, zero-rated, needing proof the goods left within 3 months, kept 6 years. The record keeps, per box, the carrier, the tracking number and the dispatch date, read from Buyer data at the shipment ([section 1.2](#1-the-module)); the tracking number sealed and tagged `pii` (its seal proves its integrity; no hash is kept); no name or postcode (ruled by delegation, 5 November 2026, for the owner's confirmation). *Later:* the carrier's delivery event, captured when it arrives.
 3. **An export line dispatched without a tracking number is flagged.** Nothing is reclassified automatically; changing it to standard-rated is the seller's correction.
 4. **Marketplace sales into the EU up to €150** a consignment: the marketplace is the deemed supplier; recorded as `marketplace`.
 5. **The seller's own shop selling into the EU:** recorded as exports; the EU import scheme is the seller's matter at launch.
@@ -151,7 +152,7 @@ The rules to build ADR-011 from: the Invoicing module, switchable, needing Order
 ## 12. The accounting export
 
 1. **Two CSV files** for any date range, made by the roles allowed ([section 13](#13-who-may-do-what)):
-   - **Document register**, one row per document: number, kind, issue date, tax point, order and marketplace order ids, the customer's name for business documents only, currency, and per rate net, VAT, gross, VAT in sterling, and a credit note's original invoice.
+   - **Document register**, one row per document and rate: number, kind, issue date, tax point, order and marketplace order ids, the customer's name for business documents only, for a person who may export with buyer data ([ADR-009 SPEC 12.2](../../buyer-data/spec/#12-exports); for anyone else the column is empty), currency, the rate's net, VAT and gross, VAT in sterling (empty for a document not in pounds, section 12.7), and a credit note's original invoice (ruled by delegation, 5 November 2026, for the owner's confirmation).
    - **VAT summary**, one row per day, channel, issuer, treatment, class, rate and currency (ruled by delegation, 4 November 2026, for the owner's confirmation): sales, refunds and corrections as net, VAT and gross, with when each record was written.
 2. **Every sale counts,** invoiced or not, since the summary is built from VAT records.
 3. **A section per issuer:** Vervoro-invoiced, marketplace-invoiced, nobody-invoiced, and marketplace-collected (never the seller's output VAT). The file's header and a notice on the first export say not to post a section the seller's payout import already posts. A record for a day the seller was not VAT-registered carries no issuer, and a correction netting it keeps none, so the two fall in one section (ruled by delegation, 4 November 2026, for the owner's confirmation).
@@ -175,7 +176,7 @@ The rows are in [ADR-010 SPEC 4](../../users-and-access/spec/#4-who-may-do-what)
 | `invoicing_export` | Each VAT summary made, for section 12.4 (ruled by delegation, 4 November 2026, for the owner's confirmation) |
 | `invoicing_vat_line` | The record of section 6; append-only; archived by month of tax point |
 | `invoicing_document` | An issued invoice or credit note as issued, with override reason, eBay confirmation, file keys and hashes; unique (company, number); never updated; customer fields tagged `pii` |
-| `invoicing_evidence` | Export evidence per box (section 11.2): carrier, dispatch day, the tracking number sealed and tagged `pii`, its hash; kept as the VAT record (ruled by delegation, 4 November 2026, for the owner's confirmation) |
+| `invoicing_evidence` | Export evidence per box (section 11.2): carrier, dispatch day, the tracking number sealed and tagged `pii` (its seal proves its integrity; no hash is kept); append-only; kept as the VAT record (ruled by delegation, 5 November 2026, for the owner's confirmation) |
 
 Orders and products are named by plain id, never by foreign key ([ADR-000 SPEC 2](../../system-architecture/spec/#2-tables)). Counters are ADR-001's.
 
