@@ -89,7 +89,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2 id="steps-closing">Steps: closing</h2>
 <ol>
 <li><strong>The closing job</strong> re-reads the company&#39;s subscription and invoices from Stripe. If it has paid, or a payment is processing, it stops.</li>
-<li>It publishes <code>company.closed</code>. Channels carries out each live connection&#39;s stop choice: &quot;send zero&quot; sends zero to every linked listing and waits for each to be confirmed; &quot;leave the figures&quot; changes nothing. Each connection becomes decrease-only.</li>
+<li>It publishes <code>billing.company_closed</code> (ruled by delegation, 5 November 2026, for the owner&#39;s confirmation). Channels carries out each live connection&#39;s stop choice: &quot;send zero&quot; sends zero to every linked listing and waits for each to be confirmed; &quot;leave the figures&quot; changes nothing. Each connection becomes decrease-only.</li>
 <li>The closing notice goes to every Owner, the billing contact and the stock contact, with the file of last figures, the export link and the erasure date.</li>
 <li><strong>The operator checks</strong> in the console that every connection shows decrease-only and every zero chosen is confirmed. An unconfirmed zero is settled by <a href="../../channel-connectors/spec/#5-retries-and-outcomes">ADR-004&#39;s rule for unknown writes</a>, never by resending blind.</li>
 <li><strong>30 days after closing,</strong> with no payment processing, erasure runs: Channels disconnects every account, then <a href="../erase-a-company/">Erase a company</a>.</li>
@@ -97,7 +97,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <h2 id="steps-reopening">Steps: reopening</h2>
 <ol>
 <li><strong>The Owner pays</strong> on the billing page: the open invoice, or a new subscription through Checkout if the company cancelled or never paid.</li>
-<li>The company is active on the next request and its erasure date is cancelled. Billing publishes <code>company.reopened</code>; Channels returns every account to shadow.</li>
+<li>The company is active on the next request and its erasure date is cancelled. Billing publishes <code>billing.company_reopened</code>; Channels returns every account to shadow.</li>
 <li><strong>The seller reads the closed-weeks screen:</strong> what was sent, the orders imported and shipped by hand, and what Vervoro could not see.</li>
 <li><strong>The seller records goods received</strong> while closed, by receiving or counting them.</li>
 <li><strong>Each account goes live again</strong> on the listing check: <a href="../take-a-company-live/">Take a company live</a>, steps 4–7.</li>

@@ -4,7 +4,7 @@
 | --- | --- |
 | **Decision** | [ADR-012: Billing and plans](../) |
 | **Procedures** | [RUNBOOK](../../runbooks/#adr-012-billing-and-plans) |
-| **Date** | 21 October 2026; Purchasing in every plan (2) by owner ruling, 27 October 2026; operator assignments and who edits plan rows, owner ruling of 22 October 2026; Profit in every plan until tiers are set (2.2), on the owner's approval of [ADR-016](../../profit/), 4 November 2026 |
+| **Date** | 21 October 2026; Purchasing in every plan (2) by owner ruling, 27 October 2026; operator assignments and who edits plan rows, owner ruling of 22 October 2026; Profit in every plan until tiers are set (2.2), on the owner's approval of [ADR-016](../../profit/), 4 November 2026; phase 5.10, PR 1 (plans, the trial, the payment method and going live: the plan review, the build and its review): who writes billing rows (1.1, How to check), the plan in the session pass (1.2), event names and `liveStops` (1.5), price lookup keys (2.1), the order count's own table (4.3, 21), the trial's days, its extension, companies from before billing and prices shown (5.1, 7.2), exempt companies (5.6), the dated job's notices (7.3, 11.2), cancelling while never paid (8), a bounce (11.4), the webhook, an unknown customer and the consumer's order (13.2–13.4), the business declaration (17.4), storage (21), ruled by delegation, 5 November 2026, for the owner's confirmation |
 | **For** | The developer and coding agents building it, and the person reviewing their work |
 
 The rules to build ADR-012 from: the Billing module, always on, outside the core, needing Access ([ADR-000 SPEC 4](../../system-architecture/spec/#4-the-foundation-and-the-launch-modules)). Rules another record owns are linked, not repeated. Where this page and the ADR disagree, the ADR wins and this page is fixed. Words are defined in the [map and glossary](../../guide/).
@@ -19,16 +19,16 @@ The rules to build ADR-012 from: the Billing module, always on, outside the core
 
 ## 1. Who does what
 
-1. **Billing writes** the company's billing fields in control (section 21), the plan rows, its idempotency records, the provider's event ids and its notices. No other module writes them.
-2. **Composition reads** the plan, the company's add-ons, its trial grant, its operator assignments and its state from control on each request, cached like every control read ([ADR-000 SPEC 3](../../system-architecture/spec/#3-assembly-per-company)). A module the plan lacks is unavailable with the reason "not in your plan".
+1. **Billing writes** the company's billing fields in control (section 21), the plan rows, its idempotency records, the provider's event ids and its notices. No other module writes them. Only Billing's migrations write plan rows (`control/0023-billing`, recorded in control's series as Billing's); sign-up starts a company's trial through Billing's `startTrial`, on the app's sign-up path, never the sign-in Worker; the kernel offers the control seam and Billing alone calls it. The operator's `company:add --exempt` marks an existing company exempt with the operator's own credential, logged in the runbook (ruled by delegation, 5 November 2026, for the owner's confirmation).
+2. **Composition reads** the plan, the company's add-ons, its trial grant, its operator assignments and its state from control on each request, cached like every control read ([ADR-000 SPEC 3](../../system-architecture/spec/#3-assembly-per-company)). The plan and its add-ons ride in the session pass, read in the pass refresh's existing control statement, so no request adds a statement and a plan change is seen within 60 seconds; with control down a request is never refused for want of the plan: it uses the pass's copy, or every module when none is held, and is logged (ruled by delegation, 5 November 2026, for the owner's confirmation). A module the plan lacks is unavailable with the reason "not in your plan".
 3. **Access stores the stock contact** as a company setting, and checks every billing action against the roles (section 19).
 4. **Channels keeps each connection's stop choice** ([ADR-004 SPEC 11](../../channel-connectors/spec/#11-shadow-mode-and-launch-gates)) and refuses going live until section 6 holds, reading billing readiness through composition.
-5. **Billing never calls Channels.** It publishes events: `company.restricted`, `company.closing_soon`, `company.closed`, `company.reopened`. Channels hears them: at closing it carries out each stop choice and sets decrease-only; at reopening it returns every account to shadow; for each notice it adds the block listing each connection's stop choice. Stock sync applies decrease-only ([ADR-008 SPEC 10](../../inventory-sync/spec/#10-listing-modes-and-stopping)).
+5. **Billing never calls Channels.** It publishes `billing.company_restricted`, `billing.company_closing_soon`, `billing.company_closed`, `billing.company_reopened` and `billing.company_erasing`; Billing defines the extension point `liveStops`, which Channels provides, so Billing can list each connection's stop choice (ruled by delegation, 5 November 2026, for the owner's confirmation). Channels hears them: at closing it carries out each stop choice and sets decrease-only; at reopening it returns every account to shadow; for each notice it adds the block listing each connection's stop choice. Stock sync applies decrease-only ([ADR-008 SPEC 10](../../inventory-sync/spec/#10-listing-modes-and-stopping)).
 6. **Erasure** is ADR-001's slice operation, run by the operations job ([Erase a company](../../runbooks/erase-a-company/)), after Channels disconnects every account.
 
 ## 2. Plans
 
-1. **A plan row holds:** id and name; its modules (the foundation and the connectors are in every plan); the order ceiling; the support level (reply target and channels); one provider price id per billing interval. No amount is ever in the row or the code.
+1. **A plan row holds:** id and name; its modules (the foundation and the connectors are in every plan); the order ceiling; the support level (reply target and channels); one provider price lookup key per billing interval (ruled by delegation, 5 November 2026, for the owner's confirmation). No amount is ever in the row or the code.
 2. **Three tiers and add-ons.** Purchasing ([ADR-015](../../purchasing/)) is a switchable module in every tier, so no plan lacks it (owner ruling, 27 October 2026). Profit ([ADR-016](../../profit/)) is in every plan until the tiers are set (owner, 4 November 2026; [ADR-016 SPEC 1.1](../../profit/spec/#1-what-profit-is)). Each tier includes the modules of the one below. The top tier differs from the middle one only by a higher ceiling and faster support. An add-on is one module sold on its own, and may need a minimum tier.
 3. **Monthly or yearly,** in pounds sterling.
 4. **Changing a row:** a change that adds something applies to everyone at once; one that takes something away applies to a paying company at its next renewal, after 30 days' notice.
@@ -48,7 +48,7 @@ This section owns [the rulebook's billing rule](../../rulebook/#7-money-and-coun
 
 1. **What counts:** an order dispatched from one of the seller's own warehouses, once, in the month of its first dispatch, however many parcels. Manual and business orders count.
 2. **What never counts:** orders a marketplace ships from its own stock, orders cancelled before dispatch, replacements, returns.
-3. **Counting** is one query a night per cell over the dispatch records the foundation already keeps. The sweeper upserts the full month-to-date count per company into control's usage rollups, so a rerun writes the same number. Nothing is added to the dispatch transaction. Archiving ([ADR-002](../../data-retention/)) does not touch the rollups.
+3. **Counting** is one query a night per cell over the dispatch records the foundation already keeps. The sweeper writes the month's dispatched-order count per company into a control table of its own, `billing_order_month`; the existing hourly marketplace-call rollup is not used (ruled by delegation, 5 November 2026, for the owner's confirmation). A rerun writes the same number. Nothing is added to the dispatch transaction. Archiving ([ADR-002](../../data-retention/)) does not touch the counts.
 4. **The measure** is the average of the last three complete calendar months, in the company's time zone.
 5. **At 80 % and 100 %** of the ceiling, on the month-to-date count, the owners are told in the app. Nothing else changes.
 6. **When the three-month average passes the ceiling** at a month's end, the owners are told the plan moves up a tier at the next renewal, with the date, at least 30 days ahead. If the average falls back first, the move is called off.
@@ -57,12 +57,12 @@ This section owns [the rulebook's billing rule](../../rulebook/#7-money-and-coun
 
 ## 5. The trial
 
-1. **21 days from sign-up,** within ADR-001's range. The operator can extend a trial once, with a reason the owners see.
+1. **21 days from sign-up,** within ADR-001's range. The day of sign-up is day 0; the trial ends at the end of its 21st day after it, in the company's time zone; days 14 and 30 count the same way (ruled by delegation, 5 November 2026, for the owner's confirmation). The operator can extend a trial once, by up to 21 more days, with a reason the owners see (ruled by delegation, 5 November 2026, for the owner's confirmation). A company that existed before billing begins its trial 21 days after billing is switched on (ruled by delegation, 5 November 2026, for the owner's confirmation). Prices are read from Stripe when shown, never stored (ruled by delegation, 5 November 2026, for the owner's confirmation).
 2. **It grants** the modules of the tier being tried, the middle tier unless the company chose another. It lives in a normal cell ([ADR-001 SPEC 8](../../database-architecture/spec/#trials)).
 3. **No payment details to start.** They are asked for at going live (section 6), or at any time before the trial ends.
 4. **Adding a payment method chooses a plan.** The subscription starts with the trial's end date and the first invoice is charged then, with no further step. Stripe's trial-ending email says so.
 5. **One trial per company.** When a new company connects a marketplace account that was connected before, the operator is alerted. No trace of an erased company is kept to police trials.
-6. **Demo companies** have no subscription.
+6. **Exempt companies:** a company marked exempt (canary, soak, drill, demo) has no subscription; its billing page says billing does not apply, and adding a payment method is refused. A company without a billing row reads as a trial and alerts the operator (ruled by delegation, 5 November 2026, for the owner's confirmation).
 
 ## 6. Going live
 
@@ -73,8 +73,8 @@ This section owns [the rulebook's billing rule](../../rulebook/#7-money-and-coun
 ## 7. Company states
 
 1. **Control keeps, per company:** when the trial ends, whether it has ever paid, when its oldest unpaid invoice first failed, whether a payment is processing, when its cancellation takes effect, when it closed, any pause of its closing date, and when a complimentary plan ends.
-2. **One pure function** of those dates and the current time returns the state. Composition reads it like the plan. The provider's own statuses are inputs, never the state.
-3. **Jobs run only on a date that must act:** carrying out the stop choices at closing, and erasure. Nothing else moves a company.
+2. **One pure function** of those dates and the current time returns the state. Days are counted as the trial's are (section 5.1): from day 0, each ending at the local midnight after it, in the company's time zone (ruled by delegation, 5 November 2026, for the owner's confirmation). Composition reads it like the plan. The provider's own statuses are inputs, never the state.
+3. **Jobs run only on a date that must act:** carrying out the stop choices at closing, and erasure. Nothing else moves a company. The dated job sends the notices of section 11 on the dates that act; the state stays computed (ruled by delegation, 5 November 2026, for the owner's confirmation).
 
 | State | When | How it leaves |
 | --- | --- | --- |
@@ -104,7 +104,7 @@ This section owns [the rulebook's billing rule](../../rulebook/#7-money-and-coun
 | **Accountant** | Read, reports, export without buyer data, Vervoro's invoices | Read, export without buyer data, Vervoro's invoices |
 | **Staff** | Read | Read |
 
-"The stock path" is ADR-010's rows for stock and orders. Everything else is refused with section 3.4's reason.
+"The stock path" is ADR-010's rows for stock and orders. Everything else is refused with section 3.4's reason. Cancel applies to a paid subscription; a company that never paid simply lets its trial lapse (ruled by delegation, 5 November 2026, for the owner's confirmation).
 
 ## 9. Closing a company
 
@@ -133,7 +133,7 @@ Procedure: [Close and reopen a company for non-payment](../../runbooks/close-and
 ## 11. Notices
 
 1. **Stripe sends** its own payment emails: trial ending, payment failed, card expiring, and the notices Bacs rules require.
-2. **Vervoro sends these,** because only Vervoro knows the stop choices and the operator's assignments:
+2. **Vervoro sends these,** because only Vervoro knows the stop choices and the operator's assignments, from the dated job on the dates that act (section 7.3; ruled by delegation, 5 November 2026, for the owner's confirmation):
 
 | When | What it says |
 | --- | --- |
@@ -144,7 +144,7 @@ Procedure: [Close and reopen a company for non-payment](../../runbooks/close-and
 | Closing | What each choice did; that no listing will rise again; a file of the last figure sent to each listing, ready to upload to the marketplace by hand; the export link; the erasure date; how to reopen |
 
 3. **Who gets them:** every Owner, the billing contact and the stock contact, by email, with a banner for Owners and Admins. Dates are always named, never only a number of days.
-4. **A bounced notice** puts the banner on every user and alerts the operator once.
+4. **A bounced notice** puts the banner on every user and alerts the operator once. A notice bounces when the mail provider refuses the send (ruled by delegation, 5 November 2026, for the owner's confirmation).
 
 ## 12. Payment
 
@@ -164,9 +164,9 @@ Procedure: [Close and reopen a company for non-payment](../../runbooks/close-and
 ## 13. Calls to and events from Stripe
 
 1. **Calls follow the egress pattern** ([ADR-000 SPEC 7](../../system-architecture/spec/#7-the-egress-gate)): the intent is recorded in control with an idempotency key and the call made after commit with that key, so a retry never charges twice.
-2. **Verify before any read.** The `Stripe-Signature` header is checked with the endpoint's secret within Stripe's 5-minute tolerance; a failure is refused.
-3. **Queue a minimal message** (event id, type, object id) and answer 2xx at once.
-4. **The consumer** records the event id in control, so a second delivery does nothing, then fetches the object's current state from Stripe and sets the dates from it, because events arrive out of order.
+2. **Verify before any read.** The webhook is an endpoint of the app, as the marketplaces' notice endpoint is ([ADR-004 SPEC 8](../../channel-connectors/spec/#8-notices-in)): it checks the signature, reads no database and queues ids only (ruled by delegation, 5 November 2026, for the owner's confirmation). The `Stripe-Signature` header is checked with the endpoint's secret within Stripe's 5-minute tolerance; a failure is refused.
+3. **Queue a minimal message** (event id, type, object id) and answer 2xx at once. An event naming a customer Vervoro does not know is answered 2xx and logged by event id only (ruled by delegation, 5 November 2026, for the owner's confirmation).
+4. **The consumer** fetches the current object from Stripe outside any transaction, then records the event id in control in the same transaction that sets the dates from it, so a second delivery does nothing and a failed fetch loses nothing; events arrive out of order (ruled by delegation, 5 November 2026, for the owner's confirmation).
 5. **Before closing or erasing,** the dated job re-reads the company's subscription and invoices from Stripe, so a lost "payment succeeded" event never closes or erases a company that paid.
 6. **A failed queue delivery** goes to the dead-letter queue, which alerts the operator ([Replay dead letters](../../runbooks/replay-dead-letters/)).
 
@@ -208,7 +208,7 @@ Procedure: [Work a failed payment](../../runbooks/work-a-failed-payment/).
 1. **Stripe issues** every invoice and credit note in Vervoro's name, in one sequence for the whole account with one prefix, never reset or reused.
 2. **Content:** what a UK VAT invoice must show: number, tax point and issue date, Vervoro's name, address and VAT number, the company's name and address (and VAT number where it has one), what was supplied, the rate and the amounts.
 3. **Issued when Stripe finalises it,** within the 30 days HMRC allows; never edited after issue, corrected by a credit note and, where needed, a new invoice.
-4. **At launch, UK businesses only,** charged UK VAT at the standard rate. Sign-up asks the company to declare it is a business; consumers are not accepted.
+4. **At launch, UK businesses only,** charged UK VAT at the standard rate. The company declares it is a business on the plan step, before the first payment method is added, recorded once (ruled by delegation, 5 November 2026, for the owner's confirmation); consumers are not accepted.
 5. *Later:* **businesses outside the UK.** No UK VAT on the part used abroad; the customer accounts for it under the reverse charge, and the invoice says "reverse charge" with the customer's VAT number. Checkout is refused until that number is verified (VIES for EU customers), because Stripe's tax calculation applies the reverse charge to any well-formed number. Vervoro does not register in the EU. A company with any warehouse in the UK pays UK VAT on the UK share the accountant's apportionment sets (use and enjoyment).
 
 ## 18. Records kept
@@ -236,12 +236,12 @@ All in control, written by Billing ([ADR-001 SPEC 7](../../database-architecture
 | Data | Holds |
 | --- | --- |
 | Plans | Section 2's rows and the add-on catalogue |
-| Company billing | Plan, add-ons, interval, Stripe customer and subscription ids, section 7.1's dates, billing contact |
+| Company billing | Plan, add-ons, interval, Stripe customer and subscription ids, section 7.1's dates, billing contact; the exempt mark and why (section 5.6) and when the business declaration was made (section 17.4) (ruled by delegation, 5 November 2026, for the owner's confirmation) |
 | Operator assignments | Company, the plan or add-on, complimentary or charged from renewal, until when (or none), the reason, the operator, when assigned, when the owners were told, any withdrawal or decline |
 | Payment method summary | Brand, last four digits, expiry; mandate status |
-| Billing intents | Each call to Stripe with its idempotency key and outcome |
-| Provider events | Event ids seen, for idempotency |
-| Usage rollups | Month-to-date dispatched orders per company (control's existing table) |
+| Billing intents | Each call to Stripe with its idempotency key and outcome; kept 30 days after settled ([ADR-002 SPEC 2](../../data-retention/spec/#2-the-retention-schedule); ruled by delegation, 5 November 2026, for the owner's confirmation) |
+| Provider events | Event ids seen, for idempotency; kept 30 days after received (ruled by delegation, 5 November 2026, for the owner's confirmation) |
+| Order counts (`billing_order_month`) | Month-to-date dispatched orders per company, a control table of Billing's own; not the hourly marketplace-call rollup (ruled by delegation, 5 November 2026, for the owner's confirmation) |
 
 ## 22. Constraints
 
@@ -288,12 +288,12 @@ Checked against official sources on 18 October 2026.
 For someone reviewing code an AI wrote. Each line says where to look.
 
 - [ ] **Module:** Billing's manifest says always on and needs Access only; it imports no other module.
-- [ ] **One writer:** only Billing's code writes company billing fields and operator assignments in control, and only Billing's migrations write plan rows.
+- [ ] **One writer:** only Billing's code writes company billing fields and operator assignments in control, and only Billing's migrations write plan rows; the operator's `company:add --exempt` marks an existing company exempt with the operator's own credential, logged in the runbook (ruled by delegation, 5 November 2026, for the owner's confirmation).
 - [ ] **No surprise charge:** the operator console's billing commands are the three levers of section 19; the only Stripe change they make is adding a charged assignment at a renewal at least 30 days after the notice, and never after a decline.
-- [ ] **No price:** no amount in the plan rows, seeds or code; only provider price ids.
+- [ ] **No price:** no amount in the plan rows, seeds or code; only provider price lookup keys (ruled by delegation, 5 November 2026, for the owner's confirmation).
 - [ ] **State:** one pure function of dates and now; no stored status column; no job that changes state.
 - [ ] **Never refused:** stock and order commands have no billing check; the only plan refusal is in composition's module check.
-- [ ] **Events, not calls:** closing and reopening reach Channels only through `company.closed` and `company.reopened`.
+- [ ] **Events, not calls:** closing and reopening reach Channels only through `billing.company_closed` and `billing.company_reopened` (ruled by delegation, 5 November 2026, for the owner's confirmation).
 - [ ] **Decrease-only:** Stock sync's send path refuses a figure above B in that mode, in one place.
 - [ ] **Zero:** the only path that sends zero reads a stored "send zero" choice.
 - [ ] **Dated jobs:** closing and erasure re-read Stripe before acting, and erasure waits on a processing payment.
