@@ -10,7 +10,7 @@
 ## Steps: closing
 
 1. **The closing job** re-reads the company's subscription and invoices from Stripe. If it has paid, or a payment is processing, it stops.
-2. It publishes `company.closed`. Channels carries out each live connection's stop choice: "send zero" sends zero to every linked listing and waits for each to be confirmed; "leave the figures" changes nothing. Each connection becomes decrease-only.
+2. It publishes `billing.company_closed` (ruled by delegation, 5 November 2026, for the owner's confirmation). Channels carries out each live connection's stop choice: "send zero" sends zero to every linked listing and waits for each to be confirmed; "leave the figures" changes nothing. Each connection becomes decrease-only.
 3. The closing notice goes to every Owner, the billing contact and the stock contact, with the file of last figures, the export link and the erasure date.
 4. **The operator checks** in the console that every connection shows decrease-only and every zero chosen is confirmed. An unconfirmed zero is settled by [ADR-004's rule for unknown writes](../../channel-connectors/spec/#5-retries-and-outcomes), never by resending blind.
 5. **30 days after closing,** with no payment processing, erasure runs: Channels disconnects every account, then [Erase a company](../erase-a-company/).
@@ -18,7 +18,7 @@
 ## Steps: reopening
 
 1. **The Owner pays** on the billing page: the open invoice, or a new subscription through Checkout if the company cancelled or never paid.
-2. The company is active on the next request and its erasure date is cancelled. Billing publishes `company.reopened`; Channels returns every account to shadow.
+2. The company is active on the next request and its erasure date is cancelled. Billing publishes `billing.company_reopened`; Channels returns every account to shadow.
 3. **The seller reads the closed-weeks screen:** what was sent, the orders imported and shipped by hand, and what Vervoro could not see.
 4. **The seller records goods received** while closed, by receiving or counting them.
 5. **Each account goes live again** on the listing check: [Take a company live](../take-a-company-live/), steps 4–7.

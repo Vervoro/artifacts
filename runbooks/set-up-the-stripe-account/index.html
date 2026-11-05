@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Runbook: Set up the Stripe account</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono&display=swap">
+<style>
+:root {
+  --bg: #f6f6f8; --surface: #ffffff; --sunken: #ededf1; --text: #16161a; --muted: #5c5c66; --border: #e0e0e6;
+  --accent: #4338ca; --accent-soft: #eef0ff; --edge: #8a8a96; --tint: #f0f0f4;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #111114; --surface: #1a1a1f; --sunken: #23232a; --text: #ececf1; --muted: #a2a2ad; --border: #2d2d35;
+  --accent: #a5b4fc; --accent-soft: #23264a; --edge: #74747f; --tint: #202027; color-scheme: dark; } }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 var(--sans); }
+main { max-width: 860px; margin: 0 auto; padding: 48px max(20px, env(safe-area-inset-left)) 80px; }
+header.site { max-width: 860px; margin: 0 auto; padding: 20px max(20px, env(safe-area-inset-left)) 0; font-size: 14px; }
+header.site a { color: var(--muted); text-decoration: none; }
+header.site a:hover { color: var(--accent); }
+h1, h2, h3 { line-height: 1.25; text-wrap: balance; }
+h1 { font-size: clamp(28px, 4vw, 38px); letter-spacing: -0.02em; margin: 0 0 20px; }
+h2 { font-size: 23px; margin: 48px 0 12px; padding-top: 20px; border-top: 1px solid var(--border); }
+h3 { font-size: 18px; margin: 32px 0 8px; }
+p, li { max-width: 72ch; }
+a { color: var(--accent); }
+code { font-family: var(--mono); font-size: 0.86em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--sunken); padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 13.5px; line-height: 1.5; }
+pre code { background: none; padding: 0; overflow-wrap: normal; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 16px 0; background: var(--surface); }
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+.table-wrap table { margin: 0; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+th { background: var(--sunken); font-weight: 600; font-size: 13px; color: var(--muted); }
+tr:last-child td { border-bottom: none; }
+ul, ol { padding-left: 22px; }
+li + li { margin-top: 4px; }
+figure { margin: 20px 0; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; }
+svg.diagram { display: block; width: 100%; min-width: 640px; height: auto; font-family: var(--sans); }
+svg .ink { fill: var(--text); } svg .quiet { fill: var(--muted); }
+svg .edge { stroke: var(--edge); } svg .edge-fill { fill: var(--edge); }
+svg .accent { stroke: var(--accent); } svg .accent-fill { fill: var(--accent); }
+svg .box { fill: none; stroke: var(--edge); stroke-width: 1.25; }
+svg .box-main { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+svg .band { fill: var(--tint); stroke: var(--edge); stroke-width: 1.25; }
+.cards { list-style: none; padding: 0; display: grid; gap: 12px; }
+.cards a { display: block; padding: 18px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; text-decoration: none; color: var(--text); }
+.cards a:hover, .cards a:focus-visible { border-color: var(--accent); outline: none; }
+.cards.sub { margin: 12px 0 0 24px; padding-left: 16px; border-left: 2px solid var(--border); }
+.parts { margin: 6px 0 0 20px; font-size: 14px; color: var(--muted); } .cards .parts a { display: inline; padding: 0; background: none; border: none; border-radius: 0; color: var(--accent); font-weight: 600; text-decoration: none; } .cards .parts a:hover { text-decoration: underline; }
+.cards b { display: block; font-size: 17px; } .cards span { color: var(--muted); font-size: 14px; }
+.order li { margin-top: 10px; } .order span { color: var(--muted); font-size: 14px; }
+footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header class="site"><a href="../../">← Vervoro artifacts</a> / <a href="../">Runbooks</a></header>
+<main>
+<h1 id="runbook-set-up-the-stripe-account">Runbook: Set up the Stripe account</h1>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Built</strong></td>
+<td>At launch (ruled by delegation, 5 November 2026, for the owner&#39;s confirmation)</td>
+</tr>
+<tr>
+<td><strong>Record</strong></td>
+<td><a href="../../billing-and-plans/">ADR-012</a>, rules in <a href="../../billing-and-plans/spec/#11-notices">SPEC 11</a>, <a href="../../billing-and-plans/spec/#12-payment">SPEC 12</a>, <a href="../../billing-and-plans/spec/#15-failed-payments">SPEC 15</a>, <a href="../../billing-and-plans/spec/#17-vervoros-invoices-and-vat">SPEC 17</a> and <a href="../../billing-and-plans/spec/#22-constraints">SPEC 22</a></td>
+</tr>
+<tr>
+<td><strong>Who runs it</strong></td>
+<td>The owner, once for each Stripe account (the sandbox staging uses, then the live account), before the first company subscribes there; again after any change to these settings</td>
+</tr>
+<tr>
+<td><strong>Role or credential</strong></td>
+<td>Stripe&#39;s dashboard with the owner&#39;s own login and second factor. The app&#39;s Worker configuration for each environment, changed through a reviewed deploy</td>
+</tr>
+</tbody></table></div>
+<p>Vervoro&#39;s code relies on these account settings and never makes them itself: Stripe holds them. Every step names what to check afterwards. Run them in order on the sandbox first.</p>
+<h2 id="steps">Steps</h2>
+<ol>
+<li><strong>Failed payments end in &quot;unpaid&quot;.</strong> In Stripe&#39;s billing settings for failed payments, choose to mark the subscription unpaid after the last retry, never to cancel it (<a href="../../billing-and-plans/spec/#15-failed-payments">SPEC 15.3</a>).
+Verify: the setting reads &quot;mark the subscription as unpaid&quot;; in the sandbox, a test subscription whose retries all fail shows the status <code>unpaid</code>, and its open invoice can still be paid.</li>
+<li><strong>Retries.</strong> Smart Retries over 2 weeks for cards; Direct Debit (Bacs) retries follow Stripe&#39;s own fixed limits (2 retries over 30 days), so check they are on, under local payment methods (<a href="../../billing-and-plans/spec/#15-failed-payments">SPEC 15.1</a>).
+Verify: the card retry schedule reads Smart Retries within 2 weeks, and retries for Bacs Direct Debit are on under local payment methods.</li>
+<li><strong>Stripe&#39;s own emails.</strong> Turn on the customer emails for a trial ending, a failed payment, a card expiring, and a payment that needs authentication (<a href="../../billing-and-plans/spec/#11-notices">SPEC 11.1</a>). If a kind is not offered in the email settings, tell the operator: Vervoro&#39;s own notices then cover it (<a href="../../billing-and-plans/spec/#11-notices">SPEC 11.2</a>).
+Verify: the dashboard&#39;s own list of customer emails shows each kind it offers on; any of the four it does not offer is reported to the operator.</li>
+<li><strong>The customer portal.</strong> Turn the portal on for changing the payment method and billing details and reading invoices. Turn cancelling off (it is on by default); leave plan switching off (it is off by default) (<a href="../../billing-and-plans/spec/#12-payment">SPEC 12</a>).
+Verify: a sandbox customer&#39;s portal shows the payment method, billing details and invoices, and offers no plan change and no cancel.</li>
+<li><strong>Invoices in Vervoro&#39;s name.</strong> Set Vervoro&#39;s registered name, address and VAT number on invoices, with one invoice prefix and numbering across the whole account, never reset (<a href="../../billing-and-plans/spec/#17-vervoros-invoices-and-vat">SPEC 17.1, 17.2</a>).
+Verify: a sandbox invoice shows Vervoro&#39;s name, address and VAT number, and its number carries the prefix and follows the account&#39;s last.</li>
+<li><strong>The VAT rate.</strong> Create one tax rate: VAT, GB, 20 %, exclusive (not included in the price). A tax rate&#39;s percentage and country can&#39;t be changed after it is created: a wrong one is archived and a new one made. Set its id (<code>txr_…</code>) as the Worker variable <code>STRIPE_VAT_RATE</code> in that environment&#39;s configuration, and deploy (<a href="../../billing-and-plans/spec/#17-vervoros-invoices-and-vat">SPEC 17.4</a>). Until it is set, subscribing is refused and the operator alerted; no invoice is ever made without VAT.
+Verify: Stripe shows the rate active, 20 %, exclusive, jurisdiction GB; after the deploy, a sandbox subscription&#39;s first invoice adds 20 % VAT on top of the plan&#39;s price.</li>
+</ol>
+<h2 id="verify">Verify</h2>
+<ul>
+<li>Every step&#39;s own check has passed on this account.</li>
+<li>In the sandbox, one test company runs end to end: Checkout, a subscription at the trial&#39;s end with VAT on its invoice, a failed payment retried then left unpaid, and the portal offering no plan change or cancel.</li>
+</ul>
+<h2 id="if-it-stops-halfway">If it stops halfway</h2>
+<p>Each step is a setting that can be set again; none charges anyone. Until step 6&#39;s variable is deployed, subscribing is refused, so no seller is charged without VAT. Finish the steps before telling the operator the account is ready.</p>
+
+<footer>Vervoro</footer>
+</main>
+</body>
+</html>

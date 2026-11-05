@@ -152,6 +152,7 @@ const docs: Doc[] = [
     ["work-a-failed-payment", "Work a failed payment"],
     ["close-and-reopen-a-company", "Close and reopen a company for non-payment"],
     ["refund-a-seller", "Refund a seller"],
+    ["set-up-the-stripe-account", "Set up the Stripe account"],
   ].map(([dir, title]) => ({ dir: `runbooks/${dir}`, partOf: "runbooks", title: `Runbook: ${title}`, blurb: "" })),
   { dir: "database-architecture", title: "ADR-001: Multi-tenant database architecture", blurb: "Control database, shared-table customer databases with forced row-level security, a wrong-database check on every transaction, dedicated databases, trials as a state. Proposed 17 October 2026, revised 18 October 2026; split into ADR, SPEC and RUNBOOK 20 October 2026. Accepted 21 October 2026.", links: [{ label: "SPEC", href: "database-architecture/spec/" }, { label: "RUNBOOK", href: "runbooks/#adr-001-multi-tenant-database-architecture" }] },
   { dir: "database-architecture/spec", partOf: "database-architecture", title: "ADR-001 SPEC: Multi-tenant database architecture", blurb: "The rules to build ADR-001 from, the tests that prove them, and a checklist for reviewing the code." },

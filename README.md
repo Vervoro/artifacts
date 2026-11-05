@@ -59,6 +59,7 @@ Architecture decisions and plans, published with GitHub Pages.
   - [Runbook: Work a failed payment](runbooks/work-a-failed-payment/README.md)
   - [Runbook: Close and reopen a company for non-payment](runbooks/close-and-reopen-a-company/README.md)
   - [Runbook: Refund a seller](runbooks/refund-a-seller/README.md)
+  - [Runbook: Set up the Stripe account](runbooks/set-up-the-stripe-account/README.md)
 - [ADR-001: Multi-tenant database architecture](database-architecture/README.md)
   - [ADR-001 SPEC: Multi-tenant database architecture](database-architecture/spec/README.md)
 - [ADR-002: Data retention and archiving](data-retention/README.md)
