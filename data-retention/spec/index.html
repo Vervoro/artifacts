@@ -79,7 +79,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td><strong>Date</strong></td>
-<td>21 October 2026; suppliers and their contacts added to the first row of the schedule (2) by owner ruling, 27 October 2026 (<a href="../../purchasing/">ADR-015</a>); amended by owner rulings of 25 October 2026: <code>audit_log</code> kept 13 months, never archived, a whole table&#39;s month deleted in batches (1, 3); and SPEC batch 3: an expired invitation&#39;s member-row address (2); Inventory&#39;s command keys named as operational state (2), owner ruling, 29 October 2026; control&#39;s platform rows linked to ADR-001 (2), ruled by delegation, 2 November 2026, confirmed by the owner, 4 November 2026; Stock sync&#39;s engine as built (phase 5.7, PR 1): stock writes&#39; daily count per account (2), ruled by delegation, 2 November 2026, confirmed by the owner, 4 November 2026; going live as built (phase 5.7, PR 2): launch gate days, Stock sync&#39;s exposure rows and Channels&#39; order timings (2), ruled by delegation, 3 November 2026, confirmed by the owner, 4 November 2026; Fulfilment&#39;s pick and pack (phase 5.8, PR 1): its command keys and floor history (2), ruled by delegation, 4 November 2026, confirmed by the owner, 4 November 2026; Fulfilment&#39;s ship (phase 5.8, PR 2): shipments and dispatch rows, Channels&#39; sent boxes, lot confirmations (2), ruled by delegation, 4 November 2026, confirmed by the owner, 4 November 2026; returns as built (phase 5.8, PR 3): Fulfilment&#39;s returns and inspections (2), ruled by delegation, 4 November 2026, confirmed by the owner, 4 November 2026; Profit&#39;s retention rows (2), on the owner&#39;s approval of <a href="../../profit/">ADR-016</a>, 4 November 2026; Invoicing&#39;s VAT record (phase 5.9, PR 1): its order rows, flags, exports and account answers (2), ruled by delegation, 4 November 2026, for the owner&#39;s confirmation</td>
+<td>21 October 2026; suppliers and their contacts added to the first row of the schedule (2) by owner ruling, 27 October 2026 (<a href="../../purchasing/">ADR-015</a>); amended by owner rulings of 25 October 2026: <code>audit_log</code> kept 13 months, never archived, a whole table&#39;s month deleted in batches (1, 3); and SPEC batch 3: an expired invitation&#39;s member-row address (2); Inventory&#39;s command keys named as operational state (2), owner ruling, 29 October 2026; control&#39;s platform rows linked to ADR-001 (2), ruled by delegation, 2 November 2026, confirmed by the owner, 4 November 2026; Stock sync&#39;s engine as built (phase 5.7, PR 1): stock writes&#39; daily count per account (2), ruled by delegation, 2 November 2026, confirmed by the owner, 4 November 2026; going live as built (phase 5.7, PR 2): launch gate days, Stock sync&#39;s exposure rows and Channels&#39; order timings (2), ruled by delegation, 3 November 2026, confirmed by the owner, 4 November 2026; Fulfilment&#39;s pick and pack (phase 5.8, PR 1): its command keys and floor history (2), ruled by delegation, 4 November 2026, confirmed by the owner, 4 November 2026; Fulfilment&#39;s ship (phase 5.8, PR 2): shipments and dispatch rows, Channels&#39; sent boxes, lot confirmations (2), ruled by delegation, 4 November 2026, confirmed by the owner, 4 November 2026; returns as built (phase 5.8, PR 3): Fulfilment&#39;s returns and inspections (2), ruled by delegation, 4 November 2026, confirmed by the owner, 4 November 2026; Profit&#39;s retention rows (2), on the owner&#39;s approval of <a href="../../profit/">ADR-016</a>, 4 November 2026; Invoicing&#39;s VAT record (phase 5.9, PR 1): its order rows, flags, exports and account answers (2), ruled by delegation, 4 November 2026, for the owner&#39;s confirmation; phase 5.11, Retention: the Later rows (0), the scheduled run by partition bounds (1.2, How to check), deletions in batches, current state, outbox notes and the rows for growing tables (2), ruled by delegation, 6 November 2026, for the owner&#39;s confirmation</td>
 </tr>
 <tr>
 <td><strong>For</strong></td>
@@ -107,11 +107,31 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>The first archived month reaches 7 years after its end</td>
 <td><a href="#7-deleting-a-month">7</a></td>
 </tr>
+<tr>
+<td>Control&#39;s usage rollups after 35 days, and pool rows after 30 days (decision 3: a drift from section 2&#39;s control rows, flagged for the owner; ruled by delegation, 6 November 2026, for the owner&#39;s confirmation)</td>
+<td>1,000 sellers, or the first rollup 13 months old, whichever comes first</td>
+<td><a href="#2-the-retention-schedule">2</a></td>
+</tr>
+<tr>
+<td>Deleting plan assignments and the operator&#39;s reasons (ruled by delegation, 6 November 2026, for the owner&#39;s confirmation)</td>
+<td>The first assignment ended 6 years ago</td>
+<td><a href="#2-the-retention-schedule">2</a></td>
+</tr>
+<tr>
+<td>Deleting grants, alerts and billing notices 13 months after they end or are sent, and <code>migration_summary</code> rows after 13 months (ruled by delegation, 6 November 2026, for the owner&#39;s confirmation)</td>
+<td>The first such row is 13 months old</td>
+<td><a href="#2-the-retention-schedule">2</a></td>
+</tr>
+<tr>
+<td>Receipts, transfers, on-hand imports and refunds, with their lines, archived with their month (ruled by delegation, 6 November 2026, for the owner&#39;s confirmation)</td>
+<td>With the archiver, above</td>
+<td><a href="#2-the-retention-schedule">2</a>, <a href="#3-archiving-a-month">3</a></td>
+</tr>
 </tbody></table></div>
 <h2 id="1-who-does-what">1. Who does what</h2>
 <ol>
 <li><strong>The archiver</strong> exports, verifies and catalogues a month, and writes the stock checkpoints through Inventory&#39;s rules (<a href="../../stock-ledger/spec/#14-the-nightly-check-and-checkpoints">ADR-006 SPEC 14</a>). It reads through parent tables only, never a partition (<a href="../../database-architecture/spec/#the-slice-operation">ADR-001 SPEC 10</a>).</li>
-<li><strong>The monthly migration run</strong> detaches and drops a month of an archived partitioned table (a whole table&#39;s month is deleted by the archiver instead, <a href="#3-archiving-a-month">section 3</a>), drops a month of <code>event_log</code> once its newest row is 90 days old, and a month of <code>audit_log</code> once its newest row is 13 months old, as the owner role (<a href="../../database-architecture/spec/#12-operations">ADR-001 SPEC 12</a>).</li>
+<li><strong>The scheduled migration run</strong> (<a href="../../database-architecture/spec/#12-operations">ADR-001 SPEC 12.6</a>) detaches and drops a month of an archived partitioned table (a whole table&#39;s month is deleted by the archiver instead, <a href="#3-archiving-a-month">section 3</a>), drops a month of <code>event_log</code> once its partition&#39;s upper bound is 90 days past, and of <code>audit_log</code> once it is 13 months past, as the owner role; it never reads their rows (ruled by delegation, 6 November 2026, for the owner&#39;s confirmation).</li>
 </ol>
 <h2 id="2-the-retention-schedule">2. The retention schedule</h2>
 <div class="table-wrap"><table>
@@ -134,6 +154,18 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>24 months</td>
 <td>Until 7 years after the month ends</td>
 <td>Deleted</td>
+</tr>
+<tr>
+<td>Receipts, transfers and on-hand imports, with their lines, and refunds</td>
+<td>24 months, as closed orders</td>
+<td>Until 7 years after the month ends, with their month (<em>Later</em>, with the archiver: section 0)</td>
+<td>Deleted (ruled by delegation, 6 November 2026, for the owner&#39;s confirmation)</td>
+</tr>
+<tr>
+<td>Reservations, demand, pick claims, listing decisions and links</td>
+<td>While current</td>
+<td>Never</td>
+<td>Deleted when no longer current, and with the company (ruled by delegation, 6 November 2026, for the owner&#39;s confirmation)</td>
 </tr>
 <tr>
 <td>Sold day rows (<a href="../../order-ingestion/spec/#23-storage">ADR-007 SPEC 23</a>)</td>
@@ -208,10 +240,16 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Dropped</td>
 </tr>
 <tr>
-<td>Outbound sends, sync attempts, operational state (including Inventory&#39;s <code>inventory_command</code> and Fulfilment&#39;s <code>fulfilment_command</code> keys, <a href="../../stock-ledger/spec/#12-the-lock-keys-and-the-sequence">ADR-006 SPEC 12.4</a>, <a href="../../fulfilment/spec/#1-the-module">ADR-014 SPEC 1.3</a>)</td>
+<td>Outbound sends, sync attempts (Stock sync&#39;s attempts and Channels&#39; sends), operational state (including Inventory&#39;s <code>inventory_command</code> and Fulfilment&#39;s <code>fulfilment_command</code> keys, <a href="../../stock-ledger/spec/#12-the-lock-keys-and-the-sequence">ADR-006 SPEC 12.4</a>, <a href="../../fulfilment/spec/#1-the-module">ADR-014 SPEC 1.3</a>)</td>
 <td>30 days</td>
 <td>Never</td>
-<td>Dropped</td>
+<td>Deleted in batches (ruled by delegation, 6 November 2026, for the owner&#39;s confirmation)</td>
+</tr>
+<tr>
+<td>Current operational state, one row per account, listing or job</td>
+<td>While current</td>
+<td>Never</td>
+<td>Kept while current (ruled by delegation, 6 November 2026, for the owner&#39;s confirmation)</td>
 </tr>
 <tr>
 <td>Fulfilment&#39;s pick tasks, packings, put-backs, shipments, returns and inspections, with their lines; Orders&#39; per-box dispatch rows (<a href="../../fulfilment/spec/#1-the-module">ADR-014 SPEC 1.2</a>)</td>
@@ -263,9 +301,33 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 </tr>
 <tr>
 <td>Outbox notes every handler has received (<a href="../../database-architecture/spec/#the-outbox">ADR-001 SPEC 9</a>)</td>
-<td>30 days after the last receipt</td>
+<td>30 days after the last receipt: a note goes once every receipt it has was delivered 30 days ago; a handler added in a later release catches up on the notes still kept (ruled by delegation, 6 November 2026, for the owner&#39;s confirmation)</td>
 <td>Never</td>
 <td>Deleted (owner ruling, 21 October 2026)</td>
+</tr>
+<tr>
+<td>Grants, alerts and billing notices</td>
+<td>13 months after they end or are sent (<em>Later</em>: section 0)</td>
+<td>Never</td>
+<td>Deleted (ruled by delegation, 6 November 2026, for the owner&#39;s confirmation)</td>
+</tr>
+<tr>
+<td><code>migration_summary</code>, in control</td>
+<td>13 months (<em>Later</em>: section 0)</td>
+<td>Never</td>
+<td>Deleted (ruled by delegation, 6 November 2026, for the owner&#39;s confirmation)</td>
+</tr>
+<tr>
+<td>Operator grants</td>
+<td>As <a href="../../users-and-access/spec/#7-operator-access-to-a-company">ADR-010 SPEC 7</a> and <a href="../../sign-in/spec/#10-operators">ADR-013</a> say (ruled by delegation, 6 November 2026, for the owner&#39;s confirmation)</td>
+<td>Never</td>
+<td>As those records say</td>
+</tr>
+<tr>
+<td>The platform security log (<code>security_log</code>)</td>
+<td>As <a href="../../sign-in/spec/#12-security-events">ADR-013</a> and <a href="../../users-and-access/spec/#8-audit">ADR-010 SPEC 8</a> say: 12 months (ruled by delegation, 6 November 2026, for the owner&#39;s confirmation)</td>
+<td>Never</td>
+<td>Deleted</td>
 </tr>
 <tr>
 <td>Buyer personal data</td>
@@ -280,7 +342,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <td>Deleted with the company (owner delegation, 1 November 2026)</td>
 </tr>
 </tbody></table></div>
-<p>Control&#39;s platform rows are kept as <a href="../../database-architecture/spec/#7-control-database-and-routing">ADR-001 SPEC 7</a> says: notice-key rows not fetched 30 days after their last try; hourly usage rollups 35 days, then one row per account, day, operation and job for 13 months; pool rows 30 days (ruled by delegation, 2 November 2026; confirmed by the owner, 4 November 2026).</p>
+<p>Control&#39;s platform rows are kept as <a href="../../database-architecture/spec/#7-control-database-and-routing">ADR-001 SPEC 7</a> says: notice-key rows not fetched 30 days after their last try; hourly usage rollups 35 days, then one row per account, day, operation and job for 13 months; pool rows 30 days (ruled by delegation, 2 November 2026; confirmed by the owner, 4 November 2026). Deleting usage rollups and pool rows is <em>Later</em> (section 0) (decision 3: a drift from section 2&#39;s control rows, flagged for the owner; ruled by delegation, 6 November 2026, for the owner&#39;s confirmation).</p>
 <p>Every period applies while the company exists. A closed company is erased by <a href="../../billing-and-plans/spec/#16-cancellation-export-erasure-and-refunds">ADR-012</a>, archive included.</p>
 <h2 id="3-archiving-a-month">3. Archiving a month</h2>
 <ol>
@@ -408,7 +470,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
 <ul>
 <li><input disabled="" type="checkbox"> <strong>Later parts:</strong> no archiver, bucket or catalogue at launch; the deletions run from day one.</li>
 <li><input disabled="" type="checkbox"> <strong>Parent tables:</strong> the archiver&#39;s reads name parent tables, never a partition.</li>
-<li><input disabled="" type="checkbox"> <strong>Removal:</strong> only the monthly migration run detaches, and the archiver&#39;s batched delete runs, only after the catalogue query shows every company verified.</li>
+<li><input disabled="" type="checkbox"> <strong>Log months:</strong> the scheduled migration run drops <code>event_log</code> and <code>audit_log</code> months by their partition&#39;s upper bound, as the owner role, and never reads their rows (ruled by delegation, 6 November 2026, for the owner&#39;s confirmation).</li>
+<li><input disabled="" type="checkbox"> <strong>Removal:</strong> only the scheduled migration run detaches, and the archiver&#39;s batched delete runs, only after the catalogue query shows every company verified.</li>
 <li><input disabled="" type="checkbox"> <strong>Encryption:</strong> each file is encrypted with the company&#39;s data key before upload.</li>
 <li><input disabled="" type="checkbox"> <strong>Bucket:</strong> versioning or soft delete is on in its configuration; uploads never overwrite.</li>
 <li><input disabled="" type="checkbox"> <strong>Checkpoint:</strong> written through Inventory&#39;s code under the company&#39;s lock, not by the archiver directly.</li>
